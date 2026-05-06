@@ -313,6 +313,13 @@ fi
 #     comes up on its own port, with its own services. The user is
 #     responsible for knowing they have two products on one host.
 CASAOS_UNITS=$(systemctl list-unit-files --no-pager --no-legend 'casaos*.service' 2>/dev/null | awk '{print $1}' | grep -v '^$' || true)
+# If PowerLab is already installed AND CasaOS exists, the user clearly
+# already chose coexistence on a previous run — treat this run as
+# implicitly --allow-coexist so the in-UI updater (which calls
+# `install.sh --upgrade` without the flag) can still do its job.
+if [[ -n "$CASAOS_UNITS" ]] && [[ -f /etc/systemd/system/powerlab-gateway.service ]]; then
+  ALLOW_COEXIST=1
+fi
 if [[ -n "$CASAOS_UNITS" ]]; then
   echo ""
   echo "═══════════════════════════════════════════════════════════════════"
