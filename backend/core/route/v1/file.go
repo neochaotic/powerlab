@@ -87,21 +87,25 @@ var (
 func GetFilerContent(ctx echo.Context) error {
 	filePath := ctx.QueryParam("path")
 	if len(filePath) == 0 {
-		return ctx.JSON(common_err.CLIENT_ERROR, model.Result{
+		return ctx.JSON(http.StatusBadRequest, model.Result{
 			Success: common_err.INVALID_PARAMS,
-			Message: common_err.GetMsg(common_err.INVALID_PARAMS),
+			Message: "path query parameter is required",
 		})
 	}
 	if !file.Exists(filePath) {
-		return ctx.JSON(common_err.SERVICE_ERROR, model.Result{
+		// HTTP 404 instead of 500 — "file does not exist" is a
+		// CLIENT-shaped error, not a server failure. The UI's
+		// editor flow inspects status to decide between "create
+		// new" and "load existing"; 500 looked like a backend
+		// crash and broke that affordance.
+		return ctx.JSON(http.StatusNotFound, model.Result{
 			Success: common_err.FILE_DOES_NOT_EXIST,
-			Message: common_err.GetMsg(common_err.FILE_DOES_NOT_EXIST),
+			Message: fmt.Sprintf("file does not exist: %s", filePath),
 		})
 	}
-	// 文件读取任务是将文件内容读取到内存中。
 	info, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		return ctx.JSON(common_err.SERVICE_ERROR, model.Result{
+		return ctx.JSON(http.StatusInternalServerError, model.Result{
 			Success: common_err.FILE_READ_ERROR,
 			Message: common_err.GetMsg(common_err.FILE_READ_ERROR),
 			Data:    err.Error(),
@@ -510,6 +514,17 @@ func PostFileUpload(ctx echo.Context) error {
 	if len(path) == 0 {
 		logger.Error("path should not be empty")
 		return ctx.JSON(http.StatusBadRequest, model.Result{Success: common_err.INVALID_PARAMS, Message: common_err.GetMsg(common_err.INVALID_PARAMS)})
+	}
+	// Auto-create the destination directory if it doesn't exist.
+	// Mirrors `mkdir -p` semantics — the user is asking us to put a
+	// file at this path; if the parent dir is missing we create it
+	// rather than 500'ing. This is what the Files page expects for
+	// a folder the user navigated to (e.g. /DATA which exists in
+	// production but not on a fresh dev machine). Permissions match
+	// the install.sh defaults (0755) so subsequent reads work.
+	if err := os.MkdirAll(path, 0o755); err != nil {
+		logger.Error("upload: failed to create destination dir", zap.String("path", path), zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, model.Result{Success: common_err.SERVICE_ERROR, Message: fmt.Sprintf("could not create destination directory %q: %v", path, err)})
 	}
 	tempDir := filepath.Join(path, ".temp", hash+strconv.Itoa(totalChunks)) + "/"
 

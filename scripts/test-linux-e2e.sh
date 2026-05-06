@@ -229,6 +229,35 @@ CODE=$(run_in_container "
 [[ "$CODE" == "400" ]] || fail "scenario A: upload missing-file should return 400, got $CODE"
 green "  → upload missing-file rejected with 400"
 
+# Upload to a destination directory that doesn't exist yet — the Files
+# page can navigate to a folder that lives in the production layout
+# (/DATA) but is absent on the dev machine. Old behaviour: 500 "no
+# such file or directory". Expected behaviour: auto-create the parent
+# (mkdir -p) and accept the upload, like every Unix file manager.
+run_in_container "
+  set -e
+  rm -rf /tmp/freshly-made-dir
+  echo upload-into-fresh-dir > /tmp/source-fresh.txt
+  RESP=\$(curl -sS -X POST http://localhost:8765/v1/file/upload \
+    -H 'Authorization: $TOKEN' \
+    -F file=@/tmp/source-fresh.txt -F filename=u.txt -F relativePath=u.txt \
+    -F totalChunks=1 -F chunkNumber=0 -F path=/tmp/freshly-made-dir)
+  case \"\$RESP\" in *success*200*) ;; *) echo BAD: \$RESP; exit 1 ;; esac
+  grep -q upload-into-fresh-dir /tmp/freshly-made-dir/u.txt || { echo content-mismatch; exit 1; }
+" >/dev/null || fail "scenario A: upload to non-existent parent should auto-mkdir, not 500"
+green "  → upload auto-creates parent dir (no more 500 on /DATA)"
+
+# Read a file that does not exist — used to be 500 (looked like a
+# backend crash), now 404 (proper "not found" semantics so the UI
+# can offer to create the file instead of just failing silently).
+CODE=$(run_in_container "
+  curl -sS -o /dev/null -w '%{http_code}' \
+    -H 'Authorization: $TOKEN' \
+    'http://localhost:8765/v1/file/content?path=/no/such/file.txt'
+")
+[[ "$CODE" == "404" ]] || fail "scenario A: read of missing file must be 404, got $CODE"
+green "  → read missing file returns 404 (not 500)"
+
 # Download flow used by both <a href> and <video src> / <audio src>
 # in the Files preview pane. Three things must hold or the panel
 # breaks under any non-localhost client:
