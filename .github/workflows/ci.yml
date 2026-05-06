@@ -98,11 +98,17 @@ jobs:
 
   # ─────────────────────────────────────────────────────────────────────
   # Smoke build for the production tarballs the release pipeline will
-  # produce. Just confirms cross-compilation works for both target archs.
+  # produce. Confirms cross-compilation works for both target archs.
+  #
+  # NOT gated behind frontend/backend — runs in parallel so total wall
+  # time on a push to main is max(frontend, backend, package) instead
+  # of frontend+backend then package. Cross-compile catches issues
+  # neither frontend nor backend tests would surface (e.g. a CGO
+  # dependency that fails on the linux/arm64 toolchain), so we keep
+  # it on every push as the safety net for tag-time releases.
   # ─────────────────────────────────────────────────────────────────────
   package:
     name: Package smoke (${{ matrix.arch }})
-    needs: [frontend, backend]
     runs-on: ubuntu-latest
     strategy:
       matrix:
