@@ -11,7 +11,16 @@ see `CONTRIBUTING.md` for the rule.
 
 ## [Unreleased]
 
-(features in progress — empty when releases are published)
+### Added
+- **Change gateway port from the UI (#18)**. Settings → General →
+  Network has a "Listen port" editor that walks the user through a
+  confirmation modal, runs the bind on the new port server-side, and
+  redirects the browser to `<host>:<newport>` with a 3-second
+  countdown. The pre-confirm modal includes the exact shell command
+  to revert if the new port is unreachable from the user's network.
+  Backed by a pure-function `validateGatewayPort` boundary check
+  (13-case test) and a typed frontend wrapper (8-case test) that
+  rejects out-of-range ports without a network round-trip.
 
 
 ## [0.2.3] — 2026-05-06
