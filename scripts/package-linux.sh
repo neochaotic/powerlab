@@ -115,6 +115,13 @@ EOF
 log "Generating systemd unit files..."
 
 for svc in "${SERVICES[@]}"; do
+  # Each service that takes `-c` reads its config that way. The gateway is
+  # special: it loads gateway.ini from constants.DefaultConfigPath itself
+  # (no `-c` flag exists on its binary) and only takes `-w` for the www
+  # directory. We emit the gateway unit separately below.
+  if [[ "$svc" == "gateway" ]]; then
+    continue
+  fi
   cat > "$STAGE/systemd/powerlab-$svc.service" <<EOF
 [Unit]
 Description=PowerLab $svc service
@@ -134,10 +141,25 @@ WantedBy=multi-user.target
 EOF
 done
 
-# Gateway needs to know where the static UI lives. Override with `-w` flag.
-sed -i.bak 's|ExecStart=/usr/bin/powerlab-gateway -c /etc/powerlab/gateway.conf|ExecStart=/usr/bin/powerlab-gateway -c /etc/powerlab/gateway.conf -w /usr/share/powerlab/www|' \
-  "$STAGE/systemd/powerlab-gateway.service"
-rm -f "$STAGE/systemd/powerlab-gateway.service.bak"
+# Gateway: no -c flag (config is loaded from constants.DefaultConfigPath
+# /gateway.ini at startup), only -w for the www directory.
+cat > "$STAGE/systemd/powerlab-gateway.service" <<EOF
+[Unit]
+Description=PowerLab gateway service
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/powerlab-gateway -w /usr/share/powerlab/www
+Restart=always
+RestartSec=5
+PIDFile=/var/run/powerlab/gateway.pid
+Environment=DOCKER_API_VERSION=1.44
+
+[Install]
+WantedBy=multi-user.target
+EOF
 
 # ─── 6. install.sh ───────────────────────────────────────────────────────
 log "Generating install.sh..."
