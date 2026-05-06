@@ -229,6 +229,22 @@ CODE=$(run_in_container "
 [[ "$CODE" == "400" ]] || fail "scenario A: upload missing-file should return 400, got $CODE"
 green "  → upload missing-file rejected with 400"
 
+# Download flow used by both <a href> and <video src> / <audio src>
+# in the Files preview pane. Three things must hold or the panel
+# breaks under any non-localhost client:
+#   · GET /v1/file?path= returns the file body (200 + correct bytes)
+#   · ?token=… authenticates (so EventSource-equivalent <video src> works)
+#   · Range: bytes=N-M returns 206 Partial Content (so video seeking works)
+run_in_container "
+  set -e
+  echo download-content > /tmp/smoke-dl.txt
+  body=\$(curl -fsS 'http://localhost:8765/v1/file?path=%2Ftmp%2Fsmoke-dl.txt&token=$TOKEN')
+  [[ \"\$body\" == 'download-content' ]] || { echo BAD-BODY: \$body; exit 1; }
+  range_code=\$(curl -sS -o /dev/null -w '%{http_code}' -H 'Range: bytes=0-3' 'http://localhost:8765/v1/file?path=%2Ftmp%2Fsmoke-dl.txt&token=$TOKEN')
+  [[ \"\$range_code\" == '206' ]] || { echo BAD-RANGE: \$range_code; exit 1; }
+" >/dev/null || fail "scenario A: download (200) + Range (206) flow broken"
+green "  → download OK + Range request returns 206 (video seeking works)"
+
 # Catch-all for the smaller endpoints whose silent failure (404 / 400)
 # pollutes every page render in the browser console without anyone
 # noticing because the UI swallows the rejection. If any of these

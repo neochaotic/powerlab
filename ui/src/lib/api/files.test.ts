@@ -12,6 +12,7 @@ import {
 	readFileContent,
 	updateFileContent
 } from './files';
+import { setAuthToken } from './client';
 
 function mockJson(data: unknown, status = 200) {
 	return vi.fn().mockResolvedValue({
@@ -210,14 +211,34 @@ describe('Files API', () => {
 
 	// ─── URL Builders (pure functions, no fetch) ──────────────────────────
 
-	it('getDownloadUrl: builds correct single-file URL', () => {
+	it('getDownloadUrl: builds correct single-file URL when not signed in', () => {
+		setAuthToken(null);
 		const url = getDownloadUrl('/DATA/test.txt');
 		expect(url).toBe('/v1/file?path=%2FDATA%2Ftest.txt');
 	});
 
+	it('getDownloadUrl: appends ?token= when signed in (so <video src> can authenticate)', () => {
+		// <a href> / <video src> / <img src> can't send Authorization
+		// headers. Without a token in the URL, every Files-page download
+		// or media preview returns 401 from any non-localhost client.
+		setAuthToken('JWT_FOR_DOWNLOAD');
+		const url = getDownloadUrl('/DATA/movie.mp4');
+		expect(url).toContain('path=%2FDATA%2Fmovie.mp4');
+		expect(url).toContain('token=JWT_FOR_DOWNLOAD');
+		setAuthToken(null);
+	});
+
 	it('getDownloadUrl: encodes special characters in path', () => {
+		setAuthToken(null);
 		const url = getDownloadUrl('/DATA/my file (1).txt');
 		expect(url).toContain(encodeURIComponent('/DATA/my file (1).txt'));
+	});
+
+	it('getBatchDownloadUrl: appends ?token= when signed in', () => {
+		setAuthToken('JWT_FOR_BATCH');
+		const url = getBatchDownloadUrl(['/DATA/a.txt'], 'tar');
+		expect(url).toContain('token=JWT_FOR_BATCH');
+		setAuthToken(null);
 	});
 
 	it('getBatchDownloadUrl: builds URL with zip format', () => {

@@ -5,7 +5,7 @@
  * Zero business logic — just sends requests and returns typed responses.
  */
 
-import { api } from './client';
+import { api, getAuthToken } from './client';
 
 // ─── DTOs (match Go backend ObjResp / FsListResp exactly) ─────────────
 
@@ -80,14 +80,24 @@ export function getDirectorySize(path: string) {
 	return api.get<ApiResult<{ size: number }>>(`/v1/folder/size?path=${encodeURIComponent(path)}`);
 }
 
-/** Download a single file (returns URL for <a> tag) */
+/** Download a single file. Returned URL is suitable for an <a> href, an
+ * <img>/<video>/<audio> src, or a window.open(). The JWT is appended as
+ * a `token` query param because <a>/<video>/<img> can't send custom
+ * headers and the gateway-side JWT middleware looks at `?token=` as a
+ * fallback. Without this, the browser hits 401 every time the panel
+ * is accessed by IP / hostname rather than localhost (where the
+ * Skipper bypasses auth). */
 export function getDownloadUrl(path: string): string {
-	return `/v1/file?path=${encodeURIComponent(path)}`;
+	const token = getAuthToken();
+	const t = token ? `&token=${encodeURIComponent(token)}` : '';
+	return `/v1/file?path=${encodeURIComponent(path)}${t}`;
 }
 
-/** Download multiple files as archive */
+/** Download multiple files as archive — same `?token=` rationale as above. */
 export function getBatchDownloadUrl(files: string[], format: 'zip' | 'tar' | 'targz' = 'zip'): string {
-	return `/v1/batch?files=${files.map(encodeURIComponent).join(',')}&format=${format}`;
+	const token = getAuthToken();
+	const t = token ? `&token=${encodeURIComponent(token)}` : '';
+	return `/v1/batch?files=${files.map(encodeURIComponent).join(',')}&format=${format}${t}`;
 }
 
 /** Read file content (text) */
