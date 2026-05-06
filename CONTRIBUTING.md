@@ -8,6 +8,28 @@ First off, thank you for considering contributing to PowerLab! It's people like 
 - **Backend:** Go 1.25+, Echo v4, GORM, Docker SDK.
 - **Testing:** Vitest (Frontend), Go `testing` package (Backend).
 
+## Documentation rule (mandatory)
+
+Any commit that lands a user-visible change MUST also update:
+
+- **`CHANGELOG.md`** — add an entry under `[Unreleased]`. The format is
+  Keep-a-Changelog (Added / Changed / Deprecated / Removed / Fixed /
+  Security). Prose sentences, not bullet-only fragments.
+- **`README.md`** — when the change affects what's promised on the
+  product page (install command, supported platforms, headline
+  features). Skip for purely-internal refactors.
+- **`SUPPORT.md`** — when the change affects platform support, distro
+  compatibility, hardware tiers, or auth mechanism.
+
+The `[Unreleased]` block is renamed to `[X.Y.Z]` with the date when
+the release is tagged. CI will be extended to enforce the
+"changelog entry present" rule once the codebase stabilises.
+
+For roadmap items tracked as GitHub issues, the issue itself is the
+working spec. As features land, copy the salient bits from the issue
+into `CHANGELOG.md` + the relevant doc — close the issue with a
+comment pointing at the release tag.
+
 ## Pre-push validation
 
 Before pushing anything to `main`, run:
