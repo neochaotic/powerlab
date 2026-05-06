@@ -37,7 +37,7 @@ cd powerlab-*-linux-amd64 && sudo ./install.sh
 
 <br>
 
-[Install](#install) · [Tour](#a-tour) · [App Store](#three-hundred-apps-one-click) · [AI](#built-for-ai) · [Architecture](#architecture) · [Develop](#develop)
+[Install](#install) · [Tour](#a-tour) · [App Store](#three-hundred-apps-one-click) · [AI](#built-for-ai) · [Compatibility](#compatibility) · [Architecture](#architecture) · [Develop](#develop)
 
 </div>
 
@@ -294,17 +294,37 @@ services:
 
 ---
 
+## Compatibility
+
+| Platform | Status | Auth path |
+|---|---|---|
+| **Ubuntu** 20.04 / 22.04 / 24.04 LTS · `amd64` `arm64` | ✅ Supported | SetupWizard (bcrypt) |
+| **Debian** 11 / 12 · `amd64` `arm64`                  | ✅ Supported | SetupWizard (bcrypt) |
+| **Raspberry Pi OS** Bookworm / Bullseye · `arm64`     | ✅ Supported | SetupWizard (bcrypt) |
+| **Fedora** 38+ · **Arch** · **openSUSE** · `amd64`     | ⚠️ Untested but expected to work | SetupWizard (bcrypt) |
+| **Alpine** · `amd64` `arm64`                           | ❌ Out of scope (musl + OpenRC) | — |
+| **macOS** Sonoma+ · `arm64`                            | ✅ Dev mode only (`./dev.sh`) | `dscl . -authonly` |
+| **Windows**                                           | ❌ Not planned | — |
+
+The first time you open PowerLab on a fresh install, a one-shot **Setup Wizard** asks you to pick a username and password — that becomes your sign-in credential. macOS dev mode authenticates against the local Directory Service directly, no Setup Wizard needed.
+
+Native Linux PAM (so you can sign in with your `useradd` password instead of registering a separate one) is on the v0.2 roadmap. See **[SUPPORT.md](./SUPPORT.md)** for the full compatibility matrix, hardware tier guidance, and the rationale for why we are deferring PAM rather than shipping a half-working shell-out.
+
+<br>
+
+---
+
 ## Authentication
 
-Sign in with your **operating-system credentials** — the same username and password you use to log into the host machine. One identity. Less to remember.
+Sign in with your PowerLab credentials. The first install run shows a Setup Wizard that takes a username + password (one-shot, then it's gone). On macOS dev, you can also use your operating-system credentials directly via Directory Services — no separate registration.
 
 | Platform | Mechanism | Status |
 |---|---|---|
-| macOS   | `dscl . -authonly` against the local Directory Service | Working |
-| Linux   | PAM via `libpam`                                       | Roadmap — bcrypt fallback active |
-| Windows | LSA / SSPI                                             | Not planned |
+| macOS   | `dscl . -authonly` against the local Directory Service | ✅ Working |
+| Linux   | PAM via `libpam` (CGO)                                 | 🛠 Roadmap — Setup Wizard bcrypt password active in v0.1 |
+| Windows | LSA / SSPI                                             | ❌ Not planned |
 
-If OS auth is unavailable (pre-PAM Linux, forgotten OS password), the same login form falls back to a bcrypt password stored in PowerLab's local database. JWTs are signed with the gateway's ECDSA key, rotated on first boot.
+JWTs are signed with the gateway's ECDSA key, rotated on first boot. Tokens last roughly three hours; the session cookie persists across page reloads.
 
 <br>
 
