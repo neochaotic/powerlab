@@ -2,11 +2,13 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http/httputil"
 	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/IceWhaleTech/CasaOS-Common/model"
@@ -100,11 +102,42 @@ func (g *Management) GetGatewayPort() string {
 	return g.State.GetGatewayPort()
 }
 
+// SetGatewayPort persists the new gateway port and triggers the
+// onChange callbacks (re-bind the listener, write gateway.ini).
+//
+// Validation:
+//   · Port must parse as an integer.
+//   · Port must be in [1, 65535] (1–1023 needs root, which the
+//     gateway already has — but we refuse 0 and >65535 outright).
+//   · Port must not be currently held by another process. We
+//     don't probe here because the State.SetGatewayPort callback
+//     stack does the actual rebind, and bind-failure returns a
+//     typed error from the kernel which the caller surfaces.
+//
+// The validation is in this layer (and not the route handler)
+// because both the public PUT /v1/gateway/port endpoint AND the
+// startup-time SetGatewayPort call need it.
 func (g *Management) SetGatewayPort(port string) error {
+	if err := validateGatewayPort(port); err != nil {
+		return err
+	}
 	if err := g.State.SetGatewayPort(port); err != nil {
 		return err
 	}
+	return nil
+}
 
+// validateGatewayPort enforces the port-range invariant. Exported
+// indirectly through SetGatewayPort but split out so tests can assert
+// boundaries without touching the State + onChange callback chain.
+func validateGatewayPort(port string) error {
+	n, err := strconv.Atoi(port)
+	if err != nil {
+		return fmt.Errorf("port %q is not a valid integer", port)
+	}
+	if n < 1 || n > 65535 {
+		return fmt.Errorf("port %d is out of range — must be between 1 and 65535", n)
+	}
 	return nil
 }
 

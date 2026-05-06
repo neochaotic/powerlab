@@ -6,12 +6,14 @@
 	import {
 		SlidersHorizontal, Network, Boxes, Info, Globe, Clock, Hash,
 		Power, RefreshCw, Copy, Check, ExternalLink, ShieldCheck, KeyRound,
-		Code2, Scale, Heart, Sparkles, Container, Zap
+		Code2, Scale, Heart, Sparkles, Container, Zap, Wifi, AlertTriangle
 	} from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { cn } from '$lib/utils';
 	import { fade } from 'svelte/transition';
 	import { getAppManagementConfig, type AppManagementConfig } from '$lib/api/apps';
+	import { getGatewayPort, setGatewayPort } from '$lib/api/gateway';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	const store = useSettingsStore();
 
@@ -25,6 +27,7 @@
 		store.fetchTimezone();
 		store.fetchNetworkInterfaces();
 		fetchAppConfig();
+		fetchCurrentPort();
 	});
 
 	let appConfig = $state<AppManagementConfig | null>(null);
@@ -35,6 +38,68 @@
 		} catch (e) {
 			console.error("Failed to fetch app config:", e);
 		}
+	}
+
+	// ── Gateway port editor (issue #18) ─────────────────────────────────
+	// Changing the port terminates the very HTTP connection serving the
+	// UI, so the flow is: confirm modal → PUT /v1/gateway/port → wait
+	// 3 s with countdown → window.location.href = host:newport.
+	let currentPort = $state<string>('');
+	let portInput = $state<number>(0);
+	let confirmingPortChange = $state(false);
+	let countdownSeconds = $state(0);
+	let countdownTimer: ReturnType<typeof setInterval> | null = null;
+
+	async function fetchCurrentPort() {
+		try {
+			const port = await getGatewayPort();
+			currentPort = port;
+			portInput = parseInt(port, 10) || 8765;
+		} catch (e) {
+			console.error('Failed to fetch gateway port:', e);
+		}
+	}
+
+	function requestPortChange() {
+		if (!Number.isInteger(portInput) || portInput < 1 || portInput > 65535) {
+			toast.error('Port must be an integer between 1 and 65535');
+			return;
+		}
+		if (String(portInput) === currentPort) {
+			toast.info('That is already the current port');
+			return;
+		}
+		confirmingPortChange = true;
+	}
+
+	async function executePortChange() {
+		confirmingPortChange = false;
+		try {
+			await setGatewayPort(portInput);
+		} catch (e) {
+			toast.error(`Failed to change port: ${(e as Error).message}`);
+			return;
+		}
+		// Successful response; the gateway is now listening on the new
+		// port. Count down then redirect — keep the user in the loop
+		// rather than throwing a blank screen at them.
+		countdownSeconds = 3;
+		countdownTimer = setInterval(() => {
+			countdownSeconds--;
+			if (countdownSeconds <= 0) {
+				if (countdownTimer) clearInterval(countdownTimer);
+				const url = new URL(window.location.href);
+				url.port = String(portInput);
+				window.location.href = url.toString();
+			}
+		}, 1000);
+	}
+
+	function cancelPortChange() {
+		confirmingPortChange = false;
+		// reset the input back to current so an accidental save doesn't
+		// retain a stale value
+		portInput = parseInt(currentPort, 10) || 8765;
 	}
 
 	// Common timezones — small curated list. Backend accepts any IANA name.
@@ -155,6 +220,43 @@
 							</div>
 						</div>
 						<p class="mt-2 text-[11px] text-zinc-600">Hostname configuration via UI is planned. For now, edit at the OS level.</p>
+					</section>
+
+					<!-- Listen port (issue #18) -->
+					<section class="mb-8">
+						<h3 class="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Network</h3>
+						<div class="rounded-2xl border border-white/5 bg-white/[0.02]">
+							<div class="flex items-center justify-between gap-4 px-5 py-4">
+								<div class="flex items-center gap-3">
+									<Wifi class="h-4 w-4 text-zinc-500" />
+									<div>
+										<p class="text-sm font-medium text-white">Listen port</p>
+										<p class="mt-0.5 text-xs text-zinc-500">
+											The HTTP port the gateway binds. Currently <span class="text-emerald-400">{currentPort || '?'}</span>.
+										</p>
+									</div>
+								</div>
+								<div class="flex items-center gap-2">
+									<input
+										type="number"
+										min="1"
+										max="65535"
+										bind:value={portInput}
+										class="w-24 rounded-lg border border-white/8 bg-white/[0.03] px-3 py-1.5 text-xs text-white outline-none focus:border-emerald-500/40"
+									/>
+									<button
+										class="rounded-lg bg-emerald-500/15 border border-emerald-500/30 px-3 py-1.5 text-xs font-medium text-emerald-300 transition-colors hover:bg-emerald-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+										onclick={requestPortChange}
+										disabled={String(portInput) === currentPort}
+									>
+										Change…
+									</button>
+								</div>
+							</div>
+						</div>
+						<p class="mt-2 text-[11px] text-zinc-600">
+							Changing the port disconnects this session for ~3 seconds while the gateway re-binds. We'll redirect you automatically.
+						</p>
 					</section>
 
 					<!-- Timezone -->
@@ -540,3 +642,63 @@
 		</div>
 	</main>
 </div>
+
+<!-- Port-change confirmation + countdown modal -->
+{#if confirmingPortChange || countdownSeconds > 0}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+		onclick={(e) => { if (countdownSeconds === 0 && e.target === e.currentTarget) cancelPortChange(); }}
+	>
+		<div
+			class="w-[28rem] rounded-2xl border border-white/[0.08] bg-zinc-950/95 p-6 text-left shadow-[0_32px_64px_-12px_rgba(0,0,0,0.7)] backdrop-blur-xl"
+			role="dialog"
+			aria-label="Confirm port change"
+		>
+			{#if countdownSeconds === 0}
+				<div class="mb-4 flex items-center gap-3">
+					<div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/[0.12]">
+						<AlertTriangle class="h-5 w-5 text-amber-400" strokeWidth={1.75} />
+					</div>
+					<h3 class="text-base font-semibold text-white">Change listen port?</h3>
+				</div>
+				<p class="text-sm leading-relaxed text-zinc-400">
+					The gateway will move from
+					<span class="font-mono text-emerald-400">{currentPort}</span>
+					to
+					<span class="font-mono text-emerald-400">{portInput}</span>.
+					This session will disconnect for about 3 seconds while it re-binds.
+					We'll redirect you to <span class="font-mono text-zinc-300">{window.location.hostname}:{portInput}</span> automatically.
+				</p>
+				<p class="mt-3 text-[11px] text-zinc-600">
+					If the new port is unreachable from your network, you'll need shell access to revert
+					(<span class="font-mono">sudo sed -i 's/^Port = .*/Port = {currentPort}/' /etc/powerlab/gateway.ini && sudo systemctl restart powerlab-gateway</span>).
+				</p>
+				<div class="mt-5 flex justify-end gap-2">
+					<button
+						class="rounded-lg px-3 py-1.5 text-sm text-zinc-400 transition-colors hover:bg-white/[0.04] hover:text-white"
+						onclick={cancelPortChange}
+					>Cancel</button>
+					<button
+						class="rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-400"
+						onclick={executePortChange}
+					>Yes, change port</button>
+				</div>
+			{:else}
+				<div class="mb-4 flex items-center gap-3">
+					<div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/[0.12]">
+						<RefreshCw class="h-5 w-5 text-emerald-400 animate-spin" strokeWidth={1.75} />
+					</div>
+					<h3 class="text-base font-semibold text-white">Redirecting…</h3>
+				</div>
+				<p class="text-sm leading-relaxed text-zinc-400">
+					Port changed to
+					<span class="font-mono text-emerald-400">{portInput}</span>.
+					Reconnecting in
+					<span class="font-bold text-white">{countdownSeconds}</span>…
+				</p>
+			{/if}
+		</div>
+	</div>
+{/if}
