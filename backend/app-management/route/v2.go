@@ -131,12 +131,24 @@ func InitV2Router() http.Handler {
 		Skipper: func(c echo.Context) bool {
 			p := c.Request().URL.Path
 			return strings.HasPrefix(p, V2APIPath+"/compose/task/") ||
-				strings.HasPrefix(p, V2APIPath+"/ports/check")
+				strings.HasPrefix(p, V2APIPath+"/ports/check") ||
+				// /compose/:id/disk-usage — handler exists in codegen-generated
+				// ServerInterface (compose_app.go:546) but the OpenAPI spec
+				// shipped with this fork never declared it, so the validator
+				// rejects with "no matching operation was found" before the
+				// handler runs. Skip validation; route registered manually.
+				(strings.HasPrefix(p, V2APIPath+"/compose/") && strings.HasSuffix(p, "/disk-usage"))
 		},
 	}))
 
 	e.GET(V2APIPath+"/compose/task/:id/logs", appManagement.(*v2Route.AppManagement).GetTaskLogs)
 	e.GET(V2APIPath+"/ports/check", appManagement.(*v2Route.AppManagement).CheckPorts)
+	// disk-usage handler signature is `(ctx, id ComposeAppID)` because
+	// it was added to the codegen ServerInterface; wrap to read :id off
+	// the echo path param ourselves.
+	e.GET(V2APIPath+"/compose/:id/disk-usage", func(c echo.Context) error {
+		return appManagement.(*v2Route.AppManagement).ComposeAppDiskUsage(c, c.Param("id"))
+	})
 
 	codegen.RegisterHandlersWithBaseURL(e, appManagement, V2APIPath)
 

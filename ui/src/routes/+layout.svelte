@@ -32,9 +32,17 @@
 		// user just sees features "broken" with no diagnostic.
 		versionHandshake.check();
 
-		// Register Service Worker for PWA
+		// Service Worker registration deliberately disabled. The previous
+		// SW was a pass-through (fetch(event.request)) with no caching
+		// strategy of its own, so it added no value but added a failure
+		// mode: under vite dev, intercepted navigations to SPA routes
+		// (/apps, /files, …) raised "Failed to fetch" in the console.
+		// Re-enable when there is an actual offline cache strategy worth
+		// shipping (PWA shell, offline app catalogue, etc).
 		if ('serviceWorker' in navigator) {
-			navigator.serviceWorker.register('/sw.js').catch(console.error);
+			navigator.serviceWorker.getRegistrations().then((regs) => {
+				for (const reg of regs) reg.unregister();
+			});
 		}
 
 		window.addEventListener('beforeinstallprompt', (e) => {
