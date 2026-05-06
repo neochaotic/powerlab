@@ -8,6 +8,26 @@ First off, thank you for considering contributing to PowerLab! It's people like 
 - **Backend:** Go 1.25+, Echo v4, GORM, Docker SDK.
 - **Testing:** Vitest (Frontend), Go `testing` package (Backend).
 
+## Test rule (mandatory)
+
+Every new feature lands with **test coverage** in the same commit:
+
+- **Unit test** for the unit of logic introduced. Mock external
+  dependencies (filesystem, network, Docker, PAM). No "I'll write
+  the tests later" — `validate.sh` is the gate, `validate.sh` runs
+  tests, untested code fails the gate.
+- **Regression test** for every bug fix. The test must reproduce the
+  bug (i.e. fail on the parent commit) and pass on the fix commit.
+  No exceptions, even for one-line fixes.
+- **Integration test** when the change crosses process boundaries
+  (gateway → service, frontend → backend, install pipeline). Goes
+  in `scripts/test-<topic>.sh` and runs as part of
+  `validate.sh --full`.
+
+PRs that ship code without tests get sent back. The same rule applies
+to my own work — when I add a feature, I add the tests in the same
+commit, and `scripts/validate.sh --quick` must stay green.
+
 ## Documentation rule (mandatory)
 
 Any commit that lands a user-visible change MUST also update:
