@@ -338,15 +338,15 @@ Six independent Go services, each with its own `go.mod` and codegen pipeline so 
 
 | Platform | Status | Sign-in |
 |---|---|---|
-| **Ubuntu** 20.04 / 22.04 / 24.04 LTS · `amd64` `arm64` | ✅ Supported | Setup Wizard |
-| **Debian** 11 / 12 · `amd64` `arm64`                   | ✅ Supported | Setup Wizard |
-| **Raspberry Pi OS** Bookworm / Bullseye · `arm64`      | ✅ Supported | Setup Wizard |
-| **Fedora** 38+ · **Arch** · **openSUSE** · `amd64`      | ⚠️ Untested, expected to work | Setup Wizard |
+| **Ubuntu** 20.04 / 22.04 / 24.04 LTS · `amd64` `arm64` | ✅ Supported | OS credentials (PAM) |
+| **Debian** 11 / 12 · `amd64` `arm64`                   | ✅ Supported | OS credentials (PAM) |
+| **Raspberry Pi OS** Bookworm / Bullseye · `arm64`      | ✅ Supported | OS credentials (PAM) |
+| **Fedora** 38+ · **Arch** · **openSUSE** · `amd64`      | ⚠️ Untested, expected to work | OS credentials (PAM) |
 | **Alpine** · `amd64` `arm64`                            | ❌ Out of scope (musl + OpenRC) | — |
 | **macOS** Sonoma+ · `arm64`                             | ✅ Dev mode (`./dev.sh`) | OS credentials |
 | **Windows**                                            | ❌ Not planned | — |
 
-The first time you open PowerLab, a one-shot **Setup Wizard** asks you to pick a username and password — that becomes your sign-in. On macOS dev, you sign in with your computer credentials directly via Directory Services. Native Linux PAM (so the Setup Wizard becomes optional and you can use your `useradd` password) is on the v0.2 roadmap.
+**Sign in with your operating-system credentials** — the same username and password you use for `sudo` / `ssh` on Linux, or to log in to your Mac. PowerLab uses `pam_unix` on Linux and `dscl . -authonly` on macOS, both delegating the actual hash check to the OS so we never need to mirror your shadow file. A bcrypt **Setup Wizard** is shown only if PAM is unavailable on the host (CGO disabled at build time, missing libpam) — it stays around as a recovery fallback.
 
 JWTs are signed with the gateway's ECDSA key, rotated on first boot. Tokens last about three hours; the session cookie persists across reloads.
 

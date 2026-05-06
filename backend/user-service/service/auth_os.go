@@ -16,22 +16,23 @@ import (
 // Per-platform support:
 //
 //	macOS  → `dscl . -authonly` against the local Directory Service.
-//	         Working today.
-//	Linux  → not implemented in this build. PAM via CGO is the planned
-//	         path for v0.2 (see SUPPORT.md). Until then this returns
-//	         an error so the login handler upstream can route the user
-//	         to the bcrypt fallback (SetupWizard).
+//	Linux  → PAM via CGO + libpam (see auth_os_pam_linux.go). Linkage
+//	         happens at build time; CGO_ENABLED=0 builds get the stub
+//	         in auth_os_pam_stub.go and will fall back to the bcrypt
+//	         SetupWizard at runtime.
 //	other  → not supported.
 //
-// Why no shell-out today: the obvious helpers all have a fatal flaw.
-// `unix_chkpwd` (the PAM helper) silently returns exit 0 even on wrong
-// passwords when called from outside `pam_unix` — a security feature for
-// `pam_unix`'s own use, but a footgun for direct callers (verified
-// empirically on Ubuntu 22.04). `mkpasswd` does not support yescrypt
-// (the default on Ubuntu 22.04+ and Debian 12+). `su -c true` cannot
-// take a password on stdin without an external `expect`-style wrapper.
-// The clean, robust answer is PAM via CGO; we will add that in a
-// follow-up release rather than ship a half-secure shortcut here.
+// Why PAM via CGO and not a shell-out: every shell-out alternative we
+// evaluated had a fatal flaw. `unix_chkpwd` silently returns exit 0
+// even on wrong passwords when called from outside `pam_unix` — a
+// security feature for pam_unix's own use, but a password-bypass
+// footgun for direct callers (verified empirically on Ubuntu 22.04).
+// `mkpasswd` does not support yescrypt (the default on Ubuntu 22.04+
+// and Debian 12+). `su -c true` cannot take a password on stdin
+// without an external `expect`-style wrapper. CGO + libpam is the
+// only path that delegates the entire crypto choice (yescrypt, SHA-512,
+// bcrypt, …) to the host's libxcrypt at runtime, which is what every
+// serious Linux panel (Cockpit, Webmin, Wazuh) does.
 //
 // IMPORTANT: this service MUST run as root for any future Linux path
 // that reads /etc/shadow. The packaged systemd units run user-service
@@ -66,16 +67,13 @@ func (s *OSService) Authenticate(username, password string) (bool, error) {
 	case "darwin":
 		return s.authenticateMacOS(username, password)
 	case "linux":
-		// Returning a typed error (not `false, nil`) is critical: the
-		// login handler treats `err != nil` as "OS auth unavailable,
-		// fall back to bcrypt". Returning `false, nil` would be read
-		// as "user typed the wrong password", silently shadowing every
-		// successful bcrypt fallback for OS users.
-		return false, errors.New(
-			"native OS auth on Linux is not yet implemented in this build; " +
-				"sign in with the password you set during the SetupWizard, " +
-				"or follow the upgrade path in SUPPORT.md to enable PAM",
-		)
+		// Delegate to authenticateLinuxPAM (CGO + libpam in production
+		// builds, no-op stub returning a typed error for builds compiled
+		// without CGO). The contract is identical to dscl on macOS:
+		// (true, nil) on accept, (false, nil) on a clean rejection,
+		// (false, err) when PAM cannot run — the login handler upstream
+		// routes the err case to the bcrypt SetupWizard fallback.
+		return authenticateLinuxPAM(username, password)
 	default:
 		return false, errors.New("unsupported operating system for OS auth")
 	}

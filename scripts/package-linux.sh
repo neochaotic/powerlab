@@ -32,6 +32,28 @@ mkdir -p "$STAGE/bin" "$STAGE/www" "$STAGE/conf" "$STAGE/systemd" "$STAGE/store"
 # ─── 2. Cross-compile Go services ────────────────────────────────────────
 log "Cross-compiling backend services for linux/$ARCH..."
 SERVICES=(gateway app-management core user-service message-bus local-storage)
+
+# Two services require CGO at link time:
+#   · user-service uses libpam (native Linux auth, see auth_os_pam_linux.go)
+#   · local-storage uses fuse + Linux xattr
+# Everything else stays CGO_ENABLED=0 so it cross-compiles cleanly without
+# a target-specific gcc on the build host.
+needs_cgo() {
+  case "$1" in
+    user-service|local-storage) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# When cross-compiling to arm64 with CGO we need an arm64 C toolchain.
+# The CI installs gcc-aarch64-linux-gnu (and the matching libpam0g-dev:arm64
+# for user-service) before invoking this script.
+if [[ "$ARCH" == "arm64" ]]; then
+  CC_FOR_CGO="${CC_FOR_CGO:-aarch64-linux-gnu-gcc}"
+else
+  CC_FOR_CGO="${CC_FOR_CGO:-gcc}"
+fi
+
 for svc in "${SERVICES[@]}"; do
   log "  building $svc..."
   cd "$ROOT/backend/$svc"
@@ -41,18 +63,36 @@ for svc in "${SERVICES[@]}"; do
   if [[ "$svc" != "gateway" ]]; then
     go generate ./... > /dev/null 2>&1 || true
   fi
-  # -ldflags strip debug + reduce binary size; trimpath removes local paths
-  GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
-    -trimpath \
-    -ldflags="-s -w -X main.version=$VERSION" \
-    -o "$STAGE/bin/powerlab-$svc" \
-    .
+
+  if needs_cgo "$svc"; then
+    GOOS=linux GOARCH="$ARCH" CGO_ENABLED=1 CC="$CC_FOR_CGO" go build \
+      -trimpath \
+      -ldflags="-s -w -X main.version=$VERSION" \
+      -o "$STAGE/bin/powerlab-$svc" \
+      .
+  else
+    GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
+      -trimpath \
+      -ldflags="-s -w -X main.version=$VERSION" \
+      -o "$STAGE/bin/powerlab-$svc" \
+      .
+  fi
 done
 
 # ─── 3. Build frontend ───────────────────────────────────────────────────
+# Honour an existing ui/build/ if the caller already built it (e.g. from
+# the Mac host before invoking this script in a Linux container that
+# does not have a recent enough Node). Skipping the rebuild also makes
+# repeated package runs much faster.
 log "Building frontend (static SPA)..."
 cd "$ROOT/ui"
-npm run build > /dev/null
+if [[ "${POWERLAB_SKIP_FRONTEND_BUILD:-}" == "1" ]] && [[ -f "build/index.html" ]]; then
+  log "  POWERLAB_SKIP_FRONTEND_BUILD=1 — reusing existing ui/build"
+elif [[ -f "build/index.html" ]] && command -v node >/dev/null && [[ "$(node --version | sed 's/^v//' | cut -d. -f1)" -lt 18 ]]; then
+  log "  node $(node --version) is too old for SvelteKit — reusing existing ui/build"
+else
+  npm run build > /dev/null
+fi
 cp -R build/* "$STAGE/www/"
 
 # ─── 4. Sample config files ──────────────────────────────────────────────
@@ -199,6 +239,29 @@ install -m 0755 "$HERE/bin/powerlab-"* /usr/bin/
 echo "[powerlab-install] Installing static UI to /usr/share/powerlab/www..."
 rm -rf /usr/share/powerlab/www
 cp -R "$HERE/www" /usr/share/powerlab/www
+
+# Install the PAM service policy at /etc/pam.d/powerlab. PowerLab's
+# Linux auth path (auth_os_pam_linux.go) prefers this service over the
+# more-restrictive `login` policy, which on many distros pulls in
+# pam_nologin / pam_securetty / MOTD modules that block valid web-panel
+# logins. The policy below is intentionally minimal — pam_unix.so only,
+# meaning auth flows straight to /etc/shadow with whatever hash
+# algorithm the host uses (yescrypt, SHA-512, …) and account validity
+# checks (locked, expired) are honoured. Admins who want to layer
+# additional modules (pam_tally2, pam_faillock, pam_2fa, …) can edit
+# this file in place — install.sh refuses to overwrite an existing one.
+if [[ ! -f /etc/pam.d/powerlab ]]; then
+  echo "[powerlab-install] Installing PAM policy at /etc/pam.d/powerlab..."
+  cat > /etc/pam.d/powerlab <<'PAM_EOF'
+#%PAM-1.0
+# PowerLab web-panel authentication policy.
+# Edit to add 2FA, faillock, etc.; install.sh leaves an existing file
+# untouched on upgrades.
+auth     required   pam_unix.so
+account  required   pam_unix.so
+PAM_EOF
+  chmod 0644 /etc/pam.d/powerlab
+fi
 
 # Snapshot whether gateway.ini ALREADY existed before this install — used
 # to decide whether the user has explicit config we must preserve, or if

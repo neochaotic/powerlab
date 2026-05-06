@@ -120,52 +120,74 @@ func PostUserLogin(ctx echo.Context) error {
 				Message: common_err.GetMsg(common_err.INVALID_PARAMS),
 			})
 	}
-	// 1. Try OS Authentication first
-	success, err := service.MyService.OS().Authenticate(username, password)
+	// 1. Try OS authentication first.
+	//
+	// The OS service distinguishes three return states:
+	//   (true,  nil) → password accepted by the OS
+	//   (false, nil) → password explicitly rejected by the OS — i.e.
+	//                  the user typed the wrong password
+	//   (false, err) → OS auth could not run on this host (no PAM,
+	//                  dscl unavailable, etc.) — caller must decide
+	//                  whether to fall back to bcrypt or surface the
+	//                  configuration error.
+	//
+	// Treating (false, nil) as "try bcrypt next" would let an attacker
+	// with a wrong PAM password silently slide into the bcrypt code
+	// path, which is correct for users who set up SetupWizard but is
+	// confusing UX (the rejection message becomes "OS auth unavailable"
+	// even though OS auth worked perfectly fine). Splitting the two
+	// states makes the response messages match what actually happened.
+	success, osErr := service.MyService.OS().Authenticate(username, password)
 	var user model2.UserDBModel
-	
-	if success {
-		// OS Auth Success! Sync with DB
+
+	switch {
+	case success:
+		// OS Auth Success — sync with the local DB so we have a
+		// stable user.Id to mint a JWT against.
 		user = service.MyService.User().GetUserAllInfoByName(username)
 		if user.Id == 0 {
-			// First time login for this OS user? Create DB record
+			// First sign-in for this OS user → mirror into the DB.
 			osUser, _ := service.MyService.OS().GetOSUser(username)
 			user = model2.UserDBModel{
 				Username: username,
-				Password: "", // No password stored for OS users
-				Role:     "admin", // Default role
+				Password: "", // No bcrypt; OS owns the credential.
+				Role:     "admin",
 				Source:   "os",
 				UID:      osUser.Uid,
 				Nickname: username,
 			}
 			user = service.MyService.User().CreateUser(user)
-		} else if user.Source != "os" {
-			// User exists in DB but was not marked as OS user? 
-			// We might want to link it if the password matches, 
-			// but for now, let's just update the source if it was empty.
-			if user.Source == "" {
-				user.Source = "os"
-				service.MyService.User().UpdateUser(user)
-			}
+		} else if user.Source == "" {
+			// Pre-existing DB row with no source — promote to "os"
+			// so future audits know this account flows through PAM.
+			user.Source = "os"
+			service.MyService.User().UpdateUser(user)
 		}
-	} else {
-		// OS Auth Failed or Not Available. Fall back to DB bcrypt check.
+
+	case !success && osErr == nil:
+		// OS auth ran cleanly and rejected the credential. Surface a
+		// generic "invalid" error — never the bcrypt-fallback path,
+		// which would leak whether or not a SetupWizard password
+		// exists for this user.
+		return ctx.JSON(common_err.CLIENT_ERROR,
+			model.Result{Success: common_err.USER_NOT_EXIST_OR_PWD_INVALID, Message: common_err.GetMsg(common_err.USER_NOT_EXIST_OR_PWD_INVALID)})
+
+	default:
+		// OS auth could not run (osErr != nil) → try the bcrypt
+		// fallback so a user who registered through SetupWizard on a
+		// host without PAM (older Linux build, macOS dev) can still
+		// sign in.
 		user = service.MyService.User().GetUserAllInfoByName(username)
 		if user.Id == 0 {
 			return ctx.JSON(common_err.CLIENT_ERROR,
 				model.Result{Success: common_err.USER_NOT_EXIST, Message: common_err.GetMsg(common_err.USER_NOT_EXIST)})
 		}
-
-		// We treat user.Source == "os" as a hint, not a constraint:
-		// if OS auth is unavailable (no PAM on Linux, dscl down on macOS),
-		// the user is locked out otherwise. With DB fallback they can still
-		// sign in using the bcrypt password set during SetupWizard register.
-		// For PowerLab's local-only deploy this is the correct trade-off
-		// between security and recoverability.
 		if user.Password == "" {
-			// No bcrypt to verify against (OS-only user with empty password)
+			// OS-only user with no bcrypt fallback — and OS path is
+			// down. Tell the caller why explicitly so they can fix
+			// the underlying config issue.
 			return ctx.JSON(common_err.CLIENT_ERROR,
-				model.Result{Success: common_err.USER_NOT_EXIST_OR_PWD_INVALID, Message: "OS authentication is unavailable and no fallback password is set"})
+				model.Result{Success: common_err.USER_NOT_EXIST_OR_PWD_INVALID, Message: "OS authentication is unavailable and no fallback password is set for this user"})
 		}
 		if !encryption.CheckPasswordHash(password, user.Password) {
 			return ctx.JSON(common_err.CLIENT_ERROR,

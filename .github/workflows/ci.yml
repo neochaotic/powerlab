@@ -75,6 +75,14 @@ jobs:
         if: matrix.service == 'local-storage'
         run: sudo apt-get update -qq && sudo apt-get install -y -qq libfuse-dev fuse pkg-config
 
+      # user-service links against libpam (CGO) for native Linux auth.
+      # The header lives in libpam0g-dev on Debian/Ubuntu; install it so
+      # the test build succeeds. CGO_ENABLED defaults to 1 on Linux when
+      # a C toolchain is present, which it always is on actions/setup-go.
+      - name: Install libpam (user-service only)
+        if: matrix.service == 'user-service'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libpam0g-dev
+
       # Each service has its own //go:generate directives that produce
       # codegen/ from OpenAPI specs. They are .gitignored, so we
       # regenerate before the tests run. `gateway` is the only service
@@ -112,8 +120,25 @@ jobs:
         with:
           go-version: '1.21'
 
-      - name: Install fuse (cross-compile target)
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq libfuse-dev pkg-config
+      # Cross-compile prerequisites for the package matrix.
+      # · libfuse-dev / pkg-config — local-storage links against libfuse.
+      # · libpam0g-dev — user-service links against libpam (native Linux auth).
+      # · For arm64, install the cross-arch versions and the
+      #   aarch64 GCC toolchain so CGO can target arm64 from an
+      #   amd64 runner.
+      - name: Install cross-compile deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libfuse-dev libpam0g-dev pkg-config
+          if [[ "${{ matrix.arch }}" == "arm64" ]]; then
+            sudo dpkg --add-architecture arm64
+            # restrict the arm64 mirrors to the multi-arch repos so amd64 sources
+            # don't try to fetch arm64 packages they can't install
+            sudo sed -i 's|deb http|deb [arch=amd64,i386] http|' /etc/apt/sources.list
+            echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $(lsb_release -sc) main universe" | sudo tee /etc/apt/sources.list.d/arm64.list
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq gcc-aarch64-linux-gnu libpam0g-dev:arm64 libfuse-dev:arm64
+          fi
 
       - name: Install frontend dependencies
         working-directory: ui

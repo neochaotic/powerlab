@@ -8,9 +8,9 @@ out of scope.
 
 | Platform                     | Architecture       | Status      | Notes |
 |------------------------------|--------------------|-------------|-------|
-| **Ubuntu** 22.04 / 24.04 LTS | `amd64`, `arm64`   | ✅ Supported | tarball install via `install.sh` |
-| **Ubuntu** 20.04 LTS         | `amd64`, `arm64`   | ✅ Supported | systemd + Docker required |
-| **Debian** 11 / 12           | `amd64`, `arm64`   | ✅ Supported | covers Raspberry Pi OS (which is Debian-based) |
+| **Ubuntu** 22.04 / 24.04 LTS | `amd64`, `arm64`   | ✅ Supported | tarball install via `install.sh`, native PAM auth |
+| **Ubuntu** 20.04 LTS         | `amd64`, `arm64`   | ✅ Supported | systemd + Docker + libpam0g required |
+| **Debian** 11 / 12           | `amd64`, `arm64`   | ✅ Supported | covers Raspberry Pi OS (Debian-based) |
 | **Raspberry Pi OS** (Bookworm / Bullseye) | `arm64` | ✅ Supported | tested on Raspberry Pi 4 / 5 with 4 GB+ RAM |
 | **Fedora** 38+               | `amd64`, `arm64`   | ⚠️ Untested | should work — same systemd + Docker base; please open an issue with results |
 | **Arch Linux**               | `amd64`            | ⚠️ Untested | same as Fedora — likely works |
@@ -27,35 +27,55 @@ on the host platform:
 | Platform | Mechanism | Status |
 |---|---|---|
 | **macOS**   | `dscl . -authonly` against the local Directory Service | ✅ Working |
-| **Linux**   | PAM via `libpam` (CGO)                                 | 🛠 Roadmap (v0.2). For now, bcrypt fallback via SetupWizard. |
+| **Linux**   | PAM via `libpam` (CGO)                                 | ✅ Working (v0.2+). Sign in with your `useradd` password directly. |
 | **Windows** | LSA / SSPI                                             | ❌ Not planned |
 
-### How the bcrypt fallback works on Linux today
+### How Linux auth works in v0.2+
 
-On the very first run on a Linux host, PowerLab shows a short **Setup
-Wizard** asking you to register a username + password. That password is
-stored as a bcrypt hash in PowerLab's own database (`/var/lib/powerlab/db`)
-and is what you use to sign in until native PAM auth lands in v0.2.
+PowerLab installs a minimal PAM service file at `/etc/pam.d/powerlab`
+(written by `install.sh` only when absent — admins can edit it to add
+2FA, faillock, etc., and upgrades will leave the file alone). The
+service runs `pam_unix.so` against `/etc/shadow`, which means PowerLab
+honours the host's hashing algorithm (yescrypt on Ubuntu 22.04+,
+SHA-512 on older distros, bcrypt on FreeBSD-style configs, ...) and
+the host's account-validity rules (locked accounts via `usermod -L`,
+expired passwords, etc.) — all delegated to libxcrypt at runtime, not
+re-implemented in Go.
 
-The Setup Wizard is shown only once; subsequent visits go straight to
-the regular Login screen.
+The first time a user signs in, PowerLab mirrors the OS account into
+its local database (`/var/lib/powerlab/db`) so it has a stable
+`user.id` to mint JWTs against. The local DB never stores the
+password; the source-of-truth stays in `/etc/shadow`.
 
-### Why we are not using `unix_chkpwd` or `mkpasswd`
+### Bcrypt SetupWizard fallback
 
-We deliberately **do not** shell out to either of these:
+If PAM is unavailable on a host (CGO disabled at compile time, missing
+libpam, custom PAM config that breaks `pam_unix`), the login screen
+falls back to a one-shot Setup Wizard that registers a bcrypt password
+in PowerLab's own DB. That password is then accepted by the same
+login form. The fallback is also useful as a recovery path when the
+admin mis-edits `/etc/pam.d/powerlab`.
+
+### Why PAM via CGO and not a shell-out
+
+We considered three shell-out alternatives before committing to CGO:
 
 - `unix_chkpwd` (the PAM helper) silently returns exit 0 for invalid
   passwords when called outside `pam_unix` — a security feature for
   `pam_unix`'s own use, but a footgun for direct callers (verified
-  empirically on Ubuntu 22.04). Using it as a stand-in for PAM creates a
-  password-bypass vulnerability.
+  empirically on Ubuntu 22.04). Using it as a stand-in for PAM
+  creates a password-bypass.
 - `mkpasswd` (from the `whois` Debian package) does not support
-  yescrypt, the default hash algorithm on Ubuntu 22.04+ and Debian 12+.
+  yescrypt, the default hash algorithm on Ubuntu 22.04+ and Debian
+  12+, so any host running those distros would silently lose support.
+- `su -c true` cannot take a password on stdin without an external
+  `expect`-style wrapper, which itself becomes a dependency we'd
+  have to ship.
 
-The clean answer is `pam_authenticate` via CGO. We are deferring it to
-v0.2 because adding CGO to the cross-compile pipeline is a non-trivial
-change and we wanted v0.1 to install cleanly on every Linux that has
-PAM (rather than only the ones we have build coverage for).
+`pam_authenticate` via CGO + `libpam` is the path every other serious
+Linux panel takes (Cockpit, Webmin, Wazuh) and it lets libxcrypt at
+runtime worry about which hash algorithm the host uses — instead of
+us trying to vendor every one. PAM is in PowerLab as of **v0.2.0**.
 
 ## Hardware
 
