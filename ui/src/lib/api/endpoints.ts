@@ -177,7 +177,7 @@ export const ENDPOINTS = {
 
 	// System (V1)
 	SYS_UTILIZATION: '/v1/sys/utilization',
-	SYS_HARDWARE: '/v1/sys/hardware/info',
+	SYS_HARDWARE: '/v1/sys/hardware',
 	SYS_VERSION: '/v1/sys/version/check',
 	SYS_PORT: '/v1/sys/port',
 	SYS_REBOOT: '/v1/sys/state/restart',

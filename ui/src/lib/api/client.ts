@@ -71,11 +71,25 @@ async function request<T>(
 	options: RequestInit = {},
 	retries = 2
 ): Promise<T> {
+	// FormData bodies (file uploads) MUST be sent with the browser's
+	// auto-generated `multipart/form-data; boundary=...` Content-Type.
+	// If we hardcode application/json here as the default, fetch sends
+	// the multipart bytes with the wrong Content-Type and the server
+	// rejects with "request Content-Type isn't multipart/form-data".
+	// Skip the default for FormData and let the browser set it. JSON
+	// callers still get application/json by default.
+	const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+	const baseHeaders: Record<string, string> = {};
+	if (!isFormData) {
+		baseHeaders['Content-Type'] = 'application/json';
+	}
+	if (authToken) {
+		baseHeaders['Authorization'] = authToken;
+	}
 	let config: RequestInit = {
 		...options,
 		headers: {
-			'Content-Type': 'application/json',
-			...(authToken ? { Authorization: authToken } : {}),
+			...baseHeaders,
 			...(options.headers || {})
 		}
 	};

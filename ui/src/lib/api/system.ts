@@ -71,9 +71,13 @@ export function getSystemDisk() {
 	return api.get<ApiResult<DiskInfo>>('/v1/sys/disk');
 }
 
-/** Get system hardware info (device model, arch) */
+/** Get system hardware info (device model, arch).
+ * Backend route is /v1/sys/hardware (not /v1/sys/hardware/info — that
+ * was a UI-side typo that surfaced 404 in Settings → About). The
+ * Swagger annotation in system.go:180 mentions "/sys/hardware/info"
+ * but the actual route registration in v1.go:82 is "/hardware". */
 export function getHardwareInfo() {
-	return api.get<ApiResult<{ drive_model: string; arch: string }>>('/v1/sys/hardware/info');
+	return api.get<ApiResult<{ drive_model: string; arch: string }>>('/v1/sys/hardware');
 }
 
 /** Reboot or shutdown the system */

@@ -298,6 +298,38 @@ describe('API Client', () => {
 
 	// ─── Interceptors ─────────────────────────────────────────────────────
 
+	// ─── FormData / multipart upload contract ─────────────────────────────
+	// The browser must set Content-Type with the multipart boundary. If the
+	// client hardcodes Content-Type: application/json on every request, the
+	// browser respects the explicit value and the upload arrives at the
+	// server with a JSON content type, which the multipart parser rejects
+	// with "request Content-Type isn't multipart/form-data". This was the
+	// regression that broke the Files-page upload in v0.2.5.
+
+	it('does NOT set Content-Type on FormData uploads (browser fills the boundary)', async () => {
+		vi.stubGlobal('fetch', mockFetch({}));
+		const fd = new FormData();
+		fd.append('file', new Blob(['hello']), 'a.txt');
+
+		await api.upload('/v1/file/upload', fd);
+
+		const callArgs = (fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls[0];
+		const init = callArgs[1] as RequestInit;
+		const sentHeaders = init.headers as Record<string, string>;
+		expect(Object.keys(sentHeaders || {}).map((k) => k.toLowerCase())).not.toContain('content-type');
+	});
+
+	it('still sets Content-Type: application/json for non-FormData requests', async () => {
+		vi.stubGlobal('fetch', mockFetch({}));
+
+		await api.post('/v1/file', { file_path: '/tmp/x', file_content: 'y' });
+
+		const callArgs = (fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls[0];
+		const init = callArgs[1] as RequestInit;
+		const sentHeaders = init.headers as Record<string, string>;
+		expect(sentHeaders['Content-Type']).toBe('application/json');
+	});
+
 	it('applies request interceptor to outgoing headers', async () => {
 		addRequestInterceptor((config) => ({
 			...config,

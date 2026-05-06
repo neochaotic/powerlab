@@ -115,7 +115,7 @@ describe('System API', () => {
 
 		await getHardwareInfo();
 
-		expect(fetch).toHaveBeenCalledWith('/v1/sys/hardware/info', expect.anything());
+		expect(fetch).toHaveBeenCalledWith('/v1/sys/hardware', expect.anything());
 	});
 
 	it('getHardwareInfo: returns drive_model and arch', async () => {

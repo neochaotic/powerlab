@@ -137,7 +137,13 @@ func InitV2Router() http.Handler {
 				// shipped with this fork never declared it, so the validator
 				// rejects with "no matching operation was found" before the
 				// handler runs. Skip validation; route registered manually.
-				(strings.HasPrefix(p, V2APIPath+"/compose/") && strings.HasSuffix(p, "/disk-usage"))
+				(strings.HasPrefix(p, V2APIPath+"/compose/") && strings.HasSuffix(p, "/disk-usage")) ||
+				// /config — same pattern: GetAppManagementConfig exists in
+				// info.go:26 but the OpenAPI spec doesn't declare it, so
+				// without this skip + manual registration the validator
+				// returns 400 and Settings → About cannot fetch the
+				// app-management config to show the user.
+				p == V2APIPath+"/config"
 		},
 	}))
 
@@ -149,6 +155,7 @@ func InitV2Router() http.Handler {
 	e.GET(V2APIPath+"/compose/:id/disk-usage", func(c echo.Context) error {
 		return appManagement.(*v2Route.AppManagement).ComposeAppDiskUsage(c, c.Param("id"))
 	})
+	e.GET(V2APIPath+"/config", appManagement.(*v2Route.AppManagement).GetAppManagementConfig)
 
 	codegen.RegisterHandlersWithBaseURL(e, appManagement, V2APIPath)
 

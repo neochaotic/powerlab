@@ -216,6 +216,31 @@ CODE=$(run_in_container "
 [[ "$CODE" == "400" ]] || fail "scenario A: upload missing-file should return 400, got $CODE"
 green "  → upload missing-file rejected with 400"
 
+# Catch-all for the smaller endpoints whose silent failure (404 / 400)
+# pollutes every page render in the browser console without anyone
+# noticing because the UI swallows the rejection. If any of these
+# stops responding 200, fail the release.
+for path_label in \
+    "/v1/sys/hardware:hardware-info" \
+    "/v2/app_management/config:app-management-config" \
+    "/v2/app_management/compose/test-helloworld/disk-usage:disk-usage(404 acceptable)" \
+    "/v1/powerlab/version:version-handshake" ; do
+  PATH_ONLY="${path_label%%:*}"
+  LABEL="${path_label##*:}"
+  CODE=$(run_in_container "curl -sS -o /dev/null -w '%{http_code}' -H 'Authorization: $TOKEN' http://localhost:8765$PATH_ONLY")
+  case "$LABEL:$CODE" in
+    "disk-usage(404 acceptable):200"|"disk-usage(404 acceptable):404")
+      green "  → $LABEL OK ($CODE)"
+      ;;
+    *":200")
+      green "  → $LABEL OK"
+      ;;
+    *)
+      fail "scenario A: $LABEL ($PATH_ONLY) returned $CODE — must be 200"
+      ;;
+  esac
+done
+
 # ─── Scenario B: CasaOS present, no flag → must refuse ───────────────────
 cyan "[e2e] Scenario B: CasaOS present (no --allow-coexist)"
 start_container
