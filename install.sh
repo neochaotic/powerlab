@@ -33,13 +33,19 @@ die()  { printf "%s✗%s %s\n" "$RED" "$RESET" "$1" >&2; exit 1; }
 
 # ── Args ────────────────────────────────────────────────────────────────
 VERSION="latest"
+# All other args get forwarded verbatim to the bundled install.sh inside
+# the tarball. That's where flags like --upgrade and --allow-coexist
+# live — the bootstrapper just routes them through. Don't gate the
+# allowed list here, because the bundled installer evolves between
+# releases and an old bootstrapper shouldn't reject a new flag.
+PASSTHROUGH=()
 while (( $# > 0 )); do
 	case "$1" in
 		--version)
 			VERSION="${2:?}"; shift 2 ;;
 		--help|-h)
 			sed -n '2,21p' "$0"; exit 0 ;;
-		*) die "unknown argument: $1 — try --help" ;;
+		*) PASSTHROUGH+=("$1"); shift ;;
 	esac
 done
 
@@ -114,6 +120,6 @@ ok "Extracted to $INNER"
 # ── Run the bundled installer ───────────────────────────────────────────
 log "Running bundled installer…"
 echo
-bash "$INNER/install.sh"
+bash "$INNER/install.sh" "${PASSTHROUGH[@]+${PASSTHROUGH[@]}}"
 
 # Cleanup happens via the EXIT trap. Done.
