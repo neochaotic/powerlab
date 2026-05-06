@@ -165,6 +165,13 @@ func NewDatabaseRepository(databaseFilePath string, persistDatabaseFilePath stri
 	if err := os.MkdirAll(filepath.Dir(databaseFilePath), 0o777); err != nil {
 		return nil, err
 	}
+	// And the *persist* db path. Without this, fresh installs panic at
+	// startup with sqlite's "out of memory (14)" — really
+	// SQLITE_CANTOPEN — because /var/lib/powerlab/db/ doesn't exist
+	// yet on a system that's never run message-bus before.
+	if err := os.MkdirAll(filepath.Dir(persistDatabaseFilePath), 0o777); err != nil {
+		return nil, err
+	}
 	db, err := gorm.Open(sqlite.Open(databaseFilePath))
 	if err != nil {
 		return nil, err

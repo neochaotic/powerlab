@@ -39,6 +39,17 @@ export function setAuthToken(token: string | null): void {
 }
 
 /**
+ * Returns the current JWT auth token (or null if not signed in). Used by
+ * the websocket clients (terminal, app log streaming) which can't use
+ * the Authorization header — they have to push the token through the
+ * URL query string because the WebSocket constructor doesn't accept
+ * custom headers in browsers.
+ */
+export function getAuthToken(): string | null {
+	return authToken;
+}
+
+/**
  * Register a request interceptor.
  */
 export function addRequestInterceptor(interceptor: RequestInterceptor): void {

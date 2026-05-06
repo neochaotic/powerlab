@@ -3,6 +3,7 @@
 	import { Terminal as XTerm } from 'xterm';
 	import { FitAddon } from 'xterm-addon-fit';
 	import { X, Maximize2, Minimize2 } from 'lucide-svelte';
+	import { getAuthToken } from '$lib/api/client';
 	import 'xterm/css/xterm.css';
 
 	// Local-pty terminal. No credentials, no SSH, no Remote-Login config.
@@ -94,8 +95,13 @@
 
 		const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 		const host = window.location.host;
-		// Local pty endpoint — no SSH, no credentials. Vite proxies /v1.
-		const wsUrl = `${protocol}//${host}/v1/sys/wsshell?cols=${terminal.cols}&rows=${terminal.rows}`;
+		// JWT must travel through the query string because the browser
+		// WebSocket constructor doesn't accept custom headers — Authorization
+		// header isn't an option here. The gateway's JWT middleware accepts
+		// `?token=…` for exactly this reason.
+		const token = getAuthToken();
+		const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+		const wsUrl = `${protocol}//${host}/v1/sys/wsshell?cols=${terminal.cols}&rows=${terminal.rows}${tokenParam}`;
 
 		ws = new WebSocket(wsUrl);
 		ws.binaryType = 'arraybuffer';

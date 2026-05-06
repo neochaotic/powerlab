@@ -169,19 +169,63 @@ for svc in "${SERVICES[@]}"; do
   if [[ "$svc" == "gateway" ]]; then
     continue
   fi
+
+  # Service ordering. The actual topology (verified by reading the
+  # sources):
+  #
+  #   gateway      — STARTS FIRST. Writes /var/run/powerlab/management.url.
+  #                  No PowerLab dependencies; only network + docker.
+  #   message-bus  — Polls management.url for ~10s on startup; dies if
+  #                  not found. Writes message-bus.url.
+  #   user-service — Reads message-bus.url. Nil-deref-panics on startup
+  #                  if absent (dials websocket before nil-check).
+  #                  Writes user-service.url.
+  #   app-management, local-storage — read message-bus.url.
+  #   core         — reads message-bus.url + user-service.url.
+  #
+  # We use `Wants=` (soft) not `Requires=` (hard) because hard
+  # `Requires=` makes one transient failure (e.g. message-bus
+  # restarting) cascade to abort everyone. With `Wants=` + `After=` +
+  # `ExecStartPre` waiting for the URL file, services can recover
+  # individually. Type=simple gives no listen-readiness signal, so
+  # ExecStartPre is the actual readiness gate.
+  case "$svc" in
+    message-bus)
+      AFTER_LINE="After=network.target docker.service powerlab-gateway.service
+Wants=powerlab-gateway.service"
+      WAIT_LINES="ExecStartPre=/bin/bash -c 'for i in {1..30}; do [[ -f /var/run/powerlab/management.url ]] && exit 0; sleep 1; done; exit 1'"
+      ;;
+    user-service|local-storage|app-management)
+      AFTER_LINE="After=network.target docker.service powerlab-gateway.service powerlab-message-bus.service
+Wants=powerlab-gateway.service powerlab-message-bus.service"
+      WAIT_LINES="ExecStartPre=/bin/bash -c 'for i in {1..30}; do [[ -f /var/run/powerlab/message-bus.url ]] && exit 0; sleep 1; done; exit 1'"
+      ;;
+    core)
+      AFTER_LINE="After=network.target docker.service powerlab-gateway.service powerlab-message-bus.service powerlab-user-service.service
+Wants=powerlab-gateway.service powerlab-message-bus.service powerlab-user-service.service"
+      WAIT_LINES="ExecStartPre=/bin/bash -c 'for i in {1..30}; do [[ -f /var/run/powerlab/message-bus.url && -f /var/run/powerlab/user-service.url ]] && exit 0; sleep 1; done; exit 1'"
+      ;;
+    *)
+      AFTER_LINE="After=network.target docker.service"
+      WAIT_LINES=""
+      ;;
+  esac
+
   cat > "$STAGE/systemd/powerlab-$svc.service" <<EOF
 [Unit]
 Description=PowerLab $svc service
-After=network.target docker.service
+$AFTER_LINE
 Wants=docker.service
 
 [Service]
 Type=simple
+$WAIT_LINES
 ExecStart=/usr/bin/powerlab-$svc -c /etc/powerlab/$svc.conf
 Restart=always
 RestartSec=5
 PIDFile=/var/run/powerlab/$svc.pid
 Environment=DOCKER_API_VERSION=1.44
+Environment=HOME=/root
 
 [Install]
 WantedBy=multi-user.target
@@ -189,7 +233,9 @@ EOF
 done
 
 # Gateway: no -c flag (config is loaded from constants.DefaultConfigPath
-# /gateway.ini at startup), only -w for the www directory.
+# /gateway.ini at startup), only -w for the www directory. Gateway is
+# the FIRST PowerLab service to come up — every backend reads
+# management.url that gateway writes.
 cat > "$STAGE/systemd/powerlab-gateway.service" <<EOF
 [Unit]
 Description=PowerLab gateway service
@@ -203,6 +249,7 @@ Restart=always
 RestartSec=5
 PIDFile=/var/run/powerlab/gateway.pid
 Environment=DOCKER_API_VERSION=1.44
+Environment=HOME=/root
 
 [Install]
 WantedBy=multi-user.target
@@ -234,11 +281,15 @@ cat > "$STAGE/install.sh" <<'INSTALL_EOF'
 set -euo pipefail
 
 UPGRADE_MODE=0
-case "${1:-}" in
-  --upgrade) UPGRADE_MODE=1 ;;
-  "") ;;
-  *) echo "Unknown argument: $1 (only --upgrade is supported)" >&2; exit 1 ;;
-esac
+ALLOW_COEXIST=0
+for arg in "$@"; do
+  case "$arg" in
+    --upgrade) UPGRADE_MODE=1 ;;
+    --allow-coexist) ALLOW_COEXIST=1 ;;
+    "") ;;
+    *) echo "Unknown argument: $arg (supported: --upgrade, --allow-coexist)" >&2; exit 1 ;;
+  esac
+done
 
 if [[ $EUID -ne 0 ]]; then
   echo "ERROR: install.sh must be run as root (sudo)." >&2
@@ -249,6 +300,59 @@ if ! command -v docker &>/dev/null; then
   echo "ERROR: Docker is not installed. Install Docker Engine first." >&2
   echo "  See https://docs.docker.com/engine/install/" >&2
   exit 1
+fi
+
+# ── CasaOS coexistence check ────────────────────────────────────────────
+# PowerLab is a fork of CasaOS. On hosts where the upstream CasaOS is
+# already installed, the two can technically coexist (different ports,
+# different data dirs, different docker labels) but the experience is
+# confusing: users browse to port 80 (CasaOS), see a CasaOS UI, and
+# think PowerLab is broken. We detect this and:
+#   · default: warn loudly, list what we found, refuse to install
+#   · --allow-coexist: print the warning but proceed anyway. PowerLab
+#     comes up on its own port, with its own services. The user is
+#     responsible for knowing they have two products on one host.
+CASAOS_UNITS=$(systemctl list-unit-files --no-pager --no-legend 'casaos*.service' 2>/dev/null | awk '{print $1}' | grep -v '^$' || true)
+if [[ -n "$CASAOS_UNITS" ]]; then
+  echo ""
+  echo "═══════════════════════════════════════════════════════════════════"
+  echo "  ⚠  Existing CasaOS installation detected on this host."
+  echo "═══════════════════════════════════════════════════════════════════"
+  echo ""
+  echo "  Active CasaOS units:"
+  while IFS= read -r u; do echo "    · $u"; done <<< "$CASAOS_UNITS"
+  echo ""
+  echo "  Why this matters:"
+  echo "    PowerLab is a fork of CasaOS. They use different ports,"
+  echo "    different config dirs, and tag containers differently — so"
+  echo "    technically they coexist. But:"
+  echo "      · You'll have TWO web panels (CasaOS at :80, PowerLab at :8765)"
+  echo "      · Apps installed in CasaOS won't appear in PowerLab and"
+  echo "        vice-versa (different createdBy labels)"
+  echo "      · Both fight for the avahi multicast socket"
+  echo ""
+  echo "  Options:"
+  if (( ALLOW_COEXIST )); then
+    echo "    [ ✔ ] You passed --allow-coexist; proceeding."
+    echo "          PowerLab will install on a separate port. Browse to"
+    echo "          http://<this-host>:8765 to use it. CasaOS continues"
+    echo "          on http://<this-host>/ untouched."
+    echo ""
+  else
+    echo "    A) Remove CasaOS first (recommended):"
+    echo "         sudo systemctl disable --now casaos casaos-gateway \\"
+    echo "             casaos-app-management casaos-message-bus \\"
+    echo "             casaos-user-service casaos-local-storage"
+    echo "         sudo apt remove --purge 'casaos*'"
+    echo "         (your /DATA volumes and Docker containers are preserved)"
+    echo ""
+    echo "    B) Keep both side by side: re-run with --allow-coexist:"
+    echo "         curl -fsSL .../install.sh | sudo bash -s -- --allow-coexist"
+    echo ""
+    echo "  Refusing to install. (No changes made.)"
+    echo "═══════════════════════════════════════════════════════════════════"
+    exit 1
+  fi
 fi
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -278,7 +382,12 @@ fi
 
 echo "[powerlab-install] Creating directories..."
 install -d -m 0755 /etc/powerlab
-install -d -m 0755 /var/lib/powerlab/{apps,appstore,conf,backups}
+# /var/lib/powerlab/db is critical: message-bus's persistent SQLite db
+# lives at /var/lib/powerlab/db/message-bus.db. message-bus's repository
+# code only mkdir's the *runtime* db path, not the persist db path, so
+# without this dir it panics on first start with "out of memory (14)"
+# (sqlite's confusing rendering of SQLITE_CANTOPEN).
+install -d -m 0755 /var/lib/powerlab/{apps,appstore,conf,backups,db}
 install -d -m 0755 /var/log/powerlab
 install -d -m 0755 /var/run/powerlab
 install -d -m 0755 /usr/share/powerlab
@@ -473,6 +582,7 @@ HOSTNAME_SHORT="$(hostname -s 2>/dev/null || hostname)"
 
 GREEN='\033[0;32m'
 CYAN='\033[0;36m'
+YELLOW='\033[0;33m'
 DIM='\033[2m'
 RESET='\033[0m'
 
@@ -494,6 +604,13 @@ if [[ "$CHOSEN_PORT" != "80" ]]; then
 fi
 
 echo ""
+if [[ -n "$CASAOS_UNITS" ]]; then
+  printf "  ${YELLOW}⚠  CasaOS is also installed on this host.${RESET}\n"
+  printf "     PowerLab is at port ${PORT_SUFFIX#:} (URLs below).\n"
+  printf "     Your existing CasaOS continues at http://<this-host>/ (port 80).\n"
+  printf "     ${DIM}Apps you install in PowerLab will NOT appear in CasaOS, and vice versa.${RESET}\n"
+  echo ""
+fi
 echo "  Open PowerLab in your browser:"
 echo ""
 printf "    ${CYAN}→  http://localhost${PORT_SUFFIX}${RESET}                ${DIM}(on this machine)${RESET}\n"

@@ -488,7 +488,16 @@ func GetFileUpload(ctx echo.Context) error {
 // @Success 200 {string} string "ok"
 // @Router /file/upload [post]
 func PostFileUpload(ctx echo.Context) error {
-	f, _, _ := ctx.Request().FormFile("file")
+	// Don't swallow the FormFile error — without this, a missing or
+	// malformed multipart `file` part returns nil for `f` and the
+	// io.Copy(out, f) below nil-derefs. The original CasaOS code
+	// silently dropped the error; we surface it as 400 instead.
+	f, _, formErr := ctx.Request().FormFile("file")
+	if formErr != nil || f == nil {
+		logger.Error("upload: missing or invalid `file` part", zap.Error(formErr))
+		return ctx.JSON(http.StatusBadRequest, model.Result{Success: common_err.INVALID_PARAMS, Message: "upload: missing or invalid `file` part"})
+	}
+	defer f.Close()
 	relative := ctx.FormValue("relativePath")
 	fileName := ctx.FormValue("filename")
 	totalChunks, _ := strconv.Atoi(utils.DefaultPostForm(ctx, "totalChunks", "0"))

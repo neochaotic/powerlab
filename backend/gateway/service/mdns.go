@@ -240,6 +240,19 @@ func writeAvahiServiceFile(hostname string, port int) error {
 		return fmt.Errorf("stat %s: %w", avahiServicesDir, err)
 	}
 
+	// Crucially we DO NOT emit a <host-name> element here. avahi only
+	// publishes hostnames it owns (the system hostname); declaring an
+	// arbitrary <host-name>powerlab.local</host-name> made avahi
+	// silently reject the service registration. Without the element,
+	// avahi publishes against the system's own `<hostname>.local`.
+	// Users reach PowerLab at `<hostname>.local:<port>` (where
+	// hostname is whatever `hostnamectl --static` returns).
+	//
+	// To reach the box at the literal `powerlab.local`, the host's
+	// own static hostname must be `powerlab` — install.sh prints the
+	// `hostnamectl set-hostname powerlab` recommendation when it
+	// detects a non-`powerlab` hostname.
+	_ = hostname // kept in the signature for callers; not used in XML
 	xml := fmt.Sprintf(`<?xml version="1.0" standalone='no'?>
 <!DOCTYPE service-group SYSTEM "avahi-service.xsd">
 <!--
@@ -252,12 +265,11 @@ func writeAvahiServiceFile(hostname string, port int) error {
   <service>
     <type>_http._tcp</type>
     <port>%d</port>
-    <host-name>%s.local</host-name>
     <txt-record>path=/</txt-record>
     <txt-record>powerlab=true</txt-record>
   </service>
 </service-group>
-`, port, hostname)
+`, port)
 
 	dst := filepath.Join(avahiServicesDir, avahiServiceFile)
 	return os.WriteFile(dst, []byte(xml), 0o644)

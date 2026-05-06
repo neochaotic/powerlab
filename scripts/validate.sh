@@ -166,8 +166,22 @@ if [[ "$MODE" == "full" ]]; then
 				echo "OK: libpam linked"
 			' 2>&1 | tail -3 || fail "Docker CGO+PAM build failed"
 		ok "Docker CGO+PAM OK"
+
+		# Full Linux end-to-end: install in 3 docker scenarios (clean,
+		# casaos-present-refuse, casaos-coexist) and exercise login,
+		# editor, terminal websocket, app listing, and file upload.
+		# This is the gate that catches Linux-specific regressions
+		# that were invisible on macOS dev (paths, systemd ordering,
+		# CasaOS coexistence).
+		step "Linux E2E: install + login + editor + terminal + apps + upload"
+		./scripts/test-linux-e2e.sh "$ROOT/dist/powerlab-0.0.0-validate-linux-amd64.tar.gz" \
+			>/tmp/pwlab-validate-e2e.log 2>&1 || {
+			tail -30 /tmp/pwlab-validate-e2e.log
+			fail "Linux E2E failed (see /tmp/pwlab-validate-e2e.log)"
+		}
+		ok "Linux E2E OK (3 scenarios pass)"
 	else
-		warn "Docker not available — skipping CGO+PAM smoke"
+		warn "Docker not available — skipping CGO+PAM smoke and Linux E2E"
 	fi
 fi
 
