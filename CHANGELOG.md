@@ -11,6 +11,8 @@ see `CONTRIBUTING.md` for the rule.
 
 ## [Unreleased]
 
+## [0.2.4] — 2026-05-06
+
 ### Added
 - **In-UI updater (#21)** — Settings → About → Updates polls the
   PowerLab GitHub release manifest hourly, surfaces "Update
@@ -44,6 +46,22 @@ see `CONTRIBUTING.md` for the rule.
   Backed by a pure-function `validateGatewayPort` boundary check
   (13-case test) and a typed frontend wrapper (8-case test) that
   rejects out-of-range ports without a network round-trip.
+
+### Fixed
+- `install.sh` now writes `/etc/powerlab/version` on every install,
+  not just on `--upgrade`. Without this, the FIRST upgrade out of
+  any host would record `from: "unknown"` in `last-upgrade.json`
+  because there was no previous-version file to read. Caught by the
+  end-to-end Docker integration test of the v0.2.4 updater.
+
+### Verified end-to-end
+- Fresh install of v0.2.4 → gateway HTTP 200, version file persisted.
+- Upgrade v0.2.4 → v0.2.5 (same binary, smoke) → snapshot created in
+  `/var/lib/powerlab/backups/pre-upgrade-<ts>/`, binary swap clean,
+  gateway recovered, `last-upgrade.json` `result: "success"`.
+- Broken-binary upgrade → install.sh exited 1, gateway recovered via
+  snapshot restore, `last-upgrade.json` `result: "rolled_back"` with
+  diagnostic. Auto-rollback works without shell access.
 
 
 ## [0.2.3] — 2026-05-06
