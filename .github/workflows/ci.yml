@@ -140,7 +140,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: powerlab-linux-${{ matrix.arch }}
-          path: dist/powerlab-${{ steps.version.outputs.version }}-linux-${{ matrix.arch }}.tar.gz
+          # Both the versioned and the stable filename — `releases/latest`
+          # URLs in the README depend on the stable name.
+          path: |
+            dist/powerlab-${{ steps.version.outputs.version }}-linux-${{ matrix.arch }}.tar.gz
+            dist/powerlab-linux-${{ matrix.arch }}.tar.gz
 
   # ─────────────────────────────────────────────────────────────────────
   # Release: only runs on `vX.Y.Z` tag pushes. Pulls the tarballs the

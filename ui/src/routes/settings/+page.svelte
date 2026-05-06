@@ -399,7 +399,7 @@
 
 							<div class="mt-6 flex flex-wrap items-center gap-2">
 								<span class="rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 font-mono text-[11px] text-zinc-300">v0.1.0-dev</span>
-								<span class="rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[11px] text-zinc-400">PolyForm Noncommercial 1.0</span>
+								<span class="rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[11px] text-zinc-400">AGPL-3.0</span>
 							</div>
 						</div>
 					</div>
@@ -502,7 +502,7 @@
 									</div>
 									<div>
 										<p class="text-sm font-medium text-white">License</p>
-										<p class="text-[11px] text-zinc-500">PolyForm Noncommercial 1.0.0</p>
+										<p class="text-[11px] text-zinc-500">GNU Affero General Public License v3.0</p>
 									</div>
 								</div>
 								<ExternalLink class="h-3.5 w-3.5 text-zinc-600 transition-colors group-hover:text-zinc-300" />

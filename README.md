@@ -28,7 +28,7 @@ cd powerlab-*-linux-amd64 && sudo ./install.sh
 
 <br>
 
-[![License: PolyForm NC 1.0](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0-emerald?style=flat-square)](LICENSE)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-emerald?style=flat-square)](LICENSE)
 [![AI-ready](https://img.shields.io/badge/AI-ready-blueviolet?style=flat-square&logo=openai&logoColor=white)](#built-for-ai)
 [![Built with SvelteKit](https://img.shields.io/badge/built_with-SvelteKit-FF3E00?style=flat-square&logo=svelte&logoColor=white)](https://kit.svelte.dev)
 [![Backend: Go 1.21+](https://img.shields.io/badge/backend-Go_1.21+-00ADD8?style=flat-square&logo=go&logoColor=white)](https://go.dev)
@@ -312,7 +312,7 @@ If OS auth is unavailable (pre-PAM Linux, forgotten OS password), the same login
 
 ## License
 
-**[PolyForm Noncommercial 1.0.0](LICENSE).** Free for personal and noncommercial use. Commercial deployments require a separate agreement — [open an issue](https://github.com/neochaotic/powerlab/issues) or email the maintainer.
+**[GNU Affero General Public License v3.0](LICENSE).** Free and open-source software. You can use, modify, and redistribute PowerLab — including for commercial purposes — provided that any modified version you distribute (or host as a network service) is also released under the AGPL-3.0. See the [LICENSE](LICENSE) file for the full text.
 
 <br>
 

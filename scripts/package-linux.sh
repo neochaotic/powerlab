@@ -280,9 +280,17 @@ log "Creating tarball..."
 cd "$OUT"
 tar -czf "$TARBALL" "$(basename "$STAGE")"
 
+# Also publish under a stable, version-less filename so the
+# `releases/latest/download/powerlab-linux-<arch>.tar.gz` URL in the README
+# keeps working across releases. Both tarballs are identical bytes — the
+# stable name is just a copy.
+STABLE_TARBALL="$OUT/powerlab-linux-$ARCH.tar.gz"
+cp "$TARBALL" "$STABLE_TARBALL"
+
 SIZE=$(du -sh "$TARBALL" | awk '{print $1}')
 log "Done."
 log ""
 log "  $TARBALL ($SIZE)"
+log "  $STABLE_TARBALL (stable URL)"
 log ""
 log "Deploy: copy to a Linux host, extract, and run sudo ./install.sh"
