@@ -11,6 +11,11 @@ see `CONTRIBUTING.md` for the rule.
 
 ## [Unreleased]
 
+(features in progress — empty when releases are published)
+
+
+## [0.2.3] — 2026-05-06
+
 ### Fixed
 - **mDNS `powerlab.local` not resolving on Linux installs (#33)**.
   Two root causes addressed:
