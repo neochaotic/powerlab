@@ -1,0 +1,45 @@
+### Go template
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+### Example user template template
+### Example user template
+
+# IntelliJ project files
+.idea
+.vscode
+*.iml
+/out
+/gen
+/logs/
+/sql/
+/db/
+/conf/conf.ini
+/conf/conf.conf
+/conf/conf.json
+__debug_bin
+/main
+/github.com
+.all-contributorsrc
+/dist
+# Compiled service binary — anchored to the service root so it does not
+# match the api/casaos/ openapi spec directory (macOS HFS+ matches
+# case-insensitively, so `CasaOS` would otherwise hit `casaos/`).
+/CasaOS
+/codegen
+
+# System Files
+.DS_Store

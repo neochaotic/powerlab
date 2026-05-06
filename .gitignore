@@ -1,0 +1,92 @@
+# ─── OS & Editor ───────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.iml
+
+# ─── Node / Frontend ──────────────────────────────────────────────────
+node_modules/
+.svelte-kit/
+ui/build/
+ui/dist/
+dist/
+.env
+.env.*
+!.env.example
+package-lock.json
+ui/test-results/
+ui/playwright-report/
+
+# ─── Go / Backend ─────────────────────────────────────────────────────
+backend/*/vendor/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.out
+coverage.html
+
+# Compiled service binaries
+backend/app-management/app-management
+backend/core/core
+backend/core/powerlab
+backend/gateway/gateway
+backend/user-service/user-service
+backend/message-bus/message-bus
+backend/local-storage/local-storage
+
+# ─── Runtime data — never commit (machine-local state) ────────────────
+backend/runtime/
+backend/logs/
+backend/data/
+backend/conf/
+backend/*/runtime/
+backend/*/logs/
+backend/*/data/
+# When a service is started from its own directory it sometimes resolves
+# storage paths relative to its own root, producing a nested
+# backend/<svc>/backend/{data,runtime,logs} tree. Ignore that too.
+backend/*/backend/
+
+# Root-level runtime configs (written by start.sh in dev)
+/app-management.conf
+/gateway.ini
+/casaos.conf
+/user-service.conf
+/message-bus.conf
+/local-storage.conf
+
+# Test scratch outputs
+**/test_output.txt
+**/test-results/
+
+# ─── Build Artifacts ──────────────────────────────────────────────────
+*.log
+tmp/
+.cache/
+
+# ─── AI Agent Artifacts — must NEVER reach the repo ───────────────────
+.gemini/
+.claude/
+.antigravity/
+**/.antigravity
+**/.antigravity/
+.cursor/
+.cursorrules
+.aider*
+.copilot/
+ai-context/
+artifacts/
+*.agent.md
+
+# ─── Project-specific ─────────────────────────────────────────────────
+# Upstream CasaOS snapshot images — not used by PowerLab
+backend/core/snapshot*.png
+backend/core/snapshot*.jpg

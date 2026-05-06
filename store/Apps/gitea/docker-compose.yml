@@ -1,0 +1,44 @@
+name: gitea
+services:
+  gitea:
+    image: gitea/gitea:latest
+    environment:
+      USER_UID: $PUID
+      USER_GID: $PGID
+      GITEA__database__DB_TYPE: sqlite3
+      GITEA__database__PATH: /data/gitea/gitea.db
+    ports:
+      - target: 3000
+        published: "3000"
+        protocol: tcp
+      - target: 22
+        published: "2222"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /DATA/AppData/gitea/data
+        target: /data
+      - type: bind
+        source: /etc/timezone
+        target: /etc/timezone
+        read_only: true
+      - type: bind
+        source: /etc/localtime
+        target: /etc/localtime
+        read_only: true
+
+x-casaos:
+  title:
+    en_us: Gitea
+  icon: https://cdn.jsdelivr.net/gh/IceWhaleTech/CasaOS-AppStore@main/Apps/Gitea/icon.png
+  description:
+    en_us: Gitea is a painless self-hosted Git service. It is similar to GitHub, Bitbucket, and GitLab. It is a community managed fork of Gogs.
+  developer: Gitea
+  author: PowerLab Team
+  category: Developer
+  tagline:
+    en_us: A self-hosted Git service for your home server.
+  web: "3000"
+  index: /
+  main: gitea

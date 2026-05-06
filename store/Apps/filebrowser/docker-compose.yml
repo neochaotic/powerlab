@@ -1,0 +1,31 @@
+name: filebrowser
+services:
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    ports:
+      - target: 80
+        published: "8083"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /DATA
+        target: /srv
+      - type: bind
+        source: /DATA/AppData/filebrowser/database.db
+        target: /database.db
+
+x-casaos:
+  title:
+    en_us: File Browser
+  icon: https://cdn.jsdelivr.net/gh/IceWhaleTech/CasaOS-AppStore@main/Apps/FileBrowser/icon.png
+  description:
+    en_us: File Browser provides a file managing interface within a specified directory and it can be used to upload, delete, preview, rename and edit your files.
+  developer: File Browser
+  author: PowerLab Team
+  category: Files
+  tagline:
+    en_us: A stylish web-based file manager.
+  web: "8083"
+  index: /
+  main: filebrowser

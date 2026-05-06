@@ -1,0 +1,25 @@
+name: goreleaser
+
+on:
+  push:
+    tags:
+      - v*.*.*
+
+permissions:
+  contents: write
+jobs:
+  call-workflow-passing-data:
+    uses: IceWhaleTech/github/.github/workflows/go_release.yml@main
+    with:
+      project-name: CasaOS
+      file-name: casaos
+    secrets:
+      GoogleID: ${{ secrets.GoogleID }} 
+      GoogleSecret: ${{ secrets.GoogleSecret }}
+      DropboxKey: ${{ secrets.DropboxKey }}
+      DropboxSecret: ${{ secrets.DropboxSecret }}
+      OneDriveID: ${{ secrets.OneDriveID }}
+      OneDriveSecret: ${{ secrets.OneDriveSecret }}
+      OneDrivePublic: ${{ secrets.OneDrivePublic }}
+      OSS_KEY_ID: ${{ secrets.OSS_KEY_ID }}
+      OSS_KEY_SECRET: ${{ secrets.OSS_KEY_SECRET }}

@@ -1,0 +1,32 @@
+name: homeassistant
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    environment:
+      TZ: $TZ
+    ports:
+      - target: 8123
+        published: "8123"
+        protocol: tcp
+    restart: unless-stopped
+    privileged: true
+    network_mode: host
+    volumes:
+      - type: bind
+        source: /DATA/AppData/homeassistant/config
+        target: /config
+
+x-casaos:
+  title:
+    en_us: Home Assistant
+  icon: https://cdn.jsdelivr.net/gh/IceWhaleTech/CasaOS-AppStore@main/Apps/HomeAssistant/icon.png
+  description:
+    en_us: Home Assistant is a free and open-source home automation platform that puts local control and privacy first, powered by a worldwide community of tinkerers and DIY enthusiasts.
+  developer: Home Assistant
+  author: PowerLab Team
+  category: Home Automation
+  tagline:
+    en_us: Open source home automation that puts local control and privacy first.
+  web: "8123"
+  index: /
+  main: homeassistant

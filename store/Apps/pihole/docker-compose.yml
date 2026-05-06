@@ -1,0 +1,42 @@
+name: pihole
+services:
+  pihole:
+    image: pihole/pihole:latest
+    environment:
+      TZ: $TZ
+      WEBPASSWORD: $DefaultPassword
+    ports:
+      - target: 53
+        published: "53"
+        protocol: tcp
+      - target: 53
+        published: "53"
+        protocol: udp
+      - target: 80
+        published: "8084"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /DATA/AppData/pihole/etc-pihole
+        target: /etc/pihole
+      - type: bind
+        source: /DATA/AppData/pihole/etc-dnsmasq.d
+        target: /etc/dnsmasq.d
+    cap_add:
+      - NET_ADMIN
+
+x-casaos:
+  title:
+    en_us: Pi-hole
+  icon: https://cdn.jsdelivr.net/gh/IceWhaleTech/CasaOS-AppStore@main/Apps/Pi-hole/icon.png
+  description:
+    en_us: Pi-hole is a Linux network-level advertisement and Internet tracker blocking application which acts as a DNS sinkhole and optionally a DHCP server.
+  developer: Pi-hole, LLC
+  author: PowerLab Team
+  category: Network
+  tagline:
+    en_us: Network-wide ad blocking via your own Linux hardware.
+  web: "8084"
+  index: /admin
+  main: pihole

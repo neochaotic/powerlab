@@ -1,0 +1,27 @@
+name: Validate App Store
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'store/Apps/**'
+      - 'scripts/validate_store.go'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'store/Apps/**'
+      - 'scripts/validate_store.go'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Validate Store
+        run: go run scripts/validate_store.go

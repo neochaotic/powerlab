@@ -1,0 +1,31 @@
+name: portainer
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    ports:
+      - target: 9000
+        published: "9000"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+      - type: bind
+        source: /DATA/AppData/portainer/data
+        target: /data
+
+x-casaos:
+  title:
+    en_us: Portainer
+  icon: https://cdn.jsdelivr.net/gh/IceWhaleTech/CasaOS-AppStore@main/Apps/Portainer/icon.png
+  description:
+    en_us: Portainer is a lightweight service delivery platform for containerized applications. It simplifies your Docker, Swarm, Kubernetes, and ACI environments.
+  developer: Portainer.io
+  author: PowerLab Team
+  category: Developer
+  tagline:
+    en_us: Manage Docker environments with a web UI.
+  web: "9000"
+  index: /
+  main: portainer

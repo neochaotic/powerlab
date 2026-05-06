@@ -1,0 +1,39 @@
+name: jellyfin
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+      - target: 8096
+        published: "8096"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /DATA/AppData/jellyfin/config
+        target: /config
+      - type: bind
+        source: /DATA/AppData/jellyfin/cache
+        target: /cache
+      - type: bind
+        source: /DATA/Media
+        target: /media
+        read_only: true
+
+x-casaos:
+  title:
+    en_us: Jellyfin
+  icon: https://cdn.jsdelivr.net/gh/IceWhaleTech/CasaOS-AppStore@main/Apps/Jellyfin/icon.png
+  description:
+    en_us: Jellyfin is the volunteer-built media solution that puts you in control of your media. Stream to any device from your own server, with no strings attached.
+  developer: Jellyfin Project
+  author: PowerLab Team
+  category: Media
+  tagline:
+    en_us: The Free Software Media System.
+  web: "8096"
+  index: /web/index.html
+  main: jellyfin

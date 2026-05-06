@@ -1,0 +1,12 @@
+[Unit]
+Description=rclone
+
+[Service]
+ExecStartPre=/usr/bin/mkdir -p /var/run/rclone 
+ExecStartPre=/usr/bin/rm -f /var/run/rclone/rclone.sock
+ExecStart=/usr/bin/rclone rcd --rc-addr unix:///var/run/rclone/rclone.sock --rc-no-auth --rc-allow-origin "*"
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

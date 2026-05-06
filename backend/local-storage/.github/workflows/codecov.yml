@@ -1,0 +1,11 @@
+name: Collect Code Coverage
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+jobs:
+  call-workflow-passing-data:
+    uses: IceWhaleTech/github/.github/workflows/go_codecov.yml@main

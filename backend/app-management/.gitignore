@@ -1,0 +1,35 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+.vscode/
+dist/
+target/
+# codegen/ is regenerated from the OpenAPI spec by `go generate ./...`
+# (see main.go). custom.go is hand-written though — it carries types
+# we attach to the generated package without modifying the generator
+# template. The `codegen/*` form (rather than `codegen/`) lets the
+# `!codegen/custom.go` re-inclusion below take effect.
+codegen/*
+!codegen/custom.go
+codegen/message_bus/
+__debug_bin
+CasaOS-AppManagement 
+
+# node_modules
+node_modules
+package-lock.json
+
+.idea
+build/sysroot/usr/bin/appfile2compose

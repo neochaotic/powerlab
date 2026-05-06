@@ -1,0 +1,73 @@
+# Contributing to PowerLab
+
+First off, thank you for considering contributing to PowerLab! It's people like you that make PowerLab such a great tool for the home server community.
+
+## Tech Stack
+
+- **Frontend:** SvelteKit (Svelte 5 Runes), TypeScript, Tailwind CSS v4, Lucide Icons.
+- **Backend:** Go 1.21+, Echo v4, GORM, Docker SDK.
+- **Testing:** Vitest (Frontend), Go `testing` package (Backend).
+
+## Development Workflow
+
+### Prerequisites
+
+- [Go](https://golang.org/doc/install) 1.21 or higher.
+- [Node.js](https://nodejs.org/en/download/) (v18+ recommended) and `npm`.
+- [Docker](https://docs.docker.com/get-docker/) installed and running.
+
+### Setting up the Backend
+
+1. Navigate to the root directory.
+2. Run the start script to initialize and build all services:
+   ```bash
+   ./start.sh --build
+   ```
+3. The gateway will start on `http://localhost:80` (or `8089` depending on config).
+
+### Setting up the Frontend
+
+1. Navigate to the `ui/` directory:
+   ```bash
+   cd ui
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+4. Access the UI at `http://localhost:5173`.
+
+## Coding Standards
+
+### Frontend (Svelte 5)
+
+- **Runes Only:** Use `$state`, `$derived`, and `$effect`. Legacy Svelte 4 stores are discouraged.
+- **Derived Expressions:** Always use `$derived.by(() => { ... })` for multi-line logic.
+- **Components:** Use snippets (`{#snippet}`) instead of slots.
+- **Styling:** Use Tailwind CSS v4 utility classes. Design tokens are in `ui/src/app.css`.
+
+### Backend (Go)
+
+- **Standardized Responses:** Use `codegen.Response` for all API handlers to ensure structured JSON output.
+- **Error Handling:** Return descriptive error messages.
+- **Path Resolution:** Always use the portable path resolution logic defined in `backend/common/utils/constants/paths.go`.
+
+## Testing
+
+- **Backend:** Run `go test ./...` in the specific service directory (e.g., `backend/core`).
+- **Frontend:** Run `npm run check` and `npx vitest` in the `ui/` directory.
+
+## Pull Request Process
+
+1. Fork the repository and create your branch from `main`.
+2. Ensure your code passes all tests and lint checks.
+3. Update the documentation if you're adding or changing features.
+4. Submit a PR with a clear description of the changes and the problem they solve.
+
+## License
+
+By contributing, you agree that your contributions will be licensed under the PolyForm Noncommercial License 1.0.0.

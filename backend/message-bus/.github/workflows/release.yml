@@ -1,0 +1,18 @@
+name: goreleaser
+
+on:
+  push:
+    tags:
+      - v*.*.*
+permissions:
+  contents: write
+jobs:
+  call-workflow-passing-data:
+    uses: IceWhaleTech/github/.github/workflows/go_release.yml@main
+    with:
+      project-name: CasaOS-MessageBus
+      file-name: casaos-message-bus
+    secrets:
+      OSS_KEY_ID: ${{ secrets.OSS_KEY_ID }}
+      OSS_KEY_SECRET: ${{ secrets.OSS_KEY_SECRET }}
+

@@ -1,0 +1,121 @@
+@import 'tailwindcss';
+
+/*
+ * PowerLab Design Tokens
+ * Dark mode first. Slate/Zinc scales for depth.
+ * Vibrant accents: Emerald (success), Crimson (critical).
+ */
+
+:root {
+	/* Surface colors - dark mode default */
+	--color-bg-primary: #09090b;
+	--color-bg-secondary: #18181b;
+	--color-bg-tertiary: #27272a;
+	--color-bg-elevated: #3f3f46;
+
+	/* Text */
+	--color-text-primary: #fafafa;
+	--color-text-secondary: #a1a1aa;
+	--color-text-muted: #71717a;
+
+	/* Borders */
+	--color-border: #27272a;
+	--color-border-hover: #3f3f46;
+
+	/* Accents */
+	--color-accent: #10b981;
+	--color-accent-hover: #059669;
+	--color-danger: #dc2626;
+	--color-danger-hover: #b91c1c;
+	--color-warning: #f59e0b;
+	--color-info: #3b82f6;
+
+	/* Transitions */
+	--transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+	--transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+
+	/* Radii */
+	--radius-sm: 0.375rem;
+	--radius-md: 0.5rem;
+	--radius-lg: 0.75rem;
+
+	/* Glow Effects */
+	--color-danger-glow: rgba(220, 38, 38, 0.15);
+	--color-warning-glow: rgba(245, 158, 11, 0.15);
+}
+
+@keyframes pulse-glow-danger {
+	0%, 100% {
+		box-shadow: 0 0 0 0 var(--color-danger-glow), inset 0 0 0 0 var(--color-danger-glow);
+		border-color: var(--color-danger);
+	}
+	50% {
+		box-shadow: 0 0 25px 5px var(--color-danger-glow), inset 0 0 15px 2px var(--color-danger-glow);
+		border-color: rgba(220, 38, 38, 0.7);
+	}
+}
+
+@keyframes pulse-glow-warning {
+	0%, 100% {
+		box-shadow: 0 0 0 0 var(--color-warning-glow), inset 0 0 0 0 var(--color-warning-glow);
+		border-color: var(--color-warning);
+	}
+	50% {
+		box-shadow: 0 0 20px 2px var(--color-warning-glow), inset 0 0 10px 1px var(--color-warning-glow);
+		border-color: rgba(245, 158, 11, 0.7);
+	}
+}
+
+@utility animate-pulse-glow-danger {
+	animation: pulse-glow-danger 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@utility animate-pulse-glow-warning {
+	animation: pulse-glow-warning 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Light mode override */
+[data-theme='light'] {
+	--color-bg-primary: #ffffff;
+	--color-bg-secondary: #f4f4f5;
+	--color-bg-tertiary: #e4e4e7;
+	--color-bg-elevated: #d4d4d8;
+	--color-text-primary: #09090b;
+	--color-text-secondary: #52525b;
+	--color-text-muted: #a1a1aa;
+	--color-border: #e4e4e7;
+	--color-border-hover: #d4d4d8;
+}
+
+/* Base resets */
+html {
+	font-family: 'Inter', system-ui, -apple-system, sans-serif;
+	background-color: var(--color-bg-primary);
+	color: var(--color-text-primary);
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+body {
+	margin: 0;
+	min-height: 100vh;
+}
+
+/* Scrollbar styling for dark mode */
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--color-bg-elevated);
+	border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: var(--color-text-muted);
+}

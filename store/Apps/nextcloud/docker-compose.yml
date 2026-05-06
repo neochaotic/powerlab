@@ -1,0 +1,32 @@
+name: nextcloud
+services:
+  nextcloud:
+    image: nextcloud:latest
+    environment:
+      NEXTCLOUD_ADMIN_USER: $DefaultUserName
+      NEXTCLOUD_ADMIN_PASSWORD: $DefaultPassword
+      SQLITE_DATABASE: nextcloud
+    ports:
+      - target: 80
+        published: "8081"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /DATA/AppData/nextcloud/data
+        target: /var/www/html
+
+x-casaos:
+  title:
+    en_us: Nextcloud
+  icon: https://cdn.jsdelivr.net/gh/IceWhaleTech/CasaOS-AppStore@main/Apps/Nextcloud/icon.png
+  description:
+    en_us: Nextcloud is a suite of client-server software for creating and using file hosting services. It offers storage, file sync, calendar, contacts, tasks, video calls, and more.
+  developer: Nextcloud GmbH
+  author: PowerLab Team
+  category: Cloud
+  tagline:
+    en_us: Your own cloud. Your own rules.
+  web: "8081"
+  index: /
+  main: nextcloud

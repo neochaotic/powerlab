@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────
+  # Frontend: type-check + unit tests + production build.
+  # No cache-dependency-path because package-lock.json is gitignored;
+  # `npm install` resolves the tree fresh each run.
+  # ─────────────────────────────────────────────────────────────────────
+  frontend:
+    name: Frontend (svelte-check + vitest + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: ui
+        run: npm install
+
+      - name: Type check (svelte-check)
+        working-directory: ui
+        run: npx svelte-check --tsconfig ./tsconfig.json --threshold error
+
+      - name: Unit tests (vitest)
+        working-directory: ui
+        run: npx vitest run
+
+      - name: Production build
+        working-directory: ui
+        run: npm run build
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Backend: matrix per service. Each service has its own go.mod.
+  # `local-storage` needs libfuse to compile (Linux-only dependency).
+  # `cli` is excluded — its codegen sub-packages live in a separate
+  # repository (CasaOS-CLI) that we have not forked yet.
+  # ─────────────────────────────────────────────────────────────────────
+  backend:
+    name: Backend ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - common
+          - gateway
+          - core
+          - user-service
+          - message-bus
+          - app-management
+          - local-storage
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache-dependency-path: backend/${{ matrix.service }}/go.sum
+
+      # local-storage uses bazil.org/fuse + Linux extended attribute syscalls;
+      # libfuse must be installed before the test build can succeed.
+      - name: Install fuse (local-storage only)
+        if: matrix.service == 'local-storage'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libfuse-dev fuse pkg-config
+
+      # Each service has its own //go:generate directives that produce
+      # codegen/ from OpenAPI specs. They are .gitignored, so we
+      # regenerate before the tests run. `gateway` is the only service
+      # with no generate step.
+      - name: Run go generate
+        if: matrix.service != 'gateway'
+        working-directory: backend/${{ matrix.service }}
+        run: go generate ./...
+
+      - name: Test
+        working-directory: backend/${{ matrix.service }}
+        run: go test -race ./...
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Smoke build for the production tarballs the release pipeline will
+  # produce. Just confirms cross-compilation works for both target archs.
+  # ─────────────────────────────────────────────────────────────────────
+  package:
+    name: Package smoke (${{ matrix.arch }})
+    needs: [frontend, backend]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Install fuse (cross-compile target)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libfuse-dev pkg-config
+
+      - name: Install frontend dependencies
+        working-directory: ui
+        run: npm install
+
+      - name: Run packaging script
+        run: ./scripts/package-linux.sh ${{ matrix.arch }} 0.0.0-ci
+
+      - name: Upload tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: powerlab-linux-${{ matrix.arch }}
+          path: dist/powerlab-0.0.0-ci-linux-${{ matrix.arch }}.tar.gz
+          retention-days: 7

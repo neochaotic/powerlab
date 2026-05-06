@@ -1,0 +1,34 @@
+name: vaultwarden
+services:
+  vaultwarden:
+    image: vaultwarden/server:latest
+    environment:
+      WEBSOCKET_ENABLED: "true"
+      SIGNUPS_ALLOWED: "true"
+    ports:
+      - target: 80
+        published: "8082"
+        protocol: tcp
+      - target: 3012
+        published: "3012"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /DATA/AppData/vaultwarden/data
+        target: /data
+
+x-casaos:
+  title:
+    en_us: Vaultwarden
+  icon: https://cdn.jsdelivr.net/gh/IceWhaleTech/CasaOS-AppStore@main/Apps/Vaultwarden/icon.png
+  description:
+    en_us: Vaultwarden is an unofficial Bitwarden compatible server written in Rust. It is a self-hosted password manager that is compatible with all official Bitwarden clients.
+  developer: Daniel García
+  author: PowerLab Team
+  category: Security
+  tagline:
+    en_us: Self-hosted Bitwarden-compatible password manager.
+  web: "8082"
+  index: /
+  main: vaultwarden

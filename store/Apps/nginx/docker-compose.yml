@@ -1,0 +1,31 @@
+name: nginx
+services:
+  nginx:
+    image: nginx:latest
+    ports:
+      - target: 80
+        published: "8080"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /DATA/AppData/nginx/html
+        target: /usr/share/nginx/html
+      - type: bind
+        source: /DATA/AppData/nginx/conf.d
+        target: /etc/nginx/conf.d
+
+x-casaos:
+  title:
+    en_us: Nginx
+  icon: https://cdn.jsdelivr.net/gh/IceWhaleTech/CasaOS-AppStore@main/Apps/Nginx/icon.png
+  description:
+    en_us: Nginx is a high-performance HTTP server, reverse proxy, and IMAP/POP3 proxy server.
+  developer: nginx Inc.
+  author: PowerLab Team
+  category: Network
+  tagline:
+    en_us: The world's most popular web server.
+  web: "8080"
+  index: /
+  main: nginx

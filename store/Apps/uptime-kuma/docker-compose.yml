@@ -1,0 +1,28 @@
+name: uptime-kuma
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:latest
+    ports:
+      - target: 3001
+        published: "3001"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /DATA/AppData/uptime-kuma/data
+        target: /app/data
+
+x-casaos:
+  title:
+    en_us: Uptime Kuma
+  icon: https://cdn.jsdelivr.net/gh/IceWhaleTech/CasaOS-AppStore@main/Apps/UptimeKuma/icon.png
+  description:
+    en_us: Uptime Kuma is an easy-to-use self-hosted monitoring tool. Monitor your websites, APIs, and services with beautiful status pages and instant notifications.
+  developer: Louis Lam
+  author: PowerLab Team
+  category: Network
+  tagline:
+    en_us: A self-hosted monitoring tool like Uptime Robot.
+  web: "3001"
+  index: /
+  main: uptime-kuma
