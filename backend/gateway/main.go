@@ -18,6 +18,7 @@ import (
 	"github.com/IceWhaleTech/CasaOS-Common/external"
 	"github.com/IceWhaleTech/CasaOS-Common/model"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
+	"github.com/IceWhaleTech/CasaOS-Common/utils/devmode"
 	http2 "github.com/IceWhaleTech/CasaOS-Common/utils/http"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/coreos/go-systemd/daemon"
@@ -92,10 +93,16 @@ func init() {
 		panic(err)
 	}
 
-	if currentDir, err := os.Getwd(); err == nil {
-		sharedRuntime := filepath.Join(filepath.Dir(currentDir), "runtime")
-		config.Set(common.ConfigKeyRuntimePath, sharedRuntime)
-		config.Set(common.ConfigKeyLogPath, filepath.Join(filepath.Dir(currentDir), "logs"))
+	// Dev-only: redirect runtime/log paths into the project tree so multiple
+	// services can share a sandbox under `./start.sh`. In production
+	// (/etc/powerlab present), trust the loaded config file as-is —
+	// otherwise systemd's cwd of "/" would make us write to /runtime.
+	if devmode.IsDev() {
+		if currentDir, err := os.Getwd(); err == nil {
+			sharedRuntime := filepath.Join(filepath.Dir(currentDir), "runtime")
+			config.Set(common.ConfigKeyRuntimePath, sharedRuntime)
+			config.Set(common.ConfigKeyLogPath, filepath.Join(filepath.Dir(currentDir), "logs"))
+		}
 	}
 
 	logger.LogInit(

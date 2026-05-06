@@ -12,6 +12,7 @@ import (
 	"github.com/IceWhaleTech/CasaOS-AppManagement/common"
 	"github.com/IceWhaleTech/CasaOS-AppManagement/model"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
+	"github.com/IceWhaleTech/CasaOS-Common/utils/devmode"
 	"gopkg.in/ini.v1"
 )
 
@@ -88,17 +89,25 @@ func InitSetup(config string, sample string) {
 	mapTo("app", AppInfo)
 	mapTo("server", ServerInfo)
 
-	// Force local paths if defaults are not writable
-	if currentDir, err := os.Getwd(); err == nil {
-		sharedRuntime := filepath.Join(filepath.Dir(currentDir), "runtime")
-		CommonInfo.RuntimePath = sharedRuntime
-		AppInfo.LogPath = filepath.Join(filepath.Dir(sharedRuntime), "logs")
-		AppInfo.AppStorePath = filepath.Join(filepath.Dir(sharedRuntime), "data", "appstore")
-		AppInfo.AppsPath = filepath.Join(filepath.Dir(sharedRuntime), "data", "apps")
+	// Dev sandbox: when there is no production install (/etc/powerlab),
+	// redirect runtime + app data into the project tree so multiple
+	// services can share a writable sandbox under `./start.sh`. In
+	// production trust whatever was loaded from /etc/powerlab/*.conf.
+	if devmode.IsDev() {
+		if currentDir, err := os.Getwd(); err == nil {
+			sharedRuntime := filepath.Join(filepath.Dir(currentDir), "runtime")
+			CommonInfo.RuntimePath = sharedRuntime
+			AppInfo.LogPath = filepath.Join(filepath.Dir(sharedRuntime), "logs")
+			AppInfo.AppStorePath = filepath.Join(filepath.Dir(sharedRuntime), "data", "appstore")
+			AppInfo.AppsPath = filepath.Join(filepath.Dir(sharedRuntime), "data", "apps")
+		}
+	}
 
-		// StoragePath is the root for app volume bind-mounts (e.g. /DATA on Linux).
-		// macOS cannot create root-level directories (SIP), so use /tmp/powerlab-data
-		// which is always writable and shared by Docker Desktop by default.
+	// StoragePath is the root for app volume bind-mounts (e.g. /DATA on
+	// Linux). macOS cannot create root-level directories (SIP) so we
+	// pivot to /tmp/powerlab-data which Docker Desktop shares by default.
+	// This rule is OS-level, not dev-vs-prod, so it runs in both modes.
+	if AppInfo.StoragePath == "" || AppInfo.StoragePath == "/DATA" {
 		if runtime.GOOS == "darwin" {
 			AppInfo.StoragePath = "/tmp/powerlab-data"
 		} else {
