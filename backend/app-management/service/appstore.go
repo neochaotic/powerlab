@@ -271,6 +271,22 @@ func (s *appStore) WorkDir() (string, error) {
 		return filepath.Join(config.AppInfo.AppStorePath, s.url), nil
 	}
 
+	// Local filesystem stores serve their compose YAMLs directly out of
+	// the configured directory — there is no download/extract step.
+	// Without this branch, WorkDir for a local URL would resolve to
+	// AppStorePath/<md5hash>/, which doesn't exist, and AppStoreList
+	// would render `store_root: "internal error - store root not found"`
+	// even though UpdateCatalog had already loaded the catalog from
+	// the real local path. Stay consistent with the local-path branch
+	// in UpdateCatalog above.
+	if isLocalPath(s.url) {
+		localPath := s.url
+		if strings.HasPrefix(localPath, "file://") {
+			localPath = strings.TrimPrefix(localPath, "file://")
+		}
+		return localPath, nil
+	}
+
 	parsedURL, err := url.Parse(s.url)
 	if err != nil {
 		return "", err

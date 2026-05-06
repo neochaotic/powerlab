@@ -4,14 +4,20 @@ import { defineConfig } from 'vite';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-// Read the version from package.json once at config-eval time so the
-// LoginScreen footer (and anywhere else that wants it) can show a
-// build-stamped version without anyone having to manually edit a
-// hardcoded string before each release.
+// `__APP_VERSION__` resolution order, highest priority first:
+//   1. POWERLAB_VERSION env var — set by scripts/package-linux.sh and CI
+//      from the git tag, so the JS bundle ALWAYS matches the released
+//      version. Without this, a tag-time release would have to bump
+//      ui/package.json by hand and we'd have v0.2.5 tarballs shipping
+//      v0.2.0 in their bundle (which is exactly what happened in the
+//      first attempt at v0.2.5).
+//   2. ui/package.json `version` — fallback for `npm run build` during
+//      day-to-day dev, when no tag is in flight.
+//   3. literal "dev" — last resort.
 const pkg = JSON.parse(
 	readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf8')
 );
-const APP_VERSION: string = pkg.version || 'dev';
+const APP_VERSION: string = process.env.POWERLAB_VERSION || pkg.version || 'dev';
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],

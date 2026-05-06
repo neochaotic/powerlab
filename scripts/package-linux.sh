@@ -86,15 +86,30 @@ done
 # Honour an existing ui/build/ if the caller already built it (e.g. from
 # the Mac host before invoking this script in a Linux container that
 # does not have a recent enough Node). Skipping the rebuild also makes
-# repeated package runs much faster.
+# repeated package runs much faster — but ONLY when we can prove the
+# existing bundle was built for THIS version, otherwise we'd ship a
+# stale UI (the v0.2.5 first-attempt bug — bundle had 0.2.0 because
+# CI cached an old build). Stamp the version into the build dir and
+# refuse to reuse a mismatched one.
 log "Building frontend (static SPA)..."
 cd "$ROOT/ui"
-if [[ "${POWERLAB_SKIP_FRONTEND_BUILD:-}" == "1" ]] && [[ -f "build/index.html" ]]; then
-  log "  POWERLAB_SKIP_FRONTEND_BUILD=1 — reusing existing ui/build"
+export POWERLAB_VERSION="$VERSION"
+BUILD_STAMP_FILE="build/.powerlab-version"
+SKIP_OK=0
+if [[ "${POWERLAB_SKIP_FRONTEND_BUILD:-}" == "1" ]] && [[ -f "build/index.html" ]] && [[ -f "$BUILD_STAMP_FILE" ]] && [[ "$(cat "$BUILD_STAMP_FILE")" == "$VERSION" ]]; then
+  log "  POWERLAB_SKIP_FRONTEND_BUILD=1 — reusing build for v$VERSION"
+  SKIP_OK=1
+elif [[ "${POWERLAB_SKIP_FRONTEND_BUILD:-}" == "1" ]] && [[ -f "build/index.html" ]]; then
+  STAMP="(none)"
+  [[ -f "$BUILD_STAMP_FILE" ]] && STAMP="$(cat "$BUILD_STAMP_FILE")"
+  log "  POWERLAB_SKIP_FRONTEND_BUILD=1 set but stamp is $STAMP, want $VERSION — rebuilding"
 elif [[ -f "build/index.html" ]] && command -v node >/dev/null && [[ "$(node --version | sed 's/^v//' | cut -d. -f1)" -lt 18 ]]; then
   log "  node $(node --version) is too old for SvelteKit — reusing existing ui/build"
-else
+  SKIP_OK=1
+fi
+if (( SKIP_OK == 0 )); then
   npm run build > /dev/null
+  echo "$VERSION" > "$BUILD_STAMP_FILE"
 fi
 cp -R build/* "$STAGE/www/"
 

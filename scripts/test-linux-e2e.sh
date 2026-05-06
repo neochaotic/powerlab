@@ -117,6 +117,15 @@ run_in_container 'bash /tmp/x/install.sh > /tmp/install.log 2>&1' || {
 }
 assert_all_active_no_restart || fail "scenario A: services unhealthy after install"
 
+# Stamped UI version must match the tarball version. Catches the
+# v0.2.5-first-attempt bug where CI cached a stale ui/build with
+# 0.2.0 baked into the JS bundle even though the backend was 0.2.5.
+EXPECTED_UI_VERSION=$(basename "$TARBALL" | sed -E 's/powerlab-(.+)-linux-.*/\1/')
+SEEN_VERSIONS=$(run_in_container "grep -roh '\"0\\.[0-9]\\+\\.[0-9]\\+[^\"]*\"' /usr/share/powerlab/www/_app/ 2>/dev/null | sort -u" || true)
+echo "$SEEN_VERSIONS" | grep -q "\"$EXPECTED_UI_VERSION\"" \
+  || fail "scenario A: UI bundle version mismatch — expected \"$EXPECTED_UI_VERSION\", saw $SEEN_VERSIONS"
+green "  → UI bundle stamped with $EXPECTED_UI_VERSION"
+
 # Smoke: login → editor → apps → terminal → upload
 run_in_container '
   set -e
