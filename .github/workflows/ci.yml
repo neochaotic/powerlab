@@ -66,7 +66,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.25'
           cache-dependency-path: backend/${{ matrix.service }}/go.sum
 
       # local-storage uses bazil.org/fuse + Linux extended attribute syscalls;
@@ -118,7 +118,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.25'
 
       # Cross-compile prerequisites for the package matrix.
       # · libfuse-dev / pkg-config — local-storage links against libfuse.

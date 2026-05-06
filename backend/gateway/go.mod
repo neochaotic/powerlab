@@ -1,9 +1,10 @@
 module github.com/IceWhaleTech/CasaOS-Gateway
 
-go 1.21
+go 1.25
 
 require (
 	github.com/IceWhaleTech/CasaOS-Common v0.4.8-alpha9
+	github.com/grandcat/zeroconf v1.0.0
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/spf13/viper v1.18.2
 	go.uber.org/fx v1.20.1
@@ -17,7 +18,6 @@ require (
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang-jwt/jwt/v5 v5.0.0 // indirect
-	github.com/grandcat/zeroconf v1.0.0 // indirect
 	github.com/labstack/echo-jwt/v4 v4.2.0 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect

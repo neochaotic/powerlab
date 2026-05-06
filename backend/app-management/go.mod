@@ -1,6 +1,6 @@
 module github.com/IceWhaleTech/CasaOS-AppManagement
 
-go 1.21
+go 1.25
 
 require (
 	github.com/bluele/gcache v0.0.2

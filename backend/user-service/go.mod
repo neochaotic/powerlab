@@ -1,6 +1,6 @@
 module github.com/IceWhaleTech/CasaOS-UserService
 
-go 1.21
+go 1.25
 
 require (
 	github.com/IceWhaleTech/CasaOS-Common v0.4.8-alpha12
@@ -9,6 +9,7 @@ require (
 	github.com/getkin/kin-openapi v0.117.0
 	github.com/glebarez/sqlite v1.8.0
 	github.com/labstack/echo/v4 v4.12.0
+	github.com/msteinert/pam v1.2.0
 	github.com/satori/go.uuid v1.2.0
 	github.com/stretchr/testify v1.9.0
 	github.com/tidwall/gjson v1.17.0
@@ -46,7 +47,6 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
-	github.com/msteinert/pam v1.2.0 // indirect
 	github.com/orca-zhang/ecache v1.1.3 // indirect
 	github.com/perimeterx/marshmallow v1.1.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

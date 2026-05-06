@@ -1,6 +1,6 @@
 module github.com/IceWhaleTech/CasaOS-CLI
 
-go 1.20
+go 1.25
 
 require (
 	github.com/alecthomas/chroma v0.10.0

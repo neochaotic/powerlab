@@ -1,11 +1,12 @@
 module github.com/IceWhaleTech/CasaOS
 
-go 1.21
+go 1.25
 
 require (
 	github.com/Curtis-Milo/nat-type-identifier-go v0.0.0-20220215191915-18d42168c63d
 	github.com/IceWhaleTech/CasaOS-Common v0.4.11-alpha4
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
+	github.com/creack/pty v1.1.24
 	github.com/deckarep/golang-set/v2 v2.3.0
 	github.com/deepmap/oapi-codegen v1.12.4
 	github.com/disintegration/imaging v1.6.2
@@ -38,7 +39,6 @@ require (
 	github.com/tidwall/gjson v1.17.0
 	go.uber.org/goleak v1.2.1
 	go.uber.org/zap v1.24.0
-	golang.org/x/crypto v0.23.0
 	golang.org/x/oauth2 v0.7.0
 	golang.org/x/sync v0.3.0
 	gorm.io/gorm v1.25.0
@@ -50,7 +50,6 @@ require (
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/benbjohnson/clock v1.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
-	github.com/creack/pty v1.1.24 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dsnet/compress v0.0.2-0.20210315054119-f66993602bf5 // indirect
 	github.com/dsoprea/go-logging v0.0.0-20200710184922-b02d349568dd // indirect
@@ -108,6 +107,7 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
+	golang.org/x/crypto v0.23.0 // indirect
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1 // indirect
 	golang.org/x/image v0.6.0 // indirect
 	golang.org/x/net v0.25.0 // indirect

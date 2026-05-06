@@ -1,6 +1,6 @@
 module github.com/IceWhaleTech/CasaOS-MessageBus
 
-go 1.20
+go 1.25
 
 require (
 	github.com/CorrectRoadH/go-socket.io v1.8.0-rc.5

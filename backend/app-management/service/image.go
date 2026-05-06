@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -90,7 +91,7 @@ func (ds *dockerService) PullLatestImage(ctx context.Context, imageName string) 
 			common.PropertyTypeMessage.Name:   message,
 		})
 
-		return false, fmt.Errorf(message)
+		return false, errors.New(message)
 	}
 
 	imageInfo1, err := docker.Image(ctx, imageName)

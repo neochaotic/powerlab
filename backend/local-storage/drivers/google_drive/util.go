@@ -2,6 +2,7 @@ package google_drive
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -35,7 +36,7 @@ func (d *GoogleDrive) getRefreshToken() error {
 	}
 	logger.Info("get refresh token", zap.String("res", res.String()))
 	if e.Error != "" {
-		return fmt.Errorf(e.Error)
+		return errors.New(e.Error)
 	}
 	d.RefreshToken = resp.RefreshToken
 	return nil
@@ -57,7 +58,7 @@ func (d *GoogleDrive) refreshToken() error {
 	}
 	log.Debug(res.String())
 	if e.Error != "" {
-		return fmt.Errorf(e.Error)
+		return errors.New(e.Error)
 	}
 	d.AccessToken = resp.AccessToken
 	return nil
