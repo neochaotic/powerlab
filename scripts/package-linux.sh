@@ -486,10 +486,41 @@ tar -czf "$TARBALL" "$(basename "$STAGE")"
 STABLE_TARBALL="$OUT/powerlab-linux-$ARCH.tar.gz"
 cp "$TARBALL" "$STABLE_TARBALL"
 
+# ─── 10. Release manifest ───────────────────────────────────────────────
+# Emit `manifest.json` describing this release. The host-side updater
+# (issue #21, see docs/UPDATE_MANIFEST.md) fetches this file to decide
+# whether to offer the upgrade. We write two copies:
+#   · $OUT/manifest.json — uploaded as a release asset so the updater
+#     can fetch ~2 KB of metadata before pulling the 60 MB tarball
+#   · $STAGE/manifest.json — re-tarred into the bundle so install.sh
+#     inside the tarball has the same view of what it shipped
+#
+# The build-manifest tool needs both arch tarballs to compute the
+# per-arch SHA-256 + size. We invoke it with whichever tarball this
+# script just produced; if the OTHER arch's tarball is sitting in
+# $OUT from a previous run, include it too.
+log "Generating manifest.json..."
+MANIFEST_ARGS=(-version "$VERSION" -repo neochaotic/powerlab)
+if [[ -f "$OUT/powerlab-${VERSION}-linux-amd64.tar.gz" ]]; then
+  MANIFEST_ARGS+=(-amd64-tarball "$OUT/powerlab-${VERSION}-linux-amd64.tar.gz")
+fi
+if [[ -f "$OUT/powerlab-${VERSION}-linux-arm64.tar.gz" ]]; then
+  MANIFEST_ARGS+=(-arm64-tarball "$OUT/powerlab-${VERSION}-linux-arm64.tar.gz")
+fi
+(cd "$ROOT" && go run ./scripts/build-manifest "${MANIFEST_ARGS[@]}") > "$OUT/manifest.json"
+cp "$OUT/manifest.json" "$STAGE/manifest.json"
+
+# Re-tar the bundle so the new manifest.json is included. We could
+# instead tar.append, but rebuilding from scratch is simpler and the
+# extra second of tar work is invisible compared to the npm build.
+tar -czf "$TARBALL" "$(basename "$STAGE")"
+cp "$TARBALL" "$STABLE_TARBALL"
+
 SIZE=$(du -sh "$TARBALL" | awk '{print $1}')
 log "Done."
 log ""
 log "  $TARBALL ($SIZE)"
 log "  $STABLE_TARBALL (stable URL)"
+log "  $OUT/manifest.json (release manifest — uploaded as separate asset)"
 log ""
 log "Deploy: copy to a Linux host, extract, and run sudo ./install.sh"

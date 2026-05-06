@@ -1,0 +1,52 @@
+# release-manifest.yaml — source of truth for the next release.
+#
+# Maintainers edit this file BEFORE tagging. scripts/package-linux.sh
+# reads it, fills in the release-specific fields (version from
+# `git describe`, released_at from `date`, tarball.<arch>.{url,sha256,
+# size_bytes} from the produced tarballs, changelog_url from the
+# CHANGELOG.md anchor for this version), and emits the final
+# `manifest.json` that ships with the tarball + as a standalone
+# release asset.
+#
+# See docs/UPDATE_MANIFEST.md for the full contract.
+
+# Oldest version that can upgrade DIRECTLY to this release. Hosts
+# running anything older are told "upgrade to vX.Y.Z first".
+min_upgrade_from: "0.1.6"
+
+# Kill-switch. Set to true if a release goes out and turns out to be
+# broken — the host updater hides any release with skip_release: true
+# from the "Update available" banner so users on older versions skip
+# straight past it. Preferable to deleting the tag.
+skip_release: false
+
+# One-paragraph summary for the "Update available" toast. The full
+# changelog goes in CHANGELOG.md (the package script computes the
+# correct anchor for the version being released).
+summary: |
+  Settings → change gateway port from the UI. mDNS coexistence with
+  avahi-daemon (powerlab.local resolves on stock Linux installs). New
+  in-UI updater with pre-flight checks, snapshot + rollback, and
+  signed release manifest.
+
+# Declarations of breaking changes the user should know about BEFORE
+# upgrading. Empty list = "no breaking changes". Each item:
+#   { kind, description, manual_action }
+# `manual_action: null` means PowerLab handles it automatically;
+# any non-null value is shown to the user as a warning modal that
+# they MUST dismiss explicitly before the upgrade button enables.
+breaking_changes: []
+
+# Pre-install checks the host updater runs BEFORE downloading the
+# tarball. Each kind has built-in pass/warn/fail logic — the manifest
+# only declares which to run, not how to interpret them.
+pre_install_checks:
+  - { kind: disk_free_mb, path: /var/lib/powerlab, min: 500 }
+  - { kind: docker_healthy }
+  - { kind: no_apps_unhealthy }
+  - { kind: no_active_install_task }
+
+# DB migrations to apply after extraction, before starting services.
+# Each item: { id, description, sql }. Migrations are applied
+# transactionally; failure rolls back the entire upgrade.
+db_migrations: []

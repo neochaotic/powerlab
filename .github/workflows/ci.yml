@@ -170,6 +170,10 @@ jobs:
           name: powerlab-linux-${{ matrix.arch }}
           # Both the versioned and the stable filename — `releases/latest`
           # URLs in the README depend on the stable name.
+          # manifest.json is intentionally NOT uploaded here: the package
+          # matrix runs in parallel and each job only sees its own arch's
+          # tarball, so its manifest would be incomplete. The release
+          # job re-computes the canonical manifest from BOTH tarballs.
           path: |
             dist/powerlab-${{ steps.version.outputs.version }}-linux-${{ matrix.arch }}.tar.gz
             dist/powerlab-linux-${{ matrix.arch }}.tar.gz
@@ -190,6 +194,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
       - name: Download all tarballs
         uses: actions/download-artifact@v4
         with:
@@ -200,10 +209,26 @@ jobs:
       - name: List tarballs
         run: ls -la dist/
 
+      # Build the canonical manifest.json with BOTH per-arch tarball
+      # SHA-256s. The package matrix could not do this (each job only
+      # saw its own arch), so we recompute here. The manifest is then
+      # uploaded as a release asset alongside the tarballs.
+      - name: Build release manifest
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          go run ./scripts/build-manifest \
+            -version "$VERSION" \
+            -amd64-tarball "dist/powerlab-$VERSION-linux-amd64.tar.gz" \
+            -arm64-tarball "dist/powerlab-$VERSION-linux-arm64.tar.gz" \
+            > dist/manifest.json
+          cat dist/manifest.json
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*.tar.gz
+          files: |
+            dist/*.tar.gz
+            dist/manifest.json
           generate_release_notes: true
           name: PowerLab ${{ github.ref_name }}
           body: |
