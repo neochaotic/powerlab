@@ -2,9 +2,7 @@
 	import '../app.css';
 	import Sidebar from '$lib/components/layout/Sidebar.svelte';
 	import LoginScreen from '$lib/components/auth/LoginScreen.svelte';
-	// SetupWizard is intentionally not imported — see the disabled-by-design
-	// note below the auth gates. Re-add this import to re-enable:
-	//   import SetupWizard from '$lib/components/auth/SetupWizard.svelte';
+	import SetupWizard from '$lib/components/auth/SetupWizard.svelte';
 	import ToastContainer from '$lib/components/ui/Toast.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { ui } from '$lib/stores/ui.svelte';
@@ -20,6 +18,11 @@
 	let showInstallPrompt = $state(false);
 
 	onMount(() => {
+		// Probe whether the host has any registered user. The SetupWizard
+		// is shown only on the very first run (no user in the DB yet) on
+		// platforms without working OS auth (Linux today, until PAM lands).
+		// On macOS the first dscl-validated login also returns initialized=true.
+		auth.checkStatus();
 		auth.checkSession();
 
 		// Register Service Worker for PWA
@@ -97,16 +100,21 @@
 		<div class="absolute top-[40vh] left-[-20vh] h-[40vh] w-[40vh] rounded-full bg-cyan-400/[0.03] blur-[120px]"></div>
 	</div>
 	<!--
-		SetupWizard is currently disabled from the journey. Macs auth via dscl
-		and Linux (when PAM lands) will auth via PAM; in both cases the user-
-		service auto-creates the DB record on the first successful OS login.
-		If we ever ship to a platform without OS auth, re-enable by restoring:
-		    {#if !auth.isInitialized}
-		        <SetupWizard />
-		    {:else if !auth.isAuthenticated ...}
+		Auth gating, first-run aware:
+		  · No user registered yet → SetupWizard (one-shot bcrypt registration)
+		  · User exists, not signed in → LoginScreen (OS-auth on macOS;
+		    bcrypt fallback on Linux until PAM lands)
+		  · Signed in → main OS interface
+		The SetupWizard is the safety net for hosts where native OS auth
+		is not yet implemented (Linux). On macOS it is rarely seen because
+		the first successful dscl login auto-registers the DB record.
 	-->
 	<div class="relative z-10 h-full w-full">
-		{#if !auth.isAuthenticated && $page.url.pathname !== '/product'}
+		{#if !auth.isInitialized && $page.url.pathname !== '/product'}
+			<div class="h-full w-full" in:fade={{ duration: 400 }}>
+				<SetupWizard />
+			</div>
+		{:else if !auth.isAuthenticated && $page.url.pathname !== '/product'}
 			<div class="h-full w-full" in:fade={{ duration: 400 }}>
 				<LoginScreen />
 			</div>
