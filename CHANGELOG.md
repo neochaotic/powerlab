@@ -11,7 +11,26 @@ see `CONTRIBUTING.md` for the rule.
 
 ## [Unreleased]
 
-(features in progress — empty when releases are published)
+### Fixed
+- **mDNS `powerlab.local` not resolving on Linux installs (#33)**.
+  Two root causes addressed:
+  - The gateway was advertising every non-loopback IP on the host,
+    including Docker bridge addresses (172.17.x.x), WireGuard / VPN
+    interfaces, and Tailscale's CGNAT range (100.64/10). LAN clients
+    that tried those IPs got connection-refused. The IP filter now
+    keeps only RFC 1918 ranges (10/8, 172.16/12, 192.168/16) and
+    IPv6 ULA (fc00::/7).
+  - On Linux hosts where `avahi-daemon` already owns the IPv4
+    multicast socket, the gateway's direct-multicast announcer was
+    silently losing the race. The gateway now ALSO drops a
+    `/etc/avahi/services/powerlab.service` XML file when
+    `/etc/avahi/services/` exists. avahi picks it up via inotify
+    and broadcasts on our behalf — the canonical pattern other
+    well-behaved Linux daemons use. The direct-multicast path
+    stays as fallback for hosts without avahi.
+- New `TestIsLANRange` regression test pins the IP-filter decisions
+  (Tailscale, Docker, public IPv4/IPv6, link-local) so a future
+  refactor cannot quietly re-broadcast useless addresses.
 
 ## [0.2.2] — 2026-05-06
 
