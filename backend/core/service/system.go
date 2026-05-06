@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	net2 "net"
 	"os"
 	"path/filepath"
@@ -437,20 +436,74 @@ func (s *systemService) UpSystemPort(port string) {
 }
 
 func (s *systemService) GetCasaOSLogs(lineNumber int) string {
-	file, err := os.Open(filepath.Join(config.AppInfo.LogPath, fmt.Sprintf("%s.%s",
+	if lineNumber <= 0 {
+		lineNumber = 100
+	}
+	logPath := filepath.Join(config.AppInfo.LogPath, fmt.Sprintf("%s.%s",
 		config.AppInfo.LogSaveName,
 		config.AppInfo.LogFileExt,
-	)))
+	))
+	file, err := os.Open(logPath)
 	if err != nil {
 		return err.Error()
 	}
 	defer file.Close()
-	content, err := io.ReadAll(file)
+
+	// Original implementation read the whole file and returned it,
+	// which on a long-running server meant /v1/sys/logs returned MBs
+	// of historical noise (including stack traces from panics that
+	// happened on an earlier boot, long since recovered) and made the
+	// UI show stale errors as if they were current. Tail the last N
+	// lines instead — the parameter was already plumbed through, just
+	// never honoured.
+	stat, err := file.Stat()
 	if err != nil {
 		return err.Error()
 	}
-
-	return string(content)
+	const chunkSize int64 = 16 * 1024
+	var (
+		buf       []byte
+		offset    = stat.Size()
+		newlines  = 0
+		startFrom int64
+	)
+	for offset > 0 && newlines <= lineNumber {
+		read := chunkSize
+		if offset < chunkSize {
+			read = offset
+		}
+		offset -= read
+		chunk := make([]byte, read)
+		if _, err := file.ReadAt(chunk, offset); err != nil {
+			return err.Error()
+		}
+		buf = append(chunk, buf...)
+		newlines = 0
+		for _, b := range buf {
+			if b == '\n' {
+				newlines++
+			}
+		}
+		startFrom = offset
+		if startFrom == 0 {
+			break
+		}
+	}
+	// Drop everything before the (lineNumber)th-last newline so the
+	// caller gets exactly the requested tail.
+	if newlines > lineNumber {
+		extra := newlines - lineNumber
+		for i, b := range buf {
+			if b == '\n' {
+				extra--
+				if extra == 0 {
+					buf = buf[i+1:]
+					break
+				}
+			}
+		}
+	}
+	return string(buf)
 }
 
 func GetDeviceAllIP() []string {
