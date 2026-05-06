@@ -154,6 +154,16 @@ TOKEN=$(run_in_container '
 [[ -n "$TOKEN" ]] || fail "scenario A: PAM login returned no token"
 green "  → login OK (token ${#TOKEN} chars)"
 
+# Files page default path. The user logged in via PAM as `testuser`
+# (real Linux account with /home/testuser) — Files should land
+# there under PowerLab/ rather than at /DATA or filesystem root.
+HOME_JSON=$(run_in_container "curl -fsS http://localhost:8765/v1/file/home -H 'Authorization: $TOKEN'")
+HOME_PATH=$(echo "$HOME_JSON" | python3 -c 'import sys,json; print(json.load(sys.stdin)["data"]["path"])')
+HOME_SOURCE=$(echo "$HOME_JSON" | python3 -c 'import sys,json; print(json.load(sys.stdin)["data"]["source"])')
+[[ "$HOME_PATH" == "/home/testuser/PowerLab" ]] && [[ "$HOME_SOURCE" == "os-home" ]] \
+  || fail "scenario A: /v1/file/home expected /home/testuser/PowerLab (os-home), got $HOME_PATH ($HOME_SOURCE)"
+green "  → /v1/file/home → $HOME_PATH (os-home, mkdir-p'd)"
+
 run_in_container "
   echo original > /tmp/smoke-edit.txt
   RESP=\$(curl -sS -X PUT http://localhost:8765/v1/file -H 'Authorization: $TOKEN' \

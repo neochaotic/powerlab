@@ -423,31 +423,6 @@ func MkdirAll(ctx echo.Context) error {
 	return ctx.JSON(common_err.SUCCESS, model.Result{Success: code, Message: common_err.GetMsg(code)})
 }
 
-// @Summary create file
-// @Produce  application/json
-// @Accept  application/json
-// @Tags file
-// @Security ApiKeyAuth
-// @Param path body string true "path of folder (path need to url encode)"
-// @Success 200 {string} string "ok"
-// @Router /file/create [post]
-func PostCreateFile(ctx echo.Context) error {
-	json := make(map[string]string)
-	ctx.Bind(&json)
-	path := json["path"]
-	var code int
-	if len(path) == 0 {
-		return ctx.JSON(common_err.CLIENT_ERROR, model.Result{Success: common_err.INVALID_PARAMS, Message: common_err.GetMsg(common_err.INVALID_PARAMS)})
-	}
-	// decodedPath, err := url.QueryUnescape(path)
-	// if err != nil {
-	// 	return ctx.JSON(http.StatusOK, model.Result{Success: common_err.INVALID_PARAMS, Message: common_err.GetMsg(common_err.INVALID_PARAMS)})
-	// 	return
-	// }
-	code, _ = service.MyService.System().CreateFile(path)
-	return ctx.JSON(common_err.SUCCESS, model.Result{Success: code, Message: common_err.GetMsg(code)})
-}
-
 // @Summary upload file
 // @Produce  application/json
 // @Accept  application/json

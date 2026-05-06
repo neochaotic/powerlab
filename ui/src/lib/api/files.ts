@@ -100,6 +100,16 @@ export function getBatchDownloadUrl(files: string[], format: 'zip' | 'tar' | 'ta
 	return `/v1/batch?files=${files.map(encodeURIComponent).join(',')}&format=${format}${t}`;
 }
 
+/** Default starting path for the Files page. The backend prefers
+ * `<os-user-home>/PowerLab/` when the JWT is from a real OS account
+ * (PAM / dscl), and falls back to `/var/lib/powerlab/files` for
+ * SetupWizard users with no OS home dir. The UI calls this on
+ * Files-page mount instead of dropping the user into `/DATA` (which
+ * doesn't exist on dev hosts) or `/` (hostile root listing). */
+export function getDefaultFilesPath() {
+	return api.get<ApiResult<{ path: string; source: 'os-home' | 'system-fallback' }>>('/v1/file/home');
+}
+
 /** Read file content (text) */
 export function readFileContent(path: string) {
 	return api.get<ApiResult<string>>(`/v1/file/content?path=${encodeURIComponent(path)}`);

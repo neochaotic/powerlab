@@ -142,6 +142,10 @@ func InitV1Router() http.Handler {
 			// PostFileContent too — file_content omitted means empty.
 			v1FileGroup.POST("", v1.PostFileContent)
 			v1FileGroup.PUT("", v1.PutFileContent)
+			// Default starting path for the Files page — UI calls this
+			// on mount and navigates here unless the URL already had a
+			// path. Prefers the OS user's home/PowerLab/ when possible.
+			v1FileGroup.GET("/home", v1.GetFilerHome)
 			v1FileGroup.PUT("/name", v1.RenamePath)
 			// file/rename
 			v1FileGroup.GET("/content", v1.GetFilerContent) // file/read

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { useFileStore } from '$lib/stores/files.svelte';
-	import { renamePath, deletePaths, createFolder, createFile, operateFileOrDir, getDownloadUrl } from '$lib/api/files';
+	import { renamePath, deletePaths, createFolder, createFile, operateFileOrDir, getDownloadUrl, getDefaultFilesPath } from '$lib/api/files';
 	import type { FileItem } from '$lib/api/files';
 	import Breadcrumbs from '$lib/components/files/Breadcrumbs.svelte';
 	import FileTable from '$lib/components/files/FileTable.svelte';
@@ -54,7 +54,23 @@
 	let isDragging = $state(false);
 	let uploadFilesFn = $state<(files: FileList | File[]) => void>();
 
-	onMount(() => {
+	onMount(async () => {
+		// Ask the backend for the right starting path: the OS user's
+		// home/PowerLab/ when authenticated via PAM/dscl, or a
+		// system-managed path otherwise. Avoids dropping the user
+		// into /DATA on a dev host where it doesn't exist or into
+		// the filesystem root which is hostile.
+		try {
+			const res = await getDefaultFilesPath();
+			const path = res.data?.path;
+			if (path) {
+				store.fetchFiles(path);
+				return;
+			}
+		} catch {
+			// Endpoint unreachable or returned bad data — fall back
+			// to whatever store.currentPath is (CasaOS legacy default).
+		}
 		store.fetchFiles();
 	});
 
