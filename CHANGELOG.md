@@ -11,6 +11,71 @@ see `CONTRIBUTING.md` for the rule.
 
 ## [Unreleased]
 
+## [0.2.5] — 2026-05-06
+
+### Fixed (Linux production hardening)
+
+Six bugs that masked themselves under macOS dev — all surfaced by the
+first real Linux deployment.
+
+- **`install.sh` detects existing CasaOS installation.** PowerLab is a
+  fork of CasaOS; running both side-by-side without knowing which
+  port is which produces a confusing experience (port 80 = CasaOS,
+  port 8765 = PowerLab; apps don't cross over). install.sh now
+  detects systemd `casaos*` unit files and refuses to install with
+  a clear remove-or-coexist message. Add `--allow-coexist` to opt
+  in to side-by-side mode; the end-of-install banner highlights the
+  port distinction so users browse to the correct UI.
+- **systemd unit ordering rewritten with the actual service
+  topology.** Gateway starts first (writes management.url), then
+  message-bus, then user-service / app-management / local-storage,
+  then core. Units use `Wants=` (soft) + `After=` + an
+  `ExecStartPre` that polls for the dependency's URL file. Without
+  this, user-service nil-deref-panicked at startup ~30% of the
+  time when message-bus had not finished writing its url yet.
+- **`Environment=HOME=/root` on every PowerLab unit.** Without it,
+  the terminal pty's `bash -l` exited immediately because $HOME is
+  unset under systemd; surfaced as "Lost connection" before the
+  prompt could draw.
+- **`/var/lib/powerlab/db` is now created on install.** message-bus
+  panicked at startup with sqlite's confusing "out of memory (14)"
+  error (really SQLITE_CANTOPEN) because its persistent DB's parent
+  directory did not exist. install.sh creates it; the repository
+  code also `MkdirAll`'s it as a belt-and-braces.
+- **`model.FileUpdate` JSON tags changed `path`/`content` →
+  `file_path`/`file_content`** to match what the editor UI sends.
+  The old tags zero-bound both fields and PUT /v1/file always
+  returned "File already exists" on every save attempt.
+- **Terminal websocket now passes the JWT in the URL.** Browser
+  WebSocket constructors don't accept custom headers, so the
+  Authorization header was never sent — the gateway already
+  accepted `?token=...` as a fallback, the UI just wasn't using
+  it. Added `getAuthToken()` to the API client and Terminal.svelte
+  appends `&token=<jwt>`.
+- **mDNS service file no longer declares `<host-name>`.** avahi only
+  publishes hostnames it owns (the system hostname); the
+  hardcoded `<host-name>powerlab.local</host-name>` made avahi
+  silently reject the registration. Without the element, services
+  advertise against `<system-hostname>.local` correctly.
+- **`PostFileUpload` no longer swallows the FormFile error.**
+  Malformed multipart bodies returned nil for `f`, then nil-deref'd
+  on io.Copy. Now returns 400 with a clear diagnostic.
+
+### Added
+
+- **`scripts/test-linux-e2e.sh`** — end-to-end smoke test that spins
+  up a privileged Ubuntu 22.04 + avahi + dockerd container and
+  exercises three scenarios: (A) clean install — all 6 services
+  cold-start with 0 restarts, then login → editor write → apps
+  list → terminal websocket pty echo → file upload (+ missing-file
+  rejected with 400); (B) CasaOS present, no flag → install
+  refuses with exit 1; (C) CasaOS + --allow-coexist → install
+  proceeds, banner highlights port distinction. Wired into
+  `validate.sh --full` as a release gate.
+- Regression test `backend/core/model/file_test.go` pins the
+  `FileUpdate` JSON contract so future drift back to `path` /
+  `content` cannot ship.
+
 ## [0.2.4] — 2026-05-06
 
 ### Added
