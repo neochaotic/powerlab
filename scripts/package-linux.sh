@@ -193,17 +193,54 @@ for svc in "${SERVICES[@]}"; do
   systemctl restart "powerlab-$svc.service"
 done
 
-# Wait briefly for gateway to come up
+# Wait briefly for gateway to come up + verify it's actually listening
 sleep 2
+GATEWAY_UP=no
+for _ in 1 2 3 4 5; do
+  if curl -fsS -m 1 http://127.0.0.1/ >/dev/null 2>&1; then
+    GATEWAY_UP=yes
+    break
+  fi
+  sleep 1
+done
+
+# Detect the primary LAN IP (first non-loopback IPv4 address). `hostname -I`
+# is Linux-specific and returns space-separated IPs.
+LAN_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+HOSTNAME_SHORT="$(hostname -s 2>/dev/null || hostname)"
+
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+DIM='\033[2m'
+RESET='\033[0m'
 
 echo ""
-echo "[powerlab-install] PowerLab is installed and running."
+if [[ "$GATEWAY_UP" == "yes" ]]; then
+  printf "${GREEN}┌─────────────────────────────────────────────────────────────┐${RESET}\n"
+  printf "${GREEN}│${RESET}  ${GREEN}✓ PowerLab is installed and running${RESET}                       ${GREEN}│${RESET}\n"
+  printf "${GREEN}└─────────────────────────────────────────────────────────────┘${RESET}\n"
+else
+  printf "  PowerLab is installed but the gateway is not responding yet.\n"
+  printf "  Check the logs: journalctl -u powerlab-gateway -f\n"
+fi
+
 echo ""
-echo "  Local:  http://localhost"
-echo "  Bonjour: http://powerlab.local      (any device on this LAN)"
+echo "  Open PowerLab in your browser:"
 echo ""
-echo "  Service status: systemctl status powerlab-gateway"
-echo "  Logs:           journalctl -u powerlab-gateway -f"
+printf "    ${CYAN}→  http://localhost${RESET}                ${DIM}(on this machine)${RESET}\n"
+if [[ -n "$LAN_IP" ]]; then
+  printf "    ${CYAN}→  http://${LAN_IP}${RESET}      ${DIM}(any device on this LAN)${RESET}\n"
+fi
+printf "    ${CYAN}→  http://powerlab.local${RESET}           ${DIM}(via Bonjour/mDNS)${RESET}\n"
+if [[ -n "$HOSTNAME_SHORT" && "$HOSTNAME_SHORT" != "powerlab" ]]; then
+  printf "    ${CYAN}→  http://${HOSTNAME_SHORT}.local${RESET}      ${DIM}(this host's own mDNS name)${RESET}\n"
+fi
+echo ""
+echo "  First sign-in: use your operating-system username and password."
+echo ""
+printf "  ${DIM}Service status: systemctl status powerlab-gateway${RESET}\n"
+printf "  ${DIM}Logs:           journalctl -u powerlab-gateway -f${RESET}\n"
+printf "  ${DIM}Uninstall:      sudo /usr/share/powerlab/uninstall.sh${RESET}\n"
 echo ""
 INSTALL_EOF
 chmod +x "$STAGE/install.sh"
