@@ -5,8 +5,20 @@ First off, thank you for considering contributing to PowerLab! It's people like 
 ## Tech Stack
 
 - **Frontend:** SvelteKit (Svelte 5 Runes), TypeScript, Tailwind CSS v4, Lucide Icons.
-- **Backend:** Go 1.21+, Echo v4, GORM, Docker SDK.
+- **Backend:** Go 1.25+, Echo v4, GORM, Docker SDK.
 - **Testing:** Vitest (Frontend), Go `testing` package (Backend).
+
+## Pre-push validation
+
+Before pushing anything to `main`, run:
+
+```bash
+./scripts/validate.sh           # ~3 minutes — same checks the CI matrix runs
+./scripts/validate.sh --quick   # ~30 seconds — frontend + native go test only
+./scripts/validate.sh --full    # ~7 minutes — also runs the full package smoke + Docker CGO
+```
+
+The script bails on the first failure and prints exactly what broke. It catches roughly everything CI catches except real-arm64 hardware quirks and timing-sensitive race tests, so a green local run is a strong signal that CI will go green too. Run `--full` before tagging a release.
 
 ## Development Workflow
 

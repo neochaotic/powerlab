@@ -37,7 +37,7 @@ type NotifyServer interface {
 	//SendInstallAppBySocket(app notifyCommon.Application)
 	SendNotify(name string, message map[string]interface{})
 	SettingSystemTempData(message map[string]interface{})
-	GetSystemTempMap() syncmap.Map
+	GetSystemTempMap() *syncmap.Map
 }
 
 type notifyServer struct {
@@ -241,7 +241,7 @@ func (i *notifyServer) SSR() {
 	fmt.Println(server)
 }
 
-func (i notifyServer) GetList(c int) (list []model.AppNotify) {
+func (i *notifyServer) GetList(c int) (list []model.AppNotify) {
 	i.db.Where("class = ?", c).Where(i.db.Where("state = ?", types.NOTIFY_DYNAMICE).Or("state = ?", types.NOTIFY_UNREAD)).Find(&list)
 	return
 }
@@ -342,8 +342,12 @@ func SendMeg() {
 // 	}
 
 // }
-func (i *notifyServer) GetSystemTempMap() syncmap.Map {
-	return i.SystemTempMap
+// GetSystemTempMap returns a pointer to the in-memory system-temperature
+// map. Returning a pointer (not a copy) is required because syncmap.Map
+// embeds a sync.Mutex — copying it loses synchronisation, which Go's
+// 1.25 vet promoted to a hard build error.
+func (i *notifyServer) GetSystemTempMap() *syncmap.Map {
+	return &i.SystemTempMap
 }
 
 func NewNotifyService(db *gorm.DB) NotifyServer {
