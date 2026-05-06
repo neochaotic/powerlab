@@ -330,6 +330,39 @@ func (u *PowerLabUpdater) fetchManifest(ctx context.Context) (*Manifest, error) 
 	return &m, nil
 }
 
+// LastUpgrade is the structure install.sh writes to
+// /var/lib/powerlab/last-upgrade.json after every --upgrade run.
+// Read by the UI on next load to surface "Upgrade succeeded" or
+// "Upgrade failed — rolled back".
+type LastUpgrade struct {
+	From         string `json:"from"`
+	To           string `json:"to"`
+	Result       string `json:"result"` // "success" | "rolled_back"
+	SucceededAt  string `json:"succeeded_at,omitempty"`
+	FailedAt     string `json:"failed_at,omitempty"`
+	SnapshotPath string `json:"snapshot_path,omitempty"`
+	Diagnostic   string `json:"diagnostic,omitempty"`
+}
+
+// LastUpgradeStatus reads /var/lib/powerlab/last-upgrade.json and
+// returns its content. Returns nil + nil when the file does not
+// exist yet (no upgrade has been attempted from this host).
+func (u *PowerLabUpdater) LastUpgradeStatus() (*LastUpgrade, error) {
+	path := filepath.Join(u.powerLabRoot(), "last-upgrade.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var lu LastUpgrade
+	if err := json.Unmarshal(data, &lu); err != nil {
+		return nil, fmt.Errorf("parse last-upgrade.json: %w", err)
+	}
+	return &lu, nil
+}
+
 // VerifyTarballSHA256 streams a tarball through SHA-256 and compares
 // to the expected hex digest. Used by the install path before extract.
 func VerifyTarballSHA256(path, expected string) error {
@@ -349,12 +382,131 @@ func VerifyTarballSHA256(path, expected string) error {
 	return nil
 }
 
-// RunInstall is the install entrypoint — Phase 2 stub. Phase 4 lands
-// the real snapshot + binary-swap + rollback flow. For now we refuse
-// the request with a clear "not implemented" error so the route
-// returns 501 instead of pretending to do something.
+// RunInstall is the install entrypoint. Downloads the tarball,
+// verifies the SHA-256 from the manifest, extracts to a temp dir, and
+// hands off to the bundled install.sh in --upgrade mode. install.sh is
+// the only thing that can safely replace running binaries on Linux —
+// it is a shell script, immune to "the file you are reading is being
+// overwritten" panics that a self-replacing Go binary hits.
+//
+// install.sh in --upgrade mode does:
+//   1. Snapshot to /var/lib/powerlab/backups/pre-upgrade-<ts>/
+//   2. Stop services
+//   3. Replace binaries / static UI / systemd units
+//   4. Start services + health-check
+//   5. On health-check failure: restore snapshot + restart
+//   6. Write /var/lib/powerlab/last-upgrade.json with the result
+//
+// The Go-side handler returns to the HTTP caller as soon as install.sh
+// is spawned in the background. The UI polls
+// /v1/powerlab-update/status (the next route to land) to learn when
+// the upgrade finished.
+//
+// Refuses the install when:
+//   · The host is already up_to_date (would be a no-op).
+//   · The manifest does not ship a tarball for the host's arch.
+//   · `skip_release: true` (maintainer pulled the release).
 func (u *PowerLabUpdater) RunInstall(ctx context.Context, m *Manifest) error {
-	return errors.New("install path is not implemented yet — Phase 4 of #21")
+	if m == nil {
+		return errors.New("nil manifest — call Check() first")
+	}
+	if m.SkipRelease {
+		return errors.New("manifest has skip_release: true; refusing")
+	}
+	tar, ok := m.Tarball[runtime.GOARCH]
+	if !ok {
+		return fmt.Errorf("no %s tarball in manifest", runtime.GOARCH)
+	}
+
+	tmp, err := os.MkdirTemp("", "powerlab-upgrade-*")
+	if err != nil {
+		return fmt.Errorf("mktemp: %w", err)
+	}
+	// We deliberately do NOT defer cleanup of `tmp`: install.sh
+	// keeps reading from it for ~30 seconds after we return, and
+	// removing the directory mid-install would crash the upgrade.
+	// The next reboot will clear /tmp anyway.
+
+	tarballPath := filepath.Join(tmp, "powerlab.tar.gz")
+	if err := downloadFile(ctx, u.client(), tar.URL, tarballPath); err != nil {
+		return fmt.Errorf("download tarball: %w", err)
+	}
+	if err := VerifyTarballSHA256(tarballPath, tar.SHA256); err != nil {
+		return fmt.Errorf("verify checksum: %w", err)
+	}
+
+	extractDir := filepath.Join(tmp, "extracted")
+	if err := os.MkdirAll(extractDir, 0o755); err != nil {
+		return fmt.Errorf("mkdir extract: %w", err)
+	}
+	// `--strip-components=1` flattens the inner
+	// `powerlab-<version>-linux-<arch>/` directory so the install.sh
+	// sits directly under extractDir.
+	cmd := exec.CommandContext(ctx, "tar", "-xzf", tarballPath, "-C", extractDir, "--strip-components=1")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("extract tarball: %w (%s)", err, strings.TrimSpace(string(out)))
+	}
+
+	installScript := filepath.Join(extractDir, "install.sh")
+	if _, err := os.Stat(installScript); err != nil {
+		return fmt.Errorf("install.sh missing from tarball: %w", err)
+	}
+
+	// Spawn install.sh detached so this Go binary can return to the
+	// HTTP caller before install.sh starts stopping services. Output
+	// goes to /var/log/powerlab/upgrade.log; the UI polls a status
+	// file install.sh writes when it finishes.
+	logPath := "/var/log/powerlab/upgrade.log"
+	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
+	if err != nil {
+		return fmt.Errorf("open upgrade log: %w", err)
+	}
+
+	upgrade := exec.Command("bash", installScript, "--upgrade")
+	upgrade.Stdout = logFile
+	upgrade.Stderr = logFile
+	// Detach: the child becomes its own session leader so it survives
+	// the parent's exit. The host signal SIGTERM that systemd sends
+	// to core (when install.sh's `systemctl stop powerlab-core` fires)
+	// will not propagate to upgrade because they are in separate
+	// sessions.
+	upgrade.SysProcAttr = detachSysProcAttr()
+	if err := upgrade.Start(); err != nil {
+		_ = logFile.Close()
+		return fmt.Errorf("spawn install.sh: %w", err)
+	}
+	// Don't wait — install.sh runs for ~30 s and we want the HTTP
+	// caller to get an immediate 200. Release the *Process so the
+	// runtime doesn't hold a zombie around.
+	_ = upgrade.Process.Release()
+	_ = logFile.Close()
+
+	return nil
+}
+
+// downloadFile streams an HTTP body to disk. Used only by RunInstall.
+func downloadFile(ctx context.Context, client *http.Client, url, dst string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+	f, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if _, err := io.Copy(f, resp.Body); err != nil {
+		return err
+	}
+	return nil
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────

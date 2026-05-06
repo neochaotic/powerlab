@@ -213,7 +213,32 @@ log "Generating install.sh..."
 cat > "$STAGE/install.sh" <<'INSTALL_EOF'
 #!/usr/bin/env bash
 # PowerLab installer — run as root.
+#
+# Supports two modes:
+#   default  — fresh install or in-place install. Idempotent.
+#   --upgrade — same as default, plus:
+#                · snapshot /etc/powerlab/, /var/lib/powerlab/db,
+#                  /usr/bin/powerlab-*, and /etc/systemd/system/powerlab-*.service
+#                  to /var/lib/powerlab/backups/pre-upgrade-<ts>/ BEFORE
+#                  touching any of them
+#                · run a 5-attempt health-check against the gateway after
+#                  starting services; on failure, restore from the snapshot
+#                  and start services again
+#                · write /var/lib/powerlab/last-upgrade.json with
+#                  {from, to, succeeded_at | failed_at, snapshot_path}
+#                  so the UI can surface the result on next reload
+#
+# The `--upgrade` flag is set by `core` when it kicks off an in-UI
+# update via POST /v1/powerlab-update/install. End users running
+# install.sh manually never need to set it.
 set -euo pipefail
+
+UPGRADE_MODE=0
+case "${1:-}" in
+  --upgrade) UPGRADE_MODE=1 ;;
+  "") ;;
+  *) echo "Unknown argument: $1 (only --upgrade is supported)" >&2; exit 1 ;;
+esac
 
 if [[ $EUID -ne 0 ]]; then
   echo "ERROR: install.sh must be run as root (sudo)." >&2
@@ -228,9 +253,32 @@ fi
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
+# ── Upgrade snapshot ────────────────────────────────────────────────────
+SNAPSHOT_DIR=""
+PREVIOUS_VERSION=""
+if (( UPGRADE_MODE )); then
+  TS=$(date -u +%Y%m%dT%H%M%SZ)
+  PREVIOUS_VERSION=$(awk -F'=' '/^[[:space:]]*VERSION[[:space:]]*=/ {gsub(/[[:space:]"]/,"",$2); print $2; exit}' /etc/powerlab/version 2>/dev/null || echo "unknown")
+  SNAPSHOT_DIR="/var/lib/powerlab/backups/pre-upgrade-${TS}"
+  echo "[powerlab-install] Upgrade mode — taking snapshot to $SNAPSHOT_DIR"
+  mkdir -p "$SNAPSHOT_DIR"/{etc,bin,systemd,db,share}
+  # Configs (small, always)
+  if [[ -d /etc/powerlab ]]; then cp -a /etc/powerlab/. "$SNAPSHOT_DIR/etc/" 2>/dev/null || true; fi
+  # Binaries (5-6 files, ~100MB total)
+  cp /usr/bin/powerlab-* "$SNAPSHOT_DIR/bin/" 2>/dev/null || true
+  # Systemd units
+  cp /etc/systemd/system/powerlab-*.service "$SNAPSHOT_DIR/systemd/" 2>/dev/null || true
+  # User DB (tiny — just o_users table + key/value)
+  if [[ -f /var/lib/powerlab/db ]]; then cp -a /var/lib/powerlab/db "$SNAPSHOT_DIR/db/" 2>/dev/null || true; fi
+  # Static UI (the only large item — symlinks instead of copying when
+  # disk is tight; copies are safer though)
+  if [[ -d /usr/share/powerlab/www ]]; then cp -a /usr/share/powerlab/www "$SNAPSHOT_DIR/share/" 2>/dev/null || true; fi
+  echo "[powerlab-install]   snapshot: $(du -sh "$SNAPSHOT_DIR" | awk '{print $1}')"
+fi
+
 echo "[powerlab-install] Creating directories..."
 install -d -m 0755 /etc/powerlab
-install -d -m 0755 /var/lib/powerlab/{apps,appstore,conf}
+install -d -m 0755 /var/lib/powerlab/{apps,appstore,conf,backups}
 install -d -m 0755 /var/log/powerlab
 install -d -m 0755 /var/run/powerlab
 install -d -m 0755 /usr/share/powerlab
@@ -359,6 +407,58 @@ for _ in 1 2 3 4 5; do
   sleep 1
 done
 
+# ── Upgrade rollback (only when --upgrade was passed) ──────────────────
+if (( UPGRADE_MODE )); then
+  if [[ "$GATEWAY_UP" == "yes" ]]; then
+    NEW_VERSION="${VERSION_NEXT:-unknown}"
+    echo "[powerlab-install]   upgrade succeeded — gateway responding on $CHOSEN_PORT"
+    cat > /var/lib/powerlab/last-upgrade.json <<JSON
+{
+  "from": "${PREVIOUS_VERSION}",
+  "to": "${NEW_VERSION}",
+  "result": "success",
+  "succeeded_at": "$(date -u +%FT%TZ)",
+  "snapshot_path": "${SNAPSHOT_DIR}"
+}
+JSON
+    # Persist the new version so future upgrades can read PREVIOUS_VERSION.
+    echo "VERSION = \"${NEW_VERSION}\"" > /etc/powerlab/version
+  else
+    echo "[powerlab-install]   upgrade FAILED — gateway not responding. Rolling back from snapshot."
+    # Stop everything before swapping back so the kernel does not
+    # hold open file handles to the broken binaries.
+    for svc in gateway message-bus user-service core app-management local-storage; do
+      systemctl stop "powerlab-$svc.service" 2>/dev/null || true
+    done
+    # Restore from snapshot. We deliberately do NOT touch
+    # /var/lib/powerlab/{apps,appstore} — those are user data and
+    # were never modified by the upgrade either.
+    cp -a "$SNAPSHOT_DIR"/etc/. /etc/powerlab/ 2>/dev/null || true
+    cp -a "$SNAPSHOT_DIR"/bin/. /usr/bin/ 2>/dev/null || true
+    cp -a "$SNAPSHOT_DIR"/systemd/. /etc/systemd/system/ 2>/dev/null || true
+    if [[ -f "$SNAPSHOT_DIR/db/db" ]]; then cp -a "$SNAPSHOT_DIR/db/db" /var/lib/powerlab/db; fi
+    if [[ -d "$SNAPSHOT_DIR/share/www" ]]; then rm -rf /usr/share/powerlab/www && cp -a "$SNAPSHOT_DIR/share/www" /usr/share/powerlab/www; fi
+    systemctl daemon-reload
+    for svc in gateway message-bus user-service core app-management local-storage; do
+      systemctl reset-failed "powerlab-$svc.service" 2>/dev/null || true
+      systemctl start "powerlab-$svc.service"
+    done
+    sleep 4
+    cat > /var/lib/powerlab/last-upgrade.json <<JSON
+{
+  "from": "${PREVIOUS_VERSION}",
+  "to": "unknown",
+  "result": "rolled_back",
+  "failed_at": "$(date -u +%FT%TZ)",
+  "snapshot_path": "${SNAPSHOT_DIR}",
+  "diagnostic": "Gateway did not respond on http://127.0.0.1:${CHOSEN_PORT}/ within 7 seconds after the binary swap. Snapshot restored. Check journalctl -u powerlab-gateway for the underlying failure."
+}
+JSON
+    echo "[powerlab-install]   rolled back to previous version. last-upgrade.json written."
+    exit 1
+  fi
+fi
+
 # Detect the primary LAN IP (first non-loopback IPv4 address). `hostname -I`
 # is Linux-specific and returns space-separated IPs.
 LAN_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
@@ -405,6 +505,15 @@ printf "  ${DIM}Logs:           journalctl -u powerlab-gateway -f${RESET}\n"
 printf "  ${DIM}Uninstall:      sudo /usr/share/powerlab/uninstall.sh${RESET}\n"
 echo ""
 INSTALL_EOF
+# Inject the version this release advertises so the rollback path can
+# write `VERSION = "X.Y.Z"` to /etc/powerlab/version on success and
+# stamp the last-upgrade.json record. The placeholder is at the top
+# of the file (right after `set -euo pipefail`) so the awk in the
+# rollback block finds it without recursing through the body.
+sed -i.bak "1a\\
+VERSION_NEXT=\"$VERSION\"
+" "$STAGE/install.sh"
+rm -f "$STAGE/install.sh.bak"
 chmod +x "$STAGE/install.sh"
 
 # ─── 7. uninstall.sh ─────────────────────────────────────────────────────

@@ -307,9 +307,83 @@ func TestRunPreflight_NoActiveInstallTask(t *testing.T) {
 	}
 }
 
-func TestRunInstall_NotImplemented(t *testing.T) {
+// RunInstall refuses on the three known-bad inputs without ever
+// touching the filesystem. The happy path requires a real systemd
+// host and gets exercised in the integration script
+// (scripts/test-updater.sh) that lives separately.
+func TestRunInstall_RefusesNilManifest(t *testing.T) {
 	u := &PowerLabUpdater{}
-	if err := u.RunInstall(context.Background(), &Manifest{}); err == nil {
-		t.Fatal("RunInstall should refuse with a clear error in Phase 2")
+	if err := u.RunInstall(context.Background(), nil); err == nil {
+		t.Fatal("RunInstall should refuse on nil manifest")
+	}
+}
+
+func TestRunInstall_RefusesSkipRelease(t *testing.T) {
+	u := &PowerLabUpdater{}
+	m := &Manifest{Version: "0.2.4", SkipRelease: true}
+	if err := u.RunInstall(context.Background(), m); err == nil {
+		t.Fatal("RunInstall should refuse when manifest has skip_release: true")
+	}
+}
+
+func TestRunInstall_RefusesNoArchTarball(t *testing.T) {
+	u := &PowerLabUpdater{}
+	m := &Manifest{
+		Version: "0.2.4",
+		Tarball: map[string]TarballEntry{"riscv64": {URL: "ignored", SHA256: "x", SizeBytes: 1}},
+	}
+	if err := u.RunInstall(context.Background(), m); err == nil {
+		t.Fatal("RunInstall should refuse when manifest has no tarball for the host arch")
+	}
+}
+
+// LastUpgradeStatus parses install.sh's JSON output. Pin the happy
+// path + the no-file case.
+func TestLastUpgradeStatus_Missing(t *testing.T) {
+	u := &PowerLabUpdater{PowerLabRoot: t.TempDir()}
+	got, err := u.LastUpgradeStatus()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != nil {
+		t.Fatalf("expected nil for missing file, got %+v", got)
+	}
+}
+
+func TestLastUpgradeStatus_Success(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(
+		root+"/last-upgrade.json",
+		[]byte(`{"from":"0.2.3","to":"0.2.4","result":"success","succeeded_at":"2026-05-06T20:00:00Z","snapshot_path":"/var/lib/powerlab/backups/pre-upgrade-2026..."}`),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	u := &PowerLabUpdater{PowerLabRoot: root}
+	got, err := u.LastUpgradeStatus()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got == nil {
+		t.Fatal("expected non-nil")
+	}
+	if got.From != "0.2.3" || got.To != "0.2.4" || got.Result != "success" {
+		t.Fatalf("unexpected content: %+v", got)
+	}
+}
+
+func TestLastUpgradeStatus_RolledBack(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(
+		root+"/last-upgrade.json",
+		[]byte(`{"from":"0.2.3","to":"unknown","result":"rolled_back","failed_at":"2026-05-06T20:01:00Z","diagnostic":"Gateway did not respond"}`),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	u := &PowerLabUpdater{PowerLabRoot: root}
+	got, _ := u.LastUpgradeStatus()
+	if got.Result != "rolled_back" || got.Diagnostic == "" {
+		t.Fatalf("unexpected content: %+v", got)
 	}
 }

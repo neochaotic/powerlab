@@ -12,6 +12,29 @@ see `CONTRIBUTING.md` for the rule.
 ## [Unreleased]
 
 ### Added
+- **In-UI updater (#21)** — Settings → About → Updates polls the
+  PowerLab GitHub release manifest hourly, surfaces "Update
+  available v0.x.y" with the changelog summary, and (when the user
+  clicks Upgrade) downloads the tarball, verifies its SHA-256
+  against the manifest, and hands off to `install.sh --upgrade`
+  which:
+    · Snapshots `/etc/powerlab/`, the binaries under
+      `/usr/bin/powerlab-*`, the systemd units, the user DB, and
+      the static UI to `/var/lib/powerlab/backups/pre-upgrade-<ts>/`
+    · Stops services, swaps binaries / UI / units, starts services
+    · Runs a 5-attempt health-check against the gateway port
+    · On failure, restores the snapshot and restarts services
+      (auto-rollback — the user does not need shell access)
+    · Writes `/var/lib/powerlab/last-upgrade.json` with the result
+  The UI polls `/v1/powerlab-update/status` while the upgrade runs
+  and flips the banner to "Upgrade succeeded" / "Rolled back" the
+  moment install.sh writes the result file.
+- Release tarballs now ship a machine-readable `manifest.json`
+  describing the version, per-arch SHA-256 + size, breaking
+  changes, pre-install checks, and DB migrations. The host updater
+  fetches this 2 KB file before the 60 MB tarball so it can decide
+  whether to offer the upgrade in the first place. Format spec:
+  `docs/UPDATE_MANIFEST.md`.
 - **Change gateway port from the UI (#18)**. Settings → General →
   Network has a "Listen port" editor that walks the user through a
   confirmation modal, runs the bind on the new port server-side, and

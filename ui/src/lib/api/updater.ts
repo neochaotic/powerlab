@@ -104,10 +104,37 @@ export async function preflightUpdate(): Promise<PreflightResult> {
 }
 
 /**
- * Kicks off the install. Phase 2 always returns 501; the UI surfaces
- * that as a "coming soon" toast. Phase 4 will replace the backend
- * stub with the real download / snapshot / swap / health-check flow.
+ * Kicks off the install. The backend returns 202 Accepted as soon as
+ * install.sh is spawned in --upgrade mode. The actual snapshot + swap
+ * + health-check + rollback runs asynchronously inside install.sh;
+ * poll `getUpgradeStatus()` to learn when it finishes.
  */
 export async function installUpdate(): Promise<void> {
 	await api.post<Envelope<void>>('/v1/powerlab-update/install', {});
+}
+
+/**
+ * The result of the most recent upgrade attempt on this host.
+ * `null` when no upgrade has been attempted (fresh install).
+ *
+ * `result` is `"success"` when install.sh finished and the gateway
+ * responded to the health-check, or `"rolled_back"` when the
+ * health-check failed and install.sh restored the previous version
+ * from the snapshot.
+ */
+export interface LastUpgrade {
+	from: string;
+	to: string;
+	result: 'success' | 'rolled_back';
+	succeeded_at?: string;
+	failed_at?: string;
+	snapshot_path?: string;
+	diagnostic?: string;
+}
+
+export async function getUpgradeStatus(): Promise<LastUpgrade | null> {
+	const res = await api.get<Envelope<LastUpgrade | null>>(
+		'/v1/powerlab-update/status'
+	);
+	return res.data ?? null;
 }

@@ -65,10 +65,10 @@ func GetPowerLabUpdatePreflight(ctx echo.Context) error {
 }
 
 // PostPowerLabUpdateInstall handles `POST /v1/powerlab-update/install`.
-// Phase 2 returns 501 Not Implemented — the actual install path
-// (download → snapshot → swap → health-check → rollback) lands in
-// Phase 4 of issue #21. The endpoint exists now so the frontend can
-// be wired against the final URL.
+// Spawns install.sh in --upgrade mode and returns 202 Accepted as soon
+// as the script is detached. The UI polls
+// /v1/powerlab-update/status to learn when it finishes and whether it
+// succeeded or rolled back.
 func PostPowerLabUpdateInstall(ctx echo.Context) error {
 	u := powerLabUpdater()
 	res, err := u.Check(ctx.Request().Context())
@@ -78,8 +78,39 @@ func PostPowerLabUpdateInstall(ctx echo.Context) error {
 			Message: err.Error(),
 		})
 	}
+	if res.Decision != "update_ok" {
+		return ctx.JSON(http.StatusBadRequest, model.Result{
+			Success: common_err.CLIENT_ERROR,
+			Message: "host is not eligible to upgrade — current decision: " + res.Decision,
+		})
+	}
 	if err := u.RunInstall(ctx.Request().Context(), res.Manifest); err != nil {
-		return ctx.JSON(http.StatusNotImplemented, model.Result{
+		return ctx.JSON(http.StatusInternalServerError, model.Result{
+			Success: common_err.SERVICE_ERROR,
+			Message: err.Error(),
+		})
+	}
+	// 202 Accepted — the upgrade is now running asynchronously inside
+	// install.sh. The HTTP socket closing here is OK because the
+	// detached child does not depend on us.
+	return ctx.JSON(http.StatusAccepted, model.Result{
+		Success: common_err.SUCCESS,
+		Message: "upgrade started",
+	})
+}
+
+// GetPowerLabUpdateStatus handles `GET /v1/powerlab-update/status`.
+// Reads /var/lib/powerlab/last-upgrade.json (written by install.sh
+// on every --upgrade run). Returns the file's content, or nil data
+// when no upgrade has been attempted yet.
+//
+// The UI polls this every 2 s while the upgrade banner is showing
+// "Upgrading…" so it can flip to "Upgrade succeeded" / "Rolled back"
+// the moment install.sh finishes.
+func GetPowerLabUpdateStatus(ctx echo.Context) error {
+	lu, err := powerLabUpdater().LastUpgradeStatus()
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, model.Result{
 			Success: common_err.SERVICE_ERROR,
 			Message: err.Error(),
 		})
@@ -87,6 +118,7 @@ func PostPowerLabUpdateInstall(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, model.Result{
 		Success: common_err.SUCCESS,
 		Message: common_err.GetMsg(common_err.SUCCESS),
+		Data:    lu, // nil → "no upgrade has been attempted on this host"
 	})
 }
 

@@ -10,8 +10,13 @@
  * again" button on the Settings card.
  */
 
-import { checkForUpdate, preflightUpdate, installUpdate } from '$lib/api/updater';
-import type { CheckResult, PreflightResult } from '$lib/api/updater';
+import {
+	checkForUpdate,
+	preflightUpdate,
+	installUpdate,
+	getUpgradeStatus
+} from '$lib/api/updater';
+import type { CheckResult, PreflightResult, LastUpgrade } from '$lib/api/updater';
 
 const POLL_INTERVAL_MS = 60 * 60 * 1000; // 1 h
 
@@ -26,7 +31,15 @@ class UpdaterStore {
 	installing: boolean = $state(false);
 	installError: string | null = $state(null);
 
+	/**
+	 * The result of the previous upgrade attempt on this host. Read
+	 * once on store mount, then again after every install kicked off
+	 * from this UI (polled while `installing === true`).
+	 */
+	lastUpgrade: LastUpgrade | null = $state(null);
+
 	private pollTimer: ReturnType<typeof setInterval> | null = null;
+	private statusPollTimer: ReturnType<typeof setInterval> | null = null;
 
 	async refresh(): Promise<void> {
 		this.loading = true;
@@ -61,6 +74,19 @@ class UpdaterStore {
 	 * a crash. When Phase 4 lands, this becomes a full "stop services
 	 * → swap binaries → health-check → reload" flow with progress.
 	 */
+	/**
+	 * Kicks off the install. The backend returns 202 immediately and
+	 * install.sh runs in the background. We poll the status endpoint
+	 * every 2 s while the upgrade is in flight; when install.sh
+	 * writes /var/lib/powerlab/last-upgrade.json with a result we
+	 * stop polling and update lastUpgrade so the UI can render the
+	 * outcome.
+	 *
+	 * The whole upgrade window can include `core` itself being
+	 * restarted — at which point the gateway is briefly unreachable
+	 * and our poll fetches will fail. That's fine: we keep retrying
+	 * until either we get a fresh status object or the user reloads.
+	 */
 	async install(): Promise<void> {
 		this.installing = true;
 		this.installError = null;
@@ -68,15 +94,56 @@ class UpdaterStore {
 			await installUpdate();
 		} catch (e) {
 			this.installError = (e as Error).message;
-		} finally {
 			this.installing = false;
+			return;
 		}
+		// Snapshot the current lastUpgrade so we can detect the moment
+		// install.sh writes a new one (different succeeded_at /
+		// failed_at). We compare on the timestamp because it changes
+		// on every run.
+		const previousMarker = this.lastUpgrade
+			? this.lastUpgrade.succeeded_at || this.lastUpgrade.failed_at || ''
+			: '';
+		this.startStatusPolling(previousMarker);
+	}
+
+	async refreshStatus(): Promise<void> {
+		try {
+			this.lastUpgrade = await getUpgradeStatus();
+		} catch {
+			// Status fetch can fail mid-restart (gateway swapping
+			// listener). Swallow and let the next poll retry.
+		}
+	}
+
+	private startStatusPolling(previousMarker: string): void {
+		if (this.statusPollTimer !== null) clearInterval(this.statusPollTimer);
+		this.statusPollTimer = setInterval(async () => {
+			await this.refreshStatus();
+			const marker = this.lastUpgrade
+				? this.lastUpgrade.succeeded_at || this.lastUpgrade.failed_at || ''
+				: '';
+			if (marker && marker !== previousMarker) {
+				// install.sh wrote a fresh status — upgrade has
+				// finished, one way or the other. Stop polling and
+				// let the UI render the outcome.
+				if (this.statusPollTimer !== null) {
+					clearInterval(this.statusPollTimer);
+					this.statusPollTimer = null;
+				}
+				this.installing = false;
+				// Re-check so the version banner updates if the
+				// upgrade succeeded.
+				this.refresh();
+			}
+		}, 2000);
 	}
 
 	startPolling(): void {
 		if (this.pollTimer !== null) return;
 		// First poll immediately, then on the hourly cadence.
 		this.refresh();
+		this.refreshStatus(); // also load the last-upgrade banner
 		this.pollTimer = setInterval(() => this.refresh(), POLL_INTERVAL_MS);
 	}
 

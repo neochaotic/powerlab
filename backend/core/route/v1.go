@@ -115,6 +115,7 @@ func InitV1Router() http.Handler {
 			v1PowerLabUpdateGroup.GET("", v1.GetPowerLabUpdate)
 			v1PowerLabUpdateGroup.GET("/preflight", v1.GetPowerLabUpdatePreflight)
 			v1PowerLabUpdateGroup.POST("/install", v1.PostPowerLabUpdateInstall)
+			v1PowerLabUpdateGroup.GET("/status", v1.GetPowerLabUpdateStatus)
 		}
 		v1PortGroup := v1Group.Group("/port")
 		v1PortGroup.Use()
