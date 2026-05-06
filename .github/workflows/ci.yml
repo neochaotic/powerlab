@@ -120,24 +120,21 @@ jobs:
         with:
           go-version: '1.25'
 
-      # Cross-compile prerequisites for the package matrix.
-      # · libfuse-dev / pkg-config — local-storage links against libfuse.
-      # · libpam0g-dev — user-service links against libpam (native Linux auth).
-      # · For arm64, install the cross-arch versions and the
-      #   aarch64 GCC toolchain so CGO can target arm64 from an
-      #   amd64 runner.
+      # Cross-compile prerequisites.
+      # · libfuse-dev / pkg-config — local-storage's bazil.org/fuse uses
+      #   `unsafe` + syscalls (no C linkage), but the headers are still
+      #   needed for some build-tag compile checks downstream.
+      # · libpam0g-dev — user-service CGO build against libpam.
+      #   amd64 only: arm64 PAM cross-compile requires a multi-arch apt
+      #   setup that varies per Ubuntu version. The arm64 tarball uses
+      #   the no-CGO PAM stub and falls back to SetupWizard auth at
+      #   runtime — tracked as a follow-up release item.
       - name: Install cross-compile deps
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq libfuse-dev libpam0g-dev pkg-config
-          if [[ "${{ matrix.arch }}" == "arm64" ]]; then
-            sudo dpkg --add-architecture arm64
-            # restrict the arm64 mirrors to the multi-arch repos so amd64 sources
-            # don't try to fetch arm64 packages they can't install
-            sudo sed -i 's|deb http|deb [arch=amd64,i386] http|' /etc/apt/sources.list
-            echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $(lsb_release -sc) main universe" | sudo tee /etc/apt/sources.list.d/arm64.list
-            sudo apt-get update -qq
-            sudo apt-get install -y -qq gcc-aarch64-linux-gnu libpam0g-dev:arm64 libfuse-dev:arm64
+          sudo apt-get install -y -qq libfuse-dev pkg-config
+          if [[ "${{ matrix.arch }}" == "amd64" ]]; then
+            sudo apt-get install -y -qq libpam0g-dev
           fi
 
       - name: Install frontend dependencies

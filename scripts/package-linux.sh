@@ -33,26 +33,29 @@ mkdir -p "$STAGE/bin" "$STAGE/www" "$STAGE/conf" "$STAGE/systemd" "$STAGE/store"
 log "Cross-compiling backend services for linux/$ARCH..."
 SERVICES=(gateway app-management core user-service message-bus local-storage)
 
-# Two services require CGO at link time:
-#   · user-service uses libpam (native Linux auth, see auth_os_pam_linux.go)
-#   · local-storage uses fuse + Linux xattr
-# Everything else stays CGO_ENABLED=0 so it cross-compiles cleanly without
-# a target-specific gcc on the build host.
+# user-service links against libpam (auth_os_pam_linux.go) when CGO is
+# on. Without CGO the build picks up auth_os_pam_stub.go which routes
+# users to the bcrypt SetupWizard instead — a working but less-elegant
+# auth experience.
+#
+# CGO is enabled on amd64 because GitHub-hosted Ubuntu runners ship
+# libpam0g-dev natively. arm64 cross-compile would need libpam0g-dev:arm64
+# + a multi-arch apt setup that varies per Ubuntu version (different
+# /etc/apt sources format on 22.04 vs 24.04+); rather than ship a
+# fragile multi-arch apt dance, arm64 builds stay CGO_ENABLED=0 and
+# fall back to the SetupWizard. arm64 native PAM is tracked as a
+# follow-up release work item.
+#
+# local-storage uses bazil.org/fuse via syscall (no C linkage needed),
+# so it builds with CGO off on every arch.
 needs_cgo() {
-  case "$1" in
-    user-service|local-storage) return 0 ;;
-    *) return 1 ;;
-  esac
+  if [[ "$1" == "user-service" ]] && [[ "$ARCH" == "amd64" ]]; then
+    return 0
+  fi
+  return 1
 }
 
-# When cross-compiling to arm64 with CGO we need an arm64 C toolchain.
-# The CI installs gcc-aarch64-linux-gnu (and the matching libpam0g-dev:arm64
-# for user-service) before invoking this script.
-if [[ "$ARCH" == "arm64" ]]; then
-  CC_FOR_CGO="${CC_FOR_CGO:-aarch64-linux-gnu-gcc}"
-else
-  CC_FOR_CGO="${CC_FOR_CGO:-gcc}"
-fi
+CC_FOR_CGO="${CC_FOR_CGO:-gcc}"
 
 for svc in "${SERVICES[@]}"; do
   log "  building $svc..."

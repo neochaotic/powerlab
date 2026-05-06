@@ -27,7 +27,8 @@ on the host platform:
 | Platform | Mechanism | Status |
 |---|---|---|
 | **macOS**   | `dscl . -authonly` against the local Directory Service | ✅ Working |
-| **Linux**   | PAM via `libpam` (CGO)                                 | ✅ Working (v0.2+). Sign in with your `useradd` password directly. |
+| **Linux** (`amd64`) | PAM via `libpam` (CGO)                          | ✅ Working (v0.2+). Sign in with your `useradd` password. |
+| **Linux** (`arm64`) | bcrypt SetupWizard fallback                     | ⚠️ PAM not yet in arm64 release tarball — open as follow-up. SetupWizard works; OS auth lands in v0.2.x. |
 | **Windows** | LSA / SSPI                                             | ❌ Not planned |
 
 ### How Linux auth works in v0.2+
