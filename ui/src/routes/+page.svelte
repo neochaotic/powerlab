@@ -4,6 +4,7 @@
 	import { onMount, onDestroy, tick } from "svelte";
 	import { goto } from "$app/navigation";
 	import {
+		Brain,
 		Folder,
 		Gauge,
 		ShoppingBag,
@@ -380,6 +381,14 @@
 			href: '/apps/new',
 			gradient: 'from-pink-400 via-rose-500 to-fuchsia-600',
 			shadow: 'group-hover:shadow-[0_18px_40px_-12px_rgba(236,72,153,0.55)]'
+		},
+		{
+			name: 'Models',
+			icon: Brain,
+			href: '/models',
+			gradient: 'from-blue-400 via-indigo-500 to-violet-600',
+			shadow: 'group-hover:shadow-[0_18px_40px_-12px_rgba(99,102,241,0.55)]',
+			badge: 'Soon'
 		}
 	];
 
@@ -451,6 +460,11 @@
 						<!-- Top inner highlight — gives the icon a glassy "lit from above" feel -->
 						<span class="pointer-events-none absolute inset-x-2 top-1 h-1/2 rounded-[1.25rem] bg-gradient-to-b from-white/15 to-transparent opacity-70"></span>
 						<Icon class="relative h-7 w-7" strokeWidth={2.2} />
+						{#if 'badge' in app && app.badge}
+							<span class="absolute -right-1 -top-1 rounded-full border border-zinc-950/60 bg-zinc-950/90 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-blue-300 backdrop-blur-sm">
+								{app.badge}
+							</span>
+						{/if}
 					</div>
 					<span class="text-center text-[10px] font-semibold text-zinc-500 transition-colors group-hover:text-zinc-200">
 						{app.name}

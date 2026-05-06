@@ -15,6 +15,7 @@
 		Gauge,
 		Folder,
 		ShoppingBag,
+		Brain,
 		HardDrive,
 		Zap,
 		Sun,
@@ -94,7 +95,8 @@
 	const navItems = [
 		{ href: '/dashboard', icon: Gauge, label: 'Dashboard' },
 		{ href: '/files', icon: Folder, label: 'Files' },
-		{ href: '/apps', icon: ShoppingBag, label: 'Store' }
+		{ href: '/apps', icon: ShoppingBag, label: 'Store' },
+		{ href: '/models', icon: Brain, label: 'Models' }
 	];
 
 	const currentPath = $derived($page.url.pathname);

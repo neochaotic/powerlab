@@ -35,6 +35,12 @@ SERVICES=(gateway app-management core user-service message-bus local-storage)
 for svc in "${SERVICES[@]}"; do
   log "  building $svc..."
   cd "$ROOT/backend/$svc"
+  # codegen/ is .gitignored — regenerate from the OpenAPI specs before
+  # compiling so the import paths in main.go resolve. gateway has no
+  # generate directives.
+  if [[ "$svc" != "gateway" ]]; then
+    go generate ./... > /dev/null 2>&1 || true
+  fi
   # -ldflags strip debug + reduce binary size; trimpath removes local paths
   GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
     -trimpath \
