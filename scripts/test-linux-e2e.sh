@@ -161,21 +161,58 @@ run_in_container "
     -d '{\"file_path\":\"/tmp/smoke-edit.txt\",\"file_content\":\"updated\"}')
   case \"\$RESP\" in *success*200*) echo OK ;; *) echo BAD: \$RESP; exit 1 ;; esac
   [[ \"\$(cat /tmp/smoke-edit.txt)\" == updated ]] || { echo file-not-updated; exit 1; }
-" >/dev/null || fail "scenario A: editor PUT /v1/file did not update the file"
-green "  → editor write (existing file) OK"
+" >/dev/null || fail "scenario A: editor PUT /v1/file did not update existing file"
+green "  → editor PUT (existing file) → 200 OK"
 
-# Editor must also CREATE a file that didn't exist — that's the
-# "save as new" flow and the original handler refused with
-# FILE_ALREADY_EXISTS (sic, the message was inverted).
-run_in_container "
+# Filebrowser-style POST=create / PUT=update split:
+#   POST /v1/file (file does not exist) → 200 created
+#   POST /v1/file (file exists)         → 409 Conflict
+#   POST /v1/file?override=true         → 200 overwrites
+#   PUT  /v1/file (file does not exist) → 404 (must use POST)
+CODE=$(run_in_container "
   rm -f /tmp/smoke-new.txt
-  RESP=\$(curl -sS -X PUT http://localhost:8765/v1/file -H 'Authorization: $TOKEN' \
-    -H 'Content-Type: application/json' \
-    -d '{\"file_path\":\"/tmp/smoke-new.txt\",\"file_content\":\"fresh\"}')
-  case \"\$RESP\" in *success*200*) ;; *) echo BAD: \$RESP; exit 1 ;; esac
-  [[ \"\$(cat /tmp/smoke-new.txt)\" == fresh ]] || { echo file-not-created; exit 1; }
-" >/dev/null || fail "scenario A: editor PUT /v1/file did not create new file"
-green "  → editor write (new file) OK"
+  curl -sS -o /dev/null -w '%{http_code}' -X POST http://localhost:8765/v1/file \
+    -H 'Authorization: $TOKEN' -H 'Content-Type: application/json' \
+    -d '{\"file_path\":\"/tmp/smoke-new.txt\",\"file_content\":\"fresh\"}'
+")
+[[ "$CODE" == "200" ]] || fail "scenario A: POST /v1/file (new) must return 200, got $CODE"
+green "  → editor POST (new file) → 200 created"
+
+CODE=$(run_in_container "
+  curl -sS -o /dev/null -w '%{http_code}' -X POST http://localhost:8765/v1/file \
+    -H 'Authorization: $TOKEN' -H 'Content-Type: application/json' \
+    -d '{\"file_path\":\"/tmp/smoke-new.txt\",\"file_content\":\"again\"}'
+")
+[[ "$CODE" == "409" ]] || fail "scenario A: POST /v1/file (already exists) must return 409, got $CODE"
+green "  → editor POST (existing file, no override) → 409 Conflict"
+
+CODE=$(run_in_container "
+  curl -sS -o /dev/null -w '%{http_code}' -X POST 'http://localhost:8765/v1/file?override=true' \
+    -H 'Authorization: $TOKEN' -H 'Content-Type: application/json' \
+    -d '{\"file_path\":\"/tmp/smoke-new.txt\",\"file_content\":\"forced\"}'
+")
+[[ "$CODE" == "200" ]] || fail "scenario A: POST ?override=true must return 200, got $CODE"
+green "  → editor POST (override=true) → 200 OK"
+
+CODE=$(run_in_container "
+  rm -f /tmp/smoke-put-missing.txt
+  curl -sS -o /dev/null -w '%{http_code}' -X PUT http://localhost:8765/v1/file \
+    -H 'Authorization: $TOKEN' -H 'Content-Type: application/json' \
+    -d '{\"file_path\":\"/tmp/smoke-put-missing.txt\",\"file_content\":\"x\"}'
+")
+[[ "$CODE" == "404" ]] || fail "scenario A: PUT /v1/file (missing) must return 404 — caller should POST instead, got $CODE"
+green "  → editor PUT (missing file) → 404 (forces POST for new files)"
+
+# Legacy "+ New File" button still works (sends bare {path})
+CODE=$(run_in_container "
+  rm -f /tmp/smoke-empty.txt
+  curl -sS -o /dev/null -w '%{http_code}' -X POST http://localhost:8765/v1/file \
+    -H 'Authorization: $TOKEN' -H 'Content-Type: application/json' \
+    -d '{\"path\":\"/tmp/smoke-empty.txt\"}'
+")
+[[ "$CODE" == "200" ]] && [[ "$(run_in_container 'wc -c < /tmp/smoke-empty.txt')" -eq 0 ]] \
+  || fail "scenario A: legacy POST {path} did not create empty file (got $CODE)"
+green "  → legacy + New File button (POST {path}) → 200 (empty file)"
 
 run_in_container "
   RESP=\$(curl -sS http://localhost:8765/v2/app_management/compose -H 'Authorization: $TOKEN')

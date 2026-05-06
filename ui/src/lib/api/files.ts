@@ -105,9 +105,20 @@ export function readFileContent(path: string) {
 	return api.get<ApiResult<string>>(`/v1/file/content?path=${encodeURIComponent(path)}`);
 }
 
-/** Update file content (text) */
+/** Update an EXISTING file's content. Returns 404 if the file does not
+ * exist — caller should use createFileContent for new files. Mirrors
+ * filebrowser's POST=create vs PUT=update split. */
 export function updateFileContent(filePath: string, fileContent: string) {
 	return api.put<ApiResult<null>>('/v1/file', { file_path: filePath, file_content: fileContent });
+}
+
+/** Create a NEW file with the given content. Returns 409 if the file
+ * already exists (pass override=true to replace). The editor's
+ * "Save as new" flow calls this; the legacy "+ New File" button
+ * (which sends empty content) also goes here via createFile(). */
+export function createFileContent(filePath: string, fileContent: string, override = false) {
+	const q = override ? '?override=true' : '';
+	return api.post<ApiResult<null>>(`/v1/file${q}`, { file_path: filePath, file_content: fileContent });
 }
 
 /** Upload file chunk */

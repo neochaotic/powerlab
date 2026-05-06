@@ -744,15 +744,20 @@ func DeleteFile(ctx echo.Context) error {
 	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS)})
 }
 
-// @Summary update file
-// @Produce  application/json
-// @Accept  application/json
+// PutFileContent — update the contents of an EXISTING file. 404 if the
+// file does not exist. The editor's "save new file" flow uses POST
+// /v1/file (PostFileContent) which creates; PUT is update-only by
+// design, mirroring filebrowser's REST semantics:
+//
+//   POST /v1/file       create new (409 if exists, unless override=true)
+//   PUT  /v1/file       update existing (404 if missing)
+//
+// @Summary update existing file
+// @Produce application/json
+// @Accept application/json
 // @Tags file
 // @Security ApiKeyAuth
-// @Param path body string true "path"
-// @Param content body string true "content"
-// @Success 200 {string} string "ok"
-// @Router /file/update [put]
+// @Router /file [put]
 func PutFileContent(ctx echo.Context) error {
 	fi := model.FileUpdate{}
 	if err := ctx.Bind(&fi); err != nil {
@@ -761,36 +766,72 @@ func PutFileContent(ctx echo.Context) error {
 	if fi.FilePath == "" {
 		return ctx.JSON(http.StatusBadRequest, model.Result{Success: common_err.INVALID_PARAMS, Message: "file_path is required"})
 	}
-
-	// PUT semantics: write the file. Create it if it doesn't exist (the
-	// editor's "save new file" flow), update it if it does. Earlier
-	// versions returned FILE_ALREADY_EXISTS (sic — the message is
-	// inverted) when the file did NOT exist, which made the editor
-	// modal refuse to save anything to a fresh path. Match the
-	// frontend's expectation: this endpoint is unconditionally
-	// "write the bytes at this path".
-	//
-	// We refuse to silently mkdir the parent directory — that hides
-	// typos from the user. If the parent doesn't exist, surface a
-	// 404-shaped error so the UI can prompt to create the directory
-	// first.
-	parent := filepath.Dir(fi.FilePath)
-	if !file.Exists(parent) {
+	if !file.Exists(fi.FilePath) {
 		return ctx.JSON(http.StatusNotFound, model.Result{
 			Success: common_err.FILE_DOES_NOT_EXIST,
-			Message: fmt.Sprintf("parent directory does not exist: %s", parent),
+			Message: fmt.Sprintf("file does not exist: %s — POST to create", fi.FilePath),
 		})
 	}
-
-	// Preserve the existing mode if the file is already there;
-	// otherwise default to 0644 (rw for owner, r for everyone).
-	mode := os.FileMode(0o644)
-	if existing, err := os.Stat(fi.FilePath); err == nil {
-		mode = existing.Mode().Perm()
+	existing, err := os.Stat(fi.FilePath)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, model.Result{Success: common_err.SERVICE_ERROR, Message: err.Error()})
 	}
-
+	mode := existing.Mode().Perm()
 	if err := file.WriteToFullPath([]byte(fi.FileContent), fi.FilePath, mode); err != nil {
-		return ctx.JSON(common_err.SERVICE_ERROR, model.Result{Success: common_err.SERVICE_ERROR, Message: common_err.GetMsg(common_err.SERVICE_ERROR), Data: err.Error()})
+		return ctx.JSON(http.StatusInternalServerError, model.Result{Success: common_err.SERVICE_ERROR, Message: err.Error()})
+	}
+	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS)})
+}
+
+// PostFileContent — create a new file. Default semantics: 409 Conflict
+// if the file already exists. Pass `?override=true` to replace.
+// Auto-mkdir-p's the parent directory (like filebrowser's resourcePostHandler).
+//
+// Accepts BOTH request shapes for backwards compatibility with the
+// legacy "+ New File" button:
+//
+//   {"path":"/foo/bar.txt"}                         // legacy, empty content
+//   {"file_path":"/foo/bar.txt","file_content":""}  // empty file, new shape
+//   {"file_path":"/foo/bar.txt","file_content":"hello"}  // file with content
+//
+// @Summary create new file
+// @Produce application/json
+// @Accept application/json
+// @Tags file
+// @Security ApiKeyAuth
+// @Param override query bool false "overwrite if exists"
+// @Router /file [post]
+func PostFileContent(ctx echo.Context) error {
+	// Accept either shape — legacy `{path}` (empty file create from
+	// "+ New File" button) or new `{file_path, file_content}` from
+	// the editor "Save as new" flow. One handler, two payloads.
+	var req struct {
+		Path        string `json:"path"`
+		FilePath    string `json:"file_path"`
+		FileContent string `json:"file_content"`
+	}
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, model.Result{Success: common_err.INVALID_PARAMS, Message: err.Error()})
+	}
+	target := req.FilePath
+	if target == "" {
+		target = req.Path
+	}
+	if target == "" {
+		return ctx.JSON(http.StatusBadRequest, model.Result{Success: common_err.INVALID_PARAMS, Message: "file_path (or legacy `path`) is required"})
+	}
+	override := ctx.QueryParam("override") == "true"
+	if file.Exists(target) && !override {
+		return ctx.JSON(http.StatusConflict, model.Result{
+			Success: common_err.FILE_ALREADY_EXISTS,
+			Message: fmt.Sprintf("file already exists: %s — pass ?override=true to overwrite or use PUT to update", target),
+		})
+	}
+	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+		return ctx.JSON(http.StatusInternalServerError, model.Result{Success: common_err.SERVICE_ERROR, Message: err.Error()})
+	}
+	if err := file.WriteToFullPath([]byte(req.FileContent), target, 0o644); err != nil {
+		return ctx.JSON(http.StatusInternalServerError, model.Result{Success: common_err.SERVICE_ERROR, Message: err.Error()})
 	}
 	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS)})
 }

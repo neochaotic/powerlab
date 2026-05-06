@@ -58,6 +58,7 @@ func InitV1Router() http.Handler {
 			}
 
 			c.Request().Header.Set("user_id", strconv.Itoa(claims.ID))
+			c.Request().Header.Set("user_name", claims.Username)
 
 			return claims, nil
 		},
@@ -133,7 +134,13 @@ func InitV1Router() http.Handler {
 		v1FileGroup.Use()
 		{
 			v1FileGroup.GET("", v1.GetDownloadSingleFile) // download/:path
-			v1FileGroup.POST("", v1.PostCreateFile)
+			// Filebrowser-style REST split: POST creates, PUT updates.
+			// POST returns 409 if exists unless ?override=true; PUT
+			// returns 404 if missing. Both auto-mkdir-p the parent.
+			// The legacy `POST /v1/file {path}` (empty-file create
+			// from the Files page "+ New File" button) is handled by
+			// PostFileContent too — file_content omitted means empty.
+			v1FileGroup.POST("", v1.PostFileContent)
 			v1FileGroup.PUT("", v1.PutFileContent)
 			v1FileGroup.PUT("/name", v1.RenamePath)
 			// file/rename

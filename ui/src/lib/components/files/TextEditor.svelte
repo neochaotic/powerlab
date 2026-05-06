@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { readFileContent, updateFileContent } from '$lib/api/files';
+	import { readFileContent, updateFileContent, createFileContent } from '$lib/api/files';
 	import { onMount, onDestroy } from 'svelte';
 	import { Save, X, Loader2, FileText } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -26,6 +26,10 @@
 	let loading = $state(true);
 	let saving = $state(false);
 	let error = $state<string | null>(null);
+	// True when this editor was opened for a path that does not exist on
+	// disk yet — the very first Save will create the file. The header
+	// reflects this so the user knows whether they're editing or creating.
+	let isNewFile = $state(false);
 	let editorContainer = $state<HTMLDivElement | null>(null);
 	// CodeMirror view is mutated imperatively (not template-rendered), so a
 	// plain `let` is fine. Suppress the runes-warning explicitly.
@@ -44,7 +48,19 @@
 				error = res.message || 'Failed to load file content';
 			}
 		} catch (e) {
-			error = (e as Error).message;
+			// Treat 404 as "open new file" — the editor lets the user type
+			// content and the first Save creates the path. Without this
+			// branch, navigating to a non-existing path made the editor
+			// modal stuck on "Could not open file" with no way to start
+			// typing.
+			const apiErr = e as { status?: number; message?: string };
+			if (apiErr?.status === 404) {
+				isNewFile = true;
+				content = '';
+				initEditor('');
+			} else {
+				error = apiErr?.message || (e as Error).message;
+			}
 		} finally {
 			loading = false;
 		}
@@ -97,18 +113,26 @@
 	async function handleSave() {
 		if (!view) return;
 		const currentContent = view.state.doc.toString();
-		
+
 		saving = true;
 		try {
-			const res = await updateFileContent(path, currentContent);
+			// New file → POST (create), existing → PUT (update). Same
+			// REST contract filebrowser uses. After the first
+			// successful create, flip isNewFile so subsequent saves
+			// in the same session use PUT.
+			const res = isNewFile
+				? await createFileContent(path, currentContent)
+				: await updateFileContent(path, currentContent);
 			if (res.success === 200 || (res as any).success === 0) {
-				// Don't close if saved via Ctrl+S, unless user specifically clicked Close
-				// But for now we just show a success state or something
+				if (isNewFile) {
+					isNewFile = false;
+				}
 			} else {
 				error = res.message || 'Failed to save file';
 			}
 		} catch (e) {
-			error = (e as Error).message;
+			const apiErr = e as { status?: number; message?: string };
+			error = apiErr?.message || (e as Error).message;
 		} finally {
 			saving = false;
 		}
@@ -134,7 +158,9 @@
 					<FileText class="h-5 w-5" />
 				</div>
 				<div>
-					<h2 class="text-sm font-bold text-white truncate max-w-[300px]">{fileName}</h2>
+					<h2 class="text-sm font-bold text-white truncate max-w-[300px]">
+						{fileName}{#if isNewFile}<span class="ml-2 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-bold text-emerald-400 uppercase tracking-wider">New</span>{/if}
+					</h2>
 					<p class="text-[10px] font-medium text-zinc-500 uppercase tracking-widest">{path}</p>
 				</div>
 			</div>
