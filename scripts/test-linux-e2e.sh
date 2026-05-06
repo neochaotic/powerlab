@@ -162,7 +162,20 @@ run_in_container "
   case \"\$RESP\" in *success*200*) echo OK ;; *) echo BAD: \$RESP; exit 1 ;; esac
   [[ \"\$(cat /tmp/smoke-edit.txt)\" == updated ]] || { echo file-not-updated; exit 1; }
 " >/dev/null || fail "scenario A: editor PUT /v1/file did not update the file"
-green "  → editor write OK"
+green "  → editor write (existing file) OK"
+
+# Editor must also CREATE a file that didn't exist — that's the
+# "save as new" flow and the original handler refused with
+# FILE_ALREADY_EXISTS (sic, the message was inverted).
+run_in_container "
+  rm -f /tmp/smoke-new.txt
+  RESP=\$(curl -sS -X PUT http://localhost:8765/v1/file -H 'Authorization: $TOKEN' \
+    -H 'Content-Type: application/json' \
+    -d '{\"file_path\":\"/tmp/smoke-new.txt\",\"file_content\":\"fresh\"}')
+  case \"\$RESP\" in *success*200*) ;; *) echo BAD: \$RESP; exit 1 ;; esac
+  [[ \"\$(cat /tmp/smoke-new.txt)\" == fresh ]] || { echo file-not-created; exit 1; }
+" >/dev/null || fail "scenario A: editor PUT /v1/file did not create new file"
+green "  → editor write (new file) OK"
 
 run_in_container "
   RESP=\$(curl -sS http://localhost:8765/v2/app_management/compose -H 'Authorization: $TOKEN')

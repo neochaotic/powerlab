@@ -97,7 +97,15 @@ func InitV2Router() http.Handler {
 		},
 		TokenLookupFuncs: []echo_middleware.ValuesExtractor{
 			func(c echo.Context) ([]string, error) {
-				return []string{c.Request().Header.Get(echo.HeaderAuthorization)}, nil
+				if h := c.Request().Header.Get(echo.HeaderAuthorization); h != "" {
+					return []string{h}, nil
+				}
+				// Fall back to ?token= query param. Browser EventSource
+				// (used by the custom-app deploy log stream and the
+				// SSE task-log viewer) cannot send custom headers, so
+				// the only way to authenticate those connections is
+				// the URL. Mirrors what the gateway already does.
+				return []string{c.QueryParam("token")}, nil
 			},
 		},
 	}))

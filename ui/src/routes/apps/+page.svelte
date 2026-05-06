@@ -5,13 +5,14 @@
 	import { useAppStore } from '$lib/stores/apps.svelte';
 	import type { ComposeAppStoreInfo } from '$lib/api/apps';
 	import { getStoreAppYaml, installComposeApp, uninstallComposeApp, getComposeAppDiskUsage, updateComposeApp, checkPorts } from '$lib/api/apps';
+	import { getAuthToken } from '$lib/api/client';
 	import ContainerLogs from '$lib/components/apps/ContainerLogs.svelte';
 	import AppMetrics from '$lib/components/apps/AppMetrics.svelte';
 	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import {
 		ArrowLeft, Search, X, Package, Pencil, ArrowUpCircle,
-		Play, Square, Activity, ScrollText, Trash2, ChevronRight, RefreshCw, Plus, CheckCircle2, Loader2, AlertCircle, ArrowRight, Boxes
+		Play, Square, Activity, ScrollText, Trash2, ChevronRight, RefreshCw, Plus, CheckCircle2, Loader2, AlertCircle, ArrowRight, Boxes, Minimize2
 	} from 'lucide-svelte';
 	import { cn } from '$lib/utils';
 	import { fade, scale } from 'svelte/transition';
@@ -56,6 +57,11 @@
 	let activeSSE = $state<EventSource | null>(null);
 	let sseTimeoutId: ReturnType<typeof setTimeout> | null = null;
 	let installPortNote = $state<string | null>(null); // "Running on port 8081 (was 8080)"
+	// Minimize the full-screen overlay so the user can browse the
+	// Launchpad / Store while the install runs in the background. The
+	// SSE stream and the install state machine keep going; only the UI
+	// shrinks to a corner pill.
+	let installModalMinimized = $state(false);
 	let compatibilityWarnings = $state<string[]>([]);
 	let isCheckingCompatibility = $state(false);
 	let hasCriticalWarning = $derived(compatibilityWarnings.some(w => w.toLowerCase().includes('critical') || w.toLowerCase().includes('privileged')));
@@ -401,6 +407,7 @@
 		pendingInstallApp = null;
 		installingApp = app;
 		installPhase = 'installing';
+		installModalMinimized = false;
 		installError = null;
 		installedProjectId = null;
 		installLogs = '';
@@ -439,7 +446,10 @@
 	}
 
 	function streamInstallLogs(projectId: string) {
-		const sse = new EventSource(`/v2/app_management/compose/task/${projectId}/logs`);
+		// EventSource can't send Authorization header — pass JWT in URL.
+		const token = getAuthToken();
+		const tokenQ = token ? `?token=${encodeURIComponent(token)}` : '';
+		const sse = new EventSource(`/v2/app_management/compose/task/${projectId}/logs${tokenQ}`);
 		activeSSE = sse;
 
 		sse.onmessage = (e) => {
@@ -480,6 +490,7 @@
 		
 		installingApp = app.store_info;
 		installPhase = 'installing';
+		installModalMinimized = false;
 		installError = null;
 		installedProjectId = app.id;
 		installLogs = '';
@@ -538,6 +549,7 @@
 		activeSSE = null;
 		clearSSETimeout();
 		installPhase = 'idle';
+		installModalMinimized = false;
 		installingApp = null;
 		installedProjectId = null;
 		installLogs = '';
@@ -1146,9 +1158,59 @@
 	</div>
 {/if}
 
-{#if installPhase !== 'idle' && installPhase !== 'confirm'}
+{#if installPhase !== 'idle' && installPhase !== 'confirm' && installModalMinimized}
+	<!-- Minimized: small floating pill bottom-right. Click to expand. -->
+	<button
+		class="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl border border-white/10 bg-zinc-900/95 px-4 py-3 text-left shadow-2xl backdrop-blur-xl hover:border-white/20 transition-all"
+		onclick={() => installModalMinimized = false}
+		aria-label="Expand install progress"
+		transition:scale={{ duration: 200, start: 0.9 }}
+	>
+		{#if installingApp?.icon}
+			<img src={installingApp.icon} alt="" class="h-9 w-9 rounded-lg" />
+		{:else}
+			<div class="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-800">
+				<Package class="h-5 w-5 text-zinc-500" />
+			</div>
+		{/if}
+		<div class="min-w-0">
+			<div class="flex items-center gap-2">
+				{#if installPhase === 'installing' || installPhase === 'starting'}
+					<Loader2 class="h-3 w-3 animate-spin text-emerald-500" />
+					<span class="text-[11px] font-bold text-white truncate max-w-[160px]">
+						Installing {getTitle(installingApp?.title ?? {})}…
+					</span>
+				{:else if installPhase === 'success'}
+					<CheckCircle2 class="h-3 w-3 text-emerald-500" />
+					<span class="text-[11px] font-bold text-emerald-400">Installed</span>
+				{:else if installPhase === 'error'}
+					<AlertCircle class="h-3 w-3 text-red-500" />
+					<span class="text-[11px] font-bold text-red-400">Failed</span>
+				{:else}
+					<span class="text-[11px] font-bold text-amber-400">Taking longer than expected</span>
+				{/if}
+			</div>
+			<div class="text-[10px] text-zinc-500">Click to expand</div>
+		</div>
+	</button>
+{/if}
+
+{#if installPhase !== 'idle' && installPhase !== 'confirm' && !installModalMinimized}
 	<!-- Install progress overlay -->
 	<div class="fixed inset-0 z-50 flex flex-col bg-zinc-950/95 backdrop-blur-xl">
+		<!-- Minimize button: top-right. Only meaningful while the install
+			 is still in flight; success/error/timeout each have their own
+			 dedicated action and shouldn't be hidden behind a minimize. -->
+		{#if installPhase === 'installing' || installPhase === 'starting'}
+			<button
+				class="absolute right-6 top-6 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-zinc-400 transition-colors hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
+				onclick={() => installModalMinimized = true}
+				aria-label="Minimize install progress"
+				title="Minimize (install continues in background)"
+			>
+				<Minimize2 class="h-4 w-4" />
+			</button>
+		{/if}
 		<div class="flex flex-1 flex-col items-center justify-center gap-5 px-6 text-center">
 
 			<!-- App icon with state ring/badge -->
@@ -1235,11 +1297,11 @@
 			<div class="flex w-full max-w-xs shrink-0 gap-2">
 				{#if installPhase === 'success'}
 					<div class="mt-8 flex gap-3">
-						<Button class="flex-1 rounded-xl bg-emerald-500 text-black font-bold hover:bg-emerald-400" onclick={() => { installPhase = 'idle'; }}>
-							View Launchpad
+						<Button class="flex-1 rounded-xl bg-emerald-500 text-black font-bold hover:bg-emerald-400" onclick={() => { installPhase = 'idle'; goto('/'); }}>
+							Open Launchpad
 						</Button>
-						<Button variant="outline" class="flex-1 rounded-xl border-white/10" onclick={() => { installPhase = 'idle'; goto('/'); }}>
-							Go Home
+						<Button variant="outline" class="flex-1 rounded-xl border-white/10" onclick={() => { installPhase = 'idle'; }}>
+							Stay in Store
 						</Button>
 					</div>
 				{:else if installPhase === 'error'}

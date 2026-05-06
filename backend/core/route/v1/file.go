@@ -740,25 +740,41 @@ func DeleteFile(ctx echo.Context) error {
 // @Router /file/update [put]
 func PutFileContent(ctx echo.Context) error {
 	fi := model.FileUpdate{}
-	ctx.Bind(&fi)
+	if err := ctx.Bind(&fi); err != nil {
+		return ctx.JSON(http.StatusBadRequest, model.Result{Success: common_err.INVALID_PARAMS, Message: err.Error()})
+	}
+	if fi.FilePath == "" {
+		return ctx.JSON(http.StatusBadRequest, model.Result{Success: common_err.INVALID_PARAMS, Message: "file_path is required"})
+	}
 
-	// path := ctx.FormValue("path")
-	// content := ctx.FormValue("content")
-	if !file.Exists(fi.FilePath) {
-		return ctx.JSON(common_err.SERVICE_ERROR, model.Result{Success: common_err.FILE_ALREADY_EXISTS, Message: common_err.GetMsg(common_err.FILE_ALREADY_EXISTS)})
+	// PUT semantics: write the file. Create it if it doesn't exist (the
+	// editor's "save new file" flow), update it if it does. Earlier
+	// versions returned FILE_ALREADY_EXISTS (sic — the message is
+	// inverted) when the file did NOT exist, which made the editor
+	// modal refuse to save anything to a fresh path. Match the
+	// frontend's expectation: this endpoint is unconditionally
+	// "write the bytes at this path".
+	//
+	// We refuse to silently mkdir the parent directory — that hides
+	// typos from the user. If the parent doesn't exist, surface a
+	// 404-shaped error so the UI can prompt to create the directory
+	// first.
+	parent := filepath.Dir(fi.FilePath)
+	if !file.Exists(parent) {
+		return ctx.JSON(http.StatusNotFound, model.Result{
+			Success: common_err.FILE_DOES_NOT_EXIST,
+			Message: fmt.Sprintf("parent directory does not exist: %s", parent),
+		})
 	}
-	// err := os.Remove(path)
-	f, err := os.Stat(fi.FilePath)
-	if err != nil {
-		return ctx.JSON(common_err.SERVICE_ERROR, model.Result{Success: common_err.FILE_ALREADY_EXISTS, Message: common_err.GetMsg(common_err.FILE_ALREADY_EXISTS)})
+
+	// Preserve the existing mode if the file is already there;
+	// otherwise default to 0644 (rw for owner, r for everyone).
+	mode := os.FileMode(0o644)
+	if existing, err := os.Stat(fi.FilePath); err == nil {
+		mode = existing.Mode().Perm()
 	}
-	fm := f.Mode()
-	if err != nil {
-		return ctx.JSON(common_err.SERVICE_ERROR, model.Result{Success: common_err.FILE_DELETE_ERROR, Message: common_err.GetMsg(common_err.FILE_DELETE_ERROR), Data: err})
-	}
-	os.OpenFile(fi.FilePath, os.O_CREATE, fm)
-	err = file.WriteToFullPath([]byte(fi.FileContent), fi.FilePath, fm)
-	if err != nil {
+
+	if err := file.WriteToFullPath([]byte(fi.FileContent), fi.FilePath, mode); err != nil {
 		return ctx.JSON(common_err.SERVICE_ERROR, model.Result{Success: common_err.SERVICE_ERROR, Message: common_err.GetMsg(common_err.SERVICE_ERROR), Data: err.Error()})
 	}
 	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS)})
