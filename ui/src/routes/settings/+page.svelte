@@ -14,6 +14,7 @@
 	import { getAppManagementConfig, type AppManagementConfig } from '$lib/api/apps';
 	import { getGatewayPort, setGatewayPort } from '$lib/api/gateway';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { updaterStore } from '$lib/stores/updater.svelte';
 
 	const store = useSettingsStore();
 
@@ -28,6 +29,11 @@
 		store.fetchNetworkInterfaces();
 		fetchAppConfig();
 		fetchCurrentPort();
+		// Updater polls once on mount and then hourly. Settings is the
+		// most frequent landing page for "is there a new version?" so
+		// it's the right place to start the cycle. Sidebar pill (later)
+		// can read from the same store without re-polling.
+		updaterStore.startPolling();
 	});
 
 	let appConfig = $state<AppManagementConfig | null>(null);
@@ -500,10 +506,95 @@
 							</p>
 
 							<div class="mt-6 flex flex-wrap items-center gap-2">
-								<span class="rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 font-mono text-[11px] text-zinc-300">v0.1.0-dev</span>
+								<span class="rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 font-mono text-[11px] text-zinc-300">v{__APP_VERSION__}</span>
 								<span class="rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[11px] text-zinc-400">AGPL-3.0</span>
 							</div>
 						</div>
+					</div>
+
+					<!-- Updates card (issue #21) -->
+					<div class="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+						<div class="mb-4 flex items-start justify-between gap-4">
+							<div class="flex items-center gap-3">
+								<div class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/[0.12]">
+									<RefreshCw class={cn('h-4 w-4 text-emerald-400', updaterStore.loading && 'animate-spin')} strokeWidth={2} />
+								</div>
+								<div>
+									<h3 class="text-sm font-semibold text-white">Updates</h3>
+									<p class="text-[11px] text-zinc-500">Checks the PowerLab GitHub release manifest hourly.</p>
+								</div>
+							</div>
+							<button
+								class="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-[11px] font-medium text-zinc-300 transition-colors hover:border-white/10 hover:bg-white/[0.04] hover:text-white disabled:opacity-50"
+								onclick={() => updaterStore.refresh()}
+								disabled={updaterStore.loading}
+							>
+								{updaterStore.loading ? 'Checking…' : 'Check now'}
+							</button>
+						</div>
+
+						{#if updaterStore.error}
+							<p class="text-[12px] text-amber-400">
+								Could not reach the release manifest: {updaterStore.error}
+							</p>
+						{:else if updaterStore.check?.decision === 'up_to_date'}
+							<p class="text-[12px] text-zinc-400">
+								<span class="font-mono text-emerald-400">v{updaterStore.check.current}</span> is the latest release.
+							</p>
+						{:else if updaterStore.check?.decision === 'update_ok'}
+							<div class="space-y-3">
+								<p class="text-[13px] leading-relaxed text-zinc-300">
+									<span class="font-mono text-emerald-400">v{updaterStore.check.available}</span> is available.
+									{#if updaterStore.check.release_summary}
+										<span class="block mt-1 text-[12px] text-zinc-500">{updaterStore.check.release_summary}</span>
+									{/if}
+								</p>
+								{#if updaterStore.check.changelog_url}
+									<a
+										href={updaterStore.check.changelog_url}
+										target="_blank"
+										rel="noopener"
+										class="inline-flex items-center gap-1 text-[11px] text-emerald-400 hover:text-emerald-300"
+									>
+										View changelog
+										<ExternalLink class="h-3 w-3" />
+									</a>
+								{/if}
+								<div class="flex flex-wrap items-center gap-2 pt-1">
+									<button
+										class="rounded-lg bg-emerald-500 px-3 py-1.5 text-[11px] font-bold text-zinc-950 transition-colors hover:bg-emerald-400 disabled:opacity-50"
+										onclick={() => updaterStore.install()}
+										disabled={updaterStore.installing}
+									>
+										{updaterStore.installing ? 'Upgrading…' : `Upgrade to v${updaterStore.check.available}`}
+									</button>
+								</div>
+								{#if updaterStore.installError}
+									<p class="text-[11px] text-amber-400">
+										{updaterStore.installError}
+									</p>
+								{/if}
+							</div>
+						{:else if updaterStore.check?.decision === 'too_old'}
+							<p class="text-[12px] text-amber-400">
+								Cannot upgrade directly from
+								<span class="font-mono">v{updaterStore.check.current}</span>
+								to
+								<span class="font-mono">v{updaterStore.check.available}</span>.
+								Upgrade to an intermediate release first (manifest requires
+								<span class="font-mono">v{updaterStore.check.manifest?.min_upgrade_from}+</span>).
+							</p>
+						{:else if updaterStore.check?.decision === 'skipped'}
+							<p class="text-[12px] text-zinc-500">
+								The maintainer pulled <span class="font-mono">v{updaterStore.check.available}</span> after publishing it. Wait for the next release.
+							</p>
+						{:else if updaterStore.check?.decision === 'no_arch'}
+							<p class="text-[12px] text-amber-400">
+								<span class="font-mono">v{updaterStore.check.available}</span> does not ship a build for this architecture. The maintainer will publish a patch.
+							</p>
+						{:else}
+							<p class="text-[12px] text-zinc-500">Click "Check now" to fetch the latest manifest.</p>
+						{/if}
 					</div>
 
 					<!-- Highlights -->

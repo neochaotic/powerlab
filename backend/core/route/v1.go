@@ -104,6 +104,18 @@ func InitV1Router() http.Handler {
 			v1SysGroup.GET("/network/interfaces", v1.GetNetworkInterfaces)
 			v1SysGroup.GET("/users", v1.GetSystemUsers)
 		}
+
+		// PowerLab-specific update endpoints (issue #21). Distinct
+		// from /v1/sys/update which is the legacy CasaOS upstream
+		// version probe — we want our own namespace so the legacy
+		// and PowerLab paths can coexist.
+		v1PowerLabUpdateGroup := v1Group.Group("/powerlab-update")
+		v1PowerLabUpdateGroup.Use()
+		{
+			v1PowerLabUpdateGroup.GET("", v1.GetPowerLabUpdate)
+			v1PowerLabUpdateGroup.GET("/preflight", v1.GetPowerLabUpdatePreflight)
+			v1PowerLabUpdateGroup.POST("/install", v1.PostPowerLabUpdateInstall)
+		}
 		v1PortGroup := v1Group.Group("/port")
 		v1PortGroup.Use()
 		{

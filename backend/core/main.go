@@ -145,6 +145,11 @@ func main() {
 		"/v1/other",
 		"/v1/zt",
 		"/v1/test",
+		// PowerLab-specific endpoints (issue #21 — in-UI updater).
+		// Registered as a separate gateway prefix so it doesn't
+		// collide with the legacy /v1/sys/update path that still
+		// targets the upstream CasaOS version probe.
+		"/v1/powerlab-update",
 		route.V2APIPath,
 		route.V2DocPath,
 		route.V3FilePath,
