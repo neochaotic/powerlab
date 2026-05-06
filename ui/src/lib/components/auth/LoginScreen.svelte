@@ -167,7 +167,7 @@
 	<!-- Footer -->
 	<div class="absolute bottom-8 left-1/2 -translate-x-1/2 text-center" in:fade={{ delay: 800 }}>
 		<p class="text-[9px] font-medium uppercase tracking-[0.4em] text-zinc-700">
-			v0.1.0 · neochaotic
+			v0.1.6 · <a href="https://github.com/neochaotic" target="_blank" rel="noopener" class="hover:text-emerald-500 transition-colors">neochaotic</a>
 		</p>
 	</div>
 </div>

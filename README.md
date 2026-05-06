@@ -17,14 +17,21 @@ Your apps. Your files. Your AI. Your home server, finally beautiful.
 
 ### ⚡  Get started in 60 seconds
 
+**Linux** (Pi 4/5, Intel mini-PC, any amd64/arm64 server) — production install:
+
 ```bash
-curl -L https://github.com/neochaotic/powerlab/releases/latest/download/powerlab-linux-amd64.tar.gz | tar xz
-cd powerlab-*-linux-amd64 && sudo ./install.sh
+curl -fsSL https://raw.githubusercontent.com/neochaotic/powerlab/main/install.sh | sudo bash
 ```
 
-**Then open `http://powerlab.local` from any device on the network.**
+**macOS** (Apple Silicon) — dev / demo mode:
 
-<sub>arm64 · source build · dev mode → see <a href="#install">Install</a> & <a href="#develop">Develop</a></sub>
+```bash
+curl -fsSL https://raw.githubusercontent.com/neochaotic/powerlab/main/install-mac.sh | bash
+```
+
+**Then open the URL the installer prints from any device on the network.**
+
+<sub>Idempotent — re-run any time to upgrade. Source build → see <a href="#install">Install</a> & <a href="#develop">Develop</a> below.</sub>
 
 <br>
 
@@ -99,7 +106,6 @@ Built on a battle-tested Go core. Wrapped in a SvelteKit interface tuned to the 
 </tr>
 </table>
 
-<sub>Capture your own: <code>PWLAB_JWT='your_token' node scripts/capture-screenshots.mjs</code></sub>
 
 <br>
 
@@ -166,19 +172,76 @@ What makes the AI experience effortless:
 ## Install
 
 <details>
-<summary><b>From a release tarball (Linux amd64 / arm64)</b></summary>
+<summary><b>One-liner installer (recommended)</b></summary>
 
 <br>
 
-Replace `ARCH` with `amd64` or `arm64`:
-
 ```bash
-curl -L https://github.com/neochaotic/powerlab/releases/latest/download/powerlab-linux-ARCH.tar.gz | tar xz
-cd powerlab-*-linux-ARCH
-sudo ./install.sh
+curl -fsSL https://raw.githubusercontent.com/neochaotic/powerlab/main/install.sh | sudo bash
 ```
 
-The installer creates `/etc/powerlab`, `/var/lib/powerlab`, `/var/log/powerlab`, `/var/run/powerlab`, and `/DATA/AppData`, then registers and starts six systemd services. Browse to **http://powerlab.local** from any device on the LAN.
+Auto-detects amd64 / arm64, downloads the matching tarball, runs the bundled installer, cleans up. Re-run any time to upgrade.
+
+Pin a specific version:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/neochaotic/powerlab/main/install.sh | sudo bash -s -- --version v0.1.5
+```
+
+</details>
+
+<details>
+<summary><b>Inspect-first, then run (no <code>curl | bash</code>)</b></summary>
+
+<br>
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/neochaotic/powerlab/main/install.sh -o install.sh
+less install.sh                        # read what it does
+sudo bash install.sh                   # then run
+```
+
+</details>
+
+<details>
+<summary><b>Manual tarball install</b></summary>
+
+<br>
+
+If you would rather download and extract by hand. Replace `ARCH` with `amd64` or `arm64`:
+
+```bash
+curl -fL -o /tmp/powerlab.tar.gz \
+  https://github.com/neochaotic/powerlab/releases/latest/download/powerlab-linux-ARCH.tar.gz
+mkdir -p /tmp/powerlab-install
+tar -xzf /tmp/powerlab.tar.gz --strip-components=1 -C /tmp/powerlab-install
+sudo /tmp/powerlab-install/install.sh
+```
+
+The installer creates `/etc/powerlab`, `/var/lib/powerlab`, `/var/log/powerlab`, `/var/run/powerlab`, and `/DATA/AppData`, then registers and starts six systemd services. The end-of-install banner prints the URL to open in your browser.
+
+</details>
+
+<details>
+<summary><b>macOS dev mode (Apple Silicon)</b></summary>
+
+<br>
+
+PowerLab is a Linux-first product — production deployments target Pi / mini-PC / arm64 boxes. On macOS we ship a **dev-mode bootstrap** that clones the repo into `~/Documents/powerlab` and runs the same SvelteKit + Go stack locally:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/neochaotic/powerlab/main/install-mac.sh | bash
+```
+
+Use this for development, demos, or kicking the tires. Caveats:
+
+- The Files page is disabled (the `local-storage` service depends on Linux fuse + xattr).
+- Nothing auto-starts at boot — you keep the terminal open while `dev.sh` runs.
+- Auth uses `dscl . -authonly` against your Mac's Directory Service, so you sign in with your computer username + password directly (no Setup Wizard).
+
+Requires Homebrew, `git`, `go`, `node`, and Docker Desktop.
+
+For real production, install on Linux instead.
 
 </details>
 
@@ -265,30 +328,7 @@ CI runs all of the above on every push to `main` (`.github/workflows/ci.yml`).
  telemetry          fan-out      Compose
 ```
 
-Six independent Go services. Each one has its own `go.mod` and codegen pipeline so they can be developed and tested in isolation. The gateway routes `/v1/*` and `/v2/*` to the right service based on a `routes.json` it builds at boot.
-
-For the full architecture and engineering doctrine, see [`CLAUDE.md`](./CLAUDE.md).
-
-<br>
-
----
-
-## App protocol — `x-powerlab` ↔ `x-casaos`
-
-PowerLab's canonical Compose extension is **`x-powerlab:`**. Apps inherited from the upstream CasaOS catalogue use **`x-casaos:`**. A small translation layer (backend: `service.LookupAppExtension`, frontend: `lib/utils/compose-extension.ts`) reads either transparently and writes the canonical key on new manifests. Existing apps are never silently rebranded — see [Section 23 of CLAUDE.md](./CLAUDE.md#23-compose-extension-translation-layer-x-powerlab--x-casaos) for the full spec.
-
-```yaml
-services:
-  web:
-    image: nginx:latest
-    ports: ["8080:80"]
-    volumes:
-      - /DATA/AppData/web:/usr/share/nginx
-    x-powerlab:                # canonical
-      title: { en_us: "My Web" }
-      web: "8080"              # the "Open UI" port
-      main: web                # primary service in this project
-```
+Six independent Go services, each with its own `go.mod` and codegen pipeline so they evolve independently. The gateway routes `/v1/*` and `/v2/*` to the right service based on a `routes.json` it rebuilds at every boot.
 
 <br>
 
@@ -296,35 +336,21 @@ services:
 
 ## Compatibility
 
-| Platform | Status | Auth path |
+| Platform | Status | Sign-in |
 |---|---|---|
-| **Ubuntu** 20.04 / 22.04 / 24.04 LTS · `amd64` `arm64` | ✅ Supported | SetupWizard (bcrypt) |
-| **Debian** 11 / 12 · `amd64` `arm64`                  | ✅ Supported | SetupWizard (bcrypt) |
-| **Raspberry Pi OS** Bookworm / Bullseye · `arm64`     | ✅ Supported | SetupWizard (bcrypt) |
-| **Fedora** 38+ · **Arch** · **openSUSE** · `amd64`     | ⚠️ Untested but expected to work | SetupWizard (bcrypt) |
-| **Alpine** · `amd64` `arm64`                           | ❌ Out of scope (musl + OpenRC) | — |
-| **macOS** Sonoma+ · `arm64`                            | ✅ Dev mode only (`./dev.sh`) | `dscl . -authonly` |
-| **Windows**                                           | ❌ Not planned | — |
+| **Ubuntu** 20.04 / 22.04 / 24.04 LTS · `amd64` `arm64` | ✅ Supported | Setup Wizard |
+| **Debian** 11 / 12 · `amd64` `arm64`                   | ✅ Supported | Setup Wizard |
+| **Raspberry Pi OS** Bookworm / Bullseye · `arm64`      | ✅ Supported | Setup Wizard |
+| **Fedora** 38+ · **Arch** · **openSUSE** · `amd64`      | ⚠️ Untested, expected to work | Setup Wizard |
+| **Alpine** · `amd64` `arm64`                            | ❌ Out of scope (musl + OpenRC) | — |
+| **macOS** Sonoma+ · `arm64`                             | ✅ Dev mode (`./dev.sh`) | OS credentials |
+| **Windows**                                            | ❌ Not planned | — |
 
-The first time you open PowerLab on a fresh install, a one-shot **Setup Wizard** asks you to pick a username and password — that becomes your sign-in credential. macOS dev mode authenticates against the local Directory Service directly, no Setup Wizard needed.
+The first time you open PowerLab, a one-shot **Setup Wizard** asks you to pick a username and password — that becomes your sign-in. On macOS dev, you sign in with your computer credentials directly via Directory Services. Native Linux PAM (so the Setup Wizard becomes optional and you can use your `useradd` password) is on the v0.2 roadmap.
 
-Native Linux PAM (so you can sign in with your `useradd` password instead of registering a separate one) is on the v0.2 roadmap. See **[SUPPORT.md](./SUPPORT.md)** for the full compatibility matrix, hardware tier guidance, and the rationale for why we are deferring PAM rather than shipping a half-working shell-out.
+JWTs are signed with the gateway's ECDSA key, rotated on first boot. Tokens last about three hours; the session cookie persists across reloads.
 
-<br>
-
----
-
-## Authentication
-
-Sign in with your PowerLab credentials. The first install run shows a Setup Wizard that takes a username + password (one-shot, then it's gone). On macOS dev, you can also use your operating-system credentials directly via Directory Services — no separate registration.
-
-| Platform | Mechanism | Status |
-|---|---|---|
-| macOS   | `dscl . -authonly` against the local Directory Service | ✅ Working |
-| Linux   | PAM via `libpam` (CGO)                                 | 🛠 Roadmap — Setup Wizard bcrypt password active in v0.1 |
-| Windows | LSA / SSPI                                             | ❌ Not planned |
-
-JWTs are signed with the gateway's ECDSA key, rotated on first boot. Tokens last roughly three hours; the session cookie persists across page reloads.
+See **[SUPPORT.md](./SUPPORT.md)** for the deep matrix — hardware tiers, distro testing methodology, the rationale for deferring PAM, and how to report new compatibility results.
 
 <br>
 

@@ -200,6 +200,13 @@ echo "[powerlab-install] Installing static UI to /usr/share/powerlab/www..."
 rm -rf /usr/share/powerlab/www
 cp -R "$HERE/www" /usr/share/powerlab/www
 
+# Snapshot whether gateway.ini ALREADY existed before this install — used
+# to decide whether the user has explicit config we must preserve, or if
+# this is a fresh install where we may probe for a free port. Captured
+# *before* the sample-copy step below.
+GATEWAY_INI_PREEXISTED=no
+[[ -f /etc/powerlab/gateway.ini ]] && GATEWAY_INI_PREEXISTED=yes
+
 echo "[powerlab-install] Installing sample configs to /etc/powerlab/ (only if not present)..."
 for sample in "$HERE/conf/"*.sample; do
   base="$(basename "${sample%.sample}")"
@@ -208,11 +215,27 @@ for sample in "$HERE/conf/"*.sample; do
   fi
 done
 
-# ── Pick a free port for the gateway and write it into gateway.ini ──────
-# Preferences in order: keep whatever the user already configured (if it's
-# free), then 80 (the conventional choice), then 8765 (IANA unassigned,
-# not used by any common self-hosted tool), then 8766..8775 as a fallback.
-echo "[powerlab-install] Probing for an available HTTP port..."
+# Stop any running PowerLab services BEFORE probing for free ports.
+# Without this step the port probe sees our own previous gateway holding
+# the configured port and incorrectly classifies it as "busy", causing
+# upgrades to silently move the gateway to a different port. Stopping
+# first guarantees the probe sees the real state of the host.
+SERVICES=(gateway message-bus user-service core app-management local-storage)
+for svc in "${SERVICES[@]}"; do
+  systemctl stop "powerlab-$svc.service" 2>/dev/null || true
+done
+
+# ── Pick the gateway port and write it into gateway.ini ─────────────────
+# Decision matrix:
+#   · Pre-existing gateway.ini → trust it. The user (or a previous
+#     install) already chose a port; never silently overwrite their
+#     decision on upgrade. The "stop services first" step above means
+#     we are not fooled by an outdated probe result.
+#   · Fresh install → probe in this order: 8765 (IANA-unassigned, the
+#     PowerLab default — and crucially a non-standard port, which
+#     bypasses Chrome's HTTPS-First Mode that fires on :80), then
+#     8766..8775, then 80 as last-resort fallback.
+echo "[powerlab-install] Selecting gateway port..."
 port_in_use() {
   ss -tlnH 2>/dev/null | awk '{print $4}' | sed -E 's|.*:([0-9]+)$|\1|' | grep -qx "$1"
 }
@@ -220,28 +243,24 @@ port_in_use() {
 CURRENT_PORT="$(awk -F'=' '/^[[:space:]]*Port[[:space:]]*=/ {gsub(/[[:space:]]/,"",$2); print $2; exit}' /etc/powerlab/gateway.ini 2>/dev/null || true)"
 CHOSEN_PORT=""
 
-# 1. honour an existing config if its port is free
-if [[ -n "$CURRENT_PORT" ]] && ! port_in_use "$CURRENT_PORT"; then
+if [[ "$GATEWAY_INI_PREEXISTED" == "yes" ]] && [[ "$CURRENT_PORT" =~ ^[0-9]+$ ]]; then
+  # Existing install: respect the configured port unconditionally.
   CHOSEN_PORT="$CURRENT_PORT"
-fi
-
-# 2. prefer 80, then 8765, then linear scan
-if [[ -z "$CHOSEN_PORT" ]]; then
-  for p in 80 8765 8766 8767 8768 8769 8770 8771 8772 8773 8774 8775; do
+  echo "[powerlab-install]   → keeping configured port $CHOSEN_PORT"
+else
+  # Fresh install: probe.
+  for p in 8765 8766 8767 8768 8769 8770 8771 8772 8773 8774 8775 80; do
     if ! port_in_use "$p"; then CHOSEN_PORT="$p"; break; fi
   done
+  if [[ -z "$CHOSEN_PORT" ]]; then
+    echo "ERROR: could not find a free port for the PowerLab gateway." >&2
+    exit 1
+  fi
+  echo "[powerlab-install]   → fresh install, using port $CHOSEN_PORT"
+  # Rewrite the Port = line in the freshly-copied gateway.ini.
+  sed -i.bak -E "s/^[[:space:]]*Port[[:space:]]*=.*/Port = $CHOSEN_PORT/" /etc/powerlab/gateway.ini
+  rm -f /etc/powerlab/gateway.ini.bak
 fi
-
-if [[ -z "$CHOSEN_PORT" ]]; then
-  echo "ERROR: could not find a free port for the PowerLab gateway." >&2
-  exit 1
-fi
-
-# Rewrite the Port = line in gateway.ini so the chosen port is what the
-# gateway actually binds to.
-sed -i.bak -E "s/^[[:space:]]*Port[[:space:]]*=.*/Port = $CHOSEN_PORT/" /etc/powerlab/gateway.ini
-rm -f /etc/powerlab/gateway.ini.bak
-echo "[powerlab-install]   → using port $CHOSEN_PORT"
 
 echo "[powerlab-install] Installing systemd units..."
 install -m 0644 "$HERE/systemd/"*.service /etc/systemd/system/
