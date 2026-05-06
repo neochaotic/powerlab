@@ -150,6 +150,10 @@ func main() {
 		// collide with the legacy /v1/sys/update path that still
 		// targets the upstream CasaOS version probe.
 		"/v1/powerlab-update",
+		// PowerLab version handshake. Unauthenticated probe so the UI
+		// can warn a user staring at a stale login screen that the
+		// JS bundle in their browser is older than the running backend.
+		"/v1/powerlab",
 		route.V2APIPath,
 		route.V2DocPath,
 		route.V3FilePath,

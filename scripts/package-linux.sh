@@ -70,13 +70,13 @@ for svc in "${SERVICES[@]}"; do
   if needs_cgo "$svc"; then
     GOOS=linux GOARCH="$ARCH" CGO_ENABLED=1 CC="$CC_FOR_CGO" go build \
       -trimpath \
-      -ldflags="-s -w -X main.version=$VERSION" \
+      -ldflags="-s -w -X main.version=$VERSION -X github.com/IceWhaleTech/CasaOS/common.POWERLAB_VERSION=$VERSION" \
       -o "$STAGE/bin/powerlab-$svc" \
       .
   else
     GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
       -trimpath \
-      -ldflags="-s -w -X main.version=$VERSION" \
+      -ldflags="-s -w -X main.version=$VERSION -X github.com/IceWhaleTech/CasaOS/common.POWERLAB_VERSION=$VERSION" \
       -o "$STAGE/bin/powerlab-$svc" \
       .
   fi

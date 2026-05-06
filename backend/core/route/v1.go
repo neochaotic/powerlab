@@ -38,6 +38,12 @@ func InitV1Router() http.Handler {
 	e.GET("/ping", func(ctx echo.Context) error {
 		return ctx.String(200, "pong")
 	})
+	// PowerLab version handshake. UNAUTHENTICATED on purpose — the UI
+	// calls this on app boot, before the login screen is even shown,
+	// so it can warn a user staring at a stale login screen that the
+	// JS bundle in their browser is older than what the backend just
+	// got upgraded to.
+	e.GET("/v1/powerlab/version", v1.GetPowerLabVersion)
 	e.GET("/v1/recover/:type", v1.GetRecoverStorage)
 	v1Group := e.Group("/v1")
 	//	e.Any("/v1/test", v1.CheckNetwork)

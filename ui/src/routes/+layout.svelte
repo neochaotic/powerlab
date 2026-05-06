@@ -6,10 +6,11 @@
 	import ToastContainer from '$lib/components/ui/Toast.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { ui } from '$lib/stores/ui.svelte';
+	import { versionHandshake } from '$lib/stores/versionHandshake.svelte';
 	import { onMount } from 'svelte';
 	import { fade, slide, scale } from 'svelte/transition';
 	import { Button } from '$lib/components/ui/button';
-	import { Download, X } from 'lucide-svelte';
+	import { Download, X, RefreshCw, AlertTriangle } from 'lucide-svelte';
 	import { page } from '$app/stores';
 
 	let { children } = $props();
@@ -24,6 +25,12 @@
 		// On macOS the first dscl-validated login also returns initialized=true.
 		auth.checkStatus();
 		auth.checkSession();
+
+		// Version handshake — fail fast if the JS bundle in this browser
+		// is older than the backend that just answered. Without this,
+		// stale UIs silently send the wrong shape of request and the
+		// user just sees features "broken" with no diagnostic.
+		versionHandshake.check();
 
 		// Register Service Worker for PWA
 		if ('serviceWorker' in navigator) {
@@ -131,6 +138,35 @@
 			</div>
 		{/if}
 	</div>
+
+	{#if versionHandshake.mismatch}
+		<!-- Non-dismissible banner. The JS bundle in this browser is
+			 older than the backend; the user MUST reload to get a UI
+			 that speaks the current API. -->
+		<div
+			class="fixed top-0 left-0 right-0 z-[200] border-b border-amber-500/30 bg-amber-500/95 px-6 py-3 text-zinc-950 shadow-lg backdrop-blur-xl"
+			transition:slide={{ axis: 'y' }}
+		>
+			<div class="mx-auto flex max-w-4xl items-center justify-between gap-4">
+				<div class="flex items-center gap-3">
+					<AlertTriangle class="h-5 w-5 shrink-0" />
+					<div class="text-sm font-semibold leading-tight">
+						<div>Update available — please reload.</div>
+						<div class="text-[11px] font-medium opacity-80">
+							UI in this browser: v{versionHandshake.uiVersion} · Server: v{versionHandshake.backendVersion}
+						</div>
+					</div>
+				</div>
+				<button
+					class="flex items-center gap-2 rounded-xl bg-zinc-950 px-4 py-2 text-xs font-bold text-amber-300 hover:bg-zinc-800 transition-colors"
+					onclick={() => location.reload()}
+				>
+					<RefreshCw class="h-3.5 w-3.5" />
+					Reload now
+				</button>
+			</div>
+		</div>
+	{/if}
 
 	{#if showInstallPrompt}
 		<div 
