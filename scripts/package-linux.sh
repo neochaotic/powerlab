@@ -407,6 +407,15 @@ for _ in 1 2 3 4 5; do
   sleep 1
 done
 
+# Persist the version this install put down so future runs know what
+# to roll back FROM. Done unconditionally (fresh install + upgrade)
+# so an upgrade can always read PREVIOUS_VERSION cleanly. The
+# VERSION_NEXT bash variable was sed-injected by package-linux.sh
+# right after the heredoc.
+if [[ "$GATEWAY_UP" == "yes" ]]; then
+  echo "VERSION = \"${VERSION_NEXT:-unknown}\"" > /etc/powerlab/version
+fi
+
 # ── Upgrade rollback (only when --upgrade was passed) ──────────────────
 if (( UPGRADE_MODE )); then
   if [[ "$GATEWAY_UP" == "yes" ]]; then
@@ -421,8 +430,6 @@ if (( UPGRADE_MODE )); then
   "snapshot_path": "${SNAPSHOT_DIR}"
 }
 JSON
-    # Persist the new version so future upgrades can read PREVIOUS_VERSION.
-    echo "VERSION = \"${NEW_VERSION}\"" > /etc/powerlab/version
   else
     echo "[powerlab-install]   upgrade FAILED — gateway not responding. Rolling back from snapshot."
     # Stop everything before swapping back so the kernel does not
