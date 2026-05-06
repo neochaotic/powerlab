@@ -85,6 +85,10 @@ tmp/
 ai-context/
 artifacts/
 *.agent.md
+# Top-level agent docs by name — never publish these
+CLAUDE.md
+CLAUDE.MD
+AGENTS.md
 
 # ─── Project-specific ─────────────────────────────────────────────────
 # Upstream CasaOS snapshot images — not used by PowerLab
