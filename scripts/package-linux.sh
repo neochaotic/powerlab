@@ -63,7 +63,11 @@ cat > "$STAGE/conf/gateway.ini.sample" <<EOF
 RuntimePath = /var/run/powerlab
 
 [gateway]
-Port = 80
+# Default port. The installer will probe at install time and rewrite this
+# to a free port (preferring 80, then 8765, then a probe up to 8775).
+# 8765 is unassigned by IANA and not used by any common self-hosted tool,
+# making it a safe fallback when 80 is already taken.
+Port = 8765
 EOF
 
 cat > "$STAGE/conf/app-management.conf.sample" <<EOF
@@ -204,22 +208,66 @@ for sample in "$HERE/conf/"*.sample; do
   fi
 done
 
+# ── Pick a free port for the gateway and write it into gateway.ini ──────
+# Preferences in order: keep whatever the user already configured (if it's
+# free), then 80 (the conventional choice), then 8765 (IANA unassigned,
+# not used by any common self-hosted tool), then 8766..8775 as a fallback.
+echo "[powerlab-install] Probing for an available HTTP port..."
+port_in_use() {
+  ss -tlnH 2>/dev/null | awk '{print $4}' | sed -E 's|.*:([0-9]+)$|\1|' | grep -qx "$1"
+}
+
+CURRENT_PORT="$(awk -F'=' '/^[[:space:]]*Port[[:space:]]*=/ {gsub(/[[:space:]]/,"",$2); print $2; exit}' /etc/powerlab/gateway.ini 2>/dev/null || true)"
+CHOSEN_PORT=""
+
+# 1. honour an existing config if its port is free
+if [[ -n "$CURRENT_PORT" ]] && ! port_in_use "$CURRENT_PORT"; then
+  CHOSEN_PORT="$CURRENT_PORT"
+fi
+
+# 2. prefer 80, then 8765, then linear scan
+if [[ -z "$CHOSEN_PORT" ]]; then
+  for p in 80 8765 8766 8767 8768 8769 8770 8771 8772 8773 8774 8775; do
+    if ! port_in_use "$p"; then CHOSEN_PORT="$p"; break; fi
+  done
+fi
+
+if [[ -z "$CHOSEN_PORT" ]]; then
+  echo "ERROR: could not find a free port for the PowerLab gateway." >&2
+  exit 1
+fi
+
+# Rewrite the Port = line in gateway.ini so the chosen port is what the
+# gateway actually binds to.
+sed -i.bak -E "s/^[[:space:]]*Port[[:space:]]*=.*/Port = $CHOSEN_PORT/" /etc/powerlab/gateway.ini
+rm -f /etc/powerlab/gateway.ini.bak
+echo "[powerlab-install]   → using port $CHOSEN_PORT"
+
 echo "[powerlab-install] Installing systemd units..."
 install -m 0644 "$HERE/systemd/"*.service /etc/systemd/system/
+
+# Self-heal: older PowerLab releases (≤ v0.1.1) shipped a gateway unit
+# with a bogus `-c /etc/powerlab/gateway.conf` flag the binary doesn't
+# accept, leaving the service stuck in restart-loop. Strip it on every
+# install so existing hosts auto-recover when they upgrade.
+sed -i 's| -c /etc/powerlab/gateway.conf||g' /etc/systemd/system/powerlab-gateway.service
+
 systemctl daemon-reload
 
 echo "[powerlab-install] Enabling and starting services..."
 SERVICES=(gateway message-bus user-service core app-management local-storage)
 for svc in "${SERVICES[@]}"; do
   systemctl enable "powerlab-$svc.service" >/dev/null
+  systemctl reset-failed "powerlab-$svc.service" 2>/dev/null || true
   systemctl restart "powerlab-$svc.service"
 done
 
-# Wait briefly for gateway to come up + verify it's actually listening
+# Wait briefly for gateway to come up + verify it's actually listening on
+# the port we just chose.
 sleep 2
 GATEWAY_UP=no
 for _ in 1 2 3 4 5; do
-  if curl -fsS -m 1 http://127.0.0.1/ >/dev/null 2>&1; then
+  if curl -fsS -m 1 "http://127.0.0.1:${CHOSEN_PORT}/" >/dev/null 2>&1; then
     GATEWAY_UP=yes
     break
   fi
@@ -246,16 +294,23 @@ else
   printf "  Check the logs: journalctl -u powerlab-gateway -f\n"
 fi
 
+# Browser URLs include the chosen port unless it's 80 (where the browser
+# implicitly assumes :80 and we'd just be adding noise).
+PORT_SUFFIX=""
+if [[ "$CHOSEN_PORT" != "80" ]]; then
+  PORT_SUFFIX=":$CHOSEN_PORT"
+fi
+
 echo ""
 echo "  Open PowerLab in your browser:"
 echo ""
-printf "    ${CYAN}→  http://localhost${RESET}                ${DIM}(on this machine)${RESET}\n"
+printf "    ${CYAN}→  http://localhost${PORT_SUFFIX}${RESET}                ${DIM}(on this machine)${RESET}\n"
 if [[ -n "$LAN_IP" ]]; then
-  printf "    ${CYAN}→  http://${LAN_IP}${RESET}      ${DIM}(any device on this LAN)${RESET}\n"
+  printf "    ${CYAN}→  http://${LAN_IP}${PORT_SUFFIX}${RESET}      ${DIM}(any device on this LAN)${RESET}\n"
 fi
-printf "    ${CYAN}→  http://powerlab.local${RESET}           ${DIM}(via Bonjour/mDNS)${RESET}\n"
+printf "    ${CYAN}→  http://powerlab.local${PORT_SUFFIX}${RESET}           ${DIM}(via Bonjour/mDNS)${RESET}\n"
 if [[ -n "$HOSTNAME_SHORT" && "$HOSTNAME_SHORT" != "powerlab" ]]; then
-  printf "    ${CYAN}→  http://${HOSTNAME_SHORT}.local${RESET}      ${DIM}(this host's own mDNS name)${RESET}\n"
+  printf "    ${CYAN}→  http://${HOSTNAME_SHORT}.local${PORT_SUFFIX}${RESET}      ${DIM}(this host's own mDNS name)${RESET}\n"
 fi
 echo ""
 echo "  First sign-in: use your operating-system username and password."
