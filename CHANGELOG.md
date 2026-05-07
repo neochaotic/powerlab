@@ -11,6 +11,168 @@ see `CONTRIBUTING.md` for the rule.
 
 ## [Unreleased]
 
+## [0.2.6] — 2026-05-06
+
+The "stable Files / App Store" release. v0.2.5 shipped a backend that
+fixed several Linux bugs but its UI bundle was stamped 0.2.0 (the
+package.json had never been bumped) — so users with cached browsers
+got a UI that didn't know about any of those fixes. v0.2.6 closes
+that loop and adds the E2E + UI gates that prevent the same shape of
+regression from ever shipping again.
+
+### Added — App Store
+
+- **Render `x-casaos.tips` in the UI** (#41). Backend already
+  exposed `tips: { before_install, custom }`; the UI ignored the
+  field. Vaultwarden / Gitea / Pi-hole / etc. install fine but
+  surface no clue what the initial admin password is — the user
+  was stuck. Now: `before_install` shows in the install confirm
+  modal as an amber "First-run note" block; `custom` shows on the
+  app detail drawer through the existing `Markdown.svelte`
+  renderer so apps that already use bullet lists / code spans
+  display correctly.
+
+- **App Store install-flow coverage gate** (#42 +
+  `scripts/test-store-sample.sh` + `docs/STORE-COVERAGE.md`).
+  Three modes:
+    · `--quick` (5 apps, ~3 min) — CI patch tags
+    · default (10 apps, ~7 min) — every release
+    · `--full` (18 apps, ~15 min) — tag-time
+  Set-cover sampling: 18 apps cover 99% of install-flow features
+  vs the 196-app random sample needed for the same statistical
+  confidence. Pass criteria ≥94% (one Docker Hub flake allowed).
+  Wired into `validate.sh --full` as the final release gate.
+  Forces the inner dockerd to use the `vfs` storage driver — the
+  default `overlay2` fails on macOS Docker Desktop and most
+  shared-runner CI hosts because nested overlay can't be mounted
+  on top of overlay.
+
+- **Files page lands on `~/PowerLab/`** by default for users
+  authenticated via PAM/dscl. Falls back to the daemon's process
+  home (`/Users/<dev>/PowerLab` on macOS dev,
+  `/root/PowerLab` on Linux production) for SetupWizard users
+  with no OS account. Path is short, writable, and exists —
+  replaces the previous `/DATA` default that didn't exist on
+  fresh dev hosts.
+
+- **POST = create / PUT = update file split** (#37). Filebrowser-
+  style REST: POST returns 409 on conflict (or 200 with
+  `?override=true`), PUT returns 404 if the file is missing.
+  Auto-mkdir-p the parent on POST. Editor's "Save" picks the
+  right verb based on whether the file existed at open time.
+
+- **Version handshake** (`/v1/powerlab/version`) — UI compares
+  its compiled-in `__APP_VERSION__` to the backend's
+  link-stamped version on app boot. Mismatch shows a
+  non-dismissible amber banner: "Update available — please
+  reload" with the two version numbers and a Reload button.
+  Closes the silent-stale-UI failure mode that bit v0.2.5.
+
+- **Cache-Control hardening** on the gateway: `index.html` and
+  SPA fallbacks get `no-cache, must-revalidate`; hashed
+  `_app/immutable/*` assets get `public, max-age=31536000,
+  immutable`. Browsers no longer hold onto stale UI shells
+  across deploys.
+
+- **install.sh detects CasaOS coexistence** and either refuses
+  (clear error + remove command) or proceeds with
+  `--allow-coexist`. Once both are installed, subsequent
+  `--upgrade` runs auto-detect coexist mode so the in-UI
+  updater works without manual flags.
+
+### Fixed — Files
+
+- **Editor was stuck on a grey screen** because `initEditor()`
+  ran while `loading=true` (before the editor div mounted).
+  Replaced the imperative call with a `$effect` that fires only
+  once `editorContainer && readyToInit && !view`. Component
+  test asserts `.cm-editor` is in the DOM after mount so the
+  race cannot return.
+
+- **Single click on a file now opens it** (filebrowser style),
+  Cmd/Ctrl/Shift-click multi-selects. Previously single click
+  only highlighted; users tried to double-click but
+  double-click was easy to miss.
+
+- **`Element.animate` polyfill** for jsdom so component tests
+  using Svelte transitions stop failing with `TypeError:
+  element.animate is not a function`.
+
+- **Editor UX matches filebrowser**: `•` indicator on the title
+  while dirty, Save button disables when there's nothing to
+  save, Save button reads "Create" while `isNewFile`, Esc / X /
+  backdrop-click all run the same `confirm` flow before
+  discarding changes, Save success surfaces as a toast.
+
+- **Editor JSON tag drift** that broke save in v0.2.4 — the
+  request body's keys are pinned by `file_test.go` so `path` /
+  `content` can't accidentally come back.
+
+- **Auto-mkdir on upload** (`/DATA` doesn't exist on dev hosts
+  → 500 became 200 on first upload). E2E covers this directly.
+
+- **404 (not 500) for missing-file reads.** The editor
+  inspects the status to switch to "create new" mode; 500
+  looked like a backend crash and broke that affordance.
+
+- **Range-request streaming + JWT-in-URL for `<video>` /
+  `<audio>` / `<a download>`**. Browsers can't attach
+  Authorization headers to those elements; without
+  `?token=…` every download from any non-localhost client got
+  401 from the gateway's JWT middleware.
+
+- **Service Worker registration removed** — the SW was a
+  pass-through (`fetch(event.request)`) with no caching
+  strategy of its own. Under vite dev it intercepted SPA
+  navigations to `/apps` and surfaced "Failed to fetch
+  / sw.js:11 Uncaught TypeError" in the console for no benefit.
+
+### Fixed — gateway / proxy
+
+- **Listen-port change** (Settings → Network → Listen port)
+  actually moves the listener and `/v1/gateway/port` reports
+  the new value within the gateway's 1-2s drain window. E2E
+  covers the full move-and-revert path.
+
+- **`/v2/app_management/compose/:id/disk-usage`** route
+  registered (handler existed but the OpenAPI middleware was
+  rejecting with 400 "no matching operation found"). Same fix
+  applied to `/v2/app_management/config`.
+
+- **`/v1/sys/hardware`** path corrected in the UI client
+  (was `/v1/sys/hardware/info` which 404'd; the swagger
+  annotation was misleading).
+
+- **Multipart upload Content-Type handling** in `client.ts`:
+  the JSON default no longer overrides FormData bodies, so the
+  browser's `multipart/form-data; boundary=…` reaches the
+  server intact. Tests assert the contract both ways.
+
+- **`/v1/sys/logs`** now actually tails — the `line` parameter
+  was plumbed through but ignored, so the endpoint returned
+  the entire log file (megabytes of historical noise including
+  panics from boots that already recovered).
+
+### Build / packaging
+
+- **`ui/package.json` bumped to `0.2.6`**, `vite.config.ts` reads
+  `POWERLAB_VERSION` env first so the bundle always matches the
+  released tag without anyone bumping by hand. `package-linux.sh`
+  stamps `ui/build/.powerlab-version` after each build and
+  refuses to reuse a build directory whose stamp doesn't match.
+
+- **`scripts/test-linux-e2e.sh`** now asserts ALL of: UI bundle
+  version matches backend version, version handshake responds
+  the same string, login OK, editor read/write existing+new
+  file, app list, terminal websocket pty echo, file upload +
+  missing-file rejected with 400, upload auto-creates parent
+  dir, missing-file read returns 404 (not 500), download +
+  Range request returns 206, hardware-info / app-management-
+  config / disk-usage routes wired, port-change moves
+  listener, plus three install scenarios (clean / casaos
+  refuse / casaos coexist with `--allow-coexist`). 23
+  assertions across the three scenarios.
+
 ## [0.2.5] — 2026-05-06
 
 ### Fixed (Linux production hardening)
