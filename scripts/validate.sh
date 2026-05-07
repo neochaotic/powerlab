@@ -53,6 +53,10 @@ done
 
 START_TIME=$(date +%s)
 
+# ── 0. Repo hygiene ─────────────────────────────────────────────────────
+step "Repo: no developer home paths in tracked files"
+./scripts/check-no-absolute-paths.sh || fail "absolute home paths leaked into tracked files — see output above"
+
 # ── 1. Frontend ─────────────────────────────────────────────────────────
 if (( SKIP_UI == 0 )); then
 	step "Frontend: svelte-check"
