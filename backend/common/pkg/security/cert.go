@@ -4,9 +4,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"math/big"
 	"net"
 	"os"
@@ -21,8 +23,43 @@ import (
 )
 
 const (
-	DefaultProductionPath = "/etc/powerlab/tls"
-	HSTSGateFile         = ".hsts-armed"
+	// DefaultProductionPath is where the CA + leaf live in prod.
+	// Conventionally `/etc/...` is config that survives data-dir
+	// wipes (`/var/lib/powerlab` etc.); we deliberately keep the
+	// security material there so a `rm -rf /var/lib/powerlab`
+	// does NOT void every device's installed trust.
+	DefaultProductionPath = "/etc/powerlab/security"
+
+	// LegacyProductionPath is the original v0.2.7 location.
+	// CertManager.Setup migrates from here on first boot so users
+	// upgrading from v0.2.7 don't see their CA disappear.
+	LegacyProductionPath = "/etc/powerlab/tls"
+
+	// HSTSGateFile is the marker file that gates the HSTS header
+	// (see ADR 0006 — HSTS gate after first verified non-localhost
+	// client).
+	HSTSGateFile = ".hsts-armed"
+
+	// HSTSDisarmingFile is the post-reset marker that tells the
+	// WrapHSTS middleware to emit `Strict-Transport-Security:
+	// max-age=0` for HSTSDisarmingTTL after a reset/rotate. Browsers
+	// see max-age=0 and clear their cached HSTS pin (RFC 6797
+	// §6.1.1) — without this, even a server-side reset doesn't
+	// reach a browser that already cached the pin.
+	HSTSDisarmingFile = ".hsts-disarming"
+
+	// HSTSDisarmingTTL is how long after a reset we keep emitting
+	// max-age=0. 15 min is enough for the user to load the page
+	// once on each device they want to recover; longer than that
+	// just confuses cache layers (CDNs, corporate proxies).
+	HSTSDisarmingTTL = 15 * time.Minute
+
+	// PublicBackupFile is a non-secret copy of the CA public cert
+	// the user can backup to a USB stick / cloud / password
+	// manager. Identical bytes to ca.crt; the separate filename
+	// signals "this is the file to back up" to a human grepping
+	// the storage dir.
+	PublicBackupFile = "ca-public-backup.crt"
 )
 
 type CertManager struct {
@@ -31,10 +68,26 @@ type CertManager struct {
 	lastIPs     []string
 }
 
+// NewCertManager picks the storage path based on dev/prod mode.
+//
+// Prod: /etc/powerlab/security — survives data-dir wipes.
+// Dev:  ~/.config/powerlab/security — survives `start.sh --build`,
+// `rm -rf backend/runtime/`, and other dev-cycle wipes. The cert
+// storage is decoupled from the runtime dir on purpose, so the
+// user's "trust me once" install is not invalidated by a routine
+// `rm -rf` of the data dir. See ADR 0010.
+//
+// `runtimePath` is the legacy v0.2.7 dev location and is used only
+// as a fallback when HOME is unavailable.
 func NewCertManager(runtimePath string) *CertManager {
 	storagePath := DefaultProductionPath
 	if devmode.IsDev() {
-		storagePath = filepath.Join(runtimePath, "tls")
+		home, err := os.UserHomeDir()
+		if err == nil && home != "" {
+			storagePath = filepath.Join(home, ".config", "powerlab", "security")
+		} else {
+			storagePath = filepath.Join(runtimePath, "tls")
+		}
 	}
 	return &CertManager{StoragePath: storagePath}
 }
@@ -51,12 +104,24 @@ func (m *CertManager) GetHSTSPath() string {
 	return filepath.Join(m.StoragePath, HSTSGateFile)
 }
 
+// GetPublicBackupPath returns the user-visible "back this up" file path.
+func (m *CertManager) GetPublicBackupPath() string {
+	return filepath.Join(m.StoragePath, PublicBackupFile)
+}
+
 func (m *CertManager) Setup() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	if err := os.MkdirAll(m.StoragePath, 0755); err != nil {
 		return err
+	}
+
+	// One-shot migration: if the legacy storage path exists and
+	// we don't already have a CA at the new path, copy the files.
+	// Idempotent — runs once, leaves a no-op on subsequent boots.
+	if err := m.migrateLegacyStorage(); err != nil {
+		logger.Info("legacy cert storage migration skipped", zap.Error(err))
 	}
 
 	caCertPath, _ := m.GetCAPaths()
@@ -66,16 +131,108 @@ func (m *CertManager) Setup() error {
 		}
 	}
 
+	// Always (re-)write the user-visible backup file from the
+	// canonical ca.crt. If the user has rotated the CA via the
+	// rotation flow the backup is automatically refreshed.
+	if err := m.writePublicBackup(); err != nil {
+		logger.Info("could not refresh CA public backup", zap.Error(err))
+	}
+
 	// Initial IP capture
 	m.lastIPs = m.getCurrentIPs()
 
-	// Initial check/generation
+	// Initial check/generation of the server leaf
 	return m.CheckAndRotate()
+}
+
+// migrateLegacyStorage moves files from the v0.2.7 production
+// location (/etc/powerlab/tls) into the new path
+// (/etc/powerlab/security). Safe to call repeatedly: no-op if the
+// new path already has a ca.crt OR if the legacy path doesn't exist.
+func (m *CertManager) migrateLegacyStorage() error {
+	if m.StoragePath != DefaultProductionPath {
+		return nil // dev install; no production migration to run
+	}
+	newCA := filepath.Join(m.StoragePath, "ca.crt")
+	if _, err := os.Stat(newCA); err == nil {
+		return nil // already populated, migration done or never needed
+	}
+	legacyCA := filepath.Join(LegacyProductionPath, "ca.crt")
+	if _, err := os.Stat(legacyCA); os.IsNotExist(err) {
+		return nil // nothing to migrate
+	}
+	logger.Info("Migrating CA storage from legacy path",
+		zap.String("from", LegacyProductionPath),
+		zap.String("to", m.StoragePath))
+	for _, name := range []string{"ca.crt", "ca.key", "server.crt", "server.key", HSTSGateFile} {
+		src := filepath.Join(LegacyProductionPath, name)
+		dst := filepath.Join(m.StoragePath, name)
+		data, err := os.ReadFile(src)
+		if err != nil {
+			continue
+		}
+		perm := os.FileMode(0644)
+		if name == "ca.key" || name == "server.key" {
+			perm = 0600
+		}
+		if err := os.WriteFile(dst, data, perm); err != nil {
+			return fmt.Errorf("write %s: %w", dst, err)
+		}
+		_ = os.Remove(src)
+	}
+	return nil
+}
+
+// writePublicBackup creates ca-public-backup.crt next to ca.crt with
+// 0644 perms. Identical bytes to ca.crt; the CA private key is NEVER
+// included — exposing it would compromise every device that trusts
+// the CA.
+func (m *CertManager) writePublicBackup() error {
+	caCertPath, _ := m.GetCAPaths()
+	src, err := os.ReadFile(caCertPath)
+	if err != nil {
+		return err
+	}
+	dst := filepath.Join(m.StoragePath, PublicBackupFile)
+	return os.WriteFile(dst, src, 0644)
+}
+
+// CAFingerprint returns the SHA-256 fingerprint of the active CA cert
+// in colon-separated uppercase hex (the format `openssl x509
+// -fingerprint -sha256` produces). Used by the trust-state endpoint
+// so clients can detect a CA mismatch (CA regenerated or rotated
+// server-side) and re-prompt for trust install.
+func (m *CertManager) CAFingerprint() (string, error) {
+	caCertPath, _ := m.GetCAPaths()
+	pemBytes, err := os.ReadFile(caCertPath)
+	if err != nil {
+		return "", err
+	}
+	block, _ := pem.Decode(pemBytes)
+	if block == nil {
+		return "", fmt.Errorf("CA pem decode failed")
+	}
+	sum := sha256.Sum256(block.Bytes)
+	hex := make([]byte, 0, len(sum)*3-1)
+	for i, b := range sum {
+		if i > 0 {
+			hex = append(hex, ':')
+		}
+		hex = append(hex, hexNybble(b>>4), hexNybble(b&0x0f))
+	}
+	return string(hex), nil
+}
+
+func hexNybble(n byte) byte {
+	if n < 10 {
+		return '0' + n
+	}
+	return 'A' + (n - 10)
 }
 
 func (m *CertManager) CheckAndRotate() error {
 	serverCertPath, _ := m.GetServerPaths()
-	
+
 	shouldRotate := false
 
 	// 1. Check if server cert exists
@@ -163,7 +320,7 @@ func (m *CertManager) GenerateRootCA() error {
 	}
 
 	caCertPath, caKeyPath := m.GetCAPaths()
-	
+
 	certOut, err := os.Create(caCertPath)
 	if err != nil {
 		return err
@@ -176,7 +333,7 @@ func (m *CertManager) GenerateRootCA() error {
 		return err
 	}
 	defer keyOut.Close()
-	
+
 	b, err := x509.MarshalECPrivateKey(priv)
 	if err != nil {
 		return err
@@ -220,19 +377,19 @@ func (m *CertManager) GenerateServerCert() error {
 	}
 
 	hostname, _ := os.Hostname()
-	
+
 	template := x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
 			Organization: []string{"PowerLab"},
 			CommonName:   "powerlab.local",
 		},
-		NotBefore:    time.Now().Add(-1 * time.Hour),
-		NotAfter:     time.Now().AddDate(1, 0, 0), // 1 year
-		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
-		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		DNSNames:     []string{"powerlab.local", "localhost", hostname + ".local"},
-		IPAddresses:  []net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")},
+		NotBefore:   time.Now().Add(-1 * time.Hour),
+		NotAfter:    time.Now().AddDate(1, 0, 0), // 1 year
+		KeyUsage:    x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		DNSNames:    []string{"powerlab.local", "localhost", hostname + ".local"},
+		IPAddresses: []net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")},
 	}
 
 	// Add all local IPv4 and IPv6 ULA addresses to SAN
@@ -246,7 +403,7 @@ func (m *CertManager) GenerateServerCert() error {
 	}
 
 	serverCertPath, serverKeyPath := m.GetServerPaths()
-	
+
 	certOut, err := os.Create(serverCertPath)
 	if err != nil {
 		return err
@@ -259,13 +416,84 @@ func (m *CertManager) GenerateServerCert() error {
 		return err
 	}
 	defer keyOut.Close()
-	
+
 	b, err := x509.MarshalECPrivateKey(priv)
 	if err != nil {
 		return err
 	}
 	pem.Encode(keyOut, &pem.Block{Type: "EC PRIVATE KEY", Bytes: b})
 
+	return nil
+}
+
+// RotateCA performs a destructive CA rotation. After this returns
+// successfully, EVERY device that previously trusted PowerLab will
+// see cert-not-trusted and must re-install the CA. The old material
+// is preserved as ca.crt.previous / ca.key.previous so an admin
+// with shell access can recover if the rotation was a mistake.
+//
+// Steps:
+//
+//  1. Move current ca.{crt,key} aside as .previous (audit trail)
+//  2. Generate new root CA (10y validity, fresh keypair)
+//  3. Generate new server leaf signed by the new CA
+//  4. Refresh the public backup file
+//  5. Remove the HSTS gate file so the user has to re-run the trust
+//     dance from scratch (otherwise armed HSTS would point browsers
+//     at the new HTTPS leaf they can't verify yet)
+//
+// This is the canonical "Rotate CA" action surfaced in the UI as a
+// distinct, scary, confirmation-required button — separate from the
+// lighter "Reset trust" which only clears the HSTS gate. See
+// ADR 0012.
+func (m *CertManager) RotateCA() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	caCertPath, caKeyPath := m.GetCAPaths()
+	prevCert := caCertPath + ".previous"
+	prevKey := caKeyPath + ".previous"
+
+	// 1. Move existing material aside (best-effort).
+	if data, err := os.ReadFile(caCertPath); err == nil {
+		_ = os.WriteFile(prevCert, data, 0644)
+	}
+	if data, err := os.ReadFile(caKeyPath); err == nil {
+		_ = os.WriteFile(prevKey, data, 0600)
+	}
+
+	// 2. Remove active CA so GenerateRootCA writes fresh files.
+	_ = os.Remove(caCertPath)
+	_ = os.Remove(caKeyPath)
+
+	if err := m.GenerateRootCA(); err != nil {
+		return fmt.Errorf("rotate: generate new CA: %w", err)
+	}
+
+	// 3. New leaf signed by the new CA.
+	serverCertPath, serverKeyPath := m.GetServerPaths()
+	_ = os.Remove(serverCertPath)
+	_ = os.Remove(serverKeyPath)
+	m.lastIPs = m.getCurrentIPs()
+	if err := m.GenerateServerCert(); err != nil {
+		return fmt.Errorf("rotate: generate new leaf: %w", err)
+	}
+
+	// 4. Refresh public backup so a user grabbing it post-rotation
+	// gets the new CA bytes.
+	if err := m.writePublicBackup(); err != nil {
+		logger.Info("rotate: could not refresh public backup", zap.Error(err))
+	}
+
+	// 5. Disarm HSTS AND open the disarming window so any browser
+	// that previously cached an HSTS pin against the OLD CA gets
+	// `max-age=0` on its next HTTPS request — the only way to
+	// clear the in-browser pin without user intervention.
+	_ = os.Remove(m.GetHSTSPath())
+	_ = os.WriteFile(m.GetHSTSDisarmingPath(), []byte("disarming"), 0644)
+
+	logger.Info("CA rotated. All client devices must re-install the new CA.",
+		zap.String("storage", m.StoragePath))
 	return nil
 }
 
@@ -300,16 +528,63 @@ func (m *CertManager) compareIPs(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
 	}
-	m_map := make(map[string]bool)
+	mp := make(map[string]bool)
 	for _, ip := range a {
-		m_map[ip] = true
+		mp[ip] = true
 	}
 	for _, ip := range b {
-		if !m_map[ip] {
+		if !mp[ip] {
 			return false
 		}
 	}
 	return true
+}
+
+// GetHSTSDisarmingPath returns the .hsts-disarming marker path.
+func (m *CertManager) GetHSTSDisarmingPath() string {
+	return filepath.Join(m.StoragePath, HSTSDisarmingFile)
+}
+
+func (m *CertManager) ArmHSTS() error {
+	// Arming clears any pending disarming window — the user just
+	// completed a fresh trust dance, so we want full HSTS again.
+	_ = os.Remove(m.GetHSTSDisarmingPath())
+	return os.WriteFile(m.GetHSTSPath(), []byte("armed"), 0644)
+}
+
+// DisarmHSTS removes the armed gate AND drops a `.hsts-disarming`
+// marker. The middleware uses that marker to emit
+// `Strict-Transport-Security: max-age=0` for HSTSDisarmingTTL,
+// which clears any cached HSTS pin in the browser (RFC 6797 §6.1.1).
+// Without this, even after a server-side reset, browsers refuse to
+// downgrade to HTTP and may bounce on cert errors.
+func (m *CertManager) DisarmHSTS() error {
+	if err := os.Remove(m.GetHSTSPath()); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	// Touch the disarming marker. WriteFile with current time
+	// (mtime) so the middleware can compute "is the disarming
+	// window still open" by stat'ing the file.
+	if err := os.WriteFile(m.GetHSTSDisarmingPath(), []byte("disarming"), 0644); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *CertManager) IsHSTSArmed() bool {
+	_, err := os.Stat(m.GetHSTSPath())
+	return err == nil
+}
+
+// IsHSTSDisarming returns true while the post-reset window is
+// still open (<= HSTSDisarmingTTL old). Outside the window the
+// marker is logically no-op; the middleware ignores it.
+func (m *CertManager) IsHSTSDisarming() bool {
+	info, err := os.Stat(m.GetHSTSDisarmingPath())
+	if err != nil {
+		return false
+	}
+	return time.Since(info.ModTime()) <= HSTSDisarmingTTL
 }
 
 // ShouldIncludeIP returns true when an IP belongs in the leaf
@@ -318,6 +593,7 @@ func (m *CertManager) compareIPs(a, b []string) bool {
 // network interfaces into the test.
 //
 // Rules (per ADR 0001):
+//
 //   - RFC1918 IPv4 (10/8, 172.16/12, 192.168/16) — always included
 //   - IPv6 ULA fc00::/7 — always included
 //   - CGNAT 100.64.0.0/10 — included ONLY when ifaceName matches a
@@ -339,13 +615,4 @@ func ShouldIncludeIP(ifaceName string, ip net.IP) bool {
 		return true
 	}
 	return false
-}
-
-func (m *CertManager) ArmHSTS() error {
-	return os.WriteFile(m.GetHSTSPath(), []byte("armed"), 0644)
-}
-
-func (m *CertManager) IsHSTSArmed() bool {
-	_, err := os.Stat(m.GetHSTSPath())
-	return err == nil
 }

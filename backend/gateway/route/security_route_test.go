@@ -290,3 +290,236 @@ func generateTestCA(t *testing.T) (*x509.Certificate, *ecdsa.PrivateKey) {
 
 // _ unused-import guard
 var _ = filepath.Join
+
+// TestHandleTrustState_FreshState — first-boot probe should return
+// armed=false + a fingerprint of the just-generated CA.
+func TestHandleTrustState_FreshState(t *testing.T) {
+	cm := newTestCertManager(t)
+	s := NewSecurityRoute(cm)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/v1/sys/trust-state", nil)
+	s.handleTrustState(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: got %d", rec.Code)
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
+		t.Errorf("content-type: got %q", ct)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `"armed":false`) {
+		t.Errorf("expected armed:false on fresh boot, got %s", body)
+	}
+	// Fingerprint format is colon-separated hex pairs ending in
+	// uppercase. We don't know the actual value (CA was just
+	// generated) but the SHAPE is stable.
+	if !strings.Contains(body, `"ca_fingerprint":"`) {
+		t.Errorf("ca_fingerprint missing or empty: %s", body)
+	}
+}
+
+// TestHandleTrustState_AfterArm — after ArmHSTS the endpoint flips
+// to armed=true.
+func TestHandleTrustState_AfterArm(t *testing.T) {
+	cm := newTestCertManager(t)
+	if err := cm.ArmHSTS(); err != nil {
+		t.Fatalf("ArmHSTS: %v", err)
+	}
+	s := NewSecurityRoute(cm)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/v1/sys/trust-state", nil)
+	s.handleTrustState(rec, req)
+
+	if !strings.Contains(rec.Body.String(), `"armed":true`) {
+		t.Errorf("expected armed:true after ArmHSTS, got %s", rec.Body.String())
+	}
+}
+
+// TestHandleTrustConfirmedDELETE_DisarmHSTS — DELETE
+// /trust-confirmed clears the HSTS gate (reset-trust path), no
+// HTTPS / non-localhost guard required.
+func TestHandleTrustConfirmedDELETE_DisarmHSTS(t *testing.T) {
+	cm := newTestCertManager(t)
+	if err := cm.ArmHSTS(); err != nil {
+		t.Fatalf("ArmHSTS: %v", err)
+	}
+	if !cm.IsHSTSArmed() {
+		t.Fatal("setup: gate should be armed")
+	}
+	s := NewSecurityRoute(cm)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/v1/sys/trust-confirmed", nil)
+	s.handleTrustConfirmed(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: got %d", rec.Code)
+	}
+	if cm.IsHSTSArmed() {
+		t.Fatal("gate still armed after DELETE")
+	}
+	if !strings.Contains(rec.Body.String(), `"armed":false`) {
+		t.Errorf("response should report armed:false, got %s", rec.Body.String())
+	}
+}
+
+// TestHandleRotateCA_RequiresConfirmToken — rotation must NOT fire
+// without the explicit ?confirm=ROTATE_CA query parameter, even
+// when all other guards (HTTPS, non-localhost) are satisfied.
+func TestHandleRotateCA_RequiresConfirmToken(t *testing.T) {
+	cm := newTestCertManager(t)
+	s := NewSecurityRoute(cm)
+	originalFP, _ := cm.CAFingerprint()
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/v1/sys/rotate-ca", nil)
+	req.RemoteAddr = "192.168.1.10:54321"
+	req.TLS = &tls.ConnectionState{}
+	s.handleRotateCA(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 without confirm token, got %d", rec.Code)
+	}
+	currentFP, _ := cm.CAFingerprint()
+	if currentFP != originalFP {
+		t.Fatal("CA was rotated despite missing confirm token")
+	}
+}
+
+// TestHandleRotateCA_RequiresHTTPS — same posture as
+// /trust-confirmed: the caller must already have the current CA
+// installed (proven by a working TLS session).
+func TestHandleRotateCA_RequiresHTTPS(t *testing.T) {
+	cm := newTestCertManager(t)
+	s := NewSecurityRoute(cm)
+	originalFP, _ := cm.CAFingerprint()
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost,
+		"/v1/sys/rotate-ca?confirm=ROTATE_CA", nil)
+	req.RemoteAddr = "192.168.1.10:54321"
+	// req.TLS == nil — plain HTTP
+	s.handleRotateCA(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 over HTTP, got %d", rec.Code)
+	}
+	currentFP, _ := cm.CAFingerprint()
+	if currentFP != originalFP {
+		t.Fatal("CA was rotated despite plain-HTTP request")
+	}
+}
+
+// TestHandleRotateCA_RejectsLocalhost — same as above for the
+// non-localhost requirement.
+func TestHandleRotateCA_RejectsLocalhost(t *testing.T) {
+	cm := newTestCertManager(t)
+	s := NewSecurityRoute(cm)
+	originalFP, _ := cm.CAFingerprint()
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost,
+		"/v1/sys/rotate-ca?confirm=ROTATE_CA", nil)
+	req.RemoteAddr = "127.0.0.1:54321"
+	req.TLS = &tls.ConnectionState{}
+	s.handleRotateCA(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 from localhost, got %d", rec.Code)
+	}
+	currentFP, _ := cm.CAFingerprint()
+	if currentFP != originalFP {
+		t.Fatal("CA was rotated despite localhost guard")
+	}
+}
+
+// TestHandleRotateCA_HappyPath — all guards pass, rotation fires,
+// new fingerprint differs from old, public backup is refreshed.
+func TestHandleRotateCA_HappyPath(t *testing.T) {
+	cm := newTestCertManager(t)
+	s := NewSecurityRoute(cm)
+	originalFP, _ := cm.CAFingerprint()
+	if originalFP == "" {
+		t.Fatal("setup: original fingerprint should not be empty")
+	}
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost,
+		"/v1/sys/rotate-ca?confirm=ROTATE_CA", nil)
+	req.RemoteAddr = "192.168.1.10:54321"
+	req.TLS = &tls.ConnectionState{}
+	s.handleRotateCA(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+	newFP, _ := cm.CAFingerprint()
+	if newFP == "" {
+		t.Fatal("CA fingerprint empty after rotation")
+	}
+	if newFP == originalFP {
+		t.Fatal("fingerprint did not change after rotation")
+	}
+	if !strings.Contains(rec.Body.String(), `"rotated":true`) {
+		t.Errorf("response should report rotated:true, got %s", rec.Body.String())
+	}
+	// Previous CA should be preserved as audit trail.
+	prevPath := cm.StoragePath + "/ca.crt.previous"
+	if _, err := os.Stat(prevPath); err != nil {
+		t.Errorf("ca.crt.previous not preserved: %v", err)
+	}
+	// Public backup should reflect the NEW CA.
+	backup, err := os.ReadFile(cm.GetPublicBackupPath())
+	if err != nil {
+		t.Fatalf("backup file missing: %v", err)
+	}
+	caCertPath, _ := cm.GetCAPaths()
+	current, _ := os.ReadFile(caCertPath)
+	if string(backup) != string(current) {
+		t.Error("public backup not refreshed after rotation")
+	}
+}
+
+// TestSetup_WritesPublicBackup — first boot writes the backup file.
+func TestSetup_WritesPublicBackup(t *testing.T) {
+	cm := newTestCertManager(t)
+	if _, err := os.Stat(cm.GetPublicBackupPath()); err != nil {
+		t.Fatalf("backup file should be written by Setup: %v", err)
+	}
+	caCertPath, _ := cm.GetCAPaths()
+	caBytes, _ := os.ReadFile(caCertPath)
+	backup, _ := os.ReadFile(cm.GetPublicBackupPath())
+	if string(backup) != string(caBytes) {
+		t.Error("backup contents differ from ca.crt")
+	}
+}
+
+// TestCAFingerprint_StableShape — the colon-separated uppercase
+// hex shape that openssl produces. We don't pin a specific value
+// (it changes per generation) but we pin the format so a consumer
+// can rely on `===` comparison vs another openssl invocation.
+func TestCAFingerprint_StableShape(t *testing.T) {
+	cm := newTestCertManager(t)
+	fp, err := cm.CAFingerprint()
+	if err != nil {
+		t.Fatalf("CAFingerprint: %v", err)
+	}
+	// SHA-256 in colon-hex = 32 bytes * 2 hex + 31 colons = 95 chars.
+	if len(fp) != 95 {
+		t.Errorf("fingerprint length: got %d, want 95 (got %s)", len(fp), fp)
+	}
+	for i, c := range fp {
+		if i%3 == 2 {
+			if c != ':' {
+				t.Errorf("fingerprint position %d: expected colon, got %c", i, c)
+			}
+			continue
+		}
+		// Hex nibble: 0-9 or A-F.
+		if !((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F')) {
+			t.Errorf("fingerprint position %d: not uppercase hex: %c", i, c)
+		}
+	}
+}

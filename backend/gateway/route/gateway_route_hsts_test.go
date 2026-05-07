@@ -174,3 +174,80 @@ func TestWrapHSTS_GateFileToggleObserved(t *testing.T) {
 // _ unused-variable guards for security pkg (we don't import it
 // directly but the helper file does)
 var _ = security.HSTSGateFile
+
+// TestWrapHSTS_DisarmingEmitsMaxAgeZero — after DisarmHSTS, HTTPS
+// requests get `max-age=0` so the browser's cached HSTS pin is
+// evicted (RFC 6797 §6.1.1). This is the only mechanism that
+// reliably recovers a user whose browser already pinned the host.
+func TestWrapHSTS_DisarmingEmitsMaxAgeZero(t *testing.T) {
+	cm := newTestCertManager(t)
+	if err := cm.ArmHSTS(); err != nil {
+		t.Fatalf("ArmHSTS: %v", err)
+	}
+	// Reset trust → moves to disarming state.
+	if err := cm.DisarmHSTS(); err != nil {
+		t.Fatalf("DisarmHSTS: %v", err)
+	}
+	g := &GatewayRoute{cm: cm}
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/anything", nil)
+	req.TLS = &tls.ConnectionState{}
+
+	g.WrapHSTS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}), "8443").
+		ServeHTTP(rec, req)
+
+	hsts := rec.Header().Get("Strict-Transport-Security")
+	if hsts != "max-age=0" {
+		t.Fatalf("HSTS header during disarming window: got %q, want max-age=0", hsts)
+	}
+}
+
+// TestWrapHSTS_DisarmingHTTPNoRedirect — during the disarming
+// window, HTTP requests pass through (no 301 to HTTPS). Otherwise
+// a browser that just had its pin cleared would still be bounced
+// to HTTPS where the cert may now be unrecognized.
+func TestWrapHSTS_DisarmingHTTPNoRedirect(t *testing.T) {
+	cm := newTestCertManager(t)
+	_ = cm.ArmHSTS()
+	_ = cm.DisarmHSTS()
+	g := &GatewayRoute{cm: cm}
+
+	called := false
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { called = true })
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/anything", nil)
+	// req.TLS == nil → plain HTTP
+
+	g.WrapHSTS(next, "8443").ServeHTTP(rec, req)
+
+	if rec.Code == http.StatusMovedPermanently {
+		t.Fatal("HTTP+disarming should NOT redirect; would defeat recovery")
+	}
+	if !called {
+		t.Fatal("next handler should run on HTTP+disarming")
+	}
+}
+
+// TestWrapHSTS_ArmAfterDisarmClearsDisarmingMarker — re-arming via
+// a fresh successful trust dance must remove the disarming marker,
+// otherwise we'd keep emitting max-age=0 forever after the user
+// recovered.
+func TestWrapHSTS_ArmAfterDisarmClearsDisarmingMarker(t *testing.T) {
+	cm := newTestCertManager(t)
+	_ = cm.ArmHSTS()
+	_ = cm.DisarmHSTS()
+	if !cm.IsHSTSDisarming() {
+		t.Fatal("setup: expected disarming state")
+	}
+	if err := cm.ArmHSTS(); err != nil {
+		t.Fatalf("re-arm: %v", err)
+	}
+	if cm.IsHSTSDisarming() {
+		t.Fatal("disarming marker survived ArmHSTS — would emit max-age=0 forever")
+	}
+	if !cm.IsHSTSArmed() {
+		t.Fatal("re-arm did not flip armed state")
+	}
+}
