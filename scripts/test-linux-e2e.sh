@@ -328,23 +328,61 @@ green "  → download OK + Range request returns 206 (video seeking works)"
 for path_label in \
     "/v1/sys/hardware:hardware-info" \
     "/v2/app_management/config:app-management-config" \
-    "/v2/app_management/compose/test-helloworld/disk-usage:disk-usage(404 acceptable)" \
     "/v1/powerlab/version:version-handshake" ; do
   PATH_ONLY="${path_label%%:*}"
   LABEL="${path_label##*:}"
   CODE=$(run_in_container "curl -sS -o /dev/null -w '%{http_code}' -H 'Authorization: $TOKEN' http://localhost:8765$PATH_ONLY")
-  case "$LABEL:$CODE" in
-    "disk-usage(404 acceptable):200"|"disk-usage(404 acceptable):404")
-      green "  → $LABEL OK ($CODE)"
-      ;;
-    *":200")
-      green "  → $LABEL OK"
-      ;;
-    *)
-      fail "scenario A: $LABEL ($PATH_ONLY) returned $CODE — must be 200"
-      ;;
-  esac
+  [[ "$CODE" == "200" ]] || fail "scenario A: $LABEL ($PATH_ONLY) returned $CODE — must be 200"
+  green "  → $LABEL OK"
 done
+
+# Disk-usage route. The original bug was 400 "no matching operation"
+# because the codegen handler existed but wasn't registered in the
+# OpenAPI middleware path list. We probe with a non-existing app id
+# and accept 404 (correct REST: route is wired, app just isn't
+# installed). 400 means the route never reached the handler — the
+# regression we're guarding against. We can't probe with a real app
+# without spinning up a docker-compose stack inside the container,
+# which is brittle in the multi-arch CI runners.
+CODE=$(run_in_container "curl -sS -o /dev/null -w '%{http_code}' -H 'Authorization: $TOKEN' 'http://localhost:8765/v2/app_management/compose/test-route-wiring/disk-usage'")
+[[ "$CODE" == "404" || "$CODE" == "200" ]] || fail "scenario A: disk-usage route not wired — got $CODE (expected 200 or 404, NOT 400)"
+green "  → disk-usage route wired (returned $CODE; 400 would mean OpenAPI middleware blocked it)"
+
+# Port change end-to-end. The Settings → Network → Listen-port editor
+# PUTs /v1/gateway/port and the gateway re-binds the listener. Confirm
+# the listener actually moves and the old port goes dark — user
+# reported a "port config vs real port" inconsistency suspicion;
+# this nails it. We don't revert (container is teardown-able and
+# revert flakes on the OS-level socket-reuse window).
+PORTLOG=$(run_in_container "
+  set +e
+  echo --put--
+  curl -sS -i -X PUT 'http://localhost:8765/v1/gateway/port' \
+    -H 'Authorization: $TOKEN' -H 'Content-Type: application/json' \
+    -d '{\"port\":\"8775\"}' 2>&1 | head -3
+  echo --wait--
+  for i in 1 2 3 4 5 6 7 8; do
+    C=\$(curl -sS -m 1 -o /dev/null -w '%{http_code}' http://localhost:8775/ping 2>/dev/null || echo 000)
+    echo \"  attempt \$i: 8775 → \$C\"
+    [[ \"\$C\" == '200' ]] && break
+    sleep 1
+  done
+  echo --old-port--
+  # Gateway has a 1-2s grace period before tearing down the old
+  # listener (lets in-flight requests drain). Poll up to 5s.
+  for i in 1 2 3 4 5; do
+    C=\$(curl -sS -m 1 -o /dev/null -w '%{http_code}' http://localhost:8765/ping 2>/dev/null || echo 000)
+    echo \"  attempt \$i: 8765 → \$C\"
+    [[ \"\$C\" == '000' ]] && break
+    sleep 1
+  done
+  echo --reported--
+  curl -sS http://localhost:8775/v1/gateway/port -H 'Authorization: $TOKEN' 2>&1 | head -c 200
+")
+echo "$PORTLOG" | grep -q "8775 → 200" || { echo "$PORTLOG"; fail "scenario A: gateway port did not move to 8775"; }
+echo "$PORTLOG" | grep -q "8765 → 000" || { echo "$PORTLOG"; fail "scenario A: old port 8765 still alive after change"; }
+echo "$PORTLOG" | grep -q '"data":"8775"' || { echo "$PORTLOG"; fail "scenario A: /v1/gateway/port did not report 8775"; }
+green "  → port change moves listener (8765 → 8775, /v1/gateway/port reports new value)"
 
 # ─── Scenario B: CasaOS present, no flag → must refuse ───────────────────
 cyan "[e2e] Scenario B: CasaOS present (no --allow-coexist)"
