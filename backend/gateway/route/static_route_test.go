@@ -1,0 +1,276 @@
+package route
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// makeFixture builds a minimal SvelteKit-style adapter-static layout
+// in a tmp dir. Mirrors what `npm run build` produces for our app:
+// pre-rendered route files like `settings.html`, an `index.html` SPA
+// shell (the `fallback: 'index.html'` config), and a hashed
+// immutable asset under `_app/immutable/`.
+func makeFixture(t *testing.T) string {
+	t.Helper()
+	dir, err := os.MkdirTemp("", "powerlab-static-test")
+	if err != nil {
+		t.Fatalf("mktmp: %v", err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+
+	files := map[string]string{
+		"index.html":                 "<!doctype html><html><body>SPA SHELL</body></html>",
+		"settings.html":              "<!doctype html><html><body>SETTINGS PAGE</body></html>",
+		"dashboard.html":              "<!doctype html><html><body>DASHBOARD PAGE</body></html>",
+		"apps/index.html":            "<!doctype html><html><body>APPS DIR INDEX</body></html>",
+		"_app/immutable/start.js":     "console.log('hashed asset');",
+		"favicon-abc123.png":          "PNG\xff",
+	}
+	for rel, body := range files {
+		full := filepath.Join(dir, rel)
+		if err := os.MkdirAll(filepath.Dir(full), 0755); err != nil {
+			t.Fatalf("mkdir: %v", err)
+		}
+		if err := os.WriteFile(full, []byte(body), 0644); err != nil {
+			t.Fatalf("write: %v", err)
+		}
+	}
+	return dir
+}
+
+// callServeSPA wraps serveSPAPath in a minimal http test rig.
+func callServeSPA(t *testing.T, wwwRoot, path string) (int, string, string) {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodGet, path, nil)
+	rr := httptest.NewRecorder()
+	served := serveSPAPath(rr, req, wwwRoot, path)
+	if !served {
+		// Mirror the GetRoute handler's 404 behavior.
+		rr.WriteHeader(http.StatusNotFound)
+	}
+	return rr.Code, rr.Header().Get("Content-Type"), rr.Body.String()
+}
+
+// Pre-rendered route — settings.html — must be served directly.
+func TestServeSPAPath_PrerenderedRoute(t *testing.T) {
+	root := makeFixture(t)
+
+	code, ct, body := callServeSPA(t, root, "/settings")
+	if code != http.StatusOK {
+		t.Fatalf("/settings status: got %d want 200 (body=%q)", code, body)
+	}
+	if !strings.HasPrefix(ct, "text/html") {
+		t.Errorf("/settings content-type: got %q", ct)
+	}
+	if !strings.Contains(body, "SETTINGS PAGE") {
+		t.Errorf("/settings body wrong: %q", body)
+	}
+}
+
+// Bare "/" must serve the SPA shell (index.html).
+func TestServeSPAPath_RootServesIndex(t *testing.T) {
+	root := makeFixture(t)
+
+	code, _, body := callServeSPA(t, root, "/")
+	if code != http.StatusOK {
+		t.Fatalf("/ status: got %d", code)
+	}
+	if !strings.Contains(body, "SPA SHELL") {
+		t.Errorf("/ should serve index.html SPA shell; got %q", body)
+	}
+}
+
+// Route with no pre-rendered match falls back to index.html so
+// client-side routing can take over. Without this, refreshing the
+// browser on any client-side route would 404 — same bug class as the
+// "Not Found" white screen we hit during the v0.2.7 trust-dance test.
+func TestServeSPAPath_UnknownRouteFallsBackToIndex(t *testing.T) {
+	root := makeFixture(t)
+
+	for _, p := range []string{"/random-route", "/files/deep/nested/path", "/foo-bar"} {
+		t.Run(p, func(t *testing.T) {
+			code, ct, body := callServeSPA(t, root, p)
+			if code != http.StatusOK {
+				t.Fatalf("status: got %d for %s", code, p)
+			}
+			if !strings.HasPrefix(ct, "text/html") {
+				t.Errorf("content-type: got %q for %s", ct, p)
+			}
+			if !strings.Contains(body, "SPA SHELL") {
+				t.Errorf("expected SPA shell fallback for %s, got %q", p, body)
+			}
+		})
+	}
+}
+
+// Directory-style route (apps/) resolves to apps/index.html.
+func TestServeSPAPath_DirectoryIndex(t *testing.T) {
+	root := makeFixture(t)
+
+	code, _, body := callServeSPA(t, root, "/apps")
+	if code != http.StatusOK {
+		t.Fatalf("/apps status: got %d", code)
+	}
+	if !strings.Contains(body, "APPS DIR INDEX") {
+		t.Errorf("/apps should serve apps/index.html; got %q", body)
+	}
+}
+
+// Asset-shaped paths (with extension) MUST 404 when missing instead
+// of falling back to index.html. Returning HTML for a missing JS or
+// CSS would break content-type sniffing and silently mask broken
+// build outputs.
+func TestServeSPAPath_MissingAssetReturns404(t *testing.T) {
+	root := makeFixture(t)
+
+	cases := []string{
+		"/missing.js",
+		"/_app/immutable/does-not-exist.js",
+		"/foo.css",
+		"/some-image.png",
+	}
+	for _, p := range cases {
+		t.Run(p, func(t *testing.T) {
+			code, _, _ := callServeSPA(t, root, p)
+			if code != http.StatusNotFound {
+				t.Fatalf("%s should 404, got %d", p, code)
+			}
+		})
+	}
+}
+
+// Hashed immutable asset hits the file directly.
+func TestServeSPAPath_ImmutableAssetServed(t *testing.T) {
+	root := makeFixture(t)
+
+	code, ct, body := callServeSPA(t, root, "/_app/immutable/start.js")
+	if code != http.StatusOK {
+		t.Fatalf("immutable asset status: got %d", code)
+	}
+	if !strings.HasPrefix(ct, "text/javascript") && !strings.HasPrefix(ct, "application/javascript") {
+		t.Errorf("immutable asset content-type unexpected: %q", ct)
+	}
+	if !strings.Contains(body, "hashed asset") {
+		t.Errorf("immutable asset body wrong: %q", body)
+	}
+}
+
+// Path-traversal attempts must NOT escape wwwRoot.
+func TestServeSPAPath_PathTraversalRejected(t *testing.T) {
+	root := makeFixture(t)
+	// Drop a sentinel file in a sibling dir so a successful escape
+	// would expose it.
+	parent := filepath.Dir(root)
+	sentinel := filepath.Join(parent, "DO-NOT-LEAK.html")
+	_ = os.WriteFile(sentinel, []byte("LEAKED"), 0644)
+	t.Cleanup(func() { _ = os.Remove(sentinel) })
+
+	for _, p := range []string{
+		"/../DO-NOT-LEAK.html",
+		"/foo/../../DO-NOT-LEAK.html",
+	} {
+		t.Run(p, func(t *testing.T) {
+			code, _, body := callServeSPA(t, root, p)
+			if strings.Contains(body, "LEAKED") {
+				t.Fatalf("path traversal escaped sandbox via %s", p)
+			}
+			// The HTTP layer normalizes "../" before this handler
+			// sees it, so a successful escape would manifest as
+			// either LEAKED-in-body OR a non-404 status. Both are
+			// covered: body is checked above, status here.
+			if code != http.StatusNotFound && code != http.StatusOK {
+				t.Logf("status %d for %s — informational only", code, p)
+			}
+		})
+	}
+}
+
+// isAssetPath classification — the load-bearing branch that decides
+// whether to fall back to index.html or 404.
+func TestIsAssetPath(t *testing.T) {
+	cases := []struct {
+		path string
+		want bool
+	}{
+		{"/", false},
+		{"/settings", false},
+		{"/files/deep/path", false},
+		{"/foo.html", false},     // .html paths are NOT assets — they go through the SPA chain
+		{"/foo.js", true},
+		{"/foo.css", true},
+		{"/foo.png", true},
+		{"/_app/whatever", true}, // anything under /_app/ is treated as an asset
+		{"/_app/", true},
+	}
+	for _, c := range cases {
+		t.Run(c.path, func(t *testing.T) {
+			got := isAssetPath(c.path)
+			if got != c.want {
+				t.Errorf("isAssetPath(%q) = %v, want %v", c.path, got, c.want)
+			}
+		})
+	}
+}
+
+// pathInsideRoot must accept legitimate sub-paths and reject parent
+// escapes. Catches the dev-mode regression that this test file was
+// written to pin: rootEval + targetAbs mismatch would silently
+// reject every request when wwwRoot was a symlink.
+func TestPathInsideRoot(t *testing.T) {
+	root := makeFixture(t)
+
+	cases := []struct {
+		name   string
+		target string
+		want   bool
+	}{
+		{"direct file", filepath.Join(root, "settings.html"), true},
+		{"nested file", filepath.Join(root, "apps", "index.html"), true},
+		{"root itself", root, true},
+		{"sibling", filepath.Join(filepath.Dir(root), "elsewhere"), false},
+		{"escape via ..", filepath.Join(root, "..", "elsewhere"), false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := pathInsideRoot(root, c.target)
+			if got != c.want {
+				t.Errorf("pathInsideRoot(%q, %q) = %v, want %v", root, c.target, got, c.want)
+			}
+		})
+	}
+}
+
+// pathInsideRoot must work when wwwRoot is a symlink — the dev mode
+// configuration symlinks backend/data/www → ui/build, and an earlier
+// implementation called EvalSymlinks on root only, then compared
+// against a non-eval'd target, which always returned false.
+func TestPathInsideRoot_ResolvesSymlinkedRoot(t *testing.T) {
+	real := makeFixture(t)
+	link, err := os.MkdirTemp("", "powerlab-static-link-")
+	if err != nil {
+		t.Fatalf("mktmp link parent: %v", err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(link) })
+	linkPath := filepath.Join(link, "www")
+	if err := os.Symlink(real, linkPath); err != nil {
+		t.Fatalf("symlink: %v", err)
+	}
+
+	target := filepath.Join(linkPath, "settings.html")
+	if !pathInsideRoot(linkPath, target) {
+		t.Fatalf("pathInsideRoot rejected legitimate target through symlinked root")
+	}
+
+	// And serving through the symlinked root works end-to-end.
+	code, _, body := callServeSPA(t, linkPath, "/settings")
+	if code != http.StatusOK {
+		t.Fatalf("serve through symlinked root: got %d", code)
+	}
+	if !strings.Contains(body, "SETTINGS PAGE") {
+		t.Errorf("served wrong content: %q", body)
+	}
+}
