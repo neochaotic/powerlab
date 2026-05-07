@@ -1008,7 +1008,17 @@
 					<!-- Footer -->
 					<div class="flex items-center justify-between gap-4 border-t border-white/[0.04] pt-6 text-[11px] text-zinc-600">
 						<div class="flex items-center gap-1.5">
-							Crafted with <Heart class="h-3 w-3 text-rose-500/80" fill="currentColor" /> by <span class="text-zinc-400">neochaotic</span>
+							<span>Crafted with</span>
+							<Heart class="h-3 w-3 text-rose-500/80" fill="currentColor" />
+							<span>by</span>
+							<a
+								href="https://github.com/neochaotic"
+								target="_blank"
+								rel="noopener noreferrer"
+								class="text-zinc-400 underline-offset-2 hover:text-emerald-400 hover:underline transition-colors"
+							>
+								neochaotic
+							</a>
 						</div>
 						<span>© {new Date().getFullYear()} PowerLab</span>
 					</div>
