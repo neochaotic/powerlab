@@ -5,6 +5,7 @@
 	import { Save, X, Loader2, FileText } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { fade, scale } from 'svelte/transition';
+	import { t } from '$lib/i18n/index.svelte';
 
 	// CodeMirror 6 imports
 	import { EditorView, basicSetup } from 'codemirror';
@@ -62,7 +63,7 @@
 				content = res.data;
 				readyToInit = true;
 			} else {
-				error = res.message || 'Failed to load file content';
+				error = res.message || t('editor.failedToLoad');
 			}
 		} catch (e) {
 			// Treat 404 as "open new file" — the editor lets the user type
@@ -168,9 +169,9 @@
 				if (wasNew) isNewFile = false;
 				savedContent = currentContent;
 				isDirty = false;
-				toast.success(wasNew ? `Created ${fileName}` : `Saved ${fileName}`, 2000);
+				toast.success(wasNew ? t('editor.createdToast', { name: fileName }) : t('editor.savedToast', { name: fileName }), 2000);
 			} else {
-				toast.error(res.message || 'Failed to save file');
+				toast.error(res.message || t('editor.failedToSave'));
 			}
 		} catch (e) {
 			const apiErr = e as { status?: number; message?: string };
@@ -186,7 +187,7 @@
 	// already inside a modal.
 	function handleCloseRequest() {
 		if (isDirty) {
-			const ok = confirm(`Discard unsaved changes to ${fileName}?`);
+			const ok = confirm(t('editor.discardPrompt', { name: fileName }));
 			if (!ok) return;
 		}
 		onClose();
@@ -214,8 +215,8 @@
 				<div>
 					<h2 class="text-sm font-bold text-white truncate max-w-[300px] flex items-center gap-1.5">
 						<span>{fileName}</span>
-						{#if isDirty}<span class="text-amber-400" title="Unsaved changes">•</span>{/if}
-						{#if isNewFile}<span class="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-bold text-emerald-400 uppercase tracking-wider">New</span>{/if}
+						{#if isDirty}<span class="text-amber-400" title={t('editor.unsavedChanges')}>•</span>{/if}
+						{#if isNewFile}<span class="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-bold text-emerald-400 uppercase tracking-wider">{t('editor.newFileBadge')}</span>{/if}
 					</h2>
 					<p class="text-[10px] font-medium text-zinc-500 uppercase tracking-widest">{path}</p>
 				</div>
@@ -228,7 +229,7 @@
 					onclick={handleCloseRequest}
 					class="text-zinc-400 hover:text-white"
 				>
-					Close
+					{t('action.cancel')}
 				</Button>
 				<Button
 					size="sm"
@@ -238,13 +239,13 @@
 				>
 					{#if saving}
 						<Loader2 class="mr-2 h-3.5 w-3.5 animate-spin" />
-						Saving...
+						{t('editor.saving')}
 					{:else if isNewFile}
 						<Save class="mr-2 h-3.5 w-3.5" />
-						Create
+						{t('files.create')}
 					{:else}
 						<Save class="mr-2 h-3.5 w-3.5" />
-						Save
+						{t('action.save')}
 					{/if}
 				</Button>
 			</div>
@@ -256,7 +257,7 @@
 				<div class="flex h-full items-center justify-center bg-zinc-950">
 					<div class="flex flex-col items-center gap-3">
 						<Loader2 class="h-8 w-8 animate-spin text-emerald-500" />
-						<span class="text-[10px] font-bold uppercase tracking-widest text-zinc-600">Reading file...</span>
+						<span class="text-[10px] font-bold uppercase tracking-widest text-zinc-600">{t('editor.readingFile')}</span>
 					</div>
 				</div>
 			{:else if error}
@@ -264,9 +265,9 @@
 					<div class="mb-4 rounded-full bg-red-500/10 p-4 text-red-500">
 						<X class="h-8 w-8" />
 					</div>
-					<h3 class="text-lg font-bold text-white">Could not open file</h3>
+					<h3 class="text-lg font-bold text-white">{t('editor.couldNotOpenFile')}</h3>
 					<p class="mt-1 text-sm text-zinc-500 max-w-sm">{error}</p>
-					<Button variant="outline" class="mt-6 border-white/10" onclick={onClose}>Close Editor</Button>
+					<Button variant="outline" class="mt-6 border-white/10" onclick={onClose}>{t('editor.closeEditor')}</Button>
 				</div>
 			{:else}
 				<div bind:this={editorContainer} class="h-full w-full"></div>
@@ -277,8 +278,8 @@
 		<div class="flex items-center justify-between border-t border-white/5 bg-zinc-900/30 px-6 py-2">
 			<div class="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-zinc-600">
 				<span>UTF-8</span>
-				<span>{view?.state.doc.lines || 0} Lines</span>
-				<span>{view?.state.doc.length || 0} Chars</span>
+				<span>{view?.state.doc.lines || 0} {t('editor.lines')}</span>
+				<span>{view?.state.doc.length || 0} {t('editor.chars')}</span>
 			</div>
 			{#if error}
 				 <span class="text-[10px] font-bold text-red-500 uppercase tracking-widest">Error: {error}</span>

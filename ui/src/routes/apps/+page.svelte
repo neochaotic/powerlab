@@ -19,6 +19,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { ui } from '$lib/stores/ui.svelte';
+	import { t } from '$lib/i18n/index.svelte';
 
 	const store = useAppStore();
 
@@ -184,8 +185,8 @@
 	});
 
 	function getTitle(titleObj: Record<string, string> | undefined) {
-		if (!titleObj) return 'Unknown';
-		return titleObj['en_us'] || titleObj['en_US'] || Object.values(titleObj)[0] || 'Unknown';
+		if (!titleObj) return t('apps.unknown');
+		return titleObj['en_us'] || titleObj['en_US'] || Object.values(titleObj)[0] || t('apps.unknown');
 	}
 
 	function extractProjectName(yaml: string): string | null {
@@ -204,28 +205,28 @@
 	// Translate raw backend / Docker errors into user-facing messages.
 	// Falls back to the raw text if nothing matches.
 	function humanizeError(raw: string): string {
-		if (!raw) return 'Installation failed';
+		if (!raw) return t('apps.errorInstallation');
 		const r = raw.toLowerCase();
 		if (r.includes('mkdir') && r.includes('/dev/')) {
-			return 'This app needs Linux-only kernel devices (e.g. /dev/net/tun for VPN apps) that aren\'t available on this system.';
+			return t('apps.errorLinuxOnly');
 		}
 		if (r.includes('no matching manifest') || r.includes('no matching distribution')) {
-			return 'This app is not available for your CPU architecture.';
+			return t('apps.errorArch');
 		}
 		if (r.includes('pull access denied') || r.includes('repository does not exist')) {
-			return 'The Docker image could not be pulled. It may have been removed or is no longer public.';
+			return t('apps.errorPull');
 		}
 		if (r.includes('port is already allocated') || r.includes('bind: address already in use')) {
-			return 'Another service is using a port this app needs. Try restarting and reinstalling.';
+			return t('apps.errorPortAlloc');
 		}
 		if (r.includes('extension') && r.includes('not found')) {
-			return 'This Compose file is missing the x-powerlab (or x-casaos) manifest required by PowerLab.';
+			return t('apps.errorManifest');
 		}
 		if (r.includes('compose app') && r.includes('is already being installed')) {
-			return 'This app is already installing. Wait for it to finish before trying again.';
+			return t('apps.errorAlreadyInstalling');
 		}
 		if (r.includes('network error')) {
-			return 'Could not reach the backend. Check that the PowerLab service is running.';
+			return t('apps.errorBackend');
 		}
 		// Truncate very long stack traces
 		if (raw.length > 240) return raw.slice(0, 240) + '…';
@@ -501,7 +502,7 @@
 			installPhase = 'starting';
 			streamInstallLogs(app.id);
 		} catch (e) {
-			installError = humanizeError((e as Error).message ?? 'Update failed');
+			installError = humanizeError((e as Error).message ?? t('apps.errorUpdate'));
 			installPhase = 'error';
 		}
 	}
@@ -562,7 +563,7 @@
 			deleteData = false;
 			await store.fetchInstalledApps();
 		} catch (e) {
-			installError = (e as Error).message ?? 'Uninstall failed';
+			installError = (e as Error).message ?? t('apps.errorUninstall');
 		}
 	}
 
@@ -600,7 +601,7 @@
 </script>
 
 <svelte:head>
-	<title>Store — PowerLab</title>
+	<title>{t('apps.appStore')} — PowerLab</title>
 </svelte:head>
 
 <svelte:window onkeydown={onGlobalKey} />
@@ -612,16 +613,16 @@
 		<div class="flex items-center gap-3">
 			<a
 				href="/"
-				aria-label="Back to Launchpad"
-				title="Back to Launchpad"
+				aria-label={t('apps.backToLaunchpad')}
+				title={t('apps.backToLaunchpad')}
 				class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.02] text-zinc-400 transition-all hover:-translate-x-0.5 hover:border-white/10 hover:bg-white/[0.05] hover:text-white"
 			>
 				<ArrowLeft class="h-4 w-4" />
 			</a>
 			<div>
-				<h1 class="text-xl font-bold tracking-tight text-white">App Store</h1>
+				<h1 class="text-xl font-bold tracking-tight text-white">{t('apps.appStore')}</h1>
 				<p class="text-xs text-zinc-500">
-					{store.appStoreCatalog.length > 0 ? `${store.appStoreCatalog.length} apps available` : 'Loading catalog…'}
+					{store.appStoreCatalog.length > 0 ? `${store.appStoreCatalog.length} ${t('apps.appsAvailable')}` : t('apps.loadingCatalog')}
 				</p>
 			</div>
 		</div>
@@ -629,7 +630,7 @@
 			href="/apps/new"
 			class="flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-4 text-xs font-semibold text-zinc-300 transition-colors hover:border-white/20 hover:text-white"
 		>
-			<Pencil class="h-3 w-3" /> Custom App
+			<Pencil class="h-3 w-3" /> {t('apps.customApp')}
 		</a>
 	</div>
 
@@ -642,7 +643,7 @@
 			)}
 			onclick={() => { currentTab = 'store'; }}
 		>
-			Discover
+			{t('apps.discover')}
 			{#if currentTab === 'store'}
 				<span class="absolute bottom-0 left-0 right-0 h-px bg-white"></span>
 			{/if}
@@ -654,7 +655,7 @@
 			)}
 			onclick={() => { currentTab = 'installed'; }}
 		>
-			Installed
+			{t('apps.installed')}
 			{#if store.installedApps.length > 0}
 				<span class="ml-1.5 rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-bold text-zinc-400">
 					{store.installedApps.length}
@@ -676,14 +677,14 @@
 					bind:this={searchEl}
 					bind:value={searchQuery}
 					type="search"
-					placeholder="Search apps…"
+					placeholder={t('apps.searchPlaceholder')}
 					class="h-9 w-full rounded-xl border border-white/8 bg-white/5 pl-9 pr-12 text-sm text-white placeholder:text-zinc-500 focus:border-white/20 focus:outline-none focus:ring-0 transition-colors"
 				/>
 				{#if searchQuery}
 					<button
 						class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
 						onclick={clearSearch}
-						aria-label="Clear search"
+						aria-label={t('apps.clearSearch')}
 					>
 						<X class="h-3.5 w-3.5" />
 					</button>
@@ -705,7 +706,7 @@
 							: 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white'
 					)}
 					onclick={() => { activeCategory = null; }}
-				>All</button>
+				>{t('apps.categoryAll')}</button>
 				{#each categories as cat}
 					<button
 						class={cn(
@@ -723,7 +724,10 @@
 		<!-- Results count when searching -->
 		{#if searchQuery}
 			<p class="px-8 pb-3 text-xs text-zinc-500">
-				{filteredCatalog.length} result{filteredCatalog.length !== 1 ? 's' : ''} for
+				{filteredCatalog.length === 1 
+					? t('apps.resultsForSingular', { count: String(filteredCatalog.length) })
+					: t('apps.resultsFor', { count: String(filteredCatalog.length) })
+				} {t('apps.for')}
 				<span class="text-zinc-300">"{searchQuery}"</span>
 			</p>
 		{/if}
@@ -732,7 +736,7 @@
 		{#if store.error || installError}
 			<div class="mx-8 mb-4 rounded-xl bg-red-500/10 px-4 py-2.5 text-xs text-red-400">
 				{store.error ?? installError}
-				<button class="ml-2 underline opacity-60 hover:opacity-100" onclick={() => { installError = null; }}>Dismiss</button>
+				<button class="ml-2 underline opacity-60 hover:opacity-100" onclick={() => { installError = null; }}>{t('action.cancel')}</button>
 			</div>
 		{/if}
 
@@ -758,10 +762,10 @@
 			{:else if filteredCatalog.length === 0}
 				<div class="flex flex-col items-center justify-center py-24 text-zinc-500">
 					<Search class="mb-3 h-8 w-8 opacity-30" />
-					<p class="text-sm">No apps found{searchQuery ? ` for "${searchQuery}"` : ''}.</p>
+					<p class="text-sm">{t('apps.noAppsFound')}{searchQuery ? ` for "${searchQuery}"` : ''}.</p>
 					{#if searchQuery}
 						<button class="mt-2 text-xs text-zinc-400 hover:text-white" onclick={clearSearch}>
-							Clear search
+							{t('apps.clearSearch')}
 						</button>
 					{/if}
 				</div>
@@ -795,7 +799,7 @@
 							<div class="min-w-0 flex-1">
 								<p class="truncate text-sm font-semibold text-white">{appTitle}</p>
 								<p class="truncate text-xs text-zinc-500">{app.developer || app.author || ''}</p>
-								{#if appTagline && appTagline !== 'Unknown'}
+								{#if appTagline && appTagline !== t('apps.unknown')}
 									<p class="mt-0.5 line-clamp-1 text-[11px] text-zinc-600">{appTagline}</p>
 								{/if}
 							</div>
@@ -804,7 +808,7 @@
 								class="shrink-0 rounded-full border border-white/10 bg-white/5 px-3.5 py-1 text-xs font-semibold text-white transition-all hover:border-white/25 hover:bg-white/10 active:scale-95"
 								onclick={(e) => { e.stopPropagation(); requestInstall(app); }}
 							>
-								Get
+								{t('apps.get')}
 							</button>
 						</div>
 					{/each}
@@ -848,7 +852,7 @@
 											class="shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-0.5 text-[11px] font-bold text-white transition-all hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-400 active:scale-95"
 											onclick={(e) => { e.stopPropagation(); requestInstall(app); }}
 										>
-											Get
+											{t('apps.get')}
 										</button>
 									</div>
 									<p class="mt-0.5 truncate text-[11px] text-zinc-500">{app.developer || app.author || ''}</p>
@@ -881,15 +885,15 @@
 					<div class="relative h-20 w-20 flex items-center justify-center rounded-3xl bg-white/[0.02] border border-white/5 shadow-inner transition-transform duration-500 group-hover:scale-110 mb-6">
 						<Boxes class="h-10 w-10 text-zinc-500 group-hover:text-emerald-500 transition-colors duration-500" strokeWidth={1} />
 					</div>
-					<h3 class="text-lg font-black text-white tracking-tight mb-2">Build your Lab</h3>
+					<h3 class="text-lg font-black text-white tracking-tight mb-2">{t('apps.buildYourLab')}</h3>
 					<p class="text-sm text-zinc-500 max-w-[240px] leading-relaxed mb-8">
-						Your server is empty. Explore the App Store to install your first container.
+						{t('apps.emptyServerDesc')}
 					</p>
 					<button
 						class="flex items-center gap-2 rounded-xl bg-emerald-500 px-6 py-2.5 text-xs font-black uppercase tracking-widest text-zinc-950 transition-all hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-95"
 						onclick={() => { currentTab = 'store'; }}
 					>
-						Browse the Store
+						{t('apps.browseTheStore')}
 						<ArrowRight class="h-4 w-4" />
 					</button>
 				</div>
@@ -921,22 +925,22 @@
 									{#if ispl}
 										<span class="shrink-0 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-px text-[9px] font-bold uppercase tracking-widest text-emerald-400">PowerLab</span>
 									{:else}
-										<span class="shrink-0 rounded-full border border-amber-500/20 bg-amber-500/10 px-1.5 py-px text-[9px] font-bold uppercase tracking-widest text-amber-400">Custom</span>
+										<span class="shrink-0 rounded-full border border-amber-500/20 bg-amber-500/10 px-1.5 py-px text-[9px] font-bold uppercase tracking-widest text-amber-400">{t('launchpad.custom')}</span>
 									{/if}
 
 									{#if app.update_available}
 										<button 
 											class="shrink-0 rounded-full bg-emerald-500/20 px-1.5 py-px text-[9px] font-black uppercase tracking-wider text-emerald-500 border border-emerald-500/30 hover:bg-emerald-500 hover:text-zinc-950 transition-all shadow-[0_0_10px_rgba(16,185,129,0.1)] active:scale-95"
 											onclick={() => confirmingUpdate = app}
-											title="Show update details"
+											title={t('apps.updateDetails')}
 										>
-											Update Available
+											{t('apps.updateAvailableBadge')}
 										</button>
 									{/if}
 								</div>
 								<p class="text-xs text-zinc-500">
 									<span class={cn("mr-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle", isRunning ? 'bg-emerald-500' : 'bg-zinc-600')}></span>
-									{isRunning ? 'Running' : 'Stopped'}
+									{isRunning ? t('status.running') : t('status.stopped')}
 									{#if info.port_map}· port {info.port_map}{/if}
 									<span class="ml-2 rounded-md bg-white/[0.03] px-1.5 py-0.5 text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{formatSize(store.getDiskUsage(app.id) || 0)}</span>
 								</p>
@@ -946,7 +950,7 @@
 							<div class="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
 								<button
 									class="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-white/5 hover:text-white"
-									title={isRunning ? 'Stop' : 'Start'}
+									title={isRunning ? t('action.stop') : t('action.start')}
 									onclick={() => store.toggleAppStatus(app.id, app.status)}
 								>
 									{#if isRunning}
@@ -957,21 +961,21 @@
 								</button>
 								<button
 									class="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-white/5 hover:text-white"
-									title="Metrics"
+									title={t('apps.metrics')}
 									onclick={() => openMetrics(info.store_app_id)}
 								>
 									<Activity class="h-3.5 w-3.5" />
 								</button>
 								<button
 									class="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-white/5 hover:text-white"
-									title="Logs"
+									title={t('apps.logs')}
 									onclick={() => openLogs(info.store_app_id)}
 								>
 									<ScrollText class="h-3.5 w-3.5" />
 								</button>
 								<button
 									class="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-white/5 hover:text-white"
-									title={ispl ? 'Fork as Custom App' : 'Edit'}
+									title={ispl ? t('launchpad.forkApp') : t('launchpad.editApp')}
 									onclick={() => handleEdit(info.store_app_id, ispl)}
 								>
 									{#if ispl}
@@ -982,7 +986,7 @@
 								</button>
 								<button
 									class="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
-									title="Uninstall"
+									title={t('apps.uninstall')}
 									onclick={() => { confirmingUninstall = info.store_app_id; }}
 								>
 									<Trash2 class="h-3.5 w-3.5" />
@@ -1021,7 +1025,7 @@
 				</div>
 			</div>
 			<p class="mb-4 text-sm text-zinc-400">
-				This will pull the Docker image and start the container.
+				{t('apps.pullingImage')}
 			</p>
 
 			{#if pendingInstallApp.tips?.before_install && getTitle(pendingInstallApp.tips.before_install)}
@@ -1036,7 +1040,7 @@
 					<div class="flex items-start gap-2">
 						<AlertCircle class="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-400/90" />
 						<div class="flex-1 min-w-0">
-							<p class="mb-1 text-[10px] font-bold uppercase tracking-widest text-amber-400">First-run note</p>
+							<p class="mb-1 text-[10px] font-bold uppercase tracking-widest text-amber-400">{t('apps.firstRunNote')}</p>
 							<div class="text-[11px] leading-relaxed text-amber-100/80 whitespace-pre-wrap break-words">{getTitle(pendingInstallApp.tips.before_install)}</div>
 						</div>
 					</div>
@@ -1046,12 +1050,12 @@
 			{#if isCheckingCompatibility}
 				<div class="mb-5 flex items-center gap-2 rounded-xl bg-white/5 p-3 text-xs text-zinc-500">
 					<Loader2 class="h-3 w-3 animate-spin" />
-					Checking compatibility…
+					{t('status.loading')}…
 				</div>
 			{:else}
 				{#if compatibilityWarnings.length > 0}
 					<div class="mb-3 space-y-2">
-						<p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Compatibility Warnings</p>
+						<p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('apps.compatibilityWarnings')}</p>
 						<div class="space-y-1.5">
 							{#each compatibilityWarnings as warning}
 								<div class="flex items-start gap-2 rounded-xl bg-amber-500/10 p-2.5 text-[11px] leading-tight text-amber-200/80 border border-amber-500/10">
@@ -1065,7 +1069,7 @@
 
 				{#if portChoices.length > 0}
 					<div class="mb-3 space-y-2">
-						<p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Port Conflicts</p>
+						<p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('apps.portConflicts')}</p>
 						<div class="space-y-2">
 							{#each portChoices as choice}
 								<div class="flex items-center gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
@@ -1106,8 +1110,8 @@
 						</div>
 						<p class="px-1 text-[10px] text-zinc-600">
 							{portsResolved
-								? 'All chosen ports are free. Install will use these.'
-								: 'Edit the highlighted ports or click Auto to pick the next free one.'}
+								? t('apps.portsFreeDesc')
+								: t('apps.editPortsDesc')}
 						</p>
 					</div>
 				{/if}
@@ -1123,7 +1127,7 @@
 					disabled={isCheckingCompatibility || !portsResolved}
 					onclick={executeInstall}
 				>
-					{hasCriticalWarning ? 'Install Anyway' : 'Install'}
+					{hasCriticalWarning ? t('apps.installAnyway') : t('action.start')}
 				</Button>
 			</div>
 		</div>
@@ -1135,12 +1139,12 @@
 		<div class="w-full max-w-sm rounded-t-[2rem] border border-white/8 bg-zinc-900 p-6 sm:rounded-2xl">
 			<div class="mb-2 flex items-center gap-2">
 				<Pencil class="h-4 w-4 text-amber-400" />
-				<p class="font-semibold text-white">Fork as Custom App</p>
+				<p class="font-semibold text-white">{t('launchpad.forkApp')}</p>
 			</div>
 			<p class="mb-1 text-sm text-zinc-400">
-				Your edits will be saved as a <span class="text-amber-400">Custom App</span>. The original PowerLab version stays unchanged.
+				{t('launchpad.forkDesc')}
 			</p>
-			<p class="mb-5 text-xs text-zinc-600">Give it a unique name in the editor before deploying.</p>
+			<p class="mb-5 text-xs text-zinc-600">{t('apps.forkUniqueName')}</p>
 			<div class="flex gap-2">
 				<Button variant="ghost" class="flex-1 rounded-xl" onclick={() => { forkingAppId = null; }}>Cancel</Button>
 				<Button class="flex-1 rounded-xl bg-amber-500 text-black hover:bg-amber-400 font-bold" onclick={confirmFork}>Open Editor</Button>
@@ -1152,8 +1156,8 @@
 {#if confirmingUninstall}
 	<div class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
 		<div class="w-full max-w-sm rounded-t-[2rem] border border-white/8 bg-zinc-900 p-6 sm:rounded-2xl">
-			<p class="mb-1 font-semibold text-white">Uninstall App</p>
-			<p class="mb-4 text-sm text-zinc-400">Remove this app and its containers?</p>
+			<p class="mb-1 font-semibold text-white">{t('apps.uninstall')}</p>
+			<p class="mb-4 text-sm text-zinc-400">{t('apps.removeAppDesc')}</p>
 			
 			<label class="mb-6 flex cursor-pointer items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.04]">
 				<input 
@@ -1162,8 +1166,8 @@
 					class="h-4 w-4 rounded border-zinc-700 bg-zinc-800 text-red-600 focus:ring-red-600 focus:ring-offset-zinc-900" 
 				/>
 				<div class="flex flex-col">
-					<span class="text-xs font-bold text-white uppercase tracking-wider">Delete app data</span>
-					<span class="text-[10px] text-zinc-500">This will permanently remove all configuration and files.</span>
+					<span class="text-xs font-bold text-white uppercase tracking-wider">{t('apps.deleteData')}</span>
+					<span class="text-[10px] text-zinc-500">{t('apps.deleteAppDataDesc')}</span>
 				</div>
 			</label>
 
@@ -1197,19 +1201,19 @@
 				{#if installPhase === 'installing' || installPhase === 'starting'}
 					<Loader2 class="h-3 w-3 animate-spin text-emerald-500" />
 					<span class="text-[11px] font-bold text-white truncate max-w-[160px]">
-						Installing {getTitle(installingApp?.title ?? {})}…
+						{t('apps.installingApp')} {getTitle(installingApp?.title ?? {})}…
 					</span>
 				{:else if installPhase === 'success'}
 					<CheckCircle2 class="h-3 w-3 text-emerald-500" />
-					<span class="text-[11px] font-bold text-emerald-400">Installed</span>
+					<span class="text-[11px] font-bold text-emerald-400">{t('apps.success')}</span>
 				{:else if installPhase === 'error'}
 					<AlertCircle class="h-3 w-3 text-red-500" />
-					<span class="text-[11px] font-bold text-red-400">Failed</span>
+					<span class="text-[11px] font-bold text-red-400">{t('apps.error')}</span>
 				{:else}
-					<span class="text-[11px] font-bold text-amber-400">Taking longer than expected</span>
+					<span class="text-[11px] font-bold text-amber-400">{t('apps.takingLonger')}</span>
 				{/if}
 			</div>
-			<div class="text-[10px] text-zinc-500">Click to expand</div>
+			<div class="text-[10px] text-zinc-500">{t('apps.clickToExpand')}</div>
 		</div>
 	</button>
 {/if}
@@ -1264,28 +1268,28 @@
 			<div class="shrink-0">
 				<p class="text-lg font-bold text-white">
 					{#if installPhase === 'success'}
-						{getTitle(installingApp?.title ?? {})} is running
+						{getTitle(installingApp?.title ?? {})} {t('apps.appRunning')}
 					{:else if installPhase === 'error'}
-						Installation failed
+						{t('apps.error')}
 					{:else if installPhase === 'timeout'}
-						Taking longer than expected
+						{t('apps.takingLonger')}
 					{:else}
-						Installing {getTitle(installingApp?.title ?? {})}…
+						{t('apps.installingApp')} {getTitle(installingApp?.title ?? {})}…
 					{/if}
 				</p>
 				{#if installPhase === 'installing'}
-					<p class="mt-1 text-sm text-zinc-500">Preparing installation…</p>
+					<p class="mt-1 text-sm text-zinc-500">{t('apps.preparingInstallation')}</p>
 				{:else if installPhase === 'starting'}
-					<p class="mt-1 text-sm text-zinc-500">Pulling Docker image and starting containers</p>
+					<p class="mt-1 text-sm text-zinc-500">{t('apps.pullingImage')}</p>
 				{:else if installPhase === 'success'}
-					<p class="mt-1 text-sm text-zinc-500">App is running and available on your Launchpad.</p>
+					<p class="mt-1 text-sm text-zinc-500">{t('apps.appRunningDesc')}</p>
 					{#if installPortNote}
 						<p class="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-400">
 							{installPortNote}
 						</p>
 					{/if}
 				{:else if installPhase === 'timeout'}
-					<p class="mt-1 text-sm text-zinc-400">The install is still running in the background. Check your Launchpad in a few minutes.</p>
+					<p class="mt-1 text-sm text-zinc-400">{t('apps.installInBackground')}</p>
 				{:else if installPhase === 'error'}
 					<p class="mt-2 max-w-xs rounded-xl bg-red-950/50 px-4 py-2 text-xs leading-relaxed text-red-400">{installError}</p>
 				{/if}
@@ -1296,7 +1300,7 @@
 				<div class="w-full max-w-lg shrink overflow-hidden rounded-2xl border border-white/[0.06] bg-black/40">
 					<div class="flex items-center gap-2 border-b border-white/[0.06] px-3 py-2">
 						<div class="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500"></div>
-						<span class="font-mono text-[10px] text-zinc-500">install log</span>
+						<span class="font-mono text-[10px] text-zinc-500">{t('apps.installLog')}</span>
 					</div>
 					<pre
 						bind:this={installLogEl}
@@ -1317,21 +1321,21 @@
 				{#if installPhase === 'success'}
 					<div class="mt-8 flex gap-3">
 						<Button class="flex-1 rounded-xl bg-emerald-500 text-black font-bold hover:bg-emerald-400" onclick={() => { installPhase = 'idle'; goto('/'); }}>
-							Open Launchpad
+							{t('apps.backToLaunchpad')}
 						</Button>
 						<Button variant="outline" class="flex-1 rounded-xl border-white/10" onclick={() => { installPhase = 'idle'; }}>
-							Stay in Store
+							{t('apps.stayInStore')}
 						</Button>
 					</div>
 				{:else if installPhase === 'error'}
-					<Button variant="ghost" class="flex-1 rounded-xl" onclick={closeInstallOverlay}>Dismiss</Button>
+					<Button variant="ghost" class="flex-1 rounded-xl" onclick={closeInstallOverlay}>{t('action.cancel')}</Button>
 					<Button class="flex-1 rounded-xl" onclick={() => { pendingInstallApp = installingApp; closeInstallOverlay(); setTimeout(() => installPhase = 'confirm', 50); }}>
-						Retry
+						{t('apps.retry')}
 					</Button>
 				{:else if installPhase === 'timeout'}
-					<Button class="flex-1 rounded-xl" onclick={closeInstallOverlay}>Check Launchpad</Button>
+					<Button class="flex-1 rounded-xl" onclick={closeInstallOverlay}>{t('apps.checkLaunchpad')}</Button>
 				{:else}
-					<Button variant="ghost" class="flex-1 rounded-xl text-zinc-600" onclick={closeInstallOverlay}>Cancel</Button>
+					<Button variant="ghost" class="flex-1 rounded-xl text-zinc-600" onclick={closeInstallOverlay}>{t('action.cancel')}</Button>
 				{/if}
 			</div>
 		</div>
@@ -1393,7 +1397,7 @@
 				<!-- Screenshots Carrousel -->
 				{#if detailApp.screenshot_link && detailApp.screenshot_link.length > 0}
 					<div class="mt-10 overflow-hidden">
-						<h3 class="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Preview</h3>
+						<h3 class="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">{t('apps.preview')}</h3>
 						<div class="flex gap-4 overflow-x-auto pb-2 scrollbar-none" style="scrollbar-width: none">
 							{#each detailApp.screenshot_link as shot}
 								<img src={shot} alt="Screenshot" class="h-48 rounded-2xl border border-white/10 bg-white/[0.02] shadow-lg" />
@@ -1404,7 +1408,7 @@
 
 				<!-- Description Section -->
 				<div class="mt-10">
-					<h3 class="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">About this App</h3>
+					<h3 class="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">{t('apps.aboutThisApp')}</h3>
 					<Markdown content={appDesc} />
 				</div>
 
@@ -1414,7 +1418,7 @@
 						 etc. Rendered as markdown so apps that already use
 						 bullet lists / code spans display correctly. -->
 					<div class="mt-10">
-						<h3 class="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">First-run note</h3>
+						<h3 class="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">{t('apps.firstRunNote')}</h3>
 						<div class="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-5">
 							<Markdown content={detailApp.tips.custom} />
 						</div>
@@ -1423,7 +1427,7 @@
 
 				{#if detailApp.tips?.before_install && getTitle(detailApp.tips.before_install)}
 					<div class="mt-6">
-						<h3 class="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Before you install</h3>
+						<h3 class="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">{t('apps.beforeYouInstall')}</h3>
 						<div class="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-5 text-sm leading-relaxed text-amber-100/80 whitespace-pre-wrap break-words">{getTitle(detailApp.tips.before_install)}</div>
 					</div>
 				{/if}
@@ -1433,8 +1437,8 @@
 			<div class="border-t border-white/[0.08] bg-white/[0.02] p-6 backdrop-blur-xl">
 				<div class="flex items-center justify-between gap-4">
 					<div class="hidden sm:block">
-						<p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Open Source</p>
-						<p class="text-xs text-zinc-400">Verified and secure installation</p>
+						<p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('apps.openSource')}</p>
+						<p class="text-xs text-zinc-400">{t('apps.verifiedInstallation')}</p>
 					</div>
 					<Button 
 						class="h-12 w-full sm:w-40 rounded-2xl bg-white text-zinc-950 font-bold hover:bg-emerald-500 hover:text-zinc-950 transition-all shadow-[0_8px_24px_rgba(255,255,255,0.15)] active:scale-95"
@@ -1444,7 +1448,7 @@
 							if (app) requestInstall(app); 
 						}}
 					>
-						Get App
+						{t('apps.get')}
 					</Button>
 				</div>
 			</div>
@@ -1462,15 +1466,15 @@
 					<ArrowUpCircle class="h-10 w-10" />
 				</div>
 
-				<h2 class="mb-2 text-2xl font-black tracking-tight text-white">Update Available</h2>
+				<h2 class="mb-2 text-2xl font-black tracking-tight text-white">{t('apps.updateAvailable')}</h2>
 				<p class="mb-8 text-sm font-medium text-zinc-400">
-					A new version of <span class="text-white font-bold">{getTitle(confirmingUpdate.store_info.title)}</span> is ready to be installed.
+					{t('apps.updatePrompt', { title: getTitle(confirmingUpdate.store_info.title) })}
 				</p>
 
 				<div class="mb-10 w-full space-y-3 rounded-2xl bg-white/[0.03] border border-white/5 p-4">
 					<div class="flex items-center justify-between">
-						<span class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Type</span>
-						<span class="text-xs font-bold text-emerald-400">Rolling Update</span>
+						<span class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('apps.type')}</span>
+						<span class="text-xs font-bold text-emerald-400">{t('apps.rollingUpdate')}</span>
 					</div>
 					<div class="h-px bg-white/5"></div>
 					<div class="flex items-center justify-between">
@@ -1491,7 +1495,7 @@
 						class="flex-1 rounded-2xl h-12 bg-emerald-500 text-zinc-950 hover:bg-emerald-400 font-black shadow-[0_0_20px_rgba(16,185,129,0.2)]" 
 						onclick={handleUpdate}
 					>
-						Update Now
+						{t('apps.updateNow')}
 					</Button>
 				</div>
 			</div>

@@ -123,7 +123,11 @@ assert_all_active_no_restart || fail "scenario A: services unhealthy after insta
 # bundle even though the backend was 0.2.5.
 EXPECTED_UI_VERSION=$(run_in_container "awk -F'\"' '/VERSION/ {print \$2}' /etc/powerlab/version 2>/dev/null")
 [[ -n "$EXPECTED_UI_VERSION" ]] || fail "scenario A: /etc/powerlab/version empty/missing"
-SEEN_VERSIONS=$(run_in_container "grep -roh '0\\.[0-9]\\+\\.[0-9]\\+' /usr/share/powerlab/www/_app/ 2>/dev/null | sort -u" || true)
+# Match the full SemVer string including any pre-release suffix like
+# `-rc1` or `-beta.2`. The previous regex stopped at digits and falsely
+# flagged a `0.2.7-rc1` backend against a `0.2.7-rc1` bundle as a
+# mismatch (it captured only `0.2.7`).
+SEEN_VERSIONS=$(run_in_container "grep -roh '0\\.[0-9]\\+\\.[0-9]\\+\\(-[a-zA-Z0-9.]\\+\\)\\?' /usr/share/powerlab/www/_app/ 2>/dev/null | sort -u" || true)
 echo "$SEEN_VERSIONS" | grep -qx "$EXPECTED_UI_VERSION" \
   || fail "scenario A: UI bundle version mismatch — backend says $EXPECTED_UI_VERSION, bundle has $(echo $SEEN_VERSIONS | tr -s ' ')"
 green "  → UI bundle stamped $EXPECTED_UI_VERSION (matches backend)"
@@ -383,6 +387,19 @@ echo "$PORTLOG" | grep -q "8775 → 200" || { echo "$PORTLOG"; fail "scenario A:
 echo "$PORTLOG" | grep -q "8765 → 000" || { echo "$PORTLOG"; fail "scenario A: old port 8765 still alive after change"; }
 echo "$PORTLOG" | grep -q '"data":"8775"' || { echo "$PORTLOG"; fail "scenario A: /v1/gateway/port did not report 8775"; }
 green "  → port change moves listener (8765 → 8775, /v1/gateway/port reports new value)"
+
+# Revert back to 8765 so subsequent assertions (HTTPS contract,
+# scenarios B/C) find the gateway where they expect.
+run_in_container "
+  curl -fsS -X PUT 'http://localhost:8775/v1/gateway/port' \
+    -H 'Authorization: $TOKEN' -H 'Content-Type: application/json' \
+    -d '{\"port\":\"8765\"}' >/dev/null 2>&1
+  for i in 1 2 3 4 5; do
+    [[ \"\$(curl -sS -m 1 -o /dev/null -w '%{http_code}' http://localhost:8765/ping 2>/dev/null || echo 000)\" == '200' ]] && break
+    sleep 1
+  done
+" >/dev/null
+green "  → port reverted to 8765 for downstream assertions"
 
 # HTTPS / Local CA (#43, v0.2.7). These assertions describe the
 # contract that scripts/test-linux-e2e.sh should enforce once the

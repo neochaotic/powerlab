@@ -17,7 +17,8 @@
 	import { updaterStore } from '$lib/stores/updater.svelte';
 	import { getCurrentOS, type OS } from '$lib/utils/os';
 	import { probePortReachable } from '$lib/utils/probe';
-	import { Download } from 'lucide-svelte';
+	import { setLocale, getLocale, availableLocales } from '$lib/i18n/index.svelte';
+	import { Download, Languages } from 'lucide-svelte';
 
 	const store = useSettingsStore();
 
@@ -408,10 +409,34 @@
 						</p>
 					</section>
 
-					<!-- Timezone -->
+					<!-- Locale: language + timezone -->
 					<section class="mb-8">
 						<h3 class="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Locale</h3>
-						<div class="rounded-2xl border border-white/5 bg-white/[0.02]">
+						<div class="rounded-2xl border border-white/5 bg-white/[0.02] divide-y divide-white/[0.04]">
+							<!-- Language. The first time the user lands here, we
+								 honor their browser locale; once they pick from
+								 this dropdown the choice persists to localStorage
+								 (powerlab_locale) and survives a refresh. The
+								 picker also forces a re-render so the surrounding
+								 text updates immediately, no reload required. -->
+							<div class="flex items-center justify-between gap-4 px-5 py-4">
+								<div class="flex items-center gap-3">
+									<Languages class="h-4 w-4 text-zinc-500" />
+									<div>
+										<p class="text-sm font-medium text-white">Language</p>
+										<p class="mt-0.5 text-xs text-zinc-500">Display language for the panel UI.</p>
+									</div>
+								</div>
+								<select
+									class="rounded-lg border border-white/8 bg-white/[0.03] px-3 py-1.5 text-xs text-white outline-none focus:border-emerald-500/40"
+									value={getLocale()}
+									onchange={(e) => setLocale(e.currentTarget.value)}
+								>
+									{#each availableLocales as opt}
+										<option value={opt.id}>{opt.label}</option>
+									{/each}
+								</select>
+							</div>
 							<div class="flex items-center justify-between gap-4 px-5 py-4">
 								<div class="flex items-center gap-3">
 									<Clock class="h-4 w-4 text-zinc-500" />
@@ -983,7 +1008,17 @@
 					<!-- Footer -->
 					<div class="flex items-center justify-between gap-4 border-t border-white/[0.04] pt-6 text-[11px] text-zinc-600">
 						<div class="flex items-center gap-1.5">
-							Crafted with <Heart class="h-3 w-3 text-rose-500/80" fill="currentColor" /> by <span class="text-zinc-400">neochaotic</span>
+							<span>Crafted with</span>
+							<Heart class="h-3 w-3 text-rose-500/80" fill="currentColor" />
+							<span>by</span>
+							<a
+								href="https://github.com/neochaotic"
+								target="_blank"
+								rel="noopener noreferrer"
+								class="text-zinc-400 underline-offset-2 hover:text-emerald-400 hover:underline transition-colors"
+							>
+								neochaotic
+							</a>
 						</div>
 						<span>© {new Date().getFullYear()} PowerLab</span>
 					</div>

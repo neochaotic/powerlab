@@ -11,6 +11,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { fade } from 'svelte/transition';
+	import { t } from '$lib/i18n/index.svelte';
 
 	let yamlText = $state(`version: '3.8'
 services:
@@ -303,7 +304,7 @@ services:
 				yamlText = yamlContent;
 				syncYamlToForm();
 			} catch (e) {
-				error = `Failed to load app: ${(e as Error).message}`;
+				error = t('orchestrator.loadAppFailed', { error: (e as Error).message });
 			} finally {
 				isDeploying = false;
 			}
@@ -339,12 +340,12 @@ services:
 			// and forced a context switch the user might not want.
 			deployResult = {
 				success: true,
-				message: response?.message || 'Deployment started successfully!'
+				message: response?.message || t('orchestrator.deploymentStarted')
 			};
 		} catch (e) {
 			deployResult = {
 				success: false,
-				message: (e as Error).message || 'Failed to start deployment'
+				message: (e as Error).message || t('orchestrator.deploymentStartFailed')
 			};
 			error = (e as Error).message;
 		} finally {
@@ -358,7 +359,7 @@ services:
 </script>
 
 <svelte:head>
-	<title>Custom App — PowerLab</title>
+	<title>{t('orchestrator.newCustomApp')} — PowerLab</title>
 </svelte:head>
 
 <div class="flex h-full flex-col text-zinc-50 font-sans antialiased">
@@ -367,17 +368,17 @@ services:
 		<div class="flex items-center gap-6">
 			<a
 				href="/"
-				aria-label="Back to Launchpad"
-				title="Back to Launchpad"
+				aria-label={t('orchestrator.backToLaunchpad')}
+				title={t('orchestrator.backToLaunchpad')}
 				class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.02] text-zinc-400 transition-all hover:-translate-x-0.5 hover:border-white/10 hover:bg-white/[0.05] hover:text-white"
 			>
 				<ArrowLeft class="h-4 w-4" />
 			</a>
 			<div class="flex flex-col">
 				<h1 class="text-sm font-bold tracking-tight text-white">
-					{isFork ? 'Fork as Custom App' : ($page.url.searchParams.get('id') ? 'Edit Custom App' : 'New Custom App')}
+					{isFork ? t('orchestrator.forkCustomApp') : ($page.url.searchParams.get('id') ? t('orchestrator.editCustomApp') : t('orchestrator.newCustomApp'))}
 				</h1>
-				<p class="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-500">Custom App Builder</p>
+				<p class="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-500">{t('orchestrator.builder')}</p>
 			</div>
 		</div>
 
@@ -388,19 +389,19 @@ services:
 					onclick={() => activeView = 'split'}
 					class={cn("flex h-7 items-center gap-2 rounded-lg px-3 text-[10px] font-bold uppercase tracking-widest transition-all", activeView === 'split' ? "bg-white text-black shadow-lg" : "text-zinc-500 hover:text-white")}
 				>
-					<LayoutDashboard class="h-3 w-3" /> Split
+					<LayoutDashboard class="h-3 w-3" /> {t('orchestrator.viewSplit')}
 				</button>
 				<button
 					onclick={() => activeView = 'form'}
 					class={cn("flex h-7 items-center gap-2 rounded-lg px-3 text-[10px] font-bold uppercase tracking-widest transition-all", activeView === 'form' ? "bg-white text-black shadow-lg" : "text-zinc-500 hover:text-white")}
 				>
-					Form
+					{t('orchestrator.viewForm')}
 				</button>
 				<button
 					onclick={() => activeView = 'yaml'}
 					class={cn("flex h-7 items-center gap-2 rounded-lg px-3 text-[10px] font-bold uppercase tracking-widest transition-all", activeView === 'yaml' ? "bg-white text-black shadow-lg" : "text-zinc-500 hover:text-white")}
 				>
-					<Code class="h-3 w-3" /> YAML
+					<Code class="h-3 w-3" /> {t('orchestrator.viewYaml')}
 				</button>
 			</div>
 
@@ -414,7 +415,7 @@ services:
 				{:else}
 					<Play class="h-3.5 w-3.5 fill-black" />
 				{/if}
-				Deploy
+				{t('orchestrator.deploy')}
 			</button>
 		</div>
 	</header>
@@ -435,7 +436,7 @@ services:
 		<button
 			class="fixed bottom-6 right-6 z-[100] flex items-center gap-3 rounded-2xl border border-white/10 bg-zinc-900/95 px-4 py-3 text-left shadow-2xl backdrop-blur-xl hover:border-white/20 transition-all"
 			onclick={() => deployMinimized = false}
-			aria-label="Expand deploy progress"
+			aria-label={t('orchestrator.expandProgress')}
 		>
 			<div class="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-800">
 				<Package class="h-5 w-5 text-zinc-500" />
@@ -444,16 +445,16 @@ services:
 				<div class="flex items-center gap-2">
 					{#if isDeploying}
 						<Loader2 class="h-3 w-3 animate-spin text-emerald-500" />
-						<span class="text-[11px] font-bold text-white truncate max-w-[160px]">Deploying…</span>
+						<span class="text-[11px] font-bold text-white truncate max-w-[160px]">{t('orchestrator.deploying')}</span>
 					{:else if deployResult?.success}
 						<CheckCircle2 class="h-3 w-3 text-emerald-500" />
-						<span class="text-[11px] font-bold text-emerald-400">Deployed</span>
+						<span class="text-[11px] font-bold text-emerald-400">{t('orchestrator.deployed')}</span>
 					{:else}
 						<AlertCircle class="h-3 w-3 text-red-500" />
-						<span class="text-[11px] font-bold text-red-400">Failed</span>
+						<span class="text-[11px] font-bold text-red-400">{t('orchestrator.failed')}</span>
 					{/if}
 				</div>
-				<div class="text-[10px] text-zinc-500">Click to expand</div>
+				<div class="text-[10px] text-zinc-500">{t('orchestrator.minimizedDesc')}</div>
 			</div>
 		</button>
 	{/if}
@@ -466,8 +467,8 @@ services:
 					<button
 						class="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-zinc-400 transition-colors hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
 						onclick={() => deployMinimized = true}
-						aria-label="Minimize deploy progress"
-						title="Minimize (deploy continues in background)"
+						aria-label={t('apps.minimizeProgress')}
+						title={t('apps.minimizeProgress')}
 					>
 						<Minimize2 class="h-3.5 w-3.5" />
 					</button>
@@ -477,14 +478,14 @@ services:
 							<div class="absolute inset-0 rounded-full border-t-2 border-emerald-500 animate-spin"></div>
 						</div>
 					</div>
-					<h3 class="text-lg font-bold text-white">Deploying Service</h3>
-					<p class="mt-1 text-[10px] text-zinc-500 uppercase tracking-[0.2em]">Orchestrating container...</p>
+					<h3 class="text-lg font-bold text-white">{t('orchestrator.deployingService')}</h3>
+					<p class="mt-1 text-[10px] text-zinc-500 uppercase tracking-[0.2em]">{t('orchestrator.orchestrating')}</p>
 
 					<!-- Terminal Area -->
 					<div class="mt-6 flex flex-col overflow-hidden rounded-xl border border-white/5 bg-black/40 text-left shadow-inner">
 						<div class="flex h-6 items-center gap-1.5 border-b border-white/5 bg-white/[0.02] px-3">
 							<Terminal class="h-3 w-3 text-zinc-500" />
-							<span class="text-[9px] font-bold uppercase tracking-widest text-zinc-600">Installation Logs</span>
+							<span class="text-[9px] font-bold uppercase tracking-widest text-zinc-600">{t('orchestrator.installLogs')}</span>
 						</div>
 						<div 
 							bind:this={logScrollEl}
@@ -497,7 +498,7 @@ services:
 								</div>
 							{:else}
 								<div class="flex h-full items-center justify-center text-zinc-700 animate-pulse">
-									Waiting for logs...
+									{t('orchestrator.waitingForLogs')}
 								</div>
 							{/each}
 						</div>
@@ -514,7 +515,7 @@ services:
 							</div>
 						{/if}
 					</div>
-					<h3 class="text-lg font-bold text-white">{deployResult.success ? 'Service is running' : 'Deployment Failed'}</h3>
+					<h3 class="text-lg font-bold text-white">{deployResult.success ? t('orchestrator.serviceRunning') : t('orchestrator.deployFailed')}</h3>
 					<p class="mt-2 text-sm text-zinc-400">{deployResult.message}</p>
 					{#if deployResult.success}
 						<div class="mt-6 flex gap-3">
@@ -522,13 +523,13 @@ services:
 								onclick={() => goto('/')}
 								class="flex-1 rounded-xl bg-emerald-500 py-3 text-xs font-bold uppercase tracking-widest text-zinc-950 hover:bg-emerald-400 transition-colors"
 							>
-								Open Launchpad
+								{t('apps.checkLaunchpad')}
 							</button>
 							<button
 								onclick={() => deployResult = null}
 								class="flex-1 rounded-xl border border-white/10 bg-white/5 py-3 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/10 transition-colors"
 							>
-								Stay Here
+								{t('orchestrator.stayHere')}
 							</button>
 						</div>
 					{:else}
@@ -536,7 +537,7 @@ services:
 							onclick={() => deployResult = null}
 							class="mt-6 w-full rounded-xl bg-white/5 py-3 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/10 transition-colors"
 						>
-							Dismiss
+							{t('orchestrator.dismiss')}
 						</button>
 					{/if}
 				{/if}
@@ -564,19 +565,19 @@ services:
 						<div class="flex items-center gap-1.5">
 							<button
 								onclick={() => goto('/')}
-								aria-label="Exit to apps"
+								aria-label={t('orchestrator.exitToApps')}
 								class="group relative h-3 w-3 rounded-full bg-red-500/80 transition-colors hover:bg-red-500"
 							>
 								<X class="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 text-black opacity-0 transition-opacity group-hover:opacity-100" />
 							</button>
 							<button
 								onclick={() => activeView = activeView === 'split' ? 'yaml' : 'split'}
-								aria-label="Toggle split view"
+								aria-label={t('orchestrator.toggleSplit')}
 								class="h-3 w-3 rounded-full bg-amber-500"
 							></button>
 							<button
 								onclick={() => activeView = 'form'}
-								aria-label="Switch to form view"
+								aria-label={t('orchestrator.switchToForm')}
 								class="h-3 w-3 rounded-full bg-emerald-500"
 							></button>
 						</div>
@@ -588,7 +589,7 @@ services:
 						<textarea
 							bind:value={yamlText}
 							spellcheck="false"
-							aria-label="Docker Compose YAML editor"
+							aria-label={t('orchestrator.yamlEditor')}
 							class="h-full w-full resize-none bg-transparent p-8 font-mono text-sm text-emerald-500/90 outline-none selection:bg-emerald-500/20 selection:text-white custom-scrollbar"
 						></textarea>
 					</div>

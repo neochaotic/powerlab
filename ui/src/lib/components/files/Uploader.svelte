@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { uploadFileChunk } from '$lib/api/files';
 	import { Upload, Loader2 } from 'lucide-svelte';
+	import { t } from '$lib/i18n/index.svelte';
 
 	interface Props {
 		currentPath: string;
@@ -78,10 +79,10 @@
 >
 	{#if uploading}
 		<Loader2 class="h-4 w-4 animate-spin" />
-		Uploading…
+		{t('files.uploading')}
 	{:else}
 		<Upload class="h-4 w-4" />
-		Upload
+		{t('files.upload')}
 	{/if}
 </button>
 

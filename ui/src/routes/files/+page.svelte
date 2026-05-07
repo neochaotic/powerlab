@@ -12,6 +12,7 @@
 	import { FolderOpen, Download, Copy, Scissors, ClipboardPaste, Pen, Trash2, Plus, Upload, RefreshCw, FilePlus, FolderPlus } from 'lucide-svelte';
 	import { onMount } from 'svelte';
 	import AppHeader from '$lib/components/layout/AppHeader.svelte';
+	import { t } from '$lib/i18n/index.svelte';
 
 	const store = useFileStore();
 
@@ -206,50 +207,50 @@
 		const canEdit = !ctxItem.is_dir && isEditable(ctxItem.name);
 
 		return [
-			{ label: ctxItem.is_dir ? 'Open' : (canEdit ? 'Edit' : 'Download'), icon: ctxItem.is_dir ? FolderOpen : (canEdit ? Pen : Download), action: () => handleOpen(ctxItem!) },
+			{ label: ctxItem.is_dir ? t('files.open') : (canEdit ? t('files.edit') : t('files.download')), icon: ctxItem.is_dir ? FolderOpen : (canEdit ? Pen : Download), action: () => handleOpen(ctxItem!) },
 			{ label: '', separator: true, action: () => {} },
-			{ label: 'Copy', icon: Copy, action: () => store.copyToClipboard(Array.from(store.selectedPaths)) },
-			{ label: 'Cut', icon: Scissors, action: () => store.cutToClipboard(Array.from(store.selectedPaths)) },
-			{ label: 'Paste', icon: ClipboardPaste, action: handlePaste, disabled: !store.hasClipboard },
+			{ label: t('files.copy'), icon: Copy, action: () => store.copyToClipboard(Array.from(store.selectedPaths)) },
+			{ label: t('files.cut'), icon: Scissors, action: () => store.cutToClipboard(Array.from(store.selectedPaths)) },
+			{ label: t('files.paste'), icon: ClipboardPaste, action: handlePaste, disabled: !store.hasClipboard },
 			{ label: '', separator: true, action: () => {} },
-			{ label: 'Rename', icon: Pen, action: startRename, disabled: isMulti },
-			{ label: `Delete${isMulti ? ` (${store.selectedCount})` : ''}`, icon: Trash2, action: requestDelete, variant: 'danger' as const },
+			{ label: t('files.rename'), icon: Pen, action: startRename, disabled: isMulti },
+			{ label: `${t('action.delete')}${isMulti ? ` (${store.selectedCount})` : ''}`, icon: Trash2, action: requestDelete, variant: 'danger' as const },
 		];
 	});
 </script>
 
 <svelte:head>
-	<title>Files — PowerLab</title>
+	<title>{t('files.title')} — PowerLab</title>
 </svelte:head>
 
 <div
 	class="flex h-full flex-col p-6 md:p-8 relative"
 	role="region"
-	aria-label="Files area — drop files to upload"
+	aria-label={t('files.dropToUpload')}
 	ondragover={handleDragOver}
 	ondragleave={handleDragLeave}
 	ondrop={handleDrop}
 >
-	<AppHeader title="Files" subtitle="Browse and manage system files">
+	<AppHeader title={t('files.title')} subtitle={t('files.manageFiles')}>
 		{#snippet actions()}
 			<button
 				class="flex h-10 items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 text-sm font-medium text-zinc-300 transition-all hover:border-white/10 hover:bg-white/[0.05] hover:text-white"
 				onclick={() => { creatingFile = true; newFileName = ''; }}
 			>
-				<FilePlus class="h-4 w-4" /> New File
+				<FilePlus class="h-4 w-4" /> {t('files.newFile')}
 			</button>
 			<button
 				class="flex h-10 items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 text-sm font-medium text-zinc-300 transition-all hover:border-white/10 hover:bg-white/[0.05] hover:text-white"
 				onclick={() => { creatingFolder = true; newFolderName = ''; }}
 			>
-				<FolderPlus class="h-4 w-4" /> New Folder
+				<FolderPlus class="h-4 w-4" /> {t('files.newFolder')}
 			</button>
 			<Uploader currentPath={store.currentPath} onUploadComplete={() => store.fetchFiles()} bind:uploadFiles={uploadFilesFn} />
 			<button
 				class="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.02] text-zinc-400 transition-all hover:border-white/10 hover:bg-white/[0.05] hover:text-white"
 				onclick={() => store.fetchFiles()}
-				aria-label="Refresh"
-				title="Refresh"
+				aria-label={t('files.refresh')}
+				title={t('files.refresh')}
 			>
 				<RefreshCw class="h-4 w-4" />
 			</button>
@@ -263,7 +264,7 @@
 		{#if store.selectedCount > 0}
 			<div class="flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/[0.08] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-emerald-300">
 				<span class="h-1 w-1 rounded-full bg-emerald-400"></span>
-				{store.selectedCount} selected
+				{store.selectedCount} {t('files.selected')}
 			</div>
 		{/if}
 	</div>
@@ -303,14 +304,16 @@
 	{#if confirmingDelete}
 		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
 			<div class="w-96 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-6">
-				<h3 class="mb-2 text-base font-semibold text-[var(--color-text-primary)]">Confirm Delete</h3>
+				<h3 class="mb-2 text-base font-semibold text-[var(--color-text-primary)]">{t('files.confirmDelete')}</h3>
 				<p class="mb-6 text-sm text-[var(--color-text-secondary)]">
-					Delete {pendingDeletePaths.length} item{pendingDeletePaths.length !== 1 ? 's' : ''}? This action cannot be undone.
+					{pendingDeletePaths.length === 1 
+						? t('files.deleteItemPrompt')
+						: t('files.deleteItemsPrompt', { count: pendingDeletePaths.length.toString() })}
 				</p>
 				<div class="flex justify-end gap-2">
-					<Button variant="ghost" size="sm" onclick={() => { confirmingDelete = false; pendingDeletePaths = []; }}>Cancel</Button>
+					<button class="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors" onclick={() => { confirmingDelete = false; pendingDeletePaths = []; }}>{t('action.cancel')}</button>
 					<Button size="sm" class="bg-[var(--color-danger)] hover:bg-[var(--color-danger-hover)] text-white" onclick={executeDelete}>
-						Delete
+						{t('action.delete')}
 					</Button>
 				</div>
 			</div>
@@ -321,7 +324,7 @@
 	{#if renaming}
 		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
 			<div class="w-96 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-6">
-				<h3 class="mb-4 text-lg font-semibold text-[var(--color-text-primary)]">Rename</h3>
+				<h3 class="mb-4 text-lg font-semibold text-[var(--color-text-primary)]">{t('files.rename')}</h3>
 				<input
 					type="text"
 					bind:value={renameValue}
@@ -329,8 +332,8 @@
 					onkeydown={(e) => e.key === 'Enter' && confirmRename()}
 				/>
 				<div class="mt-4 flex justify-end gap-2">
-					<Button variant="ghost" size="sm" onclick={() => { renaming = false; }}>Cancel</Button>
-					<Button size="sm" onclick={confirmRename}>Rename</Button>
+					<button class="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors" onclick={() => { renaming = false; }}>{t('action.cancel')}</button>
+					<Button size="sm" onclick={confirmRename}>{t('files.rename')}</Button>
 				</div>
 			</div>
 		</div>
@@ -347,33 +350,33 @@
 			<div
 				class="w-96 rounded-2xl border border-white/[0.08] bg-zinc-950/95 p-6 text-left shadow-[0_32px_64px_-12px_rgba(0,0,0,0.7)] backdrop-blur-xl"
 				role="dialog"
-				aria-label="New Folder"
+				aria-label={t('files.newFolder')}
 			>
 				<div class="mb-4 flex items-center gap-3">
 					<div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/[0.12]">
 						<FolderPlus class="h-5 w-5 text-amber-400" strokeWidth={1.75} />
 					</div>
-					<h3 class="text-base font-semibold text-white">New Folder</h3>
+					<h3 class="text-base font-semibold text-white">{t('files.newFolder')}</h3>
 				</div>
 				<input
 					type="text"
 					bind:value={newFolderName}
-					placeholder="Folder name"
+					placeholder={t('files.folderName')}
 					class="w-full rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-2.5 text-sm text-white placeholder:text-zinc-600 outline-none transition-colors focus:border-amber-400/50 focus:bg-white/[0.04]"
 					onkeydown={(e) => { if (e.key === 'Enter') handleNewFolder(); if (e.key === 'Escape') creatingFolder = false; }}
 					use:focusOnMount
 				/>
-				<p class="mt-2 text-[11px] text-zinc-500">Will be created in {store.currentPath}</p>
+				<p class="mt-2 text-[11px] text-zinc-500">{t('files.willBeCreatedIn', { path: store.currentPath })}</p>
 				<div class="mt-4 flex justify-end gap-2">
 					<button
 						class="rounded-lg px-3 py-1.5 text-sm text-zinc-400 transition-colors hover:bg-white/[0.04] hover:text-white"
 						onclick={() => { creatingFolder = false; }}
-					>Cancel</button>
+					>{t('action.cancel')}</button>
 					<button
 						class="rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-400 disabled:opacity-50"
 						onclick={handleNewFolder}
 						disabled={!newFolderName.trim()}
-					>Create</button>
+					>{t('files.create')}</button>
 				</div>
 			</div>
 		</div>
@@ -390,33 +393,33 @@
 			<div
 				class="w-96 rounded-2xl border border-white/[0.08] bg-zinc-950/95 p-6 text-left shadow-[0_32px_64px_-12px_rgba(0,0,0,0.7)] backdrop-blur-xl"
 				role="dialog"
-				aria-label="New File"
+				aria-label={t('files.newFile')}
 			>
 				<div class="mb-4 flex items-center gap-3">
 					<div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/[0.12]">
 						<FilePlus class="h-5 w-5 text-emerald-400" strokeWidth={1.75} />
 					</div>
-					<h3 class="text-base font-semibold text-white">New File</h3>
+					<h3 class="text-base font-semibold text-white">{t('files.newFile')}</h3>
 				</div>
 				<input
 					type="text"
 					bind:value={newFileName}
-					placeholder="filename.txt"
+					placeholder={t('files.fileNamePlaceholder')}
 					class="w-full rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-2.5 text-sm text-white placeholder:text-zinc-600 outline-none transition-colors focus:border-emerald-400/50 focus:bg-white/[0.04]"
 					onkeydown={(e) => { if (e.key === 'Enter') handleNewFile(); if (e.key === 'Escape') creatingFile = false; }}
 					use:focusOnMount
 				/>
-				<p class="mt-2 text-[11px] text-zinc-500">Will be created in {store.currentPath}</p>
+				<p class="mt-2 text-[11px] text-zinc-500">{t('files.willBeCreatedIn', { path: store.currentPath })}</p>
 				<div class="mt-4 flex justify-end gap-2">
 					<button
 						class="rounded-lg px-3 py-1.5 text-sm text-zinc-400 transition-colors hover:bg-white/[0.04] hover:text-white"
 						onclick={() => { creatingFile = false; }}
-					>Cancel</button>
+					>{t('action.cancel')}</button>
 					<button
 						class="rounded-lg bg-emerald-500 px-3 py-1.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-emerald-400 disabled:opacity-50"
 						onclick={handleNewFile}
 						disabled={!newFileName.trim()}
-					>Create &amp; Open</button>
+					>{t('files.createAndOpen')}</button>
 				</div>
 			</div>
 		</div>
@@ -441,8 +444,8 @@
 				<div class="flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-500 text-zinc-950 shadow-[0_0_30px_rgba(16,185,129,0.4)]">
 					<Upload class="h-10 w-10" />
 				</div>
-				<p class="mt-6 text-xl font-bold text-emerald-400">Drop files to upload</p>
-				<p class="mt-2 text-sm text-emerald-500/60 font-medium">to {store.currentPath}</p>
+				<p class="mt-6 text-xl font-bold text-emerald-400">{t('files.dropToUpload')}</p>
+				<p class="mt-2 text-sm text-emerald-500/60 font-medium">{t('files.to')} {store.currentPath}</p>
 			</div>
 		</div>
 	{/if}

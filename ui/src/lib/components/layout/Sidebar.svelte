@@ -28,6 +28,7 @@
 	import { auth } from "$lib/stores/auth.svelte";
 	import { cn, formatSize } from "$lib/utils";
 	import { ui } from "$lib/stores/ui.svelte";
+	import { t } from "$lib/i18n/index.svelte";
 	import TerminalComponent from "$lib/components/terminal/Terminal.svelte";
 
 	const store = useSystemStore();
@@ -93,10 +94,10 @@
 	// Same icons as the Launchpad system tiles — one symbol per concept,
 	// used everywhere in the OS.
 	const navItems = [
-		{ href: '/dashboard', icon: Gauge, label: 'Dashboard' },
-		{ href: '/files', icon: Folder, label: 'Files' },
-		{ href: '/apps', icon: ShoppingBag, label: 'Store' },
-		{ href: '/models', icon: Brain, label: 'Models' }
+		{ href: '/dashboard', icon: Gauge, label: t('nav.dashboard') },
+		{ href: '/files', icon: Folder, label: t('nav.files') },
+		{ href: '/apps', icon: ShoppingBag, label: t('nav.apps') },
+		{ href: '/models', icon: Brain, label: t('nav.models') }
 	];
 
 	const currentPath = $derived($page.url.pathname);
@@ -197,7 +198,7 @@
 				</h2>
 				<span
 					class="text-[9px] font-bold uppercase tracking-[0.2em] text-zinc-500"
-					>Home Server</span
+					>{t('sidebar.homeServer')}</span
 				>
 			</div>
 		</a>
@@ -214,7 +215,7 @@
 
 		<button
 			onclick={toggleSidebar}
-			aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+			aria-label={isCollapsed ? t('sidebar.expand') : t('sidebar.collapse')}
 			class={cn(
 				"flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition-all hover:bg-white/[0.05] hover:text-white",
 				isCollapsed ? "absolute right-2 top-7 h-6 w-6" : "",
@@ -328,7 +329,7 @@
 					>
 						<div
 							class="group relative cursor-help"
-							title={`CPU: ${u.cpu.percent.toFixed(0)}%`}
+							title={`${t('dashboard.cpu')}: ${u.cpu.percent.toFixed(0)}%`}
 						>
 							<Cpu
 								class={cn(
@@ -347,7 +348,7 @@
 
 						<div
 							class="group relative cursor-help"
-							title={`RAM: ${u.mem.usedPercent.toFixed(0)}%`}
+							title={`${t('dashboard.memory')}: ${u.mem.usedPercent.toFixed(0)}%`}
 						>
 							<MemoryStick
 								class={cn(
@@ -367,7 +368,7 @@
 						{#if u.gpu}
 							<div
 								class="group relative cursor-help"
-								title={`GPU: ${u.gpu.percent.toFixed(0)}%`}
+								title={`${t('dashboard.gpu') || 'GPU'}: ${u.gpu.percent.toFixed(0)}%`}
 							>
 								<Zap
 									class={cn(
@@ -387,7 +388,7 @@
 
 						<div
 							class="group relative cursor-help"
-							title="Storage Usage"
+							title={t('dashboard.storage')}
 						>
 							<HardDrive class="h-5 w-5 text-zinc-400" />
 							<div
@@ -397,7 +398,7 @@
 
 						<div
 							class="group relative cursor-help"
-							title="Network Activity"
+							title={t('dashboard.network')}
 						>
 							<Activity class="h-5 w-5 text-cyan-500" />
 							<div
@@ -412,7 +413,7 @@
 					>
 						<MiniProgress
 							value={u.cpu.percent}
-							label="CPU"
+							label={t('dashboard.cpu')}
 							sublabel={`${u.cpu.percent.toFixed(1)}%`}
 							icon={Cpu}
 							status={cpuStatus}
@@ -459,7 +460,7 @@
 					>
 						<MiniProgress
 							value={u.mem.usedPercent}
-							label="Memory"
+							label={t('dashboard.memory')}
 							sublabel={`${u.mem.usedPercent.toFixed(1)}%`}
 							icon={MemoryStick}
 							status={ramStatus}
@@ -493,7 +494,7 @@
 						>
 							<MiniProgress
 								value={u.gpu.percent}
-								label="GPU"
+								label={t('dashboard.gpu') || 'GPU'}
 								sublabel={`${u.gpu.percent.toFixed(1)}%`}
 								icon={Zap}
 								status={u.gpu.percent > 90
@@ -536,7 +537,7 @@
 						>
 							<div class="flex items-center gap-2 text-zinc-500">
 								<Activity class="h-3 w-3" />
-								<span>Network</span>
+								<span>{t('dashboard.network')}</span>
 							</div>
 							<div class="flex items-center gap-3">
 								<span class="text-cyan-500">↓</span>
@@ -581,7 +582,7 @@
 						>
 							<MiniProgress
 								value={mainDisk.usedPercent}
-								label="Storage"
+								label={t('dashboard.storage')}
 								sublabel={`${mainDisk.usedPercent.toFixed(0)}%`}
 								icon={HardDrive}
 								status={mainDisk.usedPercent > 90
@@ -600,7 +601,7 @@
 								<span
 									>{formatSize(
 										mainDisk.total - mainDisk.used,
-									)} Free</span
+									)} {t('sidebar.free')}</span
 								>
 							</div>
 						</div>
@@ -621,8 +622,8 @@
 		>
 			<button
 				class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-zinc-800 hover:text-zinc-300"
-				title="Profile"
-				aria-label="Profile"
+				title={t('sidebar.profile')}
+				aria-label={t('sidebar.profile')}
 			>
 				<User class="h-[18px] w-[18px]" />
 			</button>
@@ -630,23 +631,23 @@
 				<a
 					href="/settings"
 					class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-zinc-800 hover:text-zinc-300"
-					title="Settings"
-					aria-label="Settings"
+					title={t('nav.settings')}
+					aria-label={t('nav.settings')}
 				>
 					<Settings class="h-[15px] w-[15px]" />
 				</a>
 			{/if}
 			<button
 				class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-zinc-800 hover:text-zinc-300"
-				title="Host Terminal"
-				aria-label="Host Terminal"
+				title={t('sidebar.hostTerminal')}
+				aria-label={t('sidebar.hostTerminal')}
 				onclick={openTerminalFeature}
 			>
 				<Terminal class="h-[18px] w-[18px]" />
 			</button>
 			<button
 				class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-zinc-800 hover:text-zinc-300"
-				title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+				title={isDark ? t('sidebar.switchToLight') : t('sidebar.switchToDark')}
 				onclick={toggleTheme}
 			>
 				{#if isDark}
@@ -658,8 +659,8 @@
 			<button
 				onclick={() => auth.logout()}
 				class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-red-500/10 hover:text-red-400"
-				title="Logout"
-				aria-label="Logout"
+				title={t('sidebar.logout')}
+				aria-label={t('sidebar.logout')}
 			>
 				<LogOut class="h-[18px] w-[18px]" />
 			</button>
@@ -677,7 +678,7 @@
 					<div
 						class="text-[10px] font-bold tracking-widest text-zinc-600 uppercase"
 					>
-						System Online
+						{t('sidebar.systemOnline')}
 					</div>
 				</div>
 			</div>

@@ -20,6 +20,7 @@
 		X,
 	} from "lucide-svelte";
 	import { cn } from "$lib/utils";
+	import { t } from "$lib/i18n/index.svelte";
 	import ContainerLogs from "$lib/components/apps/ContainerLogs.svelte";
 	import { Button } from "$lib/components/ui/button";
 
@@ -355,35 +356,35 @@
 	// brand-colored shadow on hover, subtle inner highlight).
 	const nativeApps = [
 		{
-			name: 'Dashboard',
+			name: t('dashboard.title'),
 			icon: Gauge,
 			href: '/dashboard',
 			gradient: 'from-violet-400 via-indigo-500 to-blue-600',
 			shadow: 'group-hover:shadow-[0_18px_40px_-12px_rgba(99,102,241,0.55)]'
 		},
 		{
-			name: 'Store',
+			name: t('apps.appStore'),
 			icon: ShoppingBag,
 			href: '/apps',
 			gradient: 'from-emerald-300 via-emerald-500 to-teal-600',
 			shadow: 'group-hover:shadow-[0_18px_40px_-12px_rgba(16,185,129,0.55)]'
 		},
 		{
-			name: 'Files',
+			name: t('sidebar.files'),
 			icon: Folder,
 			href: '/files',
 			gradient: 'from-amber-300 via-orange-500 to-red-500',
 			shadow: 'group-hover:shadow-[0_18px_40px_-12px_rgba(249,115,22,0.55)]'
 		},
 		{
-			name: 'Custom App',
+			name: t('apps.customApp'),
 			icon: SquareCode,
 			href: '/apps/new',
 			gradient: 'from-pink-400 via-rose-500 to-fuchsia-600',
 			shadow: 'group-hover:shadow-[0_18px_40px_-12px_rgba(236,72,153,0.55)]'
 		},
 		{
-			name: 'Models',
+			name: t('sidebar.models'),
 			icon: Brain,
 			href: '/models',
 			gradient: 'from-blue-400 via-indigo-500 to-violet-600',
@@ -422,7 +423,7 @@
 			></div>
 			<span
 				class="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-500/80"
-				>System Operational</span
+				>{t('launchpad.systemOperational')}</span
 			>
 		</div>
 		<h1 class="bg-gradient-to-br from-white via-white to-zinc-400 bg-clip-text text-6xl font-black tracking-tighter text-transparent md:text-7xl">
@@ -431,8 +432,8 @@
 		<p
 			class="mt-4 max-w-lg text-base font-medium text-zinc-500 leading-relaxed"
 		>
-			Running on <span class="text-zinc-200"
-				>{u?.os?.hostname || "your server"}</span
+			{t('launchpad.runningOn')} <span class="text-zinc-200"
+				>{u?.os?.hostname || t('launchpad.yourServer')}</span
 			>.
 		</p>
 	</div>
@@ -442,7 +443,7 @@
 		<h2
 			class="mb-6 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500"
 		>
-			System Apps
+			{t('launchpad.systemApps')}
 		</h2>
 		<div
 			class="grid grid-cols-4 gap-6 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10"
@@ -480,13 +481,13 @@
 			<h2
 				class="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500"
 			>
-				Installed Apps
+				{t('launchpad.installedApps')}
 			</h2>
 			<div class="flex items-center gap-3">
 				<div
 					class="flex items-center gap-1 rounded-full bg-white/[0.04] p-1"
 				>
-					{#each [["custom", "Order"], ["alpha", "A–Z"], ["status", "Status"]] as [mode, label]}
+					{#each [["custom", t('launchpad.order')], ["alpha", t('launchpad.az')], ["status", t('launchpad.status')]] as [mode, label]}
 						<button
 							class={cn(
 								"rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition-colors",
@@ -525,17 +526,17 @@
 				<div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/[0.08]">
 					<Boxes class="h-6 w-6 text-emerald-400/80" strokeWidth={1.5} />
 				</div>
-				<p class="text-sm font-medium text-zinc-400">No apps installed yet</p>
+				<p class="text-sm font-medium text-zinc-400">{t('launchpad.noAppsInstalled')}</p>
 				<a
 					href="/apps"
 					class="inline-flex h-8 items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] px-3 text-[11px] font-bold uppercase tracking-wider text-emerald-300 transition-colors hover:border-emerald-400/40 hover:bg-emerald-400/[0.1]"
 				>
-					Browse Store →
+					{t('launchpad.browseStore')} →
 				</a>
 			</div>
 		{:else}
 			<p class="mb-4 text-[10px] text-zinc-700">
-				Click to open · Drag to reorder · Hold to manage
+				{t('launchpad.interactionsHint')}
 			</p>
 
 			<div
@@ -631,7 +632,7 @@
 								<span
 									class="text-[7px] font-bold uppercase tracking-[0.15em] text-amber-500/60"
 								>
-									Custom
+									{t('launchpad.custom')}
 								</span>
 							{/if}
 						</div>
@@ -717,7 +718,7 @@
 						closeMenu();
 					}}
 				>
-					<ExternalLink class="h-3.5 w-3.5 shrink-0" /> Open UI
+					<ExternalLink class="h-3.5 w-3.5 shrink-0" /> {t('launchpad.openUI')}
 				</button>
 			{/if}
 			<button
@@ -728,9 +729,9 @@
 				}}
 			>
 				{#if isRunning}
-					<Square class="h-3.5 w-3.5 shrink-0" /> Stop
+					<Square class="h-3.5 w-3.5 shrink-0" /> {t('action.stop')}
 				{:else}
-					<Play class="h-3.5 w-3.5 shrink-0" /> Start
+					<Play class="h-3.5 w-3.5 shrink-0" /> {t('action.start')}
 				{/if}
 			</button>
 			<button
@@ -740,14 +741,14 @@
 					closeMenu();
 				}}
 			>
-				<ScrollText class="h-3.5 w-3.5 shrink-0" /> View Logs
+				<ScrollText class="h-3.5 w-3.5 shrink-0" /> {t('launchpad.viewLogs')}
 			</button>
 			<button
 				class="flex w-full items-center gap-2.5 px-3 py-2 text-[12px] text-zinc-300 hover:bg-white/5 hover:text-white"
 				onclick={() => handleEdit(menuApp.id)}
 			>
 				<Settings2 class="h-3.5 w-3.5 shrink-0" />
-				{isPL ? "Fork as Custom App" : "Edit App"}
+				{isPL ? t('launchpad.forkApp') : t('launchpad.editApp')}
 			</button>
 			<div class="mx-3 my-1 border-t border-white/[0.06]"></div>
 			<button
@@ -757,7 +758,7 @@
 					closeMenu();
 				}}
 			>
-				<Trash2 class="h-3.5 w-3.5 shrink-0" /> Uninstall
+				<Trash2 class="h-3.5 w-3.5 shrink-0" /> {t('launchpad.uninstall')}
 			</button>
 		</div>
 	</div>
@@ -793,18 +794,21 @@
 					<Pencil class="h-5 w-5" />
 				</div>
 				<div>
-					<p class="font-semibold text-white">Fork as Custom App</p>
-					<p class="text-xs text-zinc-500">Original stays untouched</p>
+					<p class="font-semibold text-white">{t('launchpad.forkApp')}</p>
+					<p class="text-xs text-zinc-500">{t('launchpad.originalUntouched')}</p>
 				</div>
 			</div>
 			<p class="mb-5 text-sm leading-relaxed text-zinc-400">
-				Your edits land in a separate <span class="text-amber-300">Custom App</span>. The store version of this app is never modified.
+				{t('launchpad.forkDesc')}
 			</p>
 			<div class="flex gap-2">
 				<Button
 					variant="ghost"
 					class="flex-1 rounded-xl"
-					onclick={() => (forkingAppId = null)}>Cancel</Button>
+					onclick={() => (forkingAppId = null)}
+				>
+					{t('action.cancel')}
+				</Button>
 				<Button
 					class="flex-1 rounded-xl bg-amber-500 font-bold text-black shadow-[0_8px_24px_-8px_rgba(245,158,11,0.5)] hover:bg-amber-400"
 					onclick={() => {
@@ -812,7 +816,7 @@
 						forkingAppId = null;
 					}}
 				>
-					Open editor
+					{t('launchpad.forkBtn')}
 				</Button>
 			</div>
 		</div>

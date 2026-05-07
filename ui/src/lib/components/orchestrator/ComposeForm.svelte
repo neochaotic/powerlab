@@ -2,6 +2,7 @@
 	import { Plus, X, Box, Network, HardDrive, Shield, AlertTriangle, Check } from 'lucide-svelte';
 	import { cn } from '$lib/utils';
 	import { checkPorts } from '$lib/api/apps';
+	import { t } from '$lib/i18n/index.svelte';
 
 	export interface ComposeModel {
 		name: string;
@@ -139,7 +140,7 @@
 	<section class="space-y-6">
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 			<div>
-				<label for="service-name" class="mb-2 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">Service Name (YAML Key) *</label>
+				<label for="service-name" class="mb-2 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('form.serviceName')}</label>
 				<input
 					id="service-name"
 					type="text"
@@ -150,7 +151,7 @@
 				/>
 			</div>
 			<div>
-				<label for="container-name" class="mb-2 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">Container Name (Optional)</label>
+				<label for="container-name" class="mb-2 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('form.containerName')}</label>
 				<input
 					id="container-name"
 					type="text"
@@ -164,7 +165,7 @@
 
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 			<div class="md:col-span-3">
-				<label for="docker-image" class="mb-2 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">Docker Image</label>
+				<label for="docker-image" class="mb-2 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('form.dockerImage')}</label>
 				<div class="relative">
 					<input
 						id="docker-image"
@@ -181,7 +182,7 @@
 			</div>
 
 			<div>
-				<label for="web-port" class="mb-2 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">Web UI Port (Host Port)</label>
+				<label for="web-port" class="mb-2 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('form.webPort')}</label>
 				<div class="relative">
 					<input
 						id="web-port"
@@ -206,14 +207,14 @@
 						onclick={() => applySuggestion('web', model.web_port)}
 						class="mt-1 text-[9px] font-semibold text-amber-400 hover:text-amber-300"
 					>
-						Port {model.web_port} is in use{#if suggestionFor(model.web_port)} — use {suggestionFor(model.web_port)} instead{/if}
+						{t('form.portInUse', { port: model.web_port })}{#if suggestionFor(model.web_port)} — {t('form.useSuggestion', { suggestion: String(suggestionFor(model.web_port)) })}{/if}
 					</button>
 				{:else}
-					<p class="mt-1 text-[9px] text-zinc-600">The external port used to access this application's web interface.</p>
+					<p class="mt-1 text-[9px] text-zinc-600">{t('form.webPortDesc')}</p>
 				{/if}
 			</div>
 			<div class="md:col-span-1">
-				<label for="image-tag" class="mb-2 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">Tag</label>
+				<label for="image-tag" class="mb-2 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('apps.type')}</label>
 				<input
 					id="image-tag"
 					type="text"
@@ -225,7 +226,7 @@
 		</div>
 
 		<div>
-			<label for="app-icon" class="mb-2 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">App Icon URL</label>
+			<label for="app-icon" class="mb-2 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('form.appIcon')}</label>
 			<div class="flex gap-3">
 				<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/5 bg-white/[0.03] overflow-hidden">
 					{#if model.icon}
@@ -254,21 +255,21 @@
 			<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
 				<Network class="h-4 w-4" />
 			</div>
-			<h2 class="text-sm font-bold text-white">Network Settings</h2>
+			<h2 class="text-sm font-bold text-white">{t('form.networkSettings')}</h2>
 		</div>
 
 		<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 			<div>
-				<label for="network-mode" class="mb-2 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">Network Mode</label>
+				<label for="network-mode" class="mb-2 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('form.networkMode')}</label>
 				<select
 					id="network-mode"
 					bind:value={model.network}
 					onchange={onchange}
 					class="w-full rounded-xl border border-white/5 bg-white/[0.03] p-3 text-sm text-white outline-none focus:border-emerald-500/50 transition-all"
 				>
-					<option value="bridge">Bridge (Default)</option>
-					<option value="host">Host</option>
-					<option value="none">None</option>
+					<option value="bridge">{t('form.bridge')}</option>
+					<option value="host">{t('form.host')}</option>
+					<option value="none">{t('form.none')}</option>
 				</select>
 			</div>
 		</div>
@@ -276,9 +277,9 @@
 		<!-- Ports -->
 		<div class="space-y-4">
 			<div class="flex items-center justify-between">
-				<p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Port Mapping</p>
+				<p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('form.portMapping')}</p>
 				<button onclick={addPort} class="flex items-center gap-1 text-[10px] font-bold uppercase text-emerald-500 hover:text-emerald-400">
-					<Plus class="h-3 w-3" /> Add Port
+					<Plus class="h-3 w-3" /> {t('form.addPort')}
 				</button>
 			</div>
 
@@ -293,8 +294,8 @@
 									type="text"
 									bind:value={port.host}
 									oninput={onchange}
-									placeholder="Host"
-									aria-label="Host port"
+									placeholder={t('form.host')}
+									aria-label={t('form.host')}
 									class={cn(
 										"w-full rounded-lg border bg-white/[0.02] p-2 pr-7 text-xs text-white outline-none",
 										hostStatus === 'inuse' ? 'border-amber-500/40 focus:border-amber-500/60' : 'border-white/5 focus:border-emerald-500/30'
@@ -308,7 +309,7 @@
 							</div>
 							<div class="flex items-center justify-center text-zinc-700">:</div>
 							<input type="text" bind:value={port.container} oninput={onchange} placeholder="Container" aria-label="Container port" class="col-span-2 rounded-lg border border-white/5 bg-white/[0.02] p-2 text-xs text-white outline-none focus:border-emerald-500/30" />
-							<button onclick={() => removePort(i)} aria-label="Remove port" class="flex items-center justify-center text-zinc-600 hover:text-red-500">
+							<button onclick={() => removePort(i)} aria-label={t('action.delete')} class="flex items-center justify-center text-zinc-600 hover:text-red-500">
 								<X class="h-3.5 w-3.5" />
 							</button>
 						</div>
@@ -318,7 +319,7 @@
 								onclick={() => applySuggestion(i, port.host)}
 								class="mt-1 text-[9px] font-semibold text-amber-400 hover:text-amber-300"
 							>
-								Port {port.host} is in use{#if hostSuggestion} — use {hostSuggestion} instead{/if}
+								{t('form.portInUse', { port: port.host })}{#if hostSuggestion} — {t('form.useSuggestion', { suggestion: String(hostSuggestion) })}{/if}
 							</button>
 						{/if}
 					</div>
@@ -335,14 +336,14 @@
 			<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400">
 				<HardDrive class="h-4 w-4" />
 			</div>
-			<h2 class="text-sm font-bold text-white">Storage & Devices</h2>
+			<h2 class="text-sm font-bold text-white">{t('form.storageAndDevices')}</h2>
 		</div>
 
 		<div class="space-y-4">
 			<div class="flex items-center justify-between">
-				<p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Volume Mounts</p>
+				<p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('form.volumeMounts')}</p>
 				<button onclick={addVolume} class="flex items-center gap-1 text-[10px] font-bold uppercase text-emerald-500 hover:text-emerald-400">
-					<Plus class="h-3 w-3" /> Add Volume
+					<Plus class="h-3 w-3" /> {t('form.addVolume')}
 				</button>
 			</div>
 
@@ -352,7 +353,7 @@
 						<input type="text" bind:value={vol.host} oninput={onchange} placeholder="Host Path" aria-label="Host path" class="col-span-3 rounded-lg border border-white/5 bg-white/[0.02] p-2 text-xs text-white outline-none focus:border-emerald-500/30" />
 						<div class="flex items-center justify-center text-zinc-700">→</div>
 						<input type="text" bind:value={vol.container} oninput={onchange} placeholder="Container Path" aria-label="Container path" class="col-span-2 rounded-lg border border-white/5 bg-white/[0.02] p-2 text-xs text-white outline-none focus:border-emerald-500/30" />
-						<button onclick={() => removeVolume(i)} aria-label="Remove volume" class="flex items-center justify-center text-zinc-600 hover:text-red-500">
+						<button onclick={() => removeVolume(i)} aria-label={t('action.delete')} class="flex items-center justify-center text-zinc-600 hover:text-red-500">
 							<X class="h-3.5 w-3.5" />
 						</button>
 					</div>
@@ -362,9 +363,9 @@
 
 		<div class="space-y-4">
 			<div class="flex items-center justify-between">
-				<p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Devices (Hardware)</p>
+				<p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('form.devices')}</p>
 				<button onclick={addDevice} class="flex items-center gap-1 text-[10px] font-bold uppercase text-emerald-500 hover:text-emerald-400">
-					<Plus class="h-3 w-3" /> Add Device
+					<Plus class="h-3 w-3" /> {t('form.addDevice')}
 				</button>
 			</div>
 
@@ -374,7 +375,7 @@
 						<input type="text" bind:value={dev.host} oninput={onchange} placeholder="/dev/ttyUSB0" aria-label="Host device path" class="col-span-3 rounded-lg border border-white/5 bg-white/[0.02] p-2 text-xs text-white outline-none focus:border-emerald-500/30" />
 						<div class="flex items-center justify-center text-zinc-700">:</div>
 						<input type="text" bind:value={dev.container} oninput={onchange} placeholder="/dev/ttyUSB0" aria-label="Container device path" class="col-span-2 rounded-lg border border-white/5 bg-white/[0.02] p-2 text-xs text-white outline-none focus:border-emerald-500/30" />
-						<button onclick={() => removeDevice(i)} aria-label="Remove device" class="flex items-center justify-center text-zinc-600 hover:text-red-500">
+						<button onclick={() => removeDevice(i)} aria-label={t('action.delete')} class="flex items-center justify-center text-zinc-600 hover:text-red-500">
 							<X class="h-3.5 w-3.5" />
 						</button>
 					</div>
@@ -391,11 +392,11 @@
 			<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400">
 				<Shield class="h-4 w-4" />
 			</div>
-			<h2 class="text-sm font-bold text-white">Execution & Resources</h2>
+			<h2 class="text-sm font-bold text-white">{t('form.executionAndResources')}</h2>
 		</div>
 
 		<div>
-			<label for="container-command" class="mb-4 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">Container Command</label>
+			<label for="container-command" class="mb-4 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('form.command')}</label>
 			<input
 				id="container-command"
 				type="text"
@@ -408,7 +409,7 @@
 
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 			<div>
-				<label for="run-as-user" class="mb-4 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">Run as User (UID:GID)</label>
+				<label for="run-as-user" class="mb-4 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('form.runAsUser')}</label>
 				<input
 					id="run-as-user"
 					type="text"
@@ -419,7 +420,7 @@
 				/>
 			</div>
 			<div>
-				<label for="working-dir" class="mb-4 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">Working Directory</label>
+				<label for="working-dir" class="mb-4 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('form.workingDir')}</label>
 				<input
 					id="working-dir"
 					type="text"
@@ -433,8 +434,8 @@
 
 		<div class="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] p-4">
 			<div>
-				<h3 class="text-sm font-bold text-white">Privileged Mode</h3>
-				<p class="text-[10px] text-zinc-500">Full access to host hardware</p>
+				<h3 class="text-sm font-bold text-white">{t('form.privilegedMode')}</h3>
+				<p class="text-[10px] text-zinc-500">{t('form.privilegedDesc')}</p>
 			</div>
 			<button
 				onclick={() => { model.privileged = !model.privileged; onchange(); }}
@@ -454,8 +455,8 @@
 
 		<div class="space-y-4">
 			<div class="flex items-center justify-between">
-				<label for="mem-limit" class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Memory Limit</label>
-				<span class="text-xs font-bold text-emerald-500">{model.mem_limit || 'Unlimited'}</span>
+				<label for="mem-limit" class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('form.memLimit')}</label>
+				<span class="text-xs font-bold text-emerald-500">{model.mem_limit || t('form.unlimited')}</span>
 			</div>
 			<input
 				id="mem-limit"
@@ -477,7 +478,7 @@
 		</div>
 
 		<div>
-			<p class="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Restart Policy</p>
+			<p class="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('form.restartPolicy')}</p>
 			<div class="flex flex-wrap gap-2">
 				{#each ['no', 'always', 'unless-stopped', 'on-failure'] as policy}
 					<button
@@ -497,9 +498,9 @@
 
 		<div class="space-y-4">
 			<div class="flex items-center justify-between">
-				<p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Environment Variables</p>
+				<p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('form.envVars')}</p>
 				<button onclick={addEnv} class="flex items-center gap-1 text-[10px] font-bold uppercase text-emerald-500 hover:text-emerald-400">
-					<Plus class="h-3 w-3" /> Add Var
+					<Plus class="h-3 w-3" /> {t('form.addVar')}
 				</button>
 			</div>
 
@@ -509,7 +510,7 @@
 						<input type="text" bind:value={env.key} oninput={onchange} placeholder="KEY" aria-label="Environment variable key" class="col-span-3 rounded-lg border border-white/5 bg-white/[0.02] p-2 text-xs font-mono text-white outline-none focus:border-emerald-500/30" />
 						<div class="flex items-center justify-center text-zinc-700">=</div>
 						<input type="text" bind:value={env.value} oninput={onchange} placeholder="VALUE" aria-label="Environment variable value" class="col-span-2 rounded-lg border border-white/5 bg-white/[0.02] p-2 text-xs font-mono text-white outline-none focus:border-emerald-500/30" />
-						<button onclick={() => removeEnv(i)} aria-label="Remove environment variable" class="flex items-center justify-center text-zinc-600 hover:text-red-500">
+						<button onclick={() => removeEnv(i)} aria-label={t('action.delete')} class="flex items-center justify-center text-zinc-600 hover:text-red-500">
 							<X class="h-3.5 w-3.5" />
 						</button>
 					</div>
@@ -519,9 +520,9 @@
 
 		<div class="space-y-4">
 			<div class="flex items-center justify-between">
-				<p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Labels (Metadata)</p>
+				<p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('form.labels')}</p>
 				<button onclick={() => { model.labels = [...model.labels, { key: '', value: '' }]; onchange(); }} class="flex items-center gap-1 text-[10px] font-bold uppercase text-emerald-500 hover:text-emerald-400">
-					<Plus class="h-3 w-3" /> Add Label
+					<Plus class="h-3 w-3" /> {t('form.addLabel')}
 				</button>
 			</div>
 
@@ -531,7 +532,7 @@
 						<input type="text" bind:value={label.key} oninput={onchange} placeholder="Label Key" aria-label="Label key" class="col-span-3 rounded-lg border border-white/5 bg-white/[0.02] p-2 text-xs text-white outline-none focus:border-emerald-500/30" />
 						<div class="flex items-center justify-center text-zinc-700">=</div>
 						<input type="text" bind:value={label.value} oninput={onchange} placeholder="Value" aria-label="Label value" class="col-span-2 rounded-lg border border-white/5 bg-white/[0.02] p-2 text-xs text-white outline-none focus:border-emerald-500/30" />
-						<button onclick={() => { model.labels = model.labels.filter((_, idx) => idx !== i); onchange(); }} aria-label="Remove label" class="flex items-center justify-center text-zinc-600 hover:text-red-500">
+						<button onclick={() => { model.labels = model.labels.filter((_, idx) => idx !== i); onchange(); }} aria-label={t('action.delete')} class="flex items-center justify-center text-zinc-600 hover:text-red-500">
 							<X class="h-3.5 w-3.5" />
 						</button>
 					</div>
