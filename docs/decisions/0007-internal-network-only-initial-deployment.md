@@ -26,8 +26,8 @@ We need to set this scope explicitly so:
 PowerLab v0.2.x targets **internal network deployment only**. The
 threat model assumes:
 
-- The user is on the same LAN (or VPN/Tailscale-mesh that they
-  control end-to-end) as the server.
+- The user is on the same LAN (or a mesh VPN they control end-to-end)
+  as the server.
 - There is a single admin user. Multi-user is not supported.
 - A compromised browser session has root-equivalent access on the
   host (this is what ADR-future #36 will harden).
@@ -56,7 +56,7 @@ This will be documented prominently in `docs/HTTPS.md` and in
   in-UI updater, the editor — all built around "this is your
   server you visit on your network".
 - **Future is open.** Public-internet support is a real product
-  direction (Tailscale Funnel pattern, Cloudflare Tunnel pattern,
+  direction (mesh-VPN funnel patterns, Cloudflare Tunnel pattern,
   managed certs via ACME). It just isn't v0.2.x. ADR for that
   pivot will land as `0NNN-public-internet-deployment.md` when
   the work starts.
@@ -66,7 +66,8 @@ This will be documented prominently in `docs/HTTPS.md` and in
 - **"Hardened from day one" mode** — design every feature for the
   worst-case threat model. Rejected: massively slower to ship, and
   we'd over-build security for users who don't need it. mkcert and
-  Tailscale both ship LAN-first and have years of credibility.
+  major mesh-VPN products both ship LAN-first and have years of
+  credibility.
 - **Feature flags per deployment mode** — `--internal` vs
   `--public` toggle. Rejected: doubles the test matrix, and it's
   way too easy for a flag to default-flip back to "public" after a

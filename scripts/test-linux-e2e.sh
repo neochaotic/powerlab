@@ -409,11 +409,11 @@ if [[ "$HTTPS_GATE_ENABLED" == "1" ]]; then
     || fail "https: .mobileconfig missing PayloadType=com.apple.security.root"
   green "  → /v1/sys/ca-certificate.mobileconfig → signed Apple plist"
 
-  # 3. CA certificate downloadable as PKCS#12 (Windows / cross-platform)
-  P12_BYTES=$(run_in_container "curl -fsS http://localhost:8765/v1/sys/ca-certificate.p12 | wc -c")
-  [[ "$P12_BYTES" -gt 100 ]] \
-    || fail "https: .p12 returned $P12_BYTES bytes (too small)"
-  green "  → /v1/sys/ca-certificate.p12 → ${P12_BYTES} bytes"
+  # 3. CA certificate downloadable as DER (.cer) for Windows import wizard
+  CER_BYTES=$(run_in_container "curl -fsS http://localhost:8765/v1/sys/ca-certificate.cer | wc -c")
+  [[ "$CER_BYTES" -gt 100 ]] \
+    || fail "https: .cer returned $CER_BYTES bytes (too small)"
+  green "  → /v1/sys/ca-certificate.cer → ${CER_BYTES} bytes"
 
   # 4. Leaf cert SAN includes the host's IP and powerlab.local
   CONTAINER_IP=$(run_in_container "hostname -I | awk '{print \$1}'")

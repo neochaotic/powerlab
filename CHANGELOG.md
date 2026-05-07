@@ -11,6 +11,30 @@ see `CONTRIBUTING.md` for the rule.
 
 ## [Unreleased]
 
+### Added — Local HTTPS (#43, v0.2.7)
+
+- **Apple-grade local HTTPS out of the box.** First-boot ECDSA P-256
+  root CA + 1-year leaf cert. Apple `.mobileconfig` is signed by the CA
+  itself so iOS and macOS render "Verified by PowerLab Local CA"
+  instead of the red "Unverified" banner. Windows gets DER (`.cer`) for
+  the Certificate Import Wizard; everyone else gets plain `.crt`. The
+  user-agent-aware `/v1/sys/ca-certificate` endpoint picks the right
+  format automatically.
+- **Daily renew ticker + IP-change watcher.** The leaf is re-issued
+  60 days before expiry and immediately whenever the host's bound IP
+  set changes (DHCP renewal, network swap, multi-NIC toggle), so HTTPS
+  never silently breaks because the SAN went stale.
+- **HSTS gate** (`POST /v1/sys/trust-confirmed`). HSTS is NOT armed
+  until the user has proven the trust dance worked end-to-end (the
+  request must arrive over HTTPS from a non-localhost peer). Prevents
+  the classic homelab lock-out where HSTS ships before the user has
+  installed the CA. See ADR 0006.
+- 7 new ADRs (`docs/decisions/0001`…`0007`) documenting cert validity,
+  pkcs7 signer choice, reset-trust UX, walkthrough UX, PWA scaffolding,
+  the HSTS gate, and the LAN-only initial deployment posture.
+- New regression tests pin the SAN classification rules
+  (`backend/common/pkg/security/cert_test.go`).
+
 ## [0.2.6] — 2026-05-06
 
 The "stable Files / App Store" release. v0.2.5 shipped a backend that

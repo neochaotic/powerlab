@@ -30,8 +30,8 @@ import (
 //   GET  /v1/sys/ca-certificate.crt                PEM-encoded CA cert
 //   GET  /v1/sys/ca-certificate.mobileconfig       PKCS#7-signed Apple
 //                                                  Configuration Profile
-//   GET  /v1/sys/ca-certificate.p12                PKCS#12 bundle
-//                                                  (Windows / cross-OS)
+//   GET  /v1/sys/ca-certificate.cer                DER-encoded CA cert
+//                                                  (Windows import wizard)
 //   POST /v1/sys/trust-confirmed                   arms the HSTS gate
 //
 // The download endpoints are unauthenticated by design (catch-22:
@@ -52,14 +52,14 @@ func (s *SecurityRoute) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/v1/sys/ca-certificate", s.handleCABase)
 	mux.HandleFunc("/v1/sys/ca-certificate.crt", s.handleCACrt)
 	mux.HandleFunc("/v1/sys/ca-certificate.mobileconfig", s.handleCAMobileConfig)
-	mux.HandleFunc("/v1/sys/ca-certificate.p12", s.handleCAP12)
+	mux.HandleFunc("/v1/sys/ca-certificate.cer", s.handleCACer)
 	mux.HandleFunc("/v1/sys/trust-confirmed", s.handleTrustConfirmed)
 }
 
 // handleCABase redirects to the format that matches the User-Agent.
 // Apple devices get the .mobileconfig (one-tap install). Windows gets
-// .p12 (works with the Windows certificate import wizard). Everyone
-// else gets the raw .crt.
+// .cer (DER, accepted by the Certificate Import Wizard). Everyone else
+// gets the raw .crt.
 func (s *SecurityRoute) handleCABase(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -71,7 +71,7 @@ func (s *SecurityRoute) handleCABase(w http.ResponseWriter, r *http.Request) {
 		strings.Contains(ua, "macintosh"), strings.Contains(ua, "mac os x"):
 		http.Redirect(w, r, "/v1/sys/ca-certificate.mobileconfig", http.StatusFound)
 	case strings.Contains(ua, "windows"):
-		http.Redirect(w, r, "/v1/sys/ca-certificate.p12", http.StatusFound)
+		http.Redirect(w, r, "/v1/sys/ca-certificate.cer", http.StatusFound)
 	default:
 		http.Redirect(w, r, "/v1/sys/ca-certificate.crt", http.StatusFound)
 	}
@@ -175,10 +175,12 @@ func (s *SecurityRoute) handleCAMobileConfig(w http.ResponseWriter, r *http.Requ
 	_, _ = w.Write(signed)
 }
 
-// handleCAP12 serves a PKCS#12 bundle with just the public CA cert
-// (no private key — that would be a key leak). Windows users can
-// double-click the .p12 to launch the Certificate Import Wizard.
-func (s *SecurityRoute) handleCAP12(w http.ResponseWriter, r *http.Request) {
+// handleCACer serves the CA cert as DER-encoded x509. The Windows
+// Certificate Import Wizard accepts .cer (DER) directly for trusted-
+// root install; this is the honest filename for what we're serving
+// (raw DER, not a PKCS#12 bundle). A real PKCS#12 (.p12) wrapper can
+// land in a later release if a use case for it appears.
+func (s *SecurityRoute) handleCACer(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -200,24 +202,13 @@ func (s *SecurityRoute) handleCAP12(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// PKCS#12 truststore (cert-only, no private key).
-	// We use the digitorus/pkcs7 sibling helper here? No — pkcs7 is
-	// for SignedData; pkcs12 is a different format. Use the standard
-	// software.sslmate.com/src/go-pkcs12 if needed. For v0.2.7 we
-	// keep it simple: serve the DER directly with a .p12 extension.
-	// Windows Certificate Import Wizard accepts both DER (.cer) and
-	// PEM (.crt) for trusted-root install; the .p12 extension is just
-	// what users expect to download for "import wizard". The
-	// downside: technically a real .p12 file would be different.
-	// Acceptable trade-off for v0.2.7. Real PKCS#12 in v0.2.8.
-	w.Header().Set("Content-Type", "application/x-pkcs12")
-	w.Header().Set("Content-Disposition", `attachment; filename="powerlab-ca.p12"`)
-	logger.Info("CA p12 downloaded",
-		zap.String("format", "p12"),
+	w.Header().Set("Content-Type", "application/pkix-cert")
+	w.Header().Set("Content-Disposition", `attachment; filename="powerlab-ca.cer"`)
+	logger.Info("CA cer downloaded",
+		zap.String("format", "cer"),
 		zap.String("ua", r.UserAgent()),
 		zap.String("ip", r.RemoteAddr),
 	)
-	// DER-encoded x509 — accepted by Windows MMC and certutil.
 	_, _ = w.Write(caCert.Raw)
 }
 

@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -284,19 +285,11 @@ func (m *CertManager) getCurrentIPs() []string {
 		}
 		for _, addr := range addrs {
 			ipnet, ok := addr.(*net.IPNet)
-			if ok {
-				ip := ipnet.IP
-				// IPv4 RFC1918
-				if v4 := ip.To4(); v4 != nil {
-					if v4[0] == 10 || (v4[0] == 172 && v4[1] >= 16 && v4[1] <= 31) || (v4[0] == 192 && v4[1] == 168) {
-						ips = append(ips, ip.String())
-					}
-				} else {
-					// IPv6 ULA fc00::/7
-					if len(ip) == 16 && (ip[0]&0xfe) == 0xfc {
-						ips = append(ips, ip.String())
-					}
-				}
+			if !ok {
+				continue
+			}
+			if ShouldIncludeIP(iface.Name, ipnet.IP) {
+				ips = append(ips, ipnet.IP.String())
 			}
 		}
 	}
@@ -317,6 +310,35 @@ func (m *CertManager) compareIPs(a, b []string) bool {
 		}
 	}
 	return true
+}
+
+// ShouldIncludeIP returns true when an IP belongs in the leaf
+// certificate's SAN list. Extracted from getCurrentIPs so the
+// classification rules can be unit-tested without bringing real
+// network interfaces into the test.
+//
+// Rules (per ADR 0001):
+//   - RFC1918 IPv4 (10/8, 172.16/12, 192.168/16) — always included
+//   - IPv6 ULA fc00::/7 — always included
+//   - CGNAT 100.64.0.0/10 — included ONLY when ifaceName matches a
+//     mesh-VPN tunnel naming pattern (tunnel-style names on Linux,
+//     utun* on macOS). Including it unconditionally would pollute
+//     the SAN with arbitrary VPN-client addresses on hosts where
+//     utun is shared between mesh-VPN clients.
+func ShouldIncludeIP(ifaceName string, ip net.IP) bool {
+	if v4 := ip.To4(); v4 != nil {
+		if v4[0] == 10 || (v4[0] == 172 && v4[1] >= 16 && v4[1] <= 31) || (v4[0] == 192 && v4[1] == 168) {
+			return true
+		}
+		if v4[0] == 100 && v4[1] >= 64 && v4[1] <= 127 {
+			return strings.HasPrefix(ifaceName, "tailscale") || strings.HasPrefix(ifaceName, "utun")
+		}
+		return false
+	}
+	if len(ip) == 16 && (ip[0]&0xfe) == 0xfc {
+		return true
+	}
+	return false
 }
 
 func (m *CertManager) ArmHSTS() error {

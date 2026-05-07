@@ -4,7 +4,17 @@ This guide explains how to establish a secure, "green lock" connection to your P
 
 ## Overview
 
-PowerLab uses a custom **Internal Root Certificate Authority (CA)** to sign its own certificates. By trusting this Root CA on your devices, you enable encrypted HTTPS connections to `powerlab.local` and its local IP address.
+PowerLab uses a custom **Internal Root Certificate Authority (CA)** to sign its own certificates. By trusting this Root CA on your devices, you enable encrypted HTTPS connections to `powerlab.local` and the host's LAN address.
+
+The leaf certificate covers every way you reach the box from inside your trust boundary:
+
+| How you connect                | Hostname / IP                                | Trusted? |
+|--------------------------------|----------------------------------------------|----------|
+| Same Wi-Fi / Ethernet (mDNS)   | `powerlab.local`, `<host>.local`             | ✅ Yes    |
+| Same Wi-Fi / Ethernet (LAN IP) | `192.168.x.x`, `10.x.x.x`, `172.16-31.x.x`   | ✅ Yes    |
+| Same machine                   | `localhost`, `127.0.0.1`, `::1`              | ✅ Yes    |
+
+The IP-change watcher re-issues the leaf within seconds when the host's bound IP set changes (DHCP renewal, multi-NIC toggle, etc.), so the SAN list stays in sync without any user action.
 
 ## Installation Steps
 
@@ -36,10 +46,11 @@ PowerLab uses a custom **Internal Root Certificate Authority (CA)** to sign its 
 
 ## Technical Details
 
-- **Algorithm**: ECDSA P-256 (High security, small footprint).
-- **Subject Alternative Names (SAN)**: Includes `powerlab.local`, `localhost`, and all local IPv4/IPv6 addresses.
-- **HSTS**: Once trust is confirmed, the server enables Strict-Transport-Security (HSTS) to prevent accidental fallback to unencrypted HTTP.
-- **Automatic Renewal**: Server certificates are automatically rotated 60 days before expiry or immediately upon IP change.
+- **Algorithm**: ECDSA P-256 (high security, small footprint).
+- **Subject Alternative Names (SAN)**: `powerlab.local`, `<system-hostname>.local`, `localhost`, plus every RFC1918 IPv4 (`10/8`, `172.16/12`, `192.168/16`) and IPv6 ULA (`fc00::/7`) bound to a host interface.
+- **HSTS gate**: Strict-Transport-Security is **not** armed until you confirm trust over HTTPS from a non-localhost peer. Prevents the classic lock-out where HSTS ships before the CA is installed.
+- **Automatic renewal**: Leaf certificates are rotated 60 days before expiry, or immediately when the host's bound IP set changes (DHCP renewal, multi-NIC toggle).
+- **CA download endpoints**: `/v1/sys/ca-certificate` redirects by User-Agent — Apple devices get a signed `.mobileconfig`, Windows gets `.cer` (DER), everyone else gets the raw `.crt`.
 
 ## Resetting Trust
 

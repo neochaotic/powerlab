@@ -28,9 +28,9 @@ Constraints:
   below 60 days.
 - An IP-change watcher re-issues the leaf immediately when the host's
   IP set changes (DHCP renewal, network swap, multi-NIC toggle,
-  Tailscale interface coming up or going down).
+  mesh-VPN tunnel coming up or going down).
 
-### SAN list (revised 2026-05-07 for Tailscale coexistence)
+### SAN list (revised 2026-05-07 for mesh-VPN coexistence)
 
 DNS:
 - `powerlab.local`
@@ -42,9 +42,10 @@ IP:
 - All RFC1918 addresses bound to host interfaces
   (`10/8`, `172.16/12`, `192.168/16`)
 - IPv6 ULA `fc00::/7`
-- **Tailscale CGNAT `100.64.0.0/10`** — included only when a
-  `tailscale0` (Linux) / `utun*` (macOS) interface is present on the
-  host. Without this, a user accessing the panel via Tailscale gets
+- **CGNAT `100.64.0.0/10`** — included only when a tunnel-style
+  interface (`tailscale*` on Linux, `utun*` on macOS) is present on
+  the host. Without this, a user accessing the panel through a
+  mesh-VPN tunnel after confirming trust on LAN gets
   cert-not-trusted; combined with HSTS already armed from the LAN
   visit, that's a lock-out.
 - Excluded: Docker bridge ranges (typically `172.17/16` — filtered by
@@ -94,20 +95,21 @@ IP:
   of the last successful renew, with an amber warning if it's > 30 days
   ago.
 - The IP-change watcher must be debounced (DHCP renewal can flap an IP
-  multiple times in a few seconds during a network swap, and Tailscale
-  bringing its interface up post-boot triggers another change).
+  multiple times in a few seconds during a network swap, and a
+  mesh-VPN tunnel bringing its interface up post-boot triggers
+  another change).
 - ADR 0006 (HSTS gate) is what prevents the lock-out scenario; this
   ADR assumes that gate exists.
-- Tailscale CGNAT in SAN means the cert lists at least one IP a remote
-  attacker on the same tailnet could see if they capture handshake
-  traffic. Since the tailnet is the user's own, and CGNAT IPs are not
+- CGNAT in SAN means the cert lists at least one IP a remote
+  attacker on the same VPN mesh could see if they capture handshake
+  traffic. Since the mesh is the user's own, and CGNAT IPs are not
   publicly routable, this is a non-issue in practice. The cert is
   public information by definition.
-- MagicDNS hostnames (`<host>.<tailnet>.ts.net`) are NOT in the SAN
-  for v0.2.7 — detecting them requires querying the Tailscale local
-  API and we don't want to add that runtime coupling yet. Users
-  accessing via MagicDNS hostname see cert-not-trusted; deferred to
-  v0.2.8 (issue #45).
+- Custom DNS hostnames advertised by the mesh-VPN provider (e.g.
+  `<host>.<tailnet>.ts.net`-style) are NOT in the SAN for v0.2.7 —
+  detecting them requires querying the VPN client's local API and we
+  don't want to add that runtime coupling yet. Users accessing via
+  such a hostname see cert-not-trusted; deferred to a follow-up.
 
 ## References
 
