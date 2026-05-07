@@ -16,6 +16,7 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import { updaterStore } from '$lib/stores/updater.svelte';
 	import { getCurrentOS, type OS } from '$lib/utils/os';
+	import { probePortReachable } from '$lib/utils/probe';
 	import { Download } from 'lucide-svelte';
 
 	const store = useSettingsStore();
@@ -209,18 +210,37 @@
 			toast.error(`Failed to change port: ${(e as Error).message}`);
 			return;
 		}
-		// Successful response; the gateway is now listening on the new
-		// port. Count down then redirect — keep the user in the loop
-		// rather than throwing a blank screen at them.
+		// Successful response; the gateway will rebind on the new
+		// port within a ~1-2s grace window. Count down, probe the
+		// new port, ONLY redirect if it's actually answering.
+		// Otherwise we'd strand the user on a connection-refused page.
 		countdownSeconds = 3;
-		countdownTimer = setInterval(() => {
+		countdownTimer = setInterval(async () => {
 			countdownSeconds--;
-			if (countdownSeconds <= 0) {
-				if (countdownTimer) clearInterval(countdownTimer);
-				const url = new URL(window.location.href);
-				url.port = String(portInput);
-				window.location.href = url.toString();
+			if (countdownSeconds > 0) return;
+			if (countdownTimer) clearInterval(countdownTimer);
+
+			const newUrl = new URL(window.location.href);
+			newUrl.port = String(portInput);
+
+			// Retry the probe a few times — the rebind grace window
+			// can stretch on slow hosts and the cleanup of the old
+			// listener is asynchronous.
+			let alive = false;
+			for (let i = 0; i < 4; i++) {
+				if (await probePortReachable(newUrl)) {
+					alive = true;
+					break;
+				}
+				await new Promise(r => setTimeout(r, 750));
 			}
+
+			if (!alive) {
+				toast.error(`Port change acknowledged but ${portInput} is not responding. The change may have failed; refresh manually if you can reach it, or revert via the API.`);
+				return;
+			}
+
+			window.location.href = newUrl.toString();
 		}, 1000);
 	}
 
