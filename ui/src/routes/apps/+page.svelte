@@ -1024,6 +1024,25 @@
 				This will pull the Docker image and start the container.
 			</p>
 
+			{#if pendingInstallApp.tips?.before_install && getTitle(pendingInstallApp.tips.before_install)}
+				<!-- x-casaos.tips.before_install — initial-password / first-run
+					 hints supplied by the app's compose YAML. Surfaced here
+					 before the user clicks Install so they know what to
+					 grab post-install (admin tokens auto-written to disk,
+					 default credentials baked into the image, etc). Without
+					 this, half the catalogue is effectively unusable for
+					 anyone who hasn't memorised every app's quirks. -->
+				<div class="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] p-3">
+					<div class="flex items-start gap-2">
+						<AlertCircle class="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-400/90" />
+						<div class="flex-1 min-w-0">
+							<p class="mb-1 text-[10px] font-bold uppercase tracking-widest text-amber-400">First-run note</p>
+							<div class="text-[11px] leading-relaxed text-amber-100/80 whitespace-pre-wrap break-words">{getTitle(pendingInstallApp.tips.before_install)}</div>
+						</div>
+					</div>
+				</div>
+			{/if}
+
 			{#if isCheckingCompatibility}
 				<div class="mb-5 flex items-center gap-2 rounded-xl bg-white/5 p-3 text-xs text-zinc-500">
 					<Loader2 class="h-3 w-3 animate-spin" />
@@ -1388,6 +1407,26 @@
 					<h3 class="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">About this App</h3>
 					<Markdown content={appDesc} />
 				</div>
+
+				{#if detailApp.tips?.custom}
+					<!-- x-casaos.tips.custom — post-install hint with config
+						 instructions, env-var overrides, default credentials,
+						 etc. Rendered as markdown so apps that already use
+						 bullet lists / code spans display correctly. -->
+					<div class="mt-10">
+						<h3 class="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">First-run note</h3>
+						<div class="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-5">
+							<Markdown content={detailApp.tips.custom} />
+						</div>
+					</div>
+				{/if}
+
+				{#if detailApp.tips?.before_install && getTitle(detailApp.tips.before_install)}
+					<div class="mt-6">
+						<h3 class="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Before you install</h3>
+						<div class="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-5 text-sm leading-relaxed text-amber-100/80 whitespace-pre-wrap break-words">{getTitle(detailApp.tips.before_install)}</div>
+					</div>
+				{/if}
 			</div>
 
 			<!-- Footer Action -->

@@ -13,6 +13,19 @@ export interface BaseResponse {
 	message: string;
 }
 
+/** Helper hints surfaced by the UI before/after install. Mirrors
+ * CasaOS's `x-casaos.tips` field. `before_install` is a locale map
+ * shown above the install confirm button (e.g. "default password is
+ * auto-generated to /DATA/AppData/<app>/admin_token.txt — copy it
+ * before first login"). `custom` is a post-install string shown on
+ * the installed-app drawer (e.g. "set ADMIN_TOKEN env var to
+ * override"). Both rendered as markdown so upstream apps that
+ * already use bullet lists / code spans keep working. */
+export interface AppTips {
+	before_install?: Record<string, string>;
+	custom?: string;
+}
+
 export interface ComposeAppStoreInfo {
 	store_app_id: string;
 	title: Record<string, string>;
@@ -29,6 +42,7 @@ export interface ComposeAppStoreInfo {
 	port_map?: string;
 	index?: string;
 	main?: string;
+	tips?: AppTips;
 	is_uncontrolled?: boolean;
 }
 
