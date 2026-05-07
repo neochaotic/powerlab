@@ -79,6 +79,45 @@ describe('TextEditor — open NEW file (404)', () => {
 	});
 });
 
+describe('TextEditor — CodeMirror actually mounts (race-condition regression)', () => {
+	beforeEach(() => vi.restoreAllMocks());
+
+	// Bug shipped on 2026-05-06: initEditor() was called inside
+	// onMount BEFORE the spinner branch unmounted and the editor
+	// div bound to editorContainer. CodeMirror's `parent:
+	// editorContainer` was null, the early-return ran, and the
+	// modal stayed grey forever — modal opens, no typing, Save
+	// disabled. User: "consigo criar o arquivo mas dai editar
+	// nao funciona e nem salvar".
+	it('mounts a CodeMirror surface that responds to typing (.cm-editor in DOM)', async () => {
+		vi.stubGlobal(
+			'fetch',
+			mockResponse({ success: 200, message: 'ok', data: 'initial content' })
+		);
+
+		const { container, findByText } = render(TextEditor, {
+			path: '/tmp/code-mirror-mount.txt',
+			onClose: () => {}
+		});
+
+		// Wait for the file name to render — proves loading completed
+		// and the body branch (which contains the editor div) flipped.
+		await findByText('code-mirror-mount.txt');
+
+		// CodeMirror injects a `.cm-editor` element inside the bound
+		// container when initEditor runs successfully. If the race
+		// condition comes back, this query returns null and the test
+		// fails — fast feedback before the modal ever ships grey.
+		await waitFor(
+			() => {
+				const cmEditor = container.querySelector('.cm-editor');
+				expect(cmEditor).toBeTruthy();
+			},
+			{ timeout: 1500 }
+		);
+	});
+});
+
 describe('TextEditor — backend 500 still surfaces error', () => {
 	beforeEach(() => vi.restoreAllMocks());
 

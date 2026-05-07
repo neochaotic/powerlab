@@ -39,6 +39,15 @@
 	// document on every change to compute isDirty.
 	let savedContent = $state('');
 	let editorContainer = $state<HTMLDivElement | null>(null);
+	// Becomes true the moment we have a successful (or 404 → new) load.
+	// A reactive $effect below initializes the CodeMirror instance once
+	// BOTH the editorContainer is in the DOM (loading rendered the spinner
+	// branch and unmounted, the editor div mounted, bind:this fired) AND
+	// readyToInit is true. Without this gate the previous code called
+	// initEditor() inside onMount while loading=true, but the editor div
+	// only mounts when loading=false — so editorContainer was null and
+	// CodeMirror silently never attached, leaving the modal grey.
+	let readyToInit = $state(false);
 	// CodeMirror view is mutated imperatively (not template-rendered), so a
 	// plain `let` is fine. Suppress the runes-warning explicitly.
 	// svelte-ignore non_reactive_update
@@ -51,26 +60,32 @@
 			const res = await readFileContent(path);
 			if (res.success === 200 || (res as any).success === 0) {
 				content = res.data;
-				initEditor(content);
+				readyToInit = true;
 			} else {
 				error = res.message || 'Failed to load file content';
 			}
 		} catch (e) {
 			// Treat 404 as "open new file" — the editor lets the user type
-			// content and the first Save creates the path. Without this
-			// branch, navigating to a non-existing path made the editor
-			// modal stuck on "Could not open file" with no way to start
-			// typing.
+			// content and the first Save creates the path.
 			const apiErr = e as { status?: number; message?: string };
 			if (apiErr?.status === 404) {
 				isNewFile = true;
 				content = '';
-				initEditor('');
+				readyToInit = true;
 			} else {
 				error = apiErr?.message || (e as Error).message;
 			}
 		} finally {
 			loading = false;
+		}
+	});
+
+	// Reactive init: fires once the editor div is bound (post-render,
+	// after loading=false flipped) AND readyToInit is set. Idempotent —
+	// guards against re-running if either dep changes after init.
+	$effect(() => {
+		if (readyToInit && editorContainer && !view) {
+			initEditor(content);
 		}
 	});
 
