@@ -4,6 +4,7 @@
 	import LoginScreen from '$lib/components/auth/LoginScreen.svelte';
 	import SetupWizard from '$lib/components/auth/SetupWizard.svelte';
 	import ToastContainer from '$lib/components/ui/Toast.svelte';
+	import HttpBanner from '$lib/components/security/HttpBanner.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { ui } from '$lib/stores/ui.svelte';
 	import { versionHandshake } from '$lib/stores/versionHandshake.svelte';
@@ -32,17 +33,15 @@
 		// user just sees features "broken" with no diagnostic.
 		versionHandshake.check();
 
-		// Service Worker registration deliberately disabled. The previous
-		// SW was a pass-through (fetch(event.request)) with no caching
-		// strategy of its own, so it added no value but added a failure
-		// mode: under vite dev, intercepted navigations to SPA routes
-		// (/apps, /files, …) raised "Failed to fetch" in the console.
-		// Re-enable when there is an actual offline cache strategy worth
-		// shipping (PWA shell, offline app catalogue, etc).
-		if ('serviceWorker' in navigator) {
-			navigator.serviceWorker.getRegistrations().then((regs) => {
-				for (const reg of regs) reg.unregister();
-			});
+		// Service Worker — register only on production builds (PROD), no
+		// fetch interception. The SW (ui/static/sw.js) just satisfies
+		// PWA install criteria so the browser offers "Add to Home
+		// Screen". Skipped under vite dev because the SW + dev runtime
+		// race condition surfaces "Failed to fetch" warnings without
+		// any benefit — the install prompt only matters on production
+		// anyway. See docs/decisions/0005-pwa-scaffolding-no-cache-yet.md.
+		if ('serviceWorker' in navigator && import.meta.env.PROD) {
+			navigator.serviceWorker.register('/sw.js').catch(console.error);
 		}
 
 		window.addEventListener('beforeinstallprompt', (e) => {
@@ -100,6 +99,7 @@
 </svelte:head>
 
 <ToastContainer />
+<HttpBanner />
 
 <!-- Root Container — same ambient wallpaper as the login screen.
 	 Sidebar + Launchpad are translucent so the glow shows through.

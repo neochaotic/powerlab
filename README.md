@@ -66,6 +66,7 @@ Built on a battle-tested Go core. Wrapped in a SvelteKit interface tuned to the 
 - **Sign in with the password you already know.** PowerLab uses your operating-system credentials. One identity, one less thing to forget.
 - **Quiet by default.** Dark theme, considered typography, animations that respect attention. The panel does its job and gets out of the way.
 - **Reachable everywhere on your LAN.** mDNS announces the box at `powerlab.local` automatically — wifi, ethernet, any device, no IP juggling.
+- **Green padlock, no public DNS.** PowerLab provisions a private CA on first boot and signs its own leaf certificate covering `powerlab.local`, the host's LAN addresses, and `localhost`. One-tap trust install on iOS/macOS via a signed `.mobileconfig`; raw `.crt` for everyone else. HSTS only arms after the trust dance is verified end-to-end, so you can never be locked out of your own server. See the [HTTPS guide](docs/HTTPS.md).
 
 <br>
 

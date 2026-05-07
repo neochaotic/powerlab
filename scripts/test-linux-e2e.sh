@@ -384,6 +384,77 @@ echo "$PORTLOG" | grep -q "8765 → 000" || { echo "$PORTLOG"; fail "scenario A:
 echo "$PORTLOG" | grep -q '"data":"8775"' || { echo "$PORTLOG"; fail "scenario A: /v1/gateway/port did not report 8775"; }
 green "  → port change moves listener (8765 → 8775, /v1/gateway/port reports new value)"
 
+# HTTPS / Local CA (#43, v0.2.7). These assertions describe the
+# contract that scripts/test-linux-e2e.sh should enforce once the
+# TLS package and security route are wired into the gateway. Until
+# that wiring is done, the assertions are wrapped in a feature-gate
+# (HTTPS_GATE_ENABLED) so they don't break the existing E2E for
+# v0.2.6. Flip the gate when the wiring lands.
+HTTPS_GATE_ENABLED="${HTTPS_GATE_ENABLED:-1}"
+if [[ "$HTTPS_GATE_ENABLED" == "1" ]]; then
+  cyan ""
+  cyan "[e2e] HTTPS / Local CA assertions (v0.2.7 #43)"
+
+  # 1. CA certificate downloadable as raw PEM
+  PEM_HEAD=$(run_in_container "curl -fsS http://localhost:8765/v1/sys/ca-certificate.crt | head -1")
+  [[ "$PEM_HEAD" == "-----BEGIN CERTIFICATE-----" ]] \
+    || fail "https: /v1/sys/ca-certificate.crt did not return a PEM cert (got: $PEM_HEAD)"
+  green "  → /v1/sys/ca-certificate.crt → valid PEM"
+
+  # 2. CA certificate downloadable as Apple .mobileconfig (signed plist)
+  MC=$(run_in_container "curl -fsS http://localhost:8765/v1/sys/ca-certificate.mobileconfig")
+  echo "$MC" | grep -q "<plist" \
+    || fail "https: .mobileconfig is not a plist"
+  echo "$MC" | grep -q "com.apple.security.root" \
+    || fail "https: .mobileconfig missing PayloadType=com.apple.security.root"
+  green "  → /v1/sys/ca-certificate.mobileconfig → signed Apple plist"
+
+  # 3. CA certificate downloadable as DER (.cer) for Windows import wizard
+  CER_BYTES=$(run_in_container "curl -fsS http://localhost:8765/v1/sys/ca-certificate.cer | wc -c")
+  [[ "$CER_BYTES" -gt 100 ]] \
+    || fail "https: .cer returned $CER_BYTES bytes (too small)"
+  green "  → /v1/sys/ca-certificate.cer → ${CER_BYTES} bytes"
+
+  # 4. Leaf cert SAN includes the host's IP and powerlab.local
+  CONTAINER_IP=$(run_in_container "hostname -I | awk '{print \$1}'")
+  SAN_DUMP=$(run_in_container "
+    echo -n | openssl s_client -connect localhost:8443 -servername powerlab.local 2>/dev/null \
+      | openssl x509 -noout -text 2>/dev/null \
+      | sed -n '/Subject Alternative Name/,/X509v3/p'
+  ")
+  echo "$SAN_DUMP" | grep -q "powerlab.local" \
+    || fail "https: leaf SAN missing powerlab.local"
+  echo "$SAN_DUMP" | grep -q "$CONTAINER_IP" \
+    || fail "https: leaf SAN missing host IP $CONTAINER_IP"
+  green "  → leaf cert SAN includes powerlab.local + $CONTAINER_IP"
+
+  # 5. HSTS NOT emitted before trust-confirmed
+  HSTS_PRE=$(run_in_container "curl -ksS -o /dev/null -D - https://localhost:8443/ping 2>&1 | grep -i strict-transport-security | head -1")
+  [[ -z "$HSTS_PRE" ]] \
+    || fail "https: HSTS already armed before trust-confirmed (got: $HSTS_PRE)"
+  green "  → HSTS NOT emitted pre-trust"
+
+  # 6. POST /v1/sys/trust-confirmed arms the gate (must come from
+  # non-localhost; we use the container's RFC1918 IP which is
+  # reachable from outside-loopback via curl --resolve)
+  run_in_container "
+    curl -ksS -X POST 'https://$CONTAINER_IP:8443/v1/sys/trust-confirmed' \
+      -H 'Authorization: $TOKEN' >/dev/null
+  " || fail "https: POST /v1/sys/trust-confirmed failed"
+
+  # 7. HSTS now emitted post-trust
+  HSTS_POST=$(run_in_container "curl -ksS -o /dev/null -D - https://localhost:8443/ping 2>&1 | grep -i strict-transport-security | head -1")
+  [[ -n "$HSTS_POST" ]] \
+    || fail "https: HSTS still missing after trust-confirmed"
+  green "  → HSTS armed after /v1/sys/trust-confirmed (gate works)"
+
+  # 8. HTTP now redirects to HTTPS (gate also flips redirect behavior)
+  REDIR_LOC=$(run_in_container "curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' http://localhost:8765/")
+  echo "$REDIR_LOC" | grep -qE "^301 https://" \
+    || fail "https: HTTP→HTTPS redirect not active after trust (got: $REDIR_LOC)"
+  green "  → HTTP redirects to HTTPS post-trust"
+fi
+
 # ─── Scenario B: CasaOS present, no flag → must refuse ───────────────────
 cyan "[e2e] Scenario B: CasaOS present (no --allow-coexist)"
 start_container

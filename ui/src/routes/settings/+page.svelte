@@ -15,6 +15,9 @@
 	import { getGatewayPort, setGatewayPort } from '$lib/api/gateway';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { updaterStore } from '$lib/stores/updater.svelte';
+	import { getCurrentOS, type OS } from '$lib/utils/os';
+	import { probePortReachable } from '$lib/utils/probe';
+	import { Download } from 'lucide-svelte';
 
 	const store = useSettingsStore();
 
@@ -22,7 +25,128 @@
 	let activeSection = $state<Section>('general');
 	let copiedKey = $state<string | null>(null);
 
+	// Security HTTPS Onboarding state
+	let activeSecurityTab = $state<OS>('unknown');
+	let isTestingConnection = $state(false);
+
+	// Deep-link support: a URL hash like /settings#security or
+	// /settings#network jumps straight to that tab. Used by HttpBanner
+	// to bring the user here from anywhere in the app.
+	const VALID_SECTIONS: Section[] = ['general', 'network', 'apps', 'security', 'about'];
+	function applyHash() {
+		const h = window.location.hash.replace(/^#/, '') as Section;
+		if (VALID_SECTIONS.includes(h)) activeSection = h;
+	}
+
 	onMount(() => {
+		applyHash();
+		window.addEventListener('hashchange', applyHash);
+
+		activeSecurityTab = getCurrentOS();
+		if (activeSecurityTab === 'unknown' || activeSecurityTab === 'linux') {
+			activeSecurityTab = 'windows'; // Default for Linux/Unknown to show manual instructions
+		}
+		return () => window.removeEventListener('hashchange', applyHash);
+	});
+
+	// 4-guard trust dance: never redirect to a URL that won't render
+	// the SPA. The "Connection failed / Not Found" white screen we
+	// saw in dev (gateway:8443 only serves APIs) must not be possible
+	// in prod either if config drifts.
+	//
+	//   Guard 1 — TLS reachable: cross-origin no-cors fetch on the CA
+	//     PEM. If the cert chain is broken, the browser rejects.
+	//   Guard 2 — SPA-served on HTTPS: cors GET / on the HTTPS port,
+	//     content-type must be text/html. Catches the case where the
+	//     gateway is alive but only routing APIs (dev mode, mis-config,
+	//     reverse proxy override).
+	//   Guard 3 — HSTS arming response acked: POST /trust-confirmed
+	//     must return 2xx. If the server refuses (HSTS gate file write
+	//     failed, request not from non-localhost over HTTPS, etc) we
+	//     don't lie to the user with a "Trust established" toast.
+	//   Guard 4 — Only redirect when all three guards pass. Otherwise
+	//     show the success toast WITHOUT redirecting, so the user
+	//     stays on a page that exists.
+	async function testHttpsConnection() {
+		isTestingConnection = true;
+		const httpsBase = `https://${window.location.hostname}:8443`;
+
+		try {
+			// Guard 1: TLS handshake must complete. no-cors lets us
+			// skip the CORS preflight; we don't need to read the body.
+			await fetch(`${httpsBase}/v1/sys/ca-certificate.crt`, {
+				mode: 'no-cors',
+				signal: AbortSignal.timeout(5000)
+			});
+
+			// Guard 2: confirm the HTTPS endpoint is actually serving
+			// the SPA (HTML) — not just APIs (JSON 404 / 405). This is
+			// what makes the "Not Found" screen impossible to reach.
+			let canRedirect = false;
+			try {
+				const probe = await fetch(`${httpsBase}/`, {
+					method: 'GET',
+					mode: 'cors',
+					signal: AbortSignal.timeout(3000)
+				});
+				const ct = probe.headers.get('content-type') || '';
+				canRedirect = probe.ok && ct.includes('text/html');
+			} catch {
+				canRedirect = false;
+			}
+
+			// Guard 3: HSTS arm. The endpoint REJECTS localhost requests
+			// by design (ADR 0006) — the whole point is to prove the
+			// trust dance works from a real LAN client. So if the user
+			// is testing from localhost we don't even attempt the arm;
+			// we just confirm the cert chain works. Production users
+			// reach the panel via LAN IP / mDNS, which the handler
+			// accepts.
+			const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+			if (!isLocalhost) {
+				const armResp = await fetch(`${httpsBase}/v1/sys/trust-confirmed`, {
+					method: 'POST',
+					mode: 'cors',
+					signal: AbortSignal.timeout(5000)
+				});
+				if (!armResp.ok) {
+					const detail = await armResp.text().catch(() => '');
+					throw new Error(`HSTS arming refused (${armResp.status}): ${detail.slice(0, 120)}`);
+				}
+			}
+
+			// Guard 4: only redirect when the destination will render.
+			if (!canRedirect) {
+				const note = isLocalhost
+					? 'Trust verified. (HSTS arming is skipped on localhost — visit via your LAN IP to complete that step.)'
+					: 'Trust established. The certificate is valid; visit the secure URL when ready.';
+				toast.success(note);
+				return;
+			}
+
+			toast.success('Trust established! Redirecting to secure connection…');
+			setTimeout(() => {
+				const secureUrl = new URL(window.location.href);
+				secureUrl.protocol = 'https:';
+				secureUrl.port = '8443';
+				window.location.href = secureUrl.toString();
+			}, 1500);
+
+		} catch (e) {
+			console.error('HTTPS test failed:', e);
+			toast.error(`Connection test failed: ${(e as Error).message || 'unknown error'}. Confirm the certificate is installed and trusted.`);
+		} finally {
+			isTestingConnection = false;
+		}
+	}
+
+	onMount(() => {
+		// Initialize security tab from OS
+		activeSecurityTab = getCurrentOS();
+		if (activeSecurityTab === 'unknown' || activeSecurityTab === 'linux') {
+			activeSecurityTab = 'windows'; 
+		}
+
 		store.fetchUtilization();
 		store.fetchHardwareInfo();
 		store.fetchTimezone();
@@ -86,18 +210,37 @@
 			toast.error(`Failed to change port: ${(e as Error).message}`);
 			return;
 		}
-		// Successful response; the gateway is now listening on the new
-		// port. Count down then redirect — keep the user in the loop
-		// rather than throwing a blank screen at them.
+		// Successful response; the gateway will rebind on the new
+		// port within a ~1-2s grace window. Count down, probe the
+		// new port, ONLY redirect if it's actually answering.
+		// Otherwise we'd strand the user on a connection-refused page.
 		countdownSeconds = 3;
-		countdownTimer = setInterval(() => {
+		countdownTimer = setInterval(async () => {
 			countdownSeconds--;
-			if (countdownSeconds <= 0) {
-				if (countdownTimer) clearInterval(countdownTimer);
-				const url = new URL(window.location.href);
-				url.port = String(portInput);
-				window.location.href = url.toString();
+			if (countdownSeconds > 0) return;
+			if (countdownTimer) clearInterval(countdownTimer);
+
+			const newUrl = new URL(window.location.href);
+			newUrl.port = String(portInput);
+
+			// Retry the probe a few times — the rebind grace window
+			// can stretch on slow hosts and the cleanup of the old
+			// listener is asynchronous.
+			let alive = false;
+			for (let i = 0; i < 4; i++) {
+				if (await probePortReachable(newUrl)) {
+					alive = true;
+					break;
+				}
+				await new Promise(r => setTimeout(r, 750));
 			}
+
+			if (!alive) {
+				toast.error(`Port change acknowledged but ${portInput} is not responding. The change may have failed; refresh manually if you can reach it, or revert via the API.`);
+				return;
+			}
+
+			window.location.href = newUrl.toString();
 		}, 1000);
 	}
 
@@ -447,8 +590,125 @@
 				<div in:fade={{ duration: 150 }}>
 					<header class="mb-8">
 						<h1 class="text-2xl font-bold tracking-tight text-white">Security</h1>
-						<p class="mt-1 text-sm text-zinc-500">Authentication and session management.</p>
+						<p class="mt-1 text-sm text-zinc-500">HTTPS infrastructure and session management.</p>
 					</header>
+
+					<!-- HTTPS Onboarding (Issue #43) -->
+					<section class="mb-10">
+						<h3 class="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Local HTTPS Establishment</h3>
+						<div class="overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02]">
+							<!-- Tabs Header -->
+							<div class="flex border-b border-white/5 bg-white/[0.02]">
+								{#each ['ios', 'macos', 'android', 'windows'] as tab}
+									<button
+										class={cn(
+											"flex-1 px-4 py-3 text-[11px] font-bold uppercase tracking-wider transition-colors",
+											activeSecurityTab === tab ? "bg-white/5 text-white shadow-[inset_0_-2px_0_white]" : "text-zinc-500 hover:text-zinc-300"
+										)}
+										onclick={() => activeSecurityTab = tab as any}
+									>
+										{tab}
+									</button>
+								{/each}
+							</div>
+
+							<!-- Tab Content -->
+							<div class="p-6">
+								<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+									<div class="space-y-6">
+										{#if activeSecurityTab === 'ios'}
+											<div class="space-y-4" in:fade>
+												<h4 class="text-lg font-semibold text-white">iOS Installation</h4>
+												<ol class="space-y-3 list-decimal list-inside text-sm text-zinc-400">
+													<li>Download the <a href="/v1/sys/ca-certificate.mobileconfig" class="text-emerald-400 hover:underline">Security Profile</a>.</li>
+													<li>Go to <strong>Settings → Profile Downloaded</strong> and click <strong>Install</strong>.</li>
+													<li>Go to <strong>Settings → General → About → Certificate Trust Settings</strong>.</li>
+													<li>Enable full trust for <strong>PowerLab Root CA</strong>.</li>
+												</ol>
+												<Button class="w-full bg-white text-zinc-950 font-bold" onclick={() => window.location.href = '/v1/sys/ca-certificate.mobileconfig'}>
+													<Download class="h-4 w-4 mr-2" />
+													Download Profile
+												</Button>
+											</div>
+										{:else if activeSecurityTab === 'macos'}
+											<div class="space-y-4" in:fade>
+												<h4 class="text-lg font-semibold text-white">macOS Installation</h4>
+												<ol class="space-y-3 list-decimal list-inside text-sm text-zinc-400">
+													<li>Download the <a href="/v1/sys/ca-certificate.mobileconfig" class="text-emerald-400 hover:underline">Security Profile</a>.</li>
+													<li>Open the profile and click <strong>Install</strong> in System Settings.</li>
+													<li>Alternatively, use the <a href="/v1/sys/ca-certificate.crt" class="text-emerald-400 hover:underline">CRT file</a> and set trust in Keychain Access.</li>
+												</ol>
+												<div class="flex gap-2">
+													<Button variant="secondary" class="flex-1 font-bold" onclick={() => window.location.href = '/v1/sys/ca-certificate.mobileconfig'}>.mobileconfig</Button>
+													<Button variant="secondary" class="flex-1 font-bold" onclick={() => window.location.href = '/v1/sys/ca-certificate.crt'}>.crt</Button>
+												</div>
+											</div>
+										{:else if activeSecurityTab === 'android'}
+											<div class="space-y-4" in:fade>
+												<h4 class="text-lg font-semibold text-white">Android Installation</h4>
+												<ol class="space-y-3 list-decimal list-inside text-sm text-zinc-400">
+													<li>Download the <a href="/v1/sys/ca-certificate.crt" class="text-emerald-400 hover:underline">CA Certificate</a>.</li>
+													<li>Settings → Security → Encryption → Install from storage.</li>
+													<li>Select <strong>CA certificate</strong> and pick the file.</li>
+												</ol>
+												<Button class="w-full bg-white text-zinc-950 font-bold" onclick={() => window.location.href = '/v1/sys/ca-certificate.crt'}>
+													<Download class="h-4 w-4 mr-2" />
+													Download CRT
+												</Button>
+											</div>
+										{:else if activeSecurityTab === 'windows'}
+											<div class="space-y-4" in:fade>
+												<h4 class="text-lg font-semibold text-white">Windows / Linux</h4>
+												<ol class="space-y-3 list-decimal list-inside text-sm text-zinc-400">
+													<li>Download the <a href="/v1/sys/ca-certificate.crt" class="text-emerald-400 hover:underline">CA Certificate</a>.</li>
+													<li>Right-click → Install → Local Machine.</li>
+													<li>Place in <strong>Trusted Root Certification Authorities</strong>.</li>
+													<li>On Linux: Copy to <code>/usr/local/share/ca-certificates/</code> and run <code>update-ca-certificates</code>.</li>
+												</ol>
+												<Button class="w-full bg-white text-zinc-950 font-bold" onclick={() => window.location.href = '/v1/sys/ca-certificate.crt'}>
+													<Download class="h-4 w-4 mr-2" />
+													Download CRT
+												</Button>
+											</div>
+										{/if}
+
+										<div class="pt-6 border-t border-white/5">
+											<div class="flex items-center justify-between gap-4 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+												<div>
+													<p class="text-sm font-bold text-white">Verification</p>
+													<p class="text-xs text-zinc-500">Test if your device trusts PowerLab.</p>
+												</div>
+												<Button 
+													size="sm" 
+													class={cn("font-bold transition-all", isTestingConnection ? "bg-zinc-800 text-zinc-500" : "bg-emerald-500 text-zinc-950 hover:bg-emerald-400")}
+													onclick={testHttpsConnection}
+													disabled={isTestingConnection}
+												>
+													{#if isTestingConnection}
+														<RefreshCw class="h-3.5 w-3.5 mr-2 animate-spin" />
+														Testing…
+													{:else}
+														Test Connection
+													{/if}
+												</Button>
+											</div>
+										</div>
+									</div>
+
+									<!-- Visual Guide -->
+									<div class="relative aspect-[4/3] overflow-hidden rounded-xl border border-white/5 bg-black/40">
+										<img 
+											src={`/docs/security/${activeSecurityTab}.png`} 
+											alt={`${activeSecurityTab} installation guide`}
+											class="h-full w-full object-cover opacity-80"
+										/>
+										<div class="absolute inset-0 bg-gradient-to-t from-zinc-950/60 to-transparent"></div>
+										<p class="absolute bottom-4 left-4 text-[10px] font-bold uppercase tracking-widest text-white/40">Reference Mockup</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</section>
 
 					<section class="mb-8">
 						<h3 class="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Account</h3>

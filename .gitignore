@@ -94,3 +94,6 @@ AGENTS.md
 # Upstream CasaOS snapshot images — not used by PowerLab
 backend/core/snapshot*.png
 backend/core/snapshot*.jpg
+
+# Per-machine dev runtime config — regenerated from embedded sample on first boot
+backend/gateway/gateway.ini
