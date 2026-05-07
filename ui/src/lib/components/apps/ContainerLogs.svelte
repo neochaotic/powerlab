@@ -4,6 +4,7 @@
 	import { ScrollText, Download, Search, ArrowDown, Terminal } from 'lucide-svelte';
 	import { onMount, onDestroy, untrack } from 'svelte';
 	import { cn } from '$lib/utils';
+	import { t } from '$lib/i18n/index.svelte';
 
 	interface Props {
 		appId: string;
@@ -33,10 +34,10 @@
 	async function fetchLogs() {
 		try {
 			const res = await getComposeAppLogs(appId, 1000); // Fetch more lines for better experience
-			logs = res.data || 'No logs available.';
+			logs = res.data || t('apps.noLogsAvailable');
 			error = null;
 		} catch (e) {
-			error = (e as Error).message ?? 'Failed to load logs';
+			error = (e as Error).message ?? t('apps.failedToLoadLogs');
 		} finally {
 			loading = false;
 		}
@@ -89,7 +90,7 @@
 					</div>
 					<div class="flex items-center gap-1.5 rounded-full bg-white/[0.03] px-2.5 py-1">
 						<span class="h-1.5 w-1.5 rounded-full bg-zinc-500 animate-pulse"></span>
-						<span class="text-[10px] font-bold text-zinc-500">{lineCount.toLocaleString()} lines</span>
+						<span class="text-[10px] font-bold text-zinc-500">{lineCount.toLocaleString()} {t('apps.lines')}</span>
 					</div>
 				</div>
 				<div class="flex items-center gap-2">
@@ -100,12 +101,12 @@
 						onclick={() => follow = !follow}
 					>
 						<ArrowDown class={cn("h-3.5 w-3.5 transition-transform", follow ? "translate-y-0.5" : "")} />
-						Follow
+						{t('apps.follow')}
 					</Button>
 					<div class="h-4 w-px bg-white/5 mx-1"></div>
 					<Button variant="ghost" size="sm" class="h-8 gap-2 text-[11px] font-bold text-zinc-400 hover:text-white" onclick={downloadLogs}>
 						<Download class="h-3.5 w-3.5" />
-						Export
+						{t('apps.export')}
 					</Button>
 					<Button variant="ghost" size="icon" class="h-8 w-8 text-zinc-500 hover:bg-red-500/20 hover:text-red-400" onclick={onClose}>
 						✕
@@ -118,11 +119,11 @@
 				<Search class="h-3 w-3 text-zinc-600" />
 				<input 
 					bind:value={filterTerm}
-					placeholder="Filter logs..."
+					placeholder={t('apps.filterPlaceholder')}
 					class="flex-1 bg-transparent px-3 py-1 font-mono text-[11px] text-zinc-300 placeholder:text-zinc-600 focus:outline-none"
 				/>
 				{#if filterTerm}
-					<button class="text-[10px] text-zinc-600 hover:text-zinc-400" onclick={() => filterTerm = ''}>Clear</button>
+					<button class="text-[10px] text-zinc-600 hover:text-zinc-400" onclick={() => filterTerm = ''}>{t('action.cancel')}</button>
 				{/if}
 			</div>
 		</div>
@@ -133,7 +134,7 @@
 				<div class="flex h-full items-center justify-center font-mono text-sm text-zinc-600">
 					<div class="flex items-center gap-3">
 						<div class="h-4 w-4 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent"></div>
-						Streaming logs...
+						{t('apps.streamingLogs')}
 					</div>
 				</div>
 			{:else if error}
@@ -142,7 +143,7 @@
 						<ScrollText class="h-6 w-6" />
 					</div>
 					<p class="font-mono text-sm text-red-400">{error}</p>
-					<Button variant="outline" size="sm" class="mt-2 border-white/10" onclick={fetchLogs}>Try Again</Button>
+					<Button variant="outline" size="sm" class="mt-2 border-white/10" onclick={fetchLogs}>{t('status.error')}</Button>
 				</div>
 			{:else if logs.trim() === 'No logs available.' || !logs}
 				<div class="flex h-full flex-col items-center justify-center gap-4 text-center">
@@ -150,9 +151,9 @@
 						<ScrollText class="h-8 w-8 text-zinc-600" strokeWidth={1.5} />
 					</div>
 					<div class="space-y-1">
-						<p class="text-sm font-bold text-white">No logs yet</p>
+						<p class="text-sm font-bold text-white">{t('apps.noLogsYet')}</p>
 						<p class="text-[11px] font-medium text-zinc-500 max-w-[200px]">
-							Start the container to see its real-time output here.
+							{t('apps.startContainerToSeeLogs')}
 						</p>
 					</div>
 				</div>

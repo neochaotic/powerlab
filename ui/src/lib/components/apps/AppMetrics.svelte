@@ -5,6 +5,7 @@
     import { Cpu, HardDrive, Network, X, Activity } from 'lucide-svelte';
     import { formatSize, formatPercent, cn } from '$lib/utils';
     import { fade, scale } from 'svelte/transition';
+    import { t } from '$lib/i18n/index.svelte';
 
     interface Props {
         appId: string;
@@ -73,7 +74,7 @@
                 </div>
                 <div>
                     <h2 class="text-xl font-black tracking-tight text-white">{appId}</h2>
-                    <p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Real-time Performance</p>
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('metrics.realtimePerformance')}</p>
                 </div>
             </div>
             <button 
@@ -88,7 +89,7 @@
             <div class="flex h-64 items-center justify-center">
                 <div class="flex flex-col items-center gap-3">
                     <div class="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent"></div>
-                    <span class="text-[10px] font-bold uppercase tracking-widest text-zinc-600">Connecting to Docker...</span>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-zinc-600">{t('metrics.connectingDocker')}</span>
                 </div>
             </div>
         {:else}
@@ -98,7 +99,7 @@
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
                             <Cpu class="h-4 w-4 text-blue-500" />
-                            <span class="text-[11px] font-black uppercase tracking-widest text-zinc-400">Processor</span>
+                            <span class="text-[11px] font-black uppercase tracking-widest text-zinc-400">{t('metrics.processor')}</span>
                         </div>
                         <span class="font-mono text-lg font-bold text-white">{formatPercent(stats.cpu_percent)}</span>
                     </div>
@@ -116,7 +117,7 @@
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
                             <HardDrive class="h-4 w-4 text-purple-500" />
-                            <span class="text-[11px] font-black uppercase tracking-widest text-zinc-400">Memory</span>
+                            <span class="text-[11px] font-black uppercase tracking-widest text-zinc-400">{t('metrics.memory')}</span>
                         </div>
                         <span class="font-mono text-lg font-bold text-white">{formatSize(stats.mem_used_bytes)}</span>
                     </div>
@@ -128,8 +129,8 @@
                         />
                     </div>
                     <div class="mt-2 flex justify-between text-[9px] font-bold uppercase tracking-widest text-zinc-600">
-                        <span>Used</span>
-                        <span>Limit: {formatSize(stats.mem_limit_bytes)}</span>
+                        <span>{t('metrics.used')}</span>
+                        <span>{t('metrics.limit')}: {formatSize(stats.mem_limit_bytes)}</span>
                     </div>
                 </div>
 
@@ -138,7 +139,7 @@
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
                             <Network class="h-4 w-4 text-cyan-500" />
-                            <span class="text-[11px] font-black uppercase tracking-widest text-zinc-400">Inbound</span>
+                            <span class="text-[11px] font-black uppercase tracking-widest text-zinc-400">{t('metrics.inbound')}</span>
                         </div>
                         <span class="font-mono text-lg font-bold text-white">{formatSize(stats.net_rx)}</span>
                     </div>
@@ -156,7 +157,7 @@
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
                             <Network class="h-4 w-4 text-amber-500" />
-                            <span class="text-[11px] font-black uppercase tracking-widest text-zinc-400">Outbound</span>
+                            <span class="text-[11px] font-black uppercase tracking-widest text-zinc-400">{t('metrics.outbound')}</span>
                         </div>
                         <span class="font-mono text-lg font-bold text-white">{formatSize(stats.net_tx)}</span>
                     </div>
@@ -173,9 +174,9 @@
             <div class="mt-8 flex items-center justify-between rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.02] px-4 py-3">
                 <div class="flex items-center gap-3">
                     <div class="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)] animate-pulse"></div>
-                    <span class="text-[10px] font-black uppercase tracking-widest text-emerald-500/80">Live Connection Active</span>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-emerald-500/80">{t('metrics.liveConnectionActive')}</span>
                 </div>
-                <span class="text-[10px] font-bold text-zinc-600">Updated every 2s</span>
+                <span class="text-[10px] font-bold text-zinc-600">{t('metrics.updatedEvery')}</span>
             </div>
         {/if}
     </div>

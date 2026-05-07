@@ -3,6 +3,7 @@
 	import { Lock, Eye, EyeOff, Loader2, ArrowRight } from 'lucide-svelte';
 	import { fade, scale, slide } from 'svelte/transition';
 	import { onMount, onDestroy } from 'svelte';
+	import { t, getLocale } from '$lib/i18n/index.svelte';
 
 	let username = $state('');
 	let password = $state('');
@@ -15,8 +16,9 @@
 
 	function updateTime() {
 		const now = new Date();
-		time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-		date = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+		const locale = getLocale() === 'en' ? 'en-US' : (getLocale() === 'pt-BR' ? 'pt-BR' : 'es-ES');
+		time = now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false });
+		date = now.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
 	}
 
 	onMount(() => {
@@ -69,9 +71,9 @@
 						P<span class="text-emerald-500">.</span>
 					</span>
 				</div>
-				<p class="text-[10px] font-bold uppercase tracking-[0.4em] text-zinc-500">PowerLab</p>
+				<p class="text-[10px] font-bold uppercase tracking-[0.4em] text-zinc-500">{t('app.name')}</p>
 				<p class="mt-3 text-[11px] font-medium text-zinc-600">
-					Sign in with your computer username and password
+					{t('auth.signInDesc')}
 				</p>
 			</div>
 
@@ -83,7 +85,7 @@
 				<input
 					type="text"
 					bind:value={username}
-					placeholder="Username"
+					placeholder={t('auth.username')}
 					autocomplete="username"
 					autofocus
 					class="h-12 w-full rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 text-sm text-white placeholder:text-zinc-600 outline-none transition-all focus:border-emerald-500/30 focus:bg-white/[0.04]"
@@ -94,14 +96,14 @@
 					<input
 						type={showPassword ? 'text' : 'password'}
 						bind:value={password}
-						placeholder="Password"
+						placeholder={t('auth.password')}
 						autocomplete="current-password"
 						class="h-12 w-full rounded-xl border border-white/[0.06] bg-white/[0.02] pl-11 pr-11 text-sm text-white placeholder:text-zinc-600 outline-none transition-all focus:border-emerald-500/30 focus:bg-white/[0.04]"
 					/>
 					<button
 						type="button"
 						onclick={() => (showPassword = !showPassword)}
-						aria-label={showPassword ? 'Hide password' : 'Show password'}
+						aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
 						class="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-zinc-600 transition-colors hover:text-zinc-300"
 					>
 						{#if showPassword}
@@ -115,15 +117,15 @@
 				{#if errorKind === 'invalid'}
 					<div in:slide={{ duration: 200 }} class="flex items-center justify-center gap-2 pt-1 text-[11px] font-medium text-red-400">
 						<span class="h-1 w-1 rounded-full bg-red-500"></span>
-						Invalid username or password
+						{t('auth.invalidCreds')}
 					</div>
 				{:else if errorKind === 'offline'}
 					<div in:slide={{ duration: 200 }} class="flex flex-col items-center gap-1 pt-1">
 						<div class="flex items-center gap-2 text-[11px] font-medium text-amber-400">
 							<span class="h-1 w-1 rounded-full bg-amber-500 animate-pulse"></span>
-							Cannot reach the PowerLab backend
+							{t('auth.backendUnreachable')}
 						</div>
-						<p class="text-[10px] text-zinc-600">Check that the gateway is running, then try again</p>
+						<p class="text-[10px] text-zinc-600">{t('auth.checkGateway')}</p>
 					</div>
 				{/if}
 
@@ -135,7 +137,7 @@
 					{#if loading}
 						<Loader2 class="h-4 w-4 animate-spin" />
 					{:else}
-						Sign in
+						{t('auth.signIn')}
 						<ArrowRight class="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
 					{/if}
 				</button>

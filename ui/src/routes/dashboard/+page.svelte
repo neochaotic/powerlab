@@ -12,6 +12,7 @@
 	import MiniProgress from '$lib/components/dashboard/MiniProgress.svelte';
 	import { cn } from '$lib/utils';
 	import AppHeader from '$lib/components/layout/AppHeader.svelte';
+	import { t } from '$lib/i18n/index.svelte';
 
 	const store = useSystemStore();
 
@@ -51,22 +52,22 @@
 		return `${(bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
 	}
 
-	function diskHealth(pct: number): 'Healthy' | 'Warning' | 'Critical' {
-		if (pct > 90) return 'Critical';
-		if (pct > 75) return 'Warning';
-		return 'Healthy';
+	function diskHealth(pct: number): string {
+		if (pct > 90) return t('dashboard.critical');
+		if (pct > 75) return t('dashboard.warning');
+		return t('dashboard.healthy');
 	}
 
 	const diskHealthColor: Record<string, string> = {
-		Healthy: 'text-emerald-500',
-		Warning: 'text-amber-500',
-		Critical: 'text-red-500'
+		[t('dashboard.healthy')]: 'text-emerald-500',
+		[t('dashboard.warning')]: 'text-amber-500',
+		[t('dashboard.critical')]: 'text-red-500'
 	};
 
 	const diskBarColor: Record<string, string> = {
-		Healthy: 'bg-emerald-500',
-		Warning: 'bg-amber-500',
-		Critical: 'bg-red-500'
+		[t('dashboard.healthy')]: 'bg-emerald-500',
+		[t('dashboard.warning')]: 'bg-amber-500',
+		[t('dashboard.critical')]: 'bg-red-500'
 	};
 
 	async function performAction(action: 'restart' | 'off') {
@@ -74,9 +75,9 @@
 		confirmAction = null;
 		try {
 			await putSystemState(action);
-			toast.success(action === 'restart' ? 'System is restarting…' : 'System is shutting down…');
+			toast.success(action === 'restart' ? t('dashboard.isRestarting') : t('dashboard.isShuttingDown'));
 		} catch {
-			toast.error(`Failed to ${action === 'restart' ? 'restart' : 'shut down'} system`);
+			toast.error(action === 'restart' ? t('dashboard.failedToRestart') : t('dashboard.failedToShutdown'));
 		} finally {
 			isActioning = false;
 		}
@@ -84,48 +85,48 @@
 </script>
 
 <svelte:head>
-	<title>Dashboard — PowerLab</title>
+	<title>{t('dashboard.title')} — PowerLab</title>
 </svelte:head>
 
 <div class="h-full overflow-y-auto p-6 md:p-8">
-	<AppHeader title="System Dashboard" subtitle={u?.os ? `${u.os.hostname} · up ${u.os.uptime_str}` : 'Real-time telemetry'}>
+	<AppHeader title={t('dashboard.systemDashboard')} subtitle={u?.os ? `${u.os.hostname} · ${t('dashboard.uptime')} ${u.os.uptime_str}` : t('dashboard.realtimeTelemetry')}>
 		{#snippet actions()}
 			{#if confirmAction === 'restart'}
 				<div class="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 transition-all">
-					<span class="text-[10px] font-bold uppercase tracking-widest text-amber-500">Confirm?</span>
+					<span class="text-[10px] font-bold uppercase tracking-widest text-amber-500">{t('dashboard.confirmAction')}</span>
 					<button
 						onclick={() => performAction('restart')}
 						class="rounded-lg bg-amber-500/20 px-2.5 py-1 text-[11px] font-bold text-amber-400 hover:bg-amber-500/30"
-					>Yes</button>
+					>{t('action.confirm')}</button>
 					<button
 						onclick={() => confirmAction = null}
 						class="text-[11px] text-zinc-500 hover:text-zinc-300"
-					>Cancel</button>
+					>{t('action.cancel')}</button>
 				</div>
 			{:else if confirmAction === 'off'}
 				<div class="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-1.5 transition-all">
-					<span class="text-[10px] font-bold uppercase tracking-widest text-red-500">Confirm?</span>
+					<span class="text-[10px] font-bold uppercase tracking-widest text-red-500">{t('dashboard.confirmAction')}</span>
 					<button
 						onclick={() => performAction('off')}
 						class="rounded-lg bg-red-500/20 px-2.5 py-1 text-[11px] font-bold text-red-400 hover:bg-red-500/30"
-					>Yes</button>
+					>{t('action.confirm')}</button>
 					<button
 						onclick={() => confirmAction = null}
 						class="text-[11px] text-zinc-500 hover:text-zinc-300"
-					>Cancel</button>
+					>{t('action.cancel')}</button>
 				</div>
 			{:else}
 				<button
 					onclick={() => { confirmAction = 'restart'; }}
 					class="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] border border-white/5 text-zinc-400 transition-all hover:bg-white/[0.06] hover:text-amber-500"
-					title="Restart Server"
+					title={t('dashboard.restartServer')}
 				>
 					<RefreshCw class="h-4 w-4" />
 				</button>
 				<button
 					onclick={() => { confirmAction = 'off'; }}
 					class="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 transition-all hover:bg-red-500/20"
-					title="Shutdown Server"
+					title={t('dashboard.shutdownServer')}
 				>
 					<PowerOff class="h-4 w-4" />
 				</button>
@@ -154,7 +155,7 @@
 
 				<!-- CPU Card -->
 				<div class="flex flex-col items-center gap-4 rounded-3xl border border-white/[0.06] bg-white/[0.02] p-6 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/[0.04] hover:shadow-[0_18px_40px_-12px_rgba(0,0,0,0.4)]">
-					<RadialGauge value={u.cpu.percent} label="CPU" color={cpuColor} size={140} />
+					<RadialGauge value={u.cpu.percent} label={t('dashboard.cpu')} color={cpuColor} size={140} />
 					<div class="w-full space-y-2">
 						<div class="h-10 w-full overflow-hidden rounded-xl bg-zinc-900/60">
 							<Sparkline value={u.cpu.percent} color={cpuColor} height={40} />
@@ -172,7 +173,7 @@
 
 				<!-- RAM Card -->
 				<div class="flex flex-col items-center gap-4 rounded-3xl border border-white/[0.06] bg-white/[0.02] p-6 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/[0.04] hover:shadow-[0_18px_40px_-12px_rgba(0,0,0,0.4)]">
-					<RadialGauge value={u.mem.usedPercent} label="Memory" color={ramColor} size={140} />
+					<RadialGauge value={u.mem.usedPercent} label={t('dashboard.memory')} color={ramColor} size={140} />
 					<div class="w-full space-y-2">
 						<div class="h-10 w-full overflow-hidden rounded-xl bg-zinc-900/60">
 							<Sparkline value={u.mem.usedPercent} color={ramColor} height={40} />
@@ -189,7 +190,7 @@
 					<div class="flex flex-col items-center gap-4 rounded-3xl border border-white/[0.06] bg-white/[0.02] p-6 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/[0.04] hover:shadow-[0_18px_40px_-12px_rgba(0,0,0,0.4)]">
 						<RadialGauge
 							value={u.gpu.percent}
-							label="GPU"
+							label={t('dashboard.gpu')}
 							color={u.gpu.percent > 90 ? '#ef4444' : u.gpu.percent > 75 ? '#f59e0b' : '#14b8a6'}
 							size={140}
 						/>
@@ -199,7 +200,7 @@
 							</div>
 							<div class="flex justify-between text-[10px] font-bold uppercase tracking-widest text-zinc-600">
 								<span class="truncate max-w-[90px]">{u.gpu.model}</span>
-								<span>{formatBytes(u.gpu.memoryUsed)} VRAM</span>
+								<span>{formatBytes(u.gpu.memoryUsed)} {t('dashboard.vram')}</span>
 							</div>
 						</div>
 					</div>
@@ -209,7 +210,7 @@
 				<div class="flex flex-col gap-4 rounded-3xl border border-white/[0.06] bg-white/[0.02] p-6 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/[0.04] hover:shadow-[0_18px_40px_-12px_rgba(0,0,0,0.4)]">
 					<div class="flex items-center gap-2">
 						<Activity class="h-4 w-4 text-zinc-600" />
-						<span class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Network</span>
+						<span class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('dashboard.network')}</span>
 					</div>
 
 					<!-- Dual sparkline -->
@@ -224,11 +225,11 @@
 
 					<div class="grid grid-cols-2 gap-3">
 						<div class="rounded-xl bg-cyan-500/10 p-3 text-center">
-							<p class="text-[9px] font-bold uppercase tracking-widest text-cyan-600 mb-1">Download</p>
+							<p class="text-[9px] font-bold uppercase tracking-widest text-cyan-600 mb-1">{t('dashboard.download')}</p>
 							<p class="text-sm font-bold tabular-nums text-cyan-400">{formatBytes(u.netInRate || 0)}/s</p>
 						</div>
 						<div class="rounded-xl bg-amber-500/10 p-3 text-center">
-							<p class="text-[9px] font-bold uppercase tracking-widest text-amber-600 mb-1">Upload</p>
+							<p class="text-[9px] font-bold uppercase tracking-widest text-amber-600 mb-1">{t('dashboard.upload')}</p>
 							<p class="text-sm font-bold tabular-nums text-amber-400">{formatBytes(u.netOutRate || 0)}/s</p>
 						</div>
 					</div>
@@ -259,13 +260,13 @@
 				<div class="rounded-3xl border border-white/[0.06] bg-white/[0.02] p-6 transition-all duration-200 hover:border-white/10 hover:bg-white/[0.03]">
 					<div class="mb-4 flex items-center gap-2">
 						<HardDrive class="h-4 w-4 text-zinc-600" />
-						<span class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Storage</span>
+						<span class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('dashboard.storage')}</span>
 					</div>
 
 					{#if store.disks.length === 0}
 						<div class="flex h-32 flex-col items-center justify-center gap-2 text-zinc-500">
 							<HardDrive class="h-6 w-6 opacity-40" strokeWidth={1.5} />
-							<p class="text-xs font-medium">No disk data available</p>
+							<p class="text-xs font-medium">{t('dashboard.noDiskData')}</p>
 						</div>
 					{:else}
 						<div class="space-y-5">
@@ -288,8 +289,8 @@
 										></div>
 									</div>
 									<div class="flex justify-between text-[10px] text-zinc-600">
-										<span>{formatBytes(disk.used)} used</span>
-										<span>{formatBytes(disk.total)} total · {disk.usedPercent.toFixed(1)}%</span>
+										<span>{formatBytes(disk.used)} {t('dashboard.used')}</span>
+										<span>{formatBytes(disk.total)} {t('dashboard.total')} · {disk.usedPercent.toFixed(1)}%</span>
 									</div>
 								</div>
 							{/each}
@@ -302,23 +303,23 @@
 					<div class="rounded-3xl border border-white/[0.06] bg-white/[0.02] p-6 transition-all duration-200 hover:border-white/10 hover:bg-white/[0.03]">
 						<div class="mb-4 flex items-center gap-2">
 							<Server class="h-4 w-4 text-zinc-600" />
-							<span class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Host Info</span>
+							<span class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('dashboard.hostInfo')}</span>
 						</div>
 						<dl class="space-y-4">
 							<div class="flex items-start justify-between gap-4 border-b border-white/[0.04] pb-4">
-								<dt class="text-xs text-zinc-500 shrink-0">Hostname</dt>
+								<dt class="text-xs text-zinc-500 shrink-0">{t('dashboard.hostname')}</dt>
 								<dd class="text-xs font-semibold text-zinc-200 text-right truncate">{u.os.hostname}</dd>
 							</div>
 							<div class="flex items-start justify-between gap-4 border-b border-white/[0.04] pb-4">
-								<dt class="text-xs text-zinc-500 shrink-0">Kernel</dt>
+								<dt class="text-xs text-zinc-500 shrink-0">{t('dashboard.kernel')}</dt>
 								<dd class="text-xs font-mono text-zinc-300 text-right truncate">{u.os.kernel}</dd>
 							</div>
 							<div class="flex items-start justify-between gap-4 border-b border-white/[0.04] pb-4">
-								<dt class="text-xs text-zinc-500 shrink-0">CPU Model</dt>
+								<dt class="text-xs text-zinc-500 shrink-0">{t('dashboard.cpuModel')}</dt>
 								<dd class="text-xs text-zinc-300 text-right truncate max-w-[200px]">{u.cpu.model || '—'}</dd>
 							</div>
 							<div class="flex items-start justify-between gap-4">
-								<dt class="text-xs text-zinc-500 shrink-0">Uptime</dt>
+								<dt class="text-xs text-zinc-500 shrink-0">{t('dashboard.uptime')}</dt>
 								<dd class="text-xs font-medium tabular-nums text-zinc-300">{u.os.uptime_str}</dd>
 							</div>
 						</dl>
@@ -330,7 +331,7 @@
 		{:else if store.error}
 			<div class="flex h-64 flex-col items-center justify-center gap-3 rounded-3xl border border-red-500/10 bg-red-500/5">
 				<p class="text-sm text-red-400">{store.error}</p>
-				<p class="text-xs text-zinc-600">Check that the backend is running at the configured address.</p>
+				<p class="text-xs text-zinc-600">{t('dashboard.checkBackend')}</p>
 			</div>
 		{/if}
 

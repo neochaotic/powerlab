@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { auth } from '$lib/stores/auth.svelte';
 	import { User, Lock, Rocket, ShieldCheck, ArrowRight, Loader2, Server } from 'lucide-svelte';
+	import { t } from '$lib/i18n/index.svelte';
 	import { fade, fly, scale } from 'svelte/transition';
 	import { onMount } from 'svelte';
 
@@ -18,11 +19,11 @@
 		if (loading) return;
 
 		if (password !== confirmPassword) {
-			error = 'As senhas não coincidem';
+			error = t('error.passMismatch');
 			return;
 		}
 		if (password.length < 5) {
-			error = 'A senha deve ter pelo menos 5 caracteres';
+			error = t('error.passTooShort');
 			return;
 		}
 
@@ -39,7 +40,7 @@
 				window.location.reload();
 				return;
 			}
-			error = 'Falha ao inicializar o sistema. Verifique os logs do backend.';
+			error = t('error.setupFailed');
 		}
 		loading = false;
 	}
@@ -62,16 +63,16 @@
 					<Server class="h-12 w-12 text-emerald-500 relative z-10" strokeWidth={1.5} />
 				</div>
 				
-				<h1 class="text-4xl font-bold tracking-tight text-white mb-4">Bem-vindo ao PowerLab</h1>
+				<h1 class="text-4xl font-bold tracking-tight text-white mb-4">{t('setup.welcomeTitle')}</h1>
 				<p class="text-zinc-400 text-lg mb-10 leading-relaxed">
-					Sua central de controle de alta performance está pronta. Vamos configurar sua conta mestre para começar.
+					{t('setup.welcomeDesc')}
 				</p>
 
 				<button 
 					onclick={() => step = 2}
 					class="group relative w-full h-16 rounded-2xl bg-white text-black font-bold text-lg hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
 				>
-					Começar Instalação
+					{t('setup.startBtn')}
 					<ArrowRight class="h-5 w-5 group-hover:translate-x-1 transition-transform" />
 				</button>
 			</div>
@@ -80,14 +81,14 @@
 				<div class="text-center mb-8">
 					<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-4">
 						<ShieldCheck class="h-3 w-3" />
-						Configuração de Segurança
+						{t('setup.securityConfig')}
 					</div>
-					<h2 class="text-2xl font-bold text-white tracking-tight">Criar Conta Administrador</h2>
+					<h2 class="text-2xl font-bold text-white tracking-tight">{t('setup.createAdmin')}</h2>
 				</div>
 
 				<form onsubmit={(e) => { e.preventDefault(); handleSetup(); }} class="space-y-5">
 					<div class="space-y-2">
-						<label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1" for="username">Usuário do Sistema</label>
+						<label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1" for="username">{t('setup.systemUser')}</label>
 						<div class="relative group">
 							<User class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600 group-focus-within:text-emerald-500 transition-colors" />
 							<input 
@@ -101,7 +102,7 @@
 					</div>
 
 					<div class="space-y-2">
-						<label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1" for="password">Senha Mestre</label>
+						<label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1" for="password">{t('setup.masterPassword')}</label>
 						<div class="relative group">
 							<Lock class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600 group-focus-within:text-emerald-500 transition-colors" />
 							<input 
@@ -115,7 +116,7 @@
 					</div>
 
 					<div class="space-y-2">
-						<label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1" for="confirm">Confirmar Senha</label>
+						<label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1" for="confirm">{t('setup.confirmPassword')}</label>
 						<div class="relative group">
 							<Lock class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600 group-focus-within:text-emerald-500 transition-colors" />
 							<input 
@@ -140,14 +141,14 @@
 						class="w-full h-16 rounded-2xl bg-emerald-500 text-black font-bold text-lg hover:bg-emerald-400 active:scale-[0.98] transition-all disabled:opacity-50 disabled:bg-zinc-800 disabled:text-zinc-600 flex items-center justify-center gap-2 mt-8 shadow-[0_0_30px_rgba(16,185,129,0.15)]"
 					>
 						{#if loading}
-							<Loader2 class="h-5 w-5 animate-spin" /> Inicializando...
+							<Loader2 class="h-5 w-5 animate-spin" /> {t('setup.initializing')}
 						{:else}
-							<Rocket class="h-5 w-5" /> Concluir Setup
+							<Rocket class="h-5 w-5" /> {t('setup.finishBtn')}
 						{/if}
 					</button>
 
 					<p class="text-center text-[10px] text-zinc-600 font-medium leading-relaxed px-4 pt-4">
-						Nota: No momento, esta conta é restrita ao painel PowerLab e não provisiona um usuário no sistema operacional host.
+						{t('setup.note')}
 					</p>
 				</form>
 			</div>

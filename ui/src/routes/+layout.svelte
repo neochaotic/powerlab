@@ -13,6 +13,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Download, X, RefreshCw, AlertTriangle } from 'lucide-svelte';
 	import { page } from '$app/stores';
+	import { t } from '$lib/i18n/index.svelte';
 
 	let { children } = $props();
 
@@ -91,8 +92,8 @@
 </script>
 
 <svelte:head>
-	<title>PowerLab</title>
-	<meta name="description" content="High-performance headless OS management panel" />
+	<title>{t('app.name')}</title>
+	<meta name="description" content={t('app.tagline')} />
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
 	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -159,9 +160,9 @@
 				<div class="flex items-center gap-3">
 					<AlertTriangle class="h-5 w-5 shrink-0" />
 					<div class="text-sm font-semibold leading-tight">
-						<div>Update available — please reload.</div>
+						<div>{t('app.updateAvailable')}</div>
 						<div class="text-[11px] font-medium opacity-80">
-							UI in this browser: v{versionHandshake.uiVersion} · Server: v{versionHandshake.backendVersion}
+							{t('app.uiVersion')}: v{versionHandshake.uiVersion} · {t('app.serverVersion')}: v{versionHandshake.backendVersion}
 						</div>
 					</div>
 				</div>
@@ -170,7 +171,7 @@
 					onclick={() => location.reload()}
 				>
 					<RefreshCw class="h-3.5 w-3.5" />
-					Reload now
+					{t('action.reloadNow')}
 				</button>
 			</div>
 		</div>
@@ -186,8 +187,8 @@
 					<Download class="h-6 w-6" />
 				</div>
 				<div class="flex-1 min-w-0">
-					<h4 class="text-sm font-bold text-white leading-tight">Install PowerLab</h4>
-					<p class="text-[11px] text-zinc-400 truncate">Add to your home screen for the full experience</p>
+					<h4 class="text-sm font-bold text-white leading-tight">{t('pwa.installTitle')}</h4>
+					<p class="text-[11px] text-zinc-400 truncate">{t('pwa.installDesc')}</p>
 				</div>
 				<div class="flex items-center gap-2">
 					<button 
@@ -201,7 +202,7 @@
 						class="rounded-xl bg-white text-zinc-950 font-bold hover:bg-emerald-500 hover:text-zinc-950 transition-all"
 						onclick={installApp}
 					>
-						Install
+						{t('action.install')}
 					</Button>
 				</div>
 			</div>
