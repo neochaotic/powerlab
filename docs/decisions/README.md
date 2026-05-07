@@ -70,3 +70,4 @@ comment the code.
 | [0005](./0005-pwa-scaffolding-no-cache-yet.md) | PWA scaffolding in v0.2.7 — no-op service worker | accepted |
 | [0006](./0006-hsts-after-trust-gate.md) | HSTS gated on first verified non-localhost client | accepted |
 | [0007](./0007-internal-network-only-initial-deployment.md) | Initial deployment scope — internal LAN only | accepted |
+| [0008](./0008-api-docs-portal-scalar.md) | API docs portal — Scalar, embedded, no spec mutation | accepted |

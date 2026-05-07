@@ -11,7 +11,7 @@ see `CONTRIBUTING.md` for the rule.
 
 ## [Unreleased]
 
-### Added — Local HTTPS (#43, v0.2.7)
+### Added — Local HTTPS (#43)
 
 - **Apple-grade local HTTPS out of the box.** First-boot ECDSA P-256
   root CA + 1-year leaf cert. Apple `.mobileconfig` is signed by the CA
@@ -34,6 +34,28 @@ see `CONTRIBUTING.md` for the rule.
   the HSTS gate, and the LAN-only initial deployment posture.
 - New regression tests pin the SAN classification rules
   (`backend/common/pkg/security/cert_test.go`).
+
+### Added — API documentation portal
+
+- **Embedded Scalar-powered portal at `/docs`**. New routes
+  `/docs[?service=<id>]`, `/docs/spec?service=<id>`, and
+  `/docs/scalar.js` serve a self-contained interactive API reference
+  for all six backend services (gateway, app-management,
+  user-service, core, message-bus, local-storage). The Scalar
+  runtime and per-service OpenAPI specs are bundled into the gateway
+  binary via `embed.FS` — no CDN, no network calls, fits the
+  LAN-only deployment posture in ADR 0007.
+- **Service switcher** dropdown jumps between the six APIs without
+  losing the current URL hash (so a deep-linked operation survives
+  the switch).
+- **Bearer-token pre-fill** via `#access_token=...` URL hash; tokens
+  stay client-side (URL fragments are not sent to servers, so access
+  logs do not capture them).
+- **Settings → About → "API Docs"** tile generates a one-tap link
+  with the current session token already wired in.
+- See ADR 0008 for the design choice (Scalar over Swagger UI / Redoc)
+  and the firm "specs are immutable inputs" rule that keeps the
+  source `openapi.yaml` files round-trippable through codegen.
 
 ## [0.2.6] — 2026-05-06
 

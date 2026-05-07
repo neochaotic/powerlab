@@ -14,13 +14,15 @@ type GatewayRoute struct {
 	management *service.Management
 	cm         *security.CertManager
 	security   *SecurityRoute
+	docs       *DocsRoute
 }
 
-func NewGatewayRoute(management *service.Management, cm *security.CertManager) *GatewayRoute {
+func NewGatewayRoute(management *service.Management, cm *security.CertManager, state *service.State) *GatewayRoute {
 	return &GatewayRoute{
 		management: management,
 		cm:         cm,
 		security:   NewSecurityRoute(cm),
+		docs:       NewDocsRoute(state),
 	}
 }
 
@@ -75,6 +77,7 @@ func (g *GatewayRoute) GetRoute() *http.ServeMux {
 	// must register BEFORE the catch-all "/" handler so the more
 	// specific paths win. Handlers live in security_route.go.
 	g.security.Register(gatewayMux)
+	g.docs.Register(gatewayMux)
 
 	gatewayMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/ping" {

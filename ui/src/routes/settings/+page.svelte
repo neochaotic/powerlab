@@ -17,7 +17,7 @@
 	import { updaterStore } from '$lib/stores/updater.svelte';
 	import { getCurrentOS, type OS } from '$lib/utils/os';
 	import { probePortReachable } from '$lib/utils/probe';
-	import { setLocale, getLocale, availableLocales } from '$lib/i18n/index.svelte';
+	import { t, setLocale, getLocale, availableLocales } from '$lib/i18n/index.svelte';
 	import { Download, Languages } from 'lucide-svelte';
 
 	const store = useSettingsStore();
@@ -699,23 +699,28 @@
 
 										<div class="pt-6 border-t border-white/5">
 											<div class="flex items-center justify-between gap-4 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-												<div>
-													<p class="text-sm font-bold text-white">Verification</p>
-													<p class="text-xs text-zinc-500">Test if your device trusts PowerLab.</p>
+												<div class="min-w-0">
+													<p class="text-sm font-semibold text-white">Verification</p>
+													<p class="text-[11px] text-zinc-500 leading-relaxed">Test if your device trusts PowerLab.</p>
 												</div>
-												<Button 
-													size="sm" 
-													class={cn("font-bold transition-all", isTestingConnection ? "bg-zinc-800 text-zinc-500" : "bg-emerald-500 text-zinc-950 hover:bg-emerald-400")}
+												<button
+													type="button"
 													onclick={testHttpsConnection}
 													disabled={isTestingConnection}
+													class={cn(
+														"shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all",
+														isTestingConnection
+															? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+															: "bg-emerald-500 text-zinc-950 hover:bg-emerald-400 active:scale-95"
+													)}
 												>
 													{#if isTestingConnection}
-														<RefreshCw class="h-3.5 w-3.5 mr-2 animate-spin" />
+														<RefreshCw class="h-3 w-3 animate-spin" />
 														Testing…
 													{:else}
-														Test Connection
+														Test
 													{/if}
-												</Button>
+												</button>
 											</div>
 										</div>
 									</div>
@@ -1002,6 +1007,29 @@
 								</div>
 								<ExternalLink class="h-3.5 w-3.5 text-zinc-600 transition-colors group-hover:text-zinc-300" />
 							</a>
+							<div
+								class="col-span-1 sm:col-span-2 group flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.02] px-4 py-3 transition-all hover:border-emerald-500/30 hover:bg-emerald-500/[0.04]"
+							>
+								<div class="flex items-center gap-3">
+									<div class="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400 transition-colors group-hover:text-emerald-300">
+										<Code2 class="h-4 w-4" />
+									</div>
+									<div>
+										<p class="text-sm font-medium text-white">{t('settings.apiDocs')}</p>
+										<p class="text-[11px] text-zinc-500">{t('settings.apiDocsDesc')}</p>
+									</div>
+								</div>
+								<div class="flex gap-2">
+									<a
+										href="/docs#access_token={localStorage.getItem('powerlab_token')}"
+										target="_blank"
+										class="flex items-center justify-center gap-2 rounded-lg bg-emerald-500/10 px-4 py-1.5 text-[11px] font-bold text-emerald-400 transition-colors hover:bg-emerald-500/20"
+									>
+										Open API Portal
+										<ExternalLink class="h-3 w-3" />
+									</a>
+								</div>
+							</div>
 						</div>
 					</div>
 

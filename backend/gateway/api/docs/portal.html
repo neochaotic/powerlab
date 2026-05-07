@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>{{.Title}}</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="/favicon-512.png" type="image/png" />
+  <style>
+    /* PowerLab visual identity — emerald + zinc, dark by default,
+       sans-serif system stack matching the Settings page chrome.
+       Scalar paints its own UI inside; this stylesheet only governs
+       the host-page chrome (service switcher, page background). */
+    body {
+      margin: 0;
+      background: #08080a;
+      color: #f4f4f5;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Helvetica Neue', sans-serif;
+    }
+
+    .powerlab-portal-bar {
+      position: fixed;
+      top: 12px;
+      left: 280px;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      background: rgba(26, 26, 29, 0.85);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .powerlab-portal-bar .label {
+      color: #71717a;
+    }
+    .powerlab-portal-bar select {
+      background: transparent;
+      color: #34d399;
+      border: none;
+      font: inherit;
+      cursor: pointer;
+      outline: none;
+      padding-right: 4px;
+    }
+    .powerlab-portal-bar select:hover {
+      color: #6ee7b7;
+    }
+  </style>
+</head>
+<body>
+  <div class="powerlab-portal-bar" role="region" aria-label="API service selector">
+    <span class="label">Service</span>
+    <select onchange="window.location.href='/docs?service=' + this.value + window.location.hash">
+      {{range .Services}}<option value="{{.ID}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}
+    </select>
+  </div>
+
+  <script id="api-reference" data-url="{{.SpecURL}}"></script>
+  <script>
+    // Inject the access token (if present in the URL hash) into
+    // Scalar's authentication config so the "Try it out" feature
+    // pre-fills the bearer header. The token never leaves the
+    // browser; it's read from the URL fragment so the server's
+    // access logs don't capture it.
+    (function () {
+      const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const token = params.get('access_token');
+
+      const config = {
+        theme: 'kepler',
+        darkMode: true,
+        showSidebar: true,
+        hideClientButton: false,
+        hideDownloadButton: false,
+        // PowerLab branding — sets the top-left logo + project name
+        // without mutating the underlying OpenAPI specs.
+        metaData: {
+          title: '{{.Title}}',
+          description: 'Universal developer interface for the PowerLab home server panel.'
+        }
+      };
+
+      if (token && token !== 'null' && token !== '') {
+        config.authentication = {
+          preferredSecurityScheme: 'access_token',
+          apiKey: { token }
+        };
+      }
+
+      document.getElementById('api-reference').dataset.configuration = JSON.stringify(config);
+    })();
+  </script>
+  <script src="/docs/scalar.js"></script>
+</body>
+</html>

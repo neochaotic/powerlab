@@ -16,6 +16,7 @@
 		Folder,
 		ShoppingBag,
 		Brain,
+		BookOpen,
 		HardDrive,
 		Zap,
 		Sun,
@@ -93,11 +94,16 @@
 
 	// Same icons as the Launchpad system tiles — one symbol per concept,
 	// used everywhere in the OS.
+	// `/docs` opens in a new tab because Scalar mounts its own
+	// router inside the page; we don't want it sharing history
+	// with the SPA router. Icon: BookOpen — same metaphor used
+	// for "documentation" across the rest of the OS.
 	const navItems = [
 		{ href: '/dashboard', icon: Gauge, label: t('nav.dashboard') },
 		{ href: '/files', icon: Folder, label: t('nav.files') },
 		{ href: '/apps', icon: ShoppingBag, label: t('nav.apps') },
-		{ href: '/models', icon: Brain, label: t('nav.models') }
+		{ href: '/models', icon: Brain, label: t('nav.models') },
+		{ href: '/docs', icon: BookOpen, label: t('nav.apiDocs'), external: true }
 	];
 
 	const currentPath = $derived($page.url.pathname);
@@ -258,6 +264,8 @@
 				<a
 					href={item.href}
 					aria-label={item.label}
+					target={item.external ? '_blank' : undefined}
+					rel={item.external ? 'noopener noreferrer' : undefined}
 					class={cn(
 						'group relative flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200',
 						isActive
