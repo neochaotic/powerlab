@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/IceWhaleTech/CasaOS-Common/pkg/security"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/IceWhaleTech/CasaOS-Gateway/service"
 	"go.uber.org/zap"
@@ -11,11 +12,15 @@ import (
 
 type GatewayRoute struct {
 	management *service.Management
+	cm         *security.CertManager
+	security   *SecurityRoute
 }
 
-func NewGatewayRoute(management *service.Management) *GatewayRoute {
+func NewGatewayRoute(management *service.Management, cm *security.CertManager) *GatewayRoute {
 	return &GatewayRoute{
 		management: management,
+		cm:         cm,
+		security:   NewSecurityRoute(cm),
 	}
 }
 
@@ -65,6 +70,12 @@ func rewriteRequestSourceIP(r *http.Request) {
 
 func (g *GatewayRoute) GetRoute() *http.ServeMux {
 	gatewayMux := http.NewServeMux()
+
+	// Security routes (CA download, mobileconfig, trust-confirmed) —
+	// must register BEFORE the catch-all "/" handler so the more
+	// specific paths win. Handlers live in security_route.go.
+	g.security.Register(gatewayMux)
+
 	gatewayMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/ping" {
 			w.WriteHeader(http.StatusOK)
@@ -89,4 +100,48 @@ func (g *GatewayRoute) GetRoute() *http.ServeMux {
 	})
 
 	return gatewayMux
+}
+
+// WrapHSTS returns a handler that wraps `next` with the HSTS gate
+// behavior described in ADR 0006:
+//
+//   - On HTTPS requests: emit `Strict-Transport-Security` header IF
+//     `IsHSTSArmed()` returns true. Always pass through to next.
+//   - On HTTP requests:
+//     · If gate is armed → 301 redirect to https://<host>:<httpsPort>
+//     · If gate is NOT armed → pass through to next (HTTP keeps working
+//       so the user can complete the trust dance).
+//
+// httpsPort is the port the HTTPS listener is bound to (typically
+// "8443"). If empty, the redirect omits the port (so it goes to the
+// default 443).
+func (g *GatewayRoute) WrapHSTS(next http.Handler, httpsPort string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		armed := g.cm.IsHSTSArmed()
+		if r.TLS != nil {
+			if armed {
+				w.Header().Set("Strict-Transport-Security",
+					"max-age=31536000; includeSubDomains")
+			}
+			next.ServeHTTP(w, r)
+			return
+		}
+		// Plain HTTP. Redirect only when armed; otherwise serve as
+		// normal so the user can finish the trust dance over HTTP.
+		if !armed {
+			next.ServeHTTP(w, r)
+			return
+		}
+		host := r.Host
+		// Strip any incoming port; we always rewrite to the HTTPS port.
+		if i := strings.LastIndex(host, ":"); i > 0 && !strings.Contains(host[i:], "]") {
+			host = host[:i]
+		}
+		target := "https://" + host
+		if httpsPort != "" && httpsPort != "443" {
+			target += ":" + httpsPort
+		}
+		target += r.URL.RequestURI()
+		http.Redirect(w, r, target, http.StatusMovedPermanently)
+	})
 }

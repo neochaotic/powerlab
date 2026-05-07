@@ -7,7 +7,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"fmt"
 	"math/big"
 	"net"
 	"os"
@@ -59,7 +58,7 @@ func (m *CertManager) Setup() error {
 		return err
 	}
 
-	caCertPath, caKeyPath := m.GetCAPaths()
+	caCertPath, _ := m.GetCAPaths()
 	if _, err := os.Stat(caCertPath); os.IsNotExist(err) {
 		if err := m.GenerateRootCA(); err != nil {
 			return err

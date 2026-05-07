@@ -23,6 +23,7 @@ import (
 	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/coreos/go-systemd/daemon"
 
+	"github.com/IceWhaleTech/CasaOS-Common/pkg/security"
 	"github.com/IceWhaleTech/CasaOS-Gateway/common"
 	"github.com/IceWhaleTech/CasaOS-Gateway/route"
 	"github.com/IceWhaleTech/CasaOS-Gateway/service"
@@ -32,13 +33,22 @@ import (
 
 const localhost = "127.0.0.1"
 
+// HTTPSPort is the port the gateway binds for HTTPS. Hard-coded for
+// v0.2.7 (configurable via gateway.ini comes in v0.2.8). Picked
+// 8443 because :443 requires CAP_NET_BIND_SERVICE and we already
+// avoid that on the HTTP side (default :8765).
+const HTTPSPort = "8443"
+
 var (
 	commit = "private build"
 	date   = "private build"
 
-	_state   *service.State
-	_gateway *http.Server
-	_mdns    = service.NewMDNSService("powerlab")
+	_state    *service.State
+	_gateway  *http.Server
+	_https    *http.Server
+	_certmgr  *security.CertManager
+	_certStop = make(chan struct{})
+	_mdns     = service.NewMDNSService("powerlab")
 
 	_managementServiceReady = make(chan struct{})
 	_gatewayServiceReady    = make(chan struct{})
@@ -181,8 +191,21 @@ func main() {
 		}
 	}()
 
+	// CertManager is created here (not via fx.Provide) so the daily
+	// ticker survives the same lifetime as the process — fx graphs
+	// reset on app.Stop. Initialize once + go.
+	_certmgr = security.NewCertManager(_state.GetRuntimePath())
+	if err := _certmgr.Setup(); err != nil {
+		logger.Error("CertManager setup failed (HTTPS will be unavailable)", zap.Error(err))
+		// Non-fatal: gateway still serves HTTP. The user just gets
+		// no HTTPS until the next boot resolves whatever broke us.
+	} else {
+		_certmgr.StartTicker(_certStop)
+	}
+
 	app := fx.New(
 		fx.Provide(func() *service.State { return _state }),
+		fx.Provide(func() *security.CertManager { return _certmgr }),
 		fx.Provide(service.NewManagementService),
 		fx.Provide(route.NewManagementRoute),
 		fx.Provide(route.NewGatewayRoute),
@@ -253,7 +276,13 @@ func run(
 	lifecycle.Append(
 		fx.Hook{
 			OnStart: func(ctx context.Context) error {
-				route := gatewayRoute.GetRoute()
+				// Wrap the mux with the HSTS gate from ADR 0006.
+				// HSTS header + HTTP→HTTPS redirect are conditional
+				// on /etc/powerlab/tls/.hsts-armed existing (set by
+				// POST /v1/sys/trust-confirmed). Pre-trust the
+				// gateway behaves as plain HTTP, so the user can
+				// finish the trust dance.
+				route := gatewayRoute.WrapHSTS(gatewayRoute.GetRoute(), HTTPSPort)
 
 				if _state.GetGatewayPort() == "" {
 					// check if a port is available starting from port 80/8080
@@ -319,6 +348,56 @@ func run(
 			},
 		})
 
+	// HTTPS listener (port 8443). Wraps the SAME route handler as
+	// the HTTP gateway (with HSTS middleware applied), but listens
+	// on a TLS socket using the cert managed by CertManager.
+	//
+	// If CertManager.Setup() failed earlier (cert files missing),
+	// _certmgr is nil-safe and we skip starting HTTPS — gateway still
+	// serves HTTP. The user can re-trigger setup by restarting after
+	// fixing whatever blocked Setup (perm issues on /etc/powerlab/tls,
+	// usually).
+	lifecycle.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			if _certmgr == nil {
+				logger.Info("HTTPS skipped — CertManager not initialized")
+				return nil
+			}
+			serverCert, serverKey := _certmgr.GetServerPaths()
+			if _, err := os.Stat(serverCert); err != nil {
+				logger.Info("HTTPS skipped — server cert not yet available",
+					zap.String("path", serverCert),
+					zap.Error(err))
+				return nil
+			}
+
+			route := gatewayRoute.WrapHSTS(gatewayRoute.GetRoute(), HTTPSPort)
+			_https = &http.Server{
+				Addr:              ":" + HTTPSPort,
+				Handler:           route,
+				ReadHeaderTimeout: 5 * time.Second,
+			}
+
+			go func() {
+				logger.Info("HTTPS gateway is listening...",
+					zap.String("addr", _https.Addr),
+					zap.String("cert", serverCert),
+				)
+				if err := _https.ListenAndServeTLS(serverCert, serverKey); err != nil && err != http.ErrServerClosed {
+					logger.Error("HTTPS gateway error", zap.Error(err))
+				}
+			}()
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			close(_certStop) // stops the cert renewal ticker
+			if _https != nil {
+				_ = _https.Shutdown(ctx)
+			}
+			return nil
+		},
+	})
+
 	// static web
 	lifecycle.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
@@ -356,7 +435,7 @@ func run(
 	})
 }
 
-func reloadGateway(port string, route *http.ServeMux) error {
+func reloadGateway(port string, route http.Handler) error {
 	listener, err := net.Listen("tcp", net.JoinHostPort("", port))
 	if err != nil {
 		return err

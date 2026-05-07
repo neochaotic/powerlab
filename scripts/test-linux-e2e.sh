@@ -390,7 +390,7 @@ green "  → port change moves listener (8765 → 8775, /v1/gateway/port reports
 # that wiring is done, the assertions are wrapped in a feature-gate
 # (HTTPS_GATE_ENABLED) so they don't break the existing E2E for
 # v0.2.6. Flip the gate when the wiring lands.
-HTTPS_GATE_ENABLED="${HTTPS_GATE_ENABLED:-0}"
+HTTPS_GATE_ENABLED="${HTTPS_GATE_ENABLED:-1}"
 if [[ "$HTTPS_GATE_ENABLED" == "1" ]]; then
   cyan ""
   cyan "[e2e] HTTPS / Local CA assertions (v0.2.7 #43)"
