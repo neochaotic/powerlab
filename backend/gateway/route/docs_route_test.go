@@ -176,6 +176,34 @@ func TestHandleScalarJS_ServesEmbeddedRuntime(t *testing.T) {
 	}
 }
 
+// TestHandleLogo_ServesEmbeddedSVG — the PowerLab logo referenced
+// in every spec's info.description (`/docs/logo.svg`) must be
+// reachable with the right content-type, otherwise Scalar will
+// render a broken image at the top of every page.
+func TestHandleLogo_ServesEmbeddedSVG(t *testing.T) {
+	d := newDocsRoute(t)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/docs/logo.svg", nil)
+	d.handleLogo(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: got %d", rec.Code)
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "image/svg+xml" {
+		t.Errorf("content-type: got %q, want image/svg+xml", ct)
+	}
+	body := rec.Body.String()
+	if !strings.HasPrefix(body, "<svg") {
+		t.Errorf("body does not start with <svg; got: %q", body[:min(40, len(body))])
+	}
+	if !strings.Contains(body, "viewBox=\"0 0 512 512\"") {
+		t.Errorf("logo viewBox missing — file may have been replaced with the wrong SVG")
+	}
+}
+
+func min(a, b int) int { if a < b { return a }; return b }
+
 // TestServicesListCoversAllSpecs — the canonical Services list in
 // docs.go must reference exactly the spec files we embed. Catches a
 // regression where someone adds a new service spec but forgets to

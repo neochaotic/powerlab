@@ -17,7 +17,7 @@
 	import { updaterStore } from '$lib/stores/updater.svelte';
 	import { getCurrentOS, type OS } from '$lib/utils/os';
 	import { probePortReachable } from '$lib/utils/probe';
-	import { setLocale, getLocale, availableLocales } from '$lib/i18n/index.svelte';
+	import { t, setLocale, getLocale, availableLocales } from '$lib/i18n/index.svelte';
 	import { Download, Languages } from 'lucide-svelte';
 
 	const store = useSettingsStore();

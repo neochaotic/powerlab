@@ -4,6 +4,8 @@ info:
   title: PowerLab Message Bus API
   version: v2
   description: |
+    <p align="center"><img src="/docs/logo.svg" width="100" alt="PowerLab"></p>
+    
     PowerLab — self-hosted home server panel. This API covers pub/sub channel for service-to-service events and SSE fan-out.
     
     Source: [github.com/neochaotic/powerlab](https://github.com/neochaotic/powerlab).

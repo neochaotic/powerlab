@@ -4,6 +4,8 @@ info:
   title: PowerLab API
   version: v2
   description: |
+    <p align="center"><img src="/docs/logo.svg" width="100" alt="PowerLab"></p>
+    
     PowerLab — self-hosted home server panel. This API covers system telemetry — CPU, memory, GPU, disks, network, hardware identity.
     
     Source: [github.com/neochaotic/powerlab](https://github.com/neochaotic/powerlab).

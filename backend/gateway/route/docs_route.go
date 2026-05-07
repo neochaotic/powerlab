@@ -51,6 +51,7 @@ func (d *DocsRoute) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/docs", d.handleDocs)
 	mux.HandleFunc("/docs/spec", d.handleSpec)
 	mux.HandleFunc("/docs/scalar.js", d.handleScalarJS)
+	mux.HandleFunc("/docs/logo.svg", d.handleLogo)
 }
 
 // portalView is the data passed into portal.html.
@@ -131,6 +132,24 @@ func (d *DocsRoute) handleScalarJS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "public, max-age=3600")
 	if _, err := w.Write(content); err != nil {
 		logger.Error("Failed to write Scalar runtime", zap.Error(err))
+	}
+}
+
+// handleLogo serves the PowerLab squircle logo (the same one used in
+// the Launchpad / favicon) so each spec's `info.description` can
+// reference `/docs/logo.svg` without depending on the SPA being
+// served by the gateway. Vendored as docs/powerlab.svg, embed.FS.
+func (d *DocsRoute) handleLogo(w http.ResponseWriter, r *http.Request) {
+	content, err := docs_static.EmbeddedAssets.ReadFile(docs_static.PowerLabLogoSVG)
+	if err != nil {
+		logger.Error("Failed to read embedded PowerLab logo", zap.Error(err))
+		http.Error(w, "asset not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "image/svg+xml")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	if _, err := w.Write(content); err != nil {
+		logger.Error("Failed to write PowerLab logo", zap.Error(err))
 	}
 }
 

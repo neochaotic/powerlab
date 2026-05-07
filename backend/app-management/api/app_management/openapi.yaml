@@ -4,6 +4,8 @@ info:
   title: PowerLab App Management API
   version: v2
   description: |
+    <p align="center"><img src="/docs/logo.svg" width="100" alt="PowerLab"></p>
+    
     PowerLab — self-hosted home server panel. This API covers Docker Compose lifecycle: install, uninstall, start, stop, with live SSE task logs.
     
     Source: [github.com/neochaotic/powerlab](https://github.com/neochaotic/powerlab).

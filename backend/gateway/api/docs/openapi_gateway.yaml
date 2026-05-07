@@ -4,6 +4,8 @@ info:
   title: PowerLab Gateway API
   version: v1
   description: |-
+    <p align="center"><img src="/docs/logo.svg" width="100" alt="PowerLab"></p>
+    
     PowerLab — self-hosted home server panel. This API covers request routing, mDNS announcement, and TLS termination for the panel.
     
     Source: [github.com/neochaotic/powerlab](https://github.com/neochaotic/powerlab).
