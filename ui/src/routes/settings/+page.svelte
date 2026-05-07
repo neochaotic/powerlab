@@ -28,49 +28,112 @@
 	let activeSecurityTab = $state<OS>('unknown');
 	let isTestingConnection = $state(false);
 
+	// Deep-link support: a URL hash like /settings#security or
+	// /settings#network jumps straight to that tab. Used by HttpBanner
+	// to bring the user here from anywhere in the app.
+	const VALID_SECTIONS: Section[] = ['general', 'network', 'apps', 'security', 'about'];
+	function applyHash() {
+		const h = window.location.hash.replace(/^#/, '') as Section;
+		if (VALID_SECTIONS.includes(h)) activeSection = h;
+	}
+
 	onMount(() => {
+		applyHash();
+		window.addEventListener('hashchange', applyHash);
+
 		activeSecurityTab = getCurrentOS();
 		if (activeSecurityTab === 'unknown' || activeSecurityTab === 'linux') {
 			activeSecurityTab = 'windows'; // Default for Linux/Unknown to show manual instructions
 		}
+		return () => window.removeEventListener('hashchange', applyHash);
 	});
 
+	// 4-guard trust dance: never redirect to a URL that won't render
+	// the SPA. The "Connection failed / Not Found" white screen we
+	// saw in dev (gateway:8443 only serves APIs) must not be possible
+	// in prod either if config drifts.
+	//
+	//   Guard 1 — TLS reachable: cross-origin no-cors fetch on the CA
+	//     PEM. If the cert chain is broken, the browser rejects.
+	//   Guard 2 — SPA-served on HTTPS: cors GET / on the HTTPS port,
+	//     content-type must be text/html. Catches the case where the
+	//     gateway is alive but only routing APIs (dev mode, mis-config,
+	//     reverse proxy override).
+	//   Guard 3 — HSTS arming response acked: POST /trust-confirmed
+	//     must return 2xx. If the server refuses (HSTS gate file write
+	//     failed, request not from non-localhost over HTTPS, etc) we
+	//     don't lie to the user with a "Trust established" toast.
+	//   Guard 4 — Only redirect when all three guards pass. Otherwise
+	//     show the success toast WITHOUT redirecting, so the user
+	//     stays on a page that exists.
 	async function testHttpsConnection() {
 		isTestingConnection = true;
-		
-		// Attempt to fetch a resource from the HTTPS endpoint.
-		// If it fails with a certificate error, the catch block will trigger.
-		// If it succeeds, the trust is established.
-		const httpsUrl = `https://${window.location.hostname}:8443/v1/sys/ca-certificate.crt`;
-		
+		const httpsBase = `https://${window.location.hostname}:8443`;
+
 		try {
-			const controller = new AbortController();
-			const timeoutId = setTimeout(() => controller.abort(), 5000);
-			
-			const resp = await fetch(httpsUrl, { 
-				mode: 'no-cors', // Use no-cors to avoid preflight issues since we just want to check TLS handshake
-				signal: controller.signal 
+			// Guard 1: TLS handshake must complete. no-cors lets us
+			// skip the CORS preflight; we don't need to read the body.
+			await fetch(`${httpsBase}/v1/sys/ca-certificate.crt`, {
+				mode: 'no-cors',
+				signal: AbortSignal.timeout(5000)
 			});
-			
-			clearTimeout(timeoutId);
-			
-			// Success! Trust confirmed.
+
+			// Guard 2: confirm the HTTPS endpoint is actually serving
+			// the SPA (HTML) — not just APIs (JSON 404 / 405). This is
+			// what makes the "Not Found" screen impossible to reach.
+			let canRedirect = false;
+			try {
+				const probe = await fetch(`${httpsBase}/`, {
+					method: 'GET',
+					mode: 'cors',
+					signal: AbortSignal.timeout(3000)
+				});
+				const ct = probe.headers.get('content-type') || '';
+				canRedirect = probe.ok && ct.includes('text/html');
+			} catch {
+				canRedirect = false;
+			}
+
+			// Guard 3: HSTS arm. The endpoint REJECTS localhost requests
+			// by design (ADR 0006) — the whole point is to prove the
+			// trust dance works from a real LAN client. So if the user
+			// is testing from localhost we don't even attempt the arm;
+			// we just confirm the cert chain works. Production users
+			// reach the panel via LAN IP / mDNS, which the handler
+			// accepts.
+			const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+			if (!isLocalhost) {
+				const armResp = await fetch(`${httpsBase}/v1/sys/trust-confirmed`, {
+					method: 'POST',
+					mode: 'cors',
+					signal: AbortSignal.timeout(5000)
+				});
+				if (!armResp.ok) {
+					const detail = await armResp.text().catch(() => '');
+					throw new Error(`HSTS arming refused (${armResp.status}): ${detail.slice(0, 120)}`);
+				}
+			}
+
+			// Guard 4: only redirect when the destination will render.
+			if (!canRedirect) {
+				const note = isLocalhost
+					? 'Trust verified. (HSTS arming is skipped on localhost — visit via your LAN IP to complete that step.)'
+					: 'Trust established. The certificate is valid; visit the secure URL when ready.';
+				toast.success(note);
+				return;
+			}
+
 			toast.success('Trust established! Redirecting to secure connection…');
-			
-			// Trigger HSTS arming
-			await fetch('/v1/sys/trust-confirmed', { method: 'POST' });
-			
-			// Reload over HTTPS
 			setTimeout(() => {
 				const secureUrl = new URL(window.location.href);
 				secureUrl.protocol = 'https:';
 				secureUrl.port = '8443';
 				window.location.href = secureUrl.toString();
 			}, 1500);
-			
+
 		} catch (e) {
-			console.error("HTTPS test failed:", e);
-			toast.error('Connection failed. Please ensure the certificate is installed and trusted.');
+			console.error('HTTPS test failed:', e);
+			toast.error(`Connection test failed: ${(e as Error).message || 'unknown error'}. Confirm the certificate is installed and trusted.`);
 		} finally {
 			isTestingConnection = false;
 		}
