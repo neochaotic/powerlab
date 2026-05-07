@@ -2,6 +2,13 @@
 
 This guide explains how to establish a secure, "green lock" connection to your PowerLab instance without using external services or public domains.
 
+> **For implementers and pattern adopters:** the abstract framework
+> behind this guide — components, state machine, threat model,
+> per-language implementation notes — is documented separately at
+> [`docs/patterns/https-trust-onboarding-pattern.md`](patterns/https-trust-onboarding-pattern.md).
+> This page is the user-facing instructions; that page is the
+> framework spec.
+
 ## Overview
 
 PowerLab uses a custom **Internal Root Certificate Authority (CA)** to sign its own certificates. By trusting this Root CA on your devices, you enable encrypted HTTPS connections to `powerlab.local` and the host's LAN address.
