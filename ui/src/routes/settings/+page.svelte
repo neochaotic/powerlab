@@ -15,6 +15,8 @@
 	import { getGatewayPort, setGatewayPort } from '$lib/api/gateway';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { updaterStore } from '$lib/stores/updater.svelte';
+	import { getCurrentOS, type OS } from '$lib/utils/os';
+	import { Download } from 'lucide-svelte';
 
 	const store = useSettingsStore();
 
@@ -22,7 +24,65 @@
 	let activeSection = $state<Section>('general');
 	let copiedKey = $state<string | null>(null);
 
+	// Security HTTPS Onboarding state
+	let activeSecurityTab = $state<OS>('unknown');
+	let isTestingConnection = $state(false);
+
 	onMount(() => {
+		activeSecurityTab = getCurrentOS();
+		if (activeSecurityTab === 'unknown' || activeSecurityTab === 'linux') {
+			activeSecurityTab = 'windows'; // Default for Linux/Unknown to show manual instructions
+		}
+	});
+
+	async function testHttpsConnection() {
+		isTestingConnection = true;
+		
+		// Attempt to fetch a resource from the HTTPS endpoint.
+		// If it fails with a certificate error, the catch block will trigger.
+		// If it succeeds, the trust is established.
+		const httpsUrl = `https://${window.location.hostname}:8443/v1/sys/ca-certificate.crt`;
+		
+		try {
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 5000);
+			
+			const resp = await fetch(httpsUrl, { 
+				mode: 'no-cors', // Use no-cors to avoid preflight issues since we just want to check TLS handshake
+				signal: controller.signal 
+			});
+			
+			clearTimeout(timeoutId);
+			
+			// Success! Trust confirmed.
+			toast.success('Trust established! Redirecting to secure connection…');
+			
+			// Trigger HSTS arming
+			await fetch('/v1/sys/trust-confirmed', { method: 'POST' });
+			
+			// Reload over HTTPS
+			setTimeout(() => {
+				const secureUrl = new URL(window.location.href);
+				secureUrl.protocol = 'https:';
+				secureUrl.port = '8443';
+				window.location.href = secureUrl.toString();
+			}, 1500);
+			
+		} catch (e) {
+			console.error("HTTPS test failed:", e);
+			toast.error('Connection failed. Please ensure the certificate is installed and trusted.');
+		} finally {
+			isTestingConnection = false;
+		}
+	}
+
+	onMount(() => {
+		// Initialize security tab from OS
+		activeSecurityTab = getCurrentOS();
+		if (activeSecurityTab === 'unknown' || activeSecurityTab === 'linux') {
+			activeSecurityTab = 'windows'; 
+		}
+
 		store.fetchUtilization();
 		store.fetchHardwareInfo();
 		store.fetchTimezone();
@@ -447,8 +507,125 @@
 				<div in:fade={{ duration: 150 }}>
 					<header class="mb-8">
 						<h1 class="text-2xl font-bold tracking-tight text-white">Security</h1>
-						<p class="mt-1 text-sm text-zinc-500">Authentication and session management.</p>
+						<p class="mt-1 text-sm text-zinc-500">HTTPS infrastructure and session management.</p>
 					</header>
+
+					<!-- HTTPS Onboarding (Issue #43) -->
+					<section class="mb-10">
+						<h3 class="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Local HTTPS Establishment</h3>
+						<div class="overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02]">
+							<!-- Tabs Header -->
+							<div class="flex border-b border-white/5 bg-white/[0.02]">
+								{#each ['ios', 'macos', 'android', 'windows'] as tab}
+									<button
+										class={cn(
+											"flex-1 px-4 py-3 text-[11px] font-bold uppercase tracking-wider transition-colors",
+											activeSecurityTab === tab ? "bg-white/5 text-white shadow-[inset_0_-2px_0_white]" : "text-zinc-500 hover:text-zinc-300"
+										)}
+										onclick={() => activeSecurityTab = tab as any}
+									>
+										{tab}
+									</button>
+								{/each}
+							</div>
+
+							<!-- Tab Content -->
+							<div class="p-6">
+								<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+									<div class="space-y-6">
+										{#if activeSecurityTab === 'ios'}
+											<div class="space-y-4" in:fade>
+												<h4 class="text-lg font-semibold text-white">iOS Installation</h4>
+												<ol class="space-y-3 list-decimal list-inside text-sm text-zinc-400">
+													<li>Download the <a href="/v1/sys/ca-certificate.mobileconfig" class="text-emerald-400 hover:underline">Security Profile</a>.</li>
+													<li>Go to <strong>Settings → Profile Downloaded</strong> and click <strong>Install</strong>.</li>
+													<li>Go to <strong>Settings → General → About → Certificate Trust Settings</strong>.</li>
+													<li>Enable full trust for <strong>PowerLab Root CA</strong>.</li>
+												</ol>
+												<Button class="w-full bg-white text-zinc-950 font-bold" onclick={() => window.location.href = '/v1/sys/ca-certificate.mobileconfig'}>
+													<Download class="h-4 w-4 mr-2" />
+													Download Profile
+												</Button>
+											</div>
+										{:else if activeSecurityTab === 'macos'}
+											<div class="space-y-4" in:fade>
+												<h4 class="text-lg font-semibold text-white">macOS Installation</h4>
+												<ol class="space-y-3 list-decimal list-inside text-sm text-zinc-400">
+													<li>Download the <a href="/v1/sys/ca-certificate.mobileconfig" class="text-emerald-400 hover:underline">Security Profile</a>.</li>
+													<li>Open the profile and click <strong>Install</strong> in System Settings.</li>
+													<li>Alternatively, use the <a href="/v1/sys/ca-certificate.crt" class="text-emerald-400 hover:underline">CRT file</a> and set trust in Keychain Access.</li>
+												</ol>
+												<div class="flex gap-2">
+													<Button variant="secondary" class="flex-1 font-bold" onclick={() => window.location.href = '/v1/sys/ca-certificate.mobileconfig'}>.mobileconfig</Button>
+													<Button variant="secondary" class="flex-1 font-bold" onclick={() => window.location.href = '/v1/sys/ca-certificate.crt'}>.crt</Button>
+												</div>
+											</div>
+										{:else if activeSecurityTab === 'android'}
+											<div class="space-y-4" in:fade>
+												<h4 class="text-lg font-semibold text-white">Android Installation</h4>
+												<ol class="space-y-3 list-decimal list-inside text-sm text-zinc-400">
+													<li>Download the <a href="/v1/sys/ca-certificate.crt" class="text-emerald-400 hover:underline">CA Certificate</a>.</li>
+													<li>Settings → Security → Encryption → Install from storage.</li>
+													<li>Select <strong>CA certificate</strong> and pick the file.</li>
+												</ol>
+												<Button class="w-full bg-white text-zinc-950 font-bold" onclick={() => window.location.href = '/v1/sys/ca-certificate.crt'}>
+													<Download class="h-4 w-4 mr-2" />
+													Download CRT
+												</Button>
+											</div>
+										{:else if activeSecurityTab === 'windows'}
+											<div class="space-y-4" in:fade>
+												<h4 class="text-lg font-semibold text-white">Windows / Linux</h4>
+												<ol class="space-y-3 list-decimal list-inside text-sm text-zinc-400">
+													<li>Download the <a href="/v1/sys/ca-certificate.crt" class="text-emerald-400 hover:underline">CA Certificate</a>.</li>
+													<li>Right-click → Install → Local Machine.</li>
+													<li>Place in <strong>Trusted Root Certification Authorities</strong>.</li>
+													<li>On Linux: Copy to <code>/usr/local/share/ca-certificates/</code> and run <code>update-ca-certificates</code>.</li>
+												</ol>
+												<Button class="w-full bg-white text-zinc-950 font-bold" onclick={() => window.location.href = '/v1/sys/ca-certificate.crt'}>
+													<Download class="h-4 w-4 mr-2" />
+													Download CRT
+												</Button>
+											</div>
+										{/if}
+
+										<div class="pt-6 border-t border-white/5">
+											<div class="flex items-center justify-between gap-4 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+												<div>
+													<p class="text-sm font-bold text-white">Verification</p>
+													<p class="text-xs text-zinc-500">Test if your device trusts PowerLab.</p>
+												</div>
+												<Button 
+													size="sm" 
+													class={cn("font-bold transition-all", isTestingConnection ? "bg-zinc-800 text-zinc-500" : "bg-emerald-500 text-zinc-950 hover:bg-emerald-400")}
+													onclick={testHttpsConnection}
+													disabled={isTestingConnection}
+												>
+													{#if isTestingConnection}
+														<RefreshCw class="h-3.5 w-3.5 mr-2 animate-spin" />
+														Testing…
+													{:else}
+														Test Connection
+													{/if}
+												</Button>
+											</div>
+										</div>
+									</div>
+
+									<!-- Visual Guide -->
+									<div class="relative aspect-[4/3] overflow-hidden rounded-xl border border-white/5 bg-black/40">
+										<img 
+											src={`/docs/security/${activeSecurityTab}.png`} 
+											alt={`${activeSecurityTab} installation guide`}
+											class="h-full w-full object-cover opacity-80"
+										/>
+										<div class="absolute inset-0 bg-gradient-to-t from-zinc-950/60 to-transparent"></div>
+										<p class="absolute bottom-4 left-4 text-[10px] font-bold uppercase tracking-widest text-white/40">Reference Mockup</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</section>
 
 					<section class="mb-8">
 						<h3 class="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Account</h3>
