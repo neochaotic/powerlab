@@ -388,5 +388,7 @@
   "error.passMismatch": "As senhas não coincidem",
   "error.passTooShort": "A senha deve ter pelo menos 5 caracteres",
   "error.setupFailed": "Falha ao inicializar o sistema. Verifique os logs do backend.",
-  "apps.rollingUpdate": "Atualização Contínua"
+  "apps.rollingUpdate": "Atualização Contínua",
+  "settings.apiDocs": "Documentação Interativa da API",
+  "settings.apiDocsDesc": "Explore os endpoints v1 e v2 com Scalar"
 }

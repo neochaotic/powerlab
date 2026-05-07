@@ -388,5 +388,7 @@
   "error.passMismatch": "Passwords do not match",
   "error.passTooShort": "Password must be at least 5 characters",
   "error.setupFailed": "Failed to initialize the system. Check the backend logs.",
-  "apps.rollingUpdate": "Rolling Update"
+  "apps.rollingUpdate": "Rolling Update",
+  "settings.apiDocs": "Interactive API Documentation",
+  "settings.apiDocsDesc": "Explore v1 and v2 endpoints with Scalar"
 }

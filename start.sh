@@ -198,7 +198,32 @@ fi
 
 # ── build ──────────────────────────────────────────────────────────────────────
 
+function sync_specs() {
+  # Mirror each canonical per-service openapi.yaml into the gateway's
+  # embedded docs dir so the API docs portal at /docs always serves
+  # what the backend was built against (ADR 0008). Strict: if a source
+  # spec is missing we fail the build instead of silently shipping a
+  # stale embedded copy.
+  log "Syncing OpenAPI specs..."
+  mkdir -p backend/gateway/api/docs
+  local sync_pairs=(
+    "backend/gateway/api/gateway/openapi.yaml:backend/gateway/api/docs/openapi_gateway.yaml"
+    "backend/app-management/api/app_management/openapi.yaml:backend/gateway/api/docs/openapi_app_management.yaml"
+    "backend/message-bus/api/message_bus/openapi.yaml:backend/gateway/api/docs/openapi_message_bus.yaml"
+    "backend/core/api/casaos/openapi.yaml:backend/gateway/api/docs/openapi_core.yaml"
+    "backend/local-storage/api/local_storage/openapi.yaml:backend/gateway/api/docs/openapi_local_storage.yaml"
+    "backend/user-service/api/user-service/openapi.yaml:backend/gateway/api/docs/openapi_user_service.yaml"
+  )
+  for pair in "${sync_pairs[@]}"; do
+    src="${pair%%:*}"
+    dst="${pair#*:}"
+    [[ -f "$src" ]] || die "OpenAPI source missing: $src — embedded portal would be stale"
+    cp "$src" "$dst"
+  done
+}
+
 if [[ "$BUILD" == true ]]; then
+  sync_specs
   log "Building all services..."
   for svc in "${SERVICES[@]}"; do
     if [[ "$svc" == "local-storage" ]]; then
@@ -210,6 +235,7 @@ if [[ "$BUILD" == true ]]; then
   done
   log "All services built."
 else
+  sync_specs
   # Build only if binary is missing
   for svc in "${SERVICES[@]}"; do
     bin="$RUNTIME/bin/$svc"
