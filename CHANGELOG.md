@@ -11,6 +11,15 @@ see `CONTRIBUTING.md` for the rule.
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-05-07
+
+The "Local HTTPS + Localization + Developer Portal" release. Three
+significant features land together: an Apple-grade local HTTPS
+trust dance, three locales (en / pt-BR / es) with persistence and
+autodetection, and an embedded Scalar-powered API documentation
+portal. The HTTPS choreography is also formalized as a portable
+public-domain framework — the **HTTPS Trust Onboarding Pattern**.
+
 ### Added — Local HTTPS (#43)
 
 - **Apple-grade local HTTPS out of the box.** First-boot ECDSA P-256
@@ -29,33 +38,135 @@ see `CONTRIBUTING.md` for the rule.
   request must arrive over HTTPS from a non-localhost peer). Prevents
   the classic homelab lock-out where HSTS ships before the user has
   installed the CA. See ADR 0006.
+- **Soft HTTP pill banner** in the top-right corner, dismissible
+  per-session. Click → deep-links into `/settings#security` walkthrough.
+- **Per-platform walkthrough** in Settings → Security: iOS, macOS,
+  Android, Windows tabs with the right download link for each.
+- **4-guard Test Connection** before redirect-to-HTTPS: TLS reachable +
+  SPA served on HTTPS + HSTS arm acked + only-then-redirect. The
+  white-screen-of-death class of failure is closed.
+- **SPA fallback chain** in the gateway's static handler so deep-link
+  routes (`/settings`, `/dashboard`, refresh-on-route) never 404.
+- **Port-change probe-before-redirect** (`probePortReachable`) so the
+  Settings → Network → Listen port editor never strands the user on
+  a connection-refused page.
 - 7 new ADRs (`docs/decisions/0001`…`0007`) documenting cert validity,
   pkcs7 signer choice, reset-trust UX, walkthrough UX, PWA scaffolding,
   the HSTS gate, and the LAN-only initial deployment posture.
-- New regression tests pin the SAN classification rules
-  (`backend/common/pkg/security/cert_test.go`).
+- Regression tests: SAN classification (17 cases), PKCS#7 signing,
+  HSTS middleware (4 scenarios), port-probe helper (9 cases), SPA
+  fallback (15 cases), CA download UA-redirects (6 cases).
 
-### Added — API documentation portal
+### Added — Localization in en, pt-BR, es (#51)
+
+- **Three locales** ship in this release: English, Português
+  (Brasil), Español. ~390 strings each.
+- **JSON-backed**: each locale lives in `ui/src/lib/i18n/locales/<id>.json`
+  so translators contribute by editing JSON, never the host
+  TypeScript. Vite imports them statically at build time so the
+  bundle ships them all (no runtime fetch, no waterfall).
+- **`navigator.language` autodetection** on first visit. `pt-PT` →
+  pt-BR, `es-MX` → es, anything else → English. Override via
+  Settings → General → Language.
+- **localStorage persistence** (`powerlab_locale` key). The chosen
+  locale survives a refresh.
+- **Language picker** in Settings → General. Each option labeled in
+  its own script (`Português (Brasil)`, not "Portuguese (Brazil)").
+- Data-quality regression tests pin: every locale has the same key
+  set, every translation has the same `{param}` placeholders as
+  English, no Portuguese-only words leak into Spanish.
+
+### Added — API documentation portal (#52)
 
 - **Embedded Scalar-powered portal at `/docs`**. New routes
-  `/docs[?service=<id>]`, `/docs/spec?service=<id>`, and
-  `/docs/scalar.js` serve a self-contained interactive API reference
-  for all six backend services (gateway, app-management,
-  user-service, core, message-bus, local-storage). The Scalar
-  runtime and per-service OpenAPI specs are bundled into the gateway
-  binary via `embed.FS` — no CDN, no network calls, fits the
-  LAN-only deployment posture in ADR 0007.
-- **Service switcher** dropdown jumps between the six APIs without
-  losing the current URL hash (so a deep-linked operation survives
-  the switch).
+  `/docs[?service=<id>]`, `/docs/spec?service=<id>`,
+  `/docs/scalar.js`, and `/docs/logo.svg` serve a self-contained
+  interactive API reference for all six backend services. The
+  Scalar runtime + per-service OpenAPI specs + the PowerLab squircle
+  logo are bundled into the gateway binary via `embed.FS` — no CDN,
+  no network calls, fits the LAN-only deployment posture in
+  ADR 0007.
+- **Service switcher** dropdown jumps between the six APIs while
+  preserving the URL hash so deep-linked operations survive.
 - **Bearer-token pre-fill** via `#access_token=...` URL hash; tokens
-  stay client-side (URL fragments are not sent to servers, so access
-  logs do not capture them).
-- **Settings → About → "API Docs"** tile generates a one-tap link
-  with the current session token already wired in.
-- See ADR 0008 for the design choice (Scalar over Swagger UI / Redoc)
-  and the firm "specs are immutable inputs" rule that keeps the
-  source `openapi.yaml` files round-trippable through codegen.
+  stay client-side (URL fragments are not sent to servers).
+- **Sidebar entry** for `/docs` (BookOpen icon). Opens in a new tab
+  because Scalar mounts its own router inside the page.
+- **OpenAPI specs rebranded CasaOS → PowerLab** with a surgical edit
+  that touches only `info.title` and `info.description` (no
+  endpoint / parameter / schema descriptions mutated, per the
+  "specs are immutable inputs" rule in ADR 0008).
+- **PowerLab logo** at the top of every spec page (the same squircle
+  used in the Launchpad).
+- ADR 0008 documents the design choice (Scalar over Swagger UI /
+  Redoc) and the firm "specs are immutable inputs" rule that keeps
+  the source `openapi.yaml` files round-trippable through codegen.
+- 16 regression tests for the route handlers + the data-driven
+  service registry.
+
+### Added — Trust durability hardening
+
+Day-2 polish to make the trust dance survive realistic operational
+scenarios: data-dir wipes, accidental cleanups, browser-side HSTS
+caches, scheduled CA rotations.
+
+- **CA storage moved to a stable path independent of the runtime
+  data dir** (ADR 0010). Production: `/etc/powerlab/security/`.
+  Dev: `~/.config/powerlab/security/`. A one-shot migration
+  brings users upgrading from v0.2.7 over without intervention.
+- **`ca-public-backup.crt` written next to `ca.crt`** with the
+  same bytes but an explicit "this is the file to back up"
+  filename. The CA private key is NEVER part of the backup;
+  exposing it would void every device.
+- **`GET /v1/sys/trust-state`** endpoint returns the server's
+  current CA fingerprint + HSTS arm state. Unauthenticated by
+  design (CA cert is public). Used by the new
+  `TrustStateChecker` UI component to surface a "Trust changed —
+  re-install CA" pill *before* the user hits a cert error wall.
+  ADR 0011.
+- **HSTS disarming window**: after `Reset trust` or `Rotate CA`,
+  the server emits `Strict-Transport-Security: max-age=0` for 15
+  minutes. Per RFC 6797 §6.1.1, browsers MUST evict their cached
+  HSTS pin on `max-age=0` — this is the only mechanism that
+  reliably recovers a browser that already pinned. ADR 0011.
+- **`POST /v1/sys/rotate-ca`** — a deliberately destructive
+  rotation endpoint, separate from `Reset trust`. Triple-gated:
+  HTTPS + non-localhost + `?confirm=ROTATE_CA` query parameter.
+  Surfaces a rose-tinted modal in Settings → Security → Recovery
+  with explicit consequences and a type-`ROTATE`-to-confirm
+  input. ADR 0012.
+- **`DELETE /v1/sys/trust-confirmed`** — the lighter "Reset
+  trust" action. Clears the HSTS gate without touching the CA;
+  drops the disarming marker so browsers also clear their pin.
+- 13 new regression tests across security_route + gateway_route
+  pinning trust-state shape, rotation guards, HSTS disarming
+  window, fingerprint format, public-backup write.
+
+### Added — HTTPS Trust Onboarding Pattern (framework spec, #53)
+
+- New canonical reference document at
+  `docs/patterns/https-trust-onboarding-pattern.md` formalizing the
+  v0.2.7 HTTPS choreography as a portable public-domain framework:
+  problem statement, decision tree for when-to-use, Mermaid
+  architecture + state machine + 4 sequence diagrams, 8 components
+  mapped to reference impl file paths, "why these design choices"
+  UX-first walkthrough, threat model, per-language implementation
+  guide (Go / Node / Python / Rust), testing checklist, FAQ.
+- ADR 0009 names the pattern and records why we license the spec
+  public-domain (so commercial / MIT / Apache projects can adopt
+  it) while keeping the reference implementation AGPL-3.0.
+
+### Fixed
+
+- **Footer "Crafted with ❤ by neochaotic"** rendered as
+  "Crafted withby" when the Heart icon failed to load (slow
+  hydration, ad-block extensions). Whitespace is now explicit and
+  the author handle links to the GitHub profile.
+- **Per-machine `gateway.ini` was leaking dev home paths into the
+  repo.** Untracked + gitignored; the gateway binary regenerates it
+  from the embedded sample on first boot. New
+  `scripts/check-no-absolute-paths.sh` guard wired into
+  `scripts/validate.sh` step 0 prevents the regression class.
 
 ## [0.2.6] — 2026-05-06
 

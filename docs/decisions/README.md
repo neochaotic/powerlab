@@ -71,3 +71,7 @@ comment the code.
 | [0006](./0006-hsts-after-trust-gate.md) | HSTS gated on first verified non-localhost client | accepted |
 | [0007](./0007-internal-network-only-initial-deployment.md) | Initial deployment scope — internal LAN only | accepted |
 | [0008](./0008-api-docs-portal-scalar.md) | API docs portal — Scalar, embedded, no spec mutation | accepted |
+| [0009](./0009-https-trust-onboarding-pattern.md) | Name the v0.2.7 trust-dance: "HTTPS Trust Onboarding Pattern" | accepted |
+| [0010](./0010-ca-storage-decoupled-from-runtime.md) | CA storage decoupled from the runtime data dir | accepted |
+| [0011](./0011-ca-mismatch-detection-and-recovery.md) | CA-mismatch detection + browser-side HSTS recovery | accepted |
+| [0012](./0012-ca-rotation-flow.md) | CA rotation: separate destructive action from "Reset trust" | accepted |

@@ -116,6 +116,26 @@
 				}
 			}
 
+			// All guards passed: persist the server's CA fingerprint
+			// so the TrustStateChecker can detect a future mismatch
+			// (CA regen / rotation) and re-prompt re-install. Best
+			// effort — never blocks the trust dance.
+			try {
+				const stateResp = await fetch(`${httpsBase}/v1/sys/trust-state`, {
+					mode: 'cors',
+					signal: AbortSignal.timeout(3000)
+				});
+				if (stateResp.ok) {
+					const state = (await stateResp.json()) as { ca_fingerprint?: string };
+					if (state.ca_fingerprint) {
+						window.localStorage.setItem('powerlab_trusted_ca_fp', state.ca_fingerprint);
+						window.localStorage.removeItem('powerlab_ca_mismatch_dismissed');
+					}
+				}
+			} catch {
+				/* fingerprint persistence is best-effort */
+			}
+
 			// Guard 4: only redirect when the destination will render.
 			if (!canRedirect) {
 				const note = isLocalhost
@@ -138,6 +158,71 @@
 			toast.error(`Connection test failed: ${(e as Error).message || 'unknown error'}. Confirm the certificate is installed and trusted.`);
 		} finally {
 			isTestingConnection = false;
+		}
+	}
+
+	// resetTrust clears the HSTS gate on the server and the cached
+	// CA fingerprint on this device. The CA itself is untouched —
+	// the next visit re-runs the trust dance with the existing
+	// installed CA. Use this when the dance got into a weird state
+	// and you want to redo it cleanly.
+	async function resetTrust() {
+		const ok = confirm(
+			'Reset trust? The certificate stays the same; you will be guided through the trust dance again. No action needed on your devices.'
+		);
+		if (!ok) return;
+		try {
+			const r = await fetch('/v1/sys/trust-confirmed', { method: 'DELETE' });
+			if (!r.ok) throw new Error(`status ${r.status}`);
+			window.localStorage.removeItem('powerlab_trusted_ca_fp');
+			window.localStorage.removeItem('powerlab_ca_mismatch_dismissed');
+			toast.success('Trust reset. Re-run "Test Connection" when ready.');
+		} catch (e) {
+			toast.error(`Could not reset trust: ${(e as Error).message}`);
+		}
+	}
+
+	// confirmRotateCA opens the destructive-confirmation modal. The
+	// modal owns the type-to-confirm phrase + the explicit list of
+	// consequences. The actual API call is in `executeRotateCA`,
+	// only reachable from the modal's "Rotate now" button after the
+	// user typed the right phrase.
+	let isRotateModalOpen = $state(false);
+	let rotateConfirmPhrase = $state('');
+	let isRotating = $state(false);
+
+	function confirmRotateCA() {
+		rotateConfirmPhrase = '';
+		isRotateModalOpen = true;
+	}
+
+	function cancelRotate() {
+		isRotateModalOpen = false;
+		rotateConfirmPhrase = '';
+	}
+
+	async function executeRotateCA() {
+		if (rotateConfirmPhrase !== 'ROTATE') return;
+		isRotating = true;
+		try {
+			const httpsBase = `https://${window.location.hostname}:8443`;
+			const r = await fetch(
+				`${httpsBase}/v1/sys/rotate-ca?confirm=ROTATE_CA`,
+				{ method: 'POST', mode: 'cors' }
+			);
+			if (!r.ok) {
+				const detail = await r.text().catch(() => '');
+				throw new Error(`status ${r.status}: ${detail.slice(0, 120)}`);
+			}
+			window.localStorage.removeItem('powerlab_trusted_ca_fp');
+			window.localStorage.removeItem('powerlab_ca_mismatch_dismissed');
+			isRotateModalOpen = false;
+			rotateConfirmPhrase = '';
+			toast.success('CA rotated. Re-install the new CA on every device that needs to reach the panel.');
+		} catch (e) {
+			toast.error(`Rotation failed: ${(e as Error).message}`);
+		} finally {
+			isRotating = false;
 		}
 	}
 
@@ -722,6 +807,42 @@
 													{/if}
 												</button>
 											</div>
+
+											<!-- Reset / Rotate — recovery actions for advanced
+												 users. Reset (light): clear HSTS, keep CA. Rotate
+												 (destructive): regenerate CA, void trust on every
+												 device. Both behind a small "Show advanced" so a
+												 casual user doesn't accidentally tap them. -->
+											<details class="mt-3 group">
+												<summary class="cursor-pointer text-[11px] font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-300 list-none flex items-center gap-1.5 select-none">
+													<span class="transition-transform group-open:rotate-90">›</span>
+													Recovery
+												</summary>
+												<div class="mt-3 grid grid-cols-1 gap-2">
+													<button
+														type="button"
+														onclick={resetTrust}
+														class="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-left transition-colors hover:border-amber-500/30 hover:bg-amber-500/[0.04]"
+													>
+														<div class="min-w-0">
+															<p class="text-[12px] font-semibold text-white">Reset trust</p>
+															<p class="text-[11px] text-zinc-500 leading-relaxed">Re-run the trust dance. CA stays the same.</p>
+														</div>
+														<RefreshCw class="h-3.5 w-3.5 text-zinc-500 shrink-0" />
+													</button>
+													<button
+														type="button"
+														onclick={confirmRotateCA}
+														class="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-left transition-colors hover:border-rose-500/30 hover:bg-rose-500/[0.04]"
+													>
+														<div class="min-w-0">
+															<p class="text-[12px] font-semibold text-white">Rotate CA</p>
+															<p class="text-[11px] text-zinc-500 leading-relaxed">Generate a new CA. Voids trust on every installed device.</p>
+														</div>
+														<AlertTriangle class="h-3.5 w-3.5 text-rose-400 shrink-0" />
+													</button>
+												</div>
+											</details>
 										</div>
 									</div>
 
@@ -1056,6 +1177,105 @@
 		</div>
 	</main>
 </div>
+
+<!-- Rotate-CA confirmation modal — destructive, type-to-confirm.
+	 Voids trust on every installed device, so the prompt is
+	 deliberately scary: rose accent, explicit list of consequences,
+	 the user has to type ROTATE before the action button enables. -->
+{#if isRotateModalOpen}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+		onclick={(e) => { if (!isRotating && e.target === e.currentTarget) cancelRotate(); }}
+		transition:fade={{ duration: 200 }}
+	>
+		<div class="w-full max-w-md rounded-2xl border border-rose-500/30 bg-zinc-950 p-6 shadow-2xl">
+			<div class="flex items-start gap-3 mb-4">
+				<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-500/15 text-rose-400">
+					<AlertTriangle class="h-5 w-5" />
+				</div>
+				<div>
+					<h3 class="text-base font-bold text-white">Rotate Local Certificate Authority</h3>
+					<p class="mt-1 text-[12px] text-zinc-400 leading-relaxed">
+						This is a <span class="font-semibold text-rose-300">destructive, irreversible</span>
+						action. Read carefully before continuing.
+					</p>
+				</div>
+			</div>
+
+			<div class="rounded-xl border border-rose-500/20 bg-rose-500/[0.03] p-4 mb-4">
+				<p class="text-[12px] font-semibold text-rose-200 mb-2">What happens when you rotate</p>
+				<ul class="space-y-1.5 text-[11px] text-zinc-300 leading-relaxed">
+					<li class="flex gap-2">
+						<span class="text-rose-400 shrink-0">·</span>
+						<span>The current CA is replaced by a brand-new one.</span>
+					</li>
+					<li class="flex gap-2">
+						<span class="text-rose-400 shrink-0">·</span>
+						<span><strong class="text-white">Every device</strong> (phone, laptop, tablet) that previously trusted PowerLab will see "Not Secure" warnings until you re-install the new CA on each one.</span>
+					</li>
+					<li class="flex gap-2">
+						<span class="text-rose-400 shrink-0">·</span>
+						<span>HSTS is cleared so HTTP becomes reachable again as a recovery path.</span>
+					</li>
+					<li class="flex gap-2">
+						<span class="text-rose-400 shrink-0">·</span>
+						<span>The previous CA is preserved as <code class="text-amber-300">ca.crt.previous</code> on the server (audit trail; can be restored manually if rotation was a mistake).</span>
+					</li>
+				</ul>
+			</div>
+
+			<div class="rounded-xl border border-amber-500/20 bg-amber-500/[0.03] p-4 mb-4">
+				<p class="text-[12px] font-semibold text-amber-200 mb-1">When should you rotate?</p>
+				<p class="text-[11px] text-zinc-400 leading-relaxed">
+					Only if your CA private key was exposed (e.g., backup leak, screen-share with key visible) or if you're handing the panel to a different operator. Routine maintenance does <span class="text-white">NOT</span> require rotation — leaf certs auto-renew under the same CA.
+				</p>
+			</div>
+
+			<label class="block mb-4">
+				<span class="text-[11px] font-semibold text-zinc-300 mb-1.5 block">
+					Type <code class="text-rose-300 bg-rose-500/10 px-1.5 py-0.5 rounded">ROTATE</code> to confirm
+				</span>
+				<input
+					type="text"
+					bind:value={rotateConfirmPhrase}
+					autocomplete="off"
+					autocorrect="off"
+					autocapitalize="characters"
+					spellcheck="false"
+					class="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder-zinc-600 outline-none focus:border-rose-500/40 font-mono"
+					placeholder="ROTATE"
+					disabled={isRotating}
+				/>
+			</label>
+
+			<div class="flex items-center justify-end gap-2">
+				<button
+					type="button"
+					onclick={cancelRotate}
+					disabled={isRotating}
+					class="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-[12px] font-bold text-zinc-300 hover:bg-white/[0.06] hover:text-white disabled:opacity-40"
+				>
+					Cancel
+				</button>
+				<button
+					type="button"
+					onclick={executeRotateCA}
+					disabled={rotateConfirmPhrase !== 'ROTATE' || isRotating}
+					class="rounded-lg bg-rose-500 px-4 py-2 text-[12px] font-bold text-zinc-950 hover:bg-rose-400 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed transition-colors"
+				>
+					{#if isRotating}
+						<RefreshCw class="h-3 w-3 mr-1.5 animate-spin inline" />
+						Rotating…
+					{:else}
+						Rotate now
+					{/if}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <!-- Port-change confirmation + countdown modal -->
 {#if confirmingPortChange || countdownSeconds > 0}

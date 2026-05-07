@@ -121,8 +121,18 @@ func (g *GatewayRoute) GetRoute() *http.ServeMux {
 func (g *GatewayRoute) WrapHSTS(next http.Handler, httpsPort string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		armed := g.cm.IsHSTSArmed()
+		disarming := g.cm.IsHSTSDisarming()
+
 		if r.TLS != nil {
-			if armed {
+			// Disarming window takes precedence over armed — even
+			// if the user re-armed quickly, any browser that
+			// already pinned needs its pin cleared first. RFC 6797
+			// §6.1.1: max-age=0 evicts the cached entry.
+			switch {
+			case disarming:
+				w.Header().Set("Strict-Transport-Security",
+					"max-age=0")
+			case armed:
 				w.Header().Set("Strict-Transport-Security",
 					"max-age=31536000; includeSubDomains")
 			}
@@ -131,7 +141,9 @@ func (g *GatewayRoute) WrapHSTS(next http.Handler, httpsPort string) http.Handle
 		}
 		// Plain HTTP. Redirect only when armed; otherwise serve as
 		// normal so the user can finish the trust dance over HTTP.
-		if !armed {
+		// During the disarming window, HTTP also works (no redirect)
+		// so a browser that just had its pin cleared can recover.
+		if !armed || disarming {
 			next.ServeHTTP(w, r)
 			return
 		}

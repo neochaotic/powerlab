@@ -5,6 +5,7 @@
 	import SetupWizard from '$lib/components/auth/SetupWizard.svelte';
 	import ToastContainer from '$lib/components/ui/Toast.svelte';
 	import HttpBanner from '$lib/components/security/HttpBanner.svelte';
+	import TrustStateChecker from '$lib/components/security/TrustStateChecker.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { ui } from '$lib/stores/ui.svelte';
 	import { versionHandshake } from '$lib/stores/versionHandshake.svelte';
@@ -101,6 +102,7 @@
 
 <ToastContainer />
 <HttpBanner />
+<TrustStateChecker />
 
 <!-- Root Container — same ambient wallpaper as the login screen.
 	 Sidebar + Launchpad are translucent so the glow shows through.

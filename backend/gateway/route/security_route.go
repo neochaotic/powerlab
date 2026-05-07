@@ -54,6 +54,8 @@ func (s *SecurityRoute) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/v1/sys/ca-certificate.mobileconfig", s.handleCAMobileConfig)
 	mux.HandleFunc("/v1/sys/ca-certificate.cer", s.handleCACer)
 	mux.HandleFunc("/v1/sys/trust-confirmed", s.handleTrustConfirmed)
+	mux.HandleFunc("/v1/sys/trust-state", s.handleTrustState)
+	mux.HandleFunc("/v1/sys/rotate-ca", s.handleRotateCA)
 }
 
 // handleCABase redirects to the format that matches the User-Agent.
@@ -218,6 +220,22 @@ func (s *SecurityRoute) handleCACer(w http.ResponseWriter, r *http.Request) {
 // Conditions: the request must come over HTTPS (r.TLS != nil) and
 // from a non-localhost address. We log who armed the gate.
 func (s *SecurityRoute) handleTrustConfirmed(w http.ResponseWriter, r *http.Request) {
+	// DELETE is the lighter "Reset trust" action: clear the HSTS
+	// gate so HTTP works again, but leave the CA + leaf alone.
+	// Distinct from `/v1/sys/rotate-ca` which regenerates the CA.
+	// See ADR 0012.
+	if r.Method == http.MethodDelete {
+		if err := s.cm.DisarmHSTS(); err != nil {
+			http.Error(w, fmt.Sprintf("failed to disarm HSTS: %v", err), http.StatusInternalServerError)
+			return
+		}
+		logger.Info("HSTS gate disarmed (reset trust)",
+			zap.String("ip", r.RemoteAddr),
+			zap.String("ua", r.UserAgent()))
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"armed":false}`))
+		return
+	}
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -331,3 +349,91 @@ func signPKCS7(payload []byte, signerCert *x509.Certificate, signerKey *ecdsa.Pr
 // _ unused import guard for filepath (lint suppression — the path
 // helpers in CertManager use it but Go won't complain).
 var _ = filepath.Join
+
+// handleTrustState returns a non-secret summary of the server's
+// trust posture so a client can decide whether to re-prompt the
+// user. Specifically: the CA fingerprint and whether HSTS is armed.
+//
+// This endpoint is unauthenticated by design — the values it
+// returns are not secret (the CA cert is public, the HSTS armed
+// state is observable from any client that visits the server).
+// Auth would just create a chicken-and-egg with the trust dance.
+//
+// Clients (the SPA on first mount) compare the returned fingerprint
+// against the value persisted in localStorage from the last
+// successful trust dance. A mismatch surfaces a "re-install CA"
+// banner instead of letting the user hit a cert-error wall.
+//
+// See ADR 0011.
+func (s *SecurityRoute) handleTrustState(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	fingerprint, err := s.cm.CAFingerprint()
+	if err != nil {
+		// CA might not be generated yet on first ever boot; surface
+		// this as an empty fingerprint rather than a 500 so the UI
+		// doesn't error-loop.
+		fingerprint = ""
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-cache")
+	body := fmt.Sprintf(`{"armed":%t,"ca_fingerprint":%q}`,
+		s.cm.IsHSTSArmed(), fingerprint)
+	_, _ = w.Write([]byte(body))
+}
+
+// handleRotateCA performs a destructive CA rotation. After this
+// returns 2xx, every device that previously trusted PowerLab will
+// see cert-not-trusted on its next visit. The rotation is gated by:
+//
+//   - HTTPS only (r.TLS != nil) — caller must be using a working
+//     TLS session, which is itself proof they have the OLD CA
+//     installed; same posture as `/trust-confirmed`.
+//   - non-localhost — same rationale as ADR 0006 for trust-confirmed.
+//   - explicit `?confirm=ROTATE_CA` query parameter — defensive belt
+//     in case a curious user discovers the endpoint, this prevents
+//     accidental rotation by a misconfigured proxy or auto-CSRF tool.
+//
+// After this endpoint succeeds, the HSTS gate is cleared
+// automatically (CertManager.RotateCA disarms it). The user will
+// have to re-run the trust dance from a freshly-trusted device.
+//
+// See ADR 0012.
+func (s *SecurityRoute) handleRotateCA(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if r.TLS == nil {
+		http.Error(w, "rotate-ca requires HTTPS — proves the caller has the current CA installed", http.StatusBadRequest)
+		return
+	}
+	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+	if host == "" {
+		host = r.RemoteAddr
+	}
+	if host == "127.0.0.1" || host == "::1" || host == "localhost" {
+		http.Error(w, "rotate-ca must come from a non-localhost peer", http.StatusBadRequest)
+		return
+	}
+	if r.URL.Query().Get("confirm") != "ROTATE_CA" {
+		http.Error(w, "rotate-ca requires ?confirm=ROTATE_CA — this is a destructive action that voids trust on every device", http.StatusBadRequest)
+		return
+	}
+
+	if err := s.cm.RotateCA(); err != nil {
+		logger.Error("CA rotation failed", zap.Error(err))
+		http.Error(w, fmt.Sprintf("rotation failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+	logger.Info("CA rotated by client request",
+		zap.String("ip", host),
+		zap.String("ua", r.UserAgent()))
+
+	newFingerprint, _ := s.cm.CAFingerprint()
+	w.Header().Set("Content-Type", "application/json")
+	body := fmt.Sprintf(`{"rotated":true,"new_ca_fingerprint":%q}`, newFingerprint)
+	_, _ = w.Write([]byte(body))
+}
