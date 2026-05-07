@@ -180,8 +180,24 @@ if [[ "$MODE" == "full" ]]; then
 			fail "Linux E2E failed (see /tmp/pwlab-validate-e2e.log)"
 		}
 		ok "Linux E2E OK (3 scenarios pass)"
+
+		# Store-sample: install ≥10 apps and assert ≥94% pass. Catches
+		# install-flow regressions that affect specific compose YAML
+		# patterns (privileged, multi-service depends_on, secrets,
+		# host networking, etc). Set-cover analysis (issue #42) shows
+		# the default 10-app sample covers ~95% of the App Store
+		# install code paths. Use --full for tag-time runs (18 apps,
+		# ~99% coverage); default mode runs in CI on every release
+		# tag without burning budget on patch releases.
+		step "Store sample: install ≥10 apps, ≥94% pass"
+		./scripts/test-store-sample.sh "$ROOT/dist/powerlab-0.0.0-validate-linux-amd64.tar.gz" \
+			>/tmp/pwlab-validate-store.log 2>&1 || {
+			tail -40 /tmp/pwlab-validate-store.log
+			fail "Store sample failed (see /tmp/pwlab-validate-store.log)"
+		}
+		ok "Store sample OK"
 	else
-		warn "Docker not available — skipping CGO+PAM smoke and Linux E2E"
+		warn "Docker not available — skipping CGO+PAM smoke, Linux E2E, store sample"
 	fi
 fi
 
