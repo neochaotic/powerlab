@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { readFileContent, updateFileContent, createFileContent } from '$lib/api/files';
+	import { toast } from '$lib/stores/toast.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { Save, X, Loader2, FileText } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -30,6 +31,13 @@
 	// disk yet — the very first Save will create the file. The header
 	// reflects this so the user knows whether they're editing or creating.
 	let isNewFile = $state(false);
+	// Tracks unsaved changes so the title shows a • indicator and the
+	// close action can prompt for confirmation. Filebrowser does the
+	// same; users expect this from any modern editor.
+	let isDirty = $state(false);
+	// What's on disk right now — compared against the editor's current
+	// document on every change to compute isDirty.
+	let savedContent = $state('');
 	let editorContainer = $state<HTMLDivElement | null>(null);
 	// CodeMirror view is mutated imperatively (not template-rendered), so a
 	// plain `let` is fine. Suppress the runes-warning explicitly.
@@ -81,6 +89,8 @@
 	function initEditor(initialContent: string) {
 		if (!editorContainer) return;
 
+		savedContent = initialContent;
+
 		const startState = EditorState.create({
 			doc: initialContent,
 			extensions: [
@@ -93,8 +103,23 @@
 							handleSave();
 							return true;
 						}
+					},
+					{
+						key: 'Escape',
+						run: () => {
+							handleCloseRequest();
+							return true;
+						}
 					}
 				]),
+				// Track dirtiness on every doc change. Compared against
+				// savedContent (mutated on successful Save) so the
+				// indicator clears as soon as the file is persisted.
+				EditorView.updateListener.of((update) => {
+					if (update.docChanged) {
+						isDirty = update.state.doc.toString() !== savedContent;
+					}
+				}),
 				getLanguage(fileName),
 				oneDark,
 				EditorView.theme({
@@ -120,22 +145,36 @@
 			// REST contract filebrowser uses. After the first
 			// successful create, flip isNewFile so subsequent saves
 			// in the same session use PUT.
-			const res = isNewFile
+			const wasNew = isNewFile;
+			const res = wasNew
 				? await createFileContent(path, currentContent)
 				: await updateFileContent(path, currentContent);
 			if (res.success === 200 || (res as any).success === 0) {
-				if (isNewFile) {
-					isNewFile = false;
-				}
+				if (wasNew) isNewFile = false;
+				savedContent = currentContent;
+				isDirty = false;
+				toast.success(wasNew ? `Created ${fileName}` : `Saved ${fileName}`, 2000);
 			} else {
-				error = res.message || 'Failed to save file';
+				toast.error(res.message || 'Failed to save file');
 			}
 		} catch (e) {
 			const apiErr = e as { status?: number; message?: string };
-			error = apiErr?.message || (e as Error).message;
+			toast.error(apiErr?.message || (e as Error).message);
 		} finally {
 			saving = false;
 		}
+	}
+
+	// Close handler — confirms before discarding unsaved changes.
+	// Same affordance filebrowser uses: a native confirm() dialog
+	// because we don't have a custom modal queue and the user is
+	// already inside a modal.
+	function handleCloseRequest() {
+		if (isDirty) {
+			const ok = confirm(`Discard unsaved changes to ${fileName}?`);
+			if (!ok) return;
+		}
+		onClose();
 	}
 </script>
 
@@ -145,9 +184,9 @@
 >
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="absolute inset-0" onclick={onClose}></div>
+	<div class="absolute inset-0" onclick={handleCloseRequest}></div>
 
-	<div 
+	<div
 		class="relative flex h-[90vh] w-full max-w-5xl flex-col rounded-3xl border border-white/10 bg-zinc-950 shadow-2xl overflow-hidden"
 		transition:scale={{ duration: 300, start: 0.95 }}
 	>
@@ -158,31 +197,36 @@
 					<FileText class="h-5 w-5" />
 				</div>
 				<div>
-					<h2 class="text-sm font-bold text-white truncate max-w-[300px]">
-						{fileName}{#if isNewFile}<span class="ml-2 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-bold text-emerald-400 uppercase tracking-wider">New</span>{/if}
+					<h2 class="text-sm font-bold text-white truncate max-w-[300px] flex items-center gap-1.5">
+						<span>{fileName}</span>
+						{#if isDirty}<span class="text-amber-400" title="Unsaved changes">•</span>{/if}
+						{#if isNewFile}<span class="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-bold text-emerald-400 uppercase tracking-wider">New</span>{/if}
 					</h2>
 					<p class="text-[10px] font-medium text-zinc-500 uppercase tracking-widest">{path}</p>
 				</div>
 			</div>
 
 			<div class="flex items-center gap-2">
-				<Button 
-					variant="ghost" 
-					size="sm" 
-					onclick={onClose}
+				<Button
+					variant="ghost"
+					size="sm"
+					onclick={handleCloseRequest}
 					class="text-zinc-400 hover:text-white"
 				>
 					Close
 				</Button>
-				<Button 
-					size="sm" 
-					onclick={handleSave} 
-					disabled={loading || saving}
-					class="bg-emerald-500 text-zinc-950 hover:bg-emerald-400 font-bold px-5"
+				<Button
+					size="sm"
+					onclick={handleSave}
+					disabled={loading || saving || (!isDirty && !isNewFile)}
+					class="bg-emerald-500 text-zinc-950 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed font-bold px-5"
 				>
 					{#if saving}
 						<Loader2 class="mr-2 h-3.5 w-3.5 animate-spin" />
 						Saving...
+					{:else if isNewFile}
+						<Save class="mr-2 h-3.5 w-3.5" />
+						Create
 					{:else}
 						<Save class="mr-2 h-3.5 w-3.5" />
 						Save

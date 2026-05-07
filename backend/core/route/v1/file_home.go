@@ -96,14 +96,29 @@ func GetFilerHome(ctx echo.Context) error {
 		}
 	}
 
-	// Path 2: system fallback. Use the platform-aware data path
-	// (Linux production: /var/lib/powerlab/files; macOS production:
-	// /opt/powerlab/lib/files; dev sandbox: <projectdir>/backend/data/files).
-	// constants.DefaultDataPath is set per-platform and is what every
-	// other PowerLab service treats as canonical writable storage,
-	// so the daemon definitely has permissions there.
-	fallback := filepath.Join(constants.DefaultDataPath, "files")
-	if err := os.MkdirAll(fallback, 0o755); err != nil {
+	// Path 2: process user's home. The daemon's own user has a
+	// home dir (root on Linux production, the developer on macOS
+	// dev) that's short, writable, and doesn't bury the user three
+	// directories deep under the project tree. Way nicer than
+	// `<projectdir>/backend/data/files` for the SetupWizard flow.
+	if home, err := os.UserHomeDir(); err == nil && home != "" {
+		fallback := filepath.Join(home, "PowerLab")
+		if err := os.MkdirAll(fallback, 0o755); err == nil {
+			return ctx.JSON(http.StatusOK, model.Result{
+				Success: common_err.SUCCESS,
+				Message: common_err.GetMsg(common_err.SUCCESS),
+				Data: FileHomeResponse{
+					Path:   fallback,
+					Source: "process-home",
+				},
+			})
+		}
+	}
+
+	// Last resort: PowerLab data path. Should never reach here in
+	// practice — it would mean the daemon process has no home.
+	last := filepath.Join(constants.DefaultDataPath, "files")
+	if err := os.MkdirAll(last, 0o755); err != nil {
 		return ctx.JSON(http.StatusInternalServerError, model.Result{
 			Success: common_err.SERVICE_ERROR,
 			Message: fmt.Sprintf("could not prepare default Files path: %v", err),
@@ -113,7 +128,7 @@ func GetFilerHome(ctx echo.Context) error {
 		Success: common_err.SUCCESS,
 		Message: common_err.GetMsg(common_err.SUCCESS),
 		Data: FileHomeResponse{
-			Path:   fallback,
+			Path:   last,
 			Source: "system-fallback",
 		},
 	})

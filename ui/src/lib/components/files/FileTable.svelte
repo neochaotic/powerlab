@@ -192,7 +192,22 @@
 								? 'bg-[var(--color-accent)]/10'
 								: 'hover:bg-[var(--color-bg-tertiary)]/50'
 						)}
-						onclick={(e) => onSelect(item.path, e.metaKey || e.ctrlKey)}
+						onclick={(e) => {
+							// Filebrowser-style click model: a plain single
+							// click OPENS the row (folder → navigate, file →
+							// editor or preview). Cmd/Ctrl/Shift-click stays
+							// in select-mode for multi-select. The previous
+							// "single click selects, double click opens" was
+							// surprising — users single-clicked a freshly
+							// saved file expecting it to open and got
+							// nothing visible (the preview pane on the
+							// right was easy to miss).
+							if (e.metaKey || e.ctrlKey || e.shiftKey) {
+								onSelect(item.path, true);
+							} else {
+								onOpen(item);
+							}
+						}}
 						ondblclick={() => onOpen(item)}
 						oncontextmenu={(e: MouseEvent) => { e.preventDefault(); onContextMenu(e, item); }}
 						tabindex="0"
