@@ -1,19 +1,12 @@
 openapi: 3.0.3
 
 info:
-  title: CasaOS Message Bus API
+  title: PowerLab Message Bus API
   version: v2
   description: |
-    <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/IceWhaleTech/logo/main/casaos/casaos_banner_dark_night_800px.png">
-        <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/IceWhaleTech/logo/main/casaos/casaos_banner_twilight_blue_800px.png">
-        <img alt="CasaOS" src="https://raw.githubusercontent.com/IceWhaleTech/logo/main/casaos/casaos_banner_twilight_blue_800px.png">
-    </picture>
-
-    CasaOS Message Bus accepts events and actions from various sources and delivers them to subscribers.
-
-    For issues and discussions, please visit the [GitHub repository](https://github.com/IceWhaleTech/CasaOS) or join [our Discord](https://discord.gg/knqAbbBbeX).
-
+    PowerLab — self-hosted home server panel. This API covers pub/sub channel for service-to-service events and SSE fan-out.
+    
+    Source: [github.com/neochaotic/powerlab](https://github.com/neochaotic/powerlab).
 servers:
   - url: /v2/message_bus
 

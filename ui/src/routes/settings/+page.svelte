@@ -699,23 +699,28 @@
 
 										<div class="pt-6 border-t border-white/5">
 											<div class="flex items-center justify-between gap-4 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-												<div>
-													<p class="text-sm font-bold text-white">Verification</p>
-													<p class="text-xs text-zinc-500">Test if your device trusts PowerLab.</p>
+												<div class="min-w-0">
+													<p class="text-sm font-semibold text-white">Verification</p>
+													<p class="text-[11px] text-zinc-500 leading-relaxed">Test if your device trusts PowerLab.</p>
 												</div>
-												<Button 
-													size="sm" 
-													class={cn("font-bold transition-all", isTestingConnection ? "bg-zinc-800 text-zinc-500" : "bg-emerald-500 text-zinc-950 hover:bg-emerald-400")}
+												<button
+													type="button"
 													onclick={testHttpsConnection}
 													disabled={isTestingConnection}
+													class={cn(
+														"shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all",
+														isTestingConnection
+															? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+															: "bg-emerald-500 text-zinc-950 hover:bg-emerald-400 active:scale-95"
+													)}
 												>
 													{#if isTestingConnection}
-														<RefreshCw class="h-3.5 w-3.5 mr-2 animate-spin" />
+														<RefreshCw class="h-3 w-3 animate-spin" />
 														Testing…
 													{:else}
-														Test Connection
+														Test
 													{/if}
-												</Button>
+												</button>
 											</div>
 										</div>
 									</div>

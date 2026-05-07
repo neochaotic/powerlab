@@ -4,14 +4,9 @@ info:
   title: Casaos User Service API
   version: v2
   description: |
-    <picture>
-         <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/IceWhaleTech/logo/main/casaos/casaos_banner_dark_night_800px.png">
-         <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/IceWhaleTech/logo/main/casaos/casaos_banner_twilight_blue_800px.png">
-         <img alt="CasaOS" src="https://raw.githubusercontent.com/IceWhaleTech/logo/main/casaos/casaos_banner_twilight_blue_800px.png">
-     </picture>
-     This is the API for the Casaos User Service.
-     It is used to manage users and their access to Casaos services.
-
+    PowerLab — self-hosted home server panel. This API covers authentication via PAM (Linux) / dscl (macOS) with bcrypt SetupWizard fallback.
+    
+    Source: [github.com/neochaotic/powerlab](https://github.com/neochaotic/powerlab).
 servers:
   - url: /v2/users
     description: Casaos User Service API

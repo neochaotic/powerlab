@@ -1,15 +1,12 @@
 openapi: 3.0.3
 
 info:
-  title: CasaOS Gateway API
+  title: PowerLab Gateway API
   version: v1
   description: |-
-    <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/IceWhaleTech/logo/main/casaos/casaos_banner_dark_night_800px.png">
-        <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/IceWhaleTech/logo/main/casaos/casaos_banner_twilight_blue_800px.png">
-        <img alt="CasaOS" src="https://raw.githubusercontent.com/IceWhaleTech/logo/main/casaos/casaos_banner_twilight_blue_800px.png">
-    </picture>
-
+    PowerLab — self-hosted home server panel. This API covers request routing, mDNS announcement, and TLS termination for the panel.
+    
+    Source: [github.com/neochaotic/powerlab](https://github.com/neochaotic/powerlab).
 servers:
   - url: /v1/gateway
 

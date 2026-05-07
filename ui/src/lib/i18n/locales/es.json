@@ -390,5 +390,6 @@
   "error.setupFailed": "Error al inicializar el sistema. Verifique los registros del backend.",
   "apps.rollingUpdate": "Actualización Continua",
   "settings.apiDocs": "Documentación Interactiva de API",
-  "settings.apiDocsDesc": "Explore los endpoints v1 y v2 con Scalar"
+  "settings.apiDocsDesc": "Explore los endpoints v1 y v2 con Scalar",
+  "nav.apiDocs": "Docs de API"
 }
