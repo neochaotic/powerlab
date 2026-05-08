@@ -44,6 +44,22 @@ plus a polish pass on translations and download UX.
 - **`neochaotic` byline on the product page** is now a clickable
   link to https://github.com/neochaotic. The hardcoded `&copy; 2026`
   also became `new Date().getFullYear()` so the year stays right.
+- **Custom App name validation** (#48). The form's silent
+  fallback to `'web'` when the name was cleared is gone — the
+  Deploy button is now disabled until the user provides a valid
+  Docker Compose name (lowercase letters, digits, hyphen,
+  underscore, dot). Initial value changed from `'web'` to empty so
+  the placeholder reads as the example it always was. Hover over
+  the disabled Deploy button shows the validation reason.
+
+### Known issues (under investigation)
+
+- **#57 — Files editor not editable in some user environments.**
+  Component-level vitest covers the open-empty / open-existing /
+  404-fallback paths and all pass; user reproduces the bug only on
+  a real-browser session. Needs DevTools console output from the
+  affected user before we can land a fix. If you hit this, F12 →
+  Console, copy any error lines onto the issue, please.
 
 ### Documentation
 

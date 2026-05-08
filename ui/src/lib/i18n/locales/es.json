@@ -400,5 +400,7 @@
   "settings.trustResetSuccess": "Confianza restablecida. Ejecute \"Probar conexión\" cuando esté listo.",
   "settings.caRotatedSuccess": "CA rotada. Reinstale la nueva CA en cada dispositivo que necesite acceder al panel.",
   "settings.portRangeError": "El puerto debe ser un entero entre 1 y 65535",
-  "settings.caDownloadFailed": "No se pudo descargar el certificado"
+  "settings.caDownloadFailed": "No se pudo descargar el certificado",
+  "form.nameRequired": "El nombre del servicio es obligatorio",
+  "form.nameInvalidChars": "Use minúsculas, dígitos, guión, guión bajo o punto"
 }

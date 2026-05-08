@@ -400,5 +400,7 @@
   "settings.trustResetSuccess": "Confiança redefinida. Execute \"Testar conexão\" quando estiver pronto.",
   "settings.caRotatedSuccess": "CA rotacionada. Reinstale a nova CA em cada dispositivo que precisar acessar o painel.",
   "settings.portRangeError": "A porta deve ser um inteiro entre 1 e 65535",
-  "settings.caDownloadFailed": "Não foi possível baixar o certificado"
+  "settings.caDownloadFailed": "Não foi possível baixar o certificado",
+  "form.nameRequired": "Nome do serviço é obrigatório",
+  "form.nameInvalidChars": "Use minúsculas, dígitos, hífen, underscore ou ponto"
 }

@@ -400,5 +400,7 @@
   "settings.trustResetSuccess": "Trust reset. Re-run \"Test Connection\" when ready.",
   "settings.caRotatedSuccess": "CA rotated. Re-install the new CA on every device that needs to reach the panel.",
   "settings.portRangeError": "Port must be an integer between 1 and 65535",
-  "settings.caDownloadFailed": "Could not download the certificate"
+  "settings.caDownloadFailed": "Could not download the certificate",
+  "form.nameRequired": "Service name is required",
+  "form.nameInvalidChars": "Use lowercase letters, digits, hyphen, underscore, or dot"
 }
