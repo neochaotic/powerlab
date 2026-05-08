@@ -11,6 +11,71 @@ see `CONTRIBUTING.md` for the rule.
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-05-07
+
+Patch on the v0.3.0 bundle. Bugs reported within hours of the release
+plus a polish pass on translations and download UX.
+
+### Fixed
+
+- **Updater no longer rejects upgrades from non-SemVer builds** (#55).
+  Binaries built without the `-X POWERLAB_VERSION=...` ldflag (dev /
+  CI / source builds) report as `vdev`, which made the updater
+  refuse to upgrade with a misleading "intermediate release first"
+  error. The check now allows the upgrade with a soft warning when
+  the current version isn't a tagged SemVer release.
+- **CA download buttons** in Settings → Security no longer
+  navigate the browser to the cert URL — fetched via JS, saved as
+  Blob, triggered with a programmatic `<a download>` click (#50).
+  Failure modes degrade to a toast instead of a plain-text error
+  page, and the file always lands on the device where the browser
+  runs (not on the server).
+- **`launchpad.uninstall` rendered as the literal key** in the
+  Launchpad app menu (#56). Key was missing from all three locale
+  tables. Added in en/pt-BR/es.
+- **Uninstall confirmation modal** in the Launchpad was hardcoded
+  in English even when the locale was Portuguese or Spanish (#58).
+  Three new keys (`apps.uninstallTitle`,
+  `apps.uninstallSubtitle`, `apps.uninstallDataPreserved`) added
+  to all three locales.
+- **Settings toast strings** (Trust established / Trust reset / CA
+  rotated / Port range error / Already current port) migrated to
+  `t()` calls. Five strings, three locales.
+- **`neochaotic` byline on the product page** is now a clickable
+  link to https://github.com/neochaotic. The hardcoded `&copy; 2026`
+  also became `new Date().getFullYear()` so the year stays right.
+- **Custom App name validation** (#48). The form's silent
+  fallback to `'web'` when the name was cleared is gone — the
+  Deploy button is now disabled until the user provides a valid
+  Docker Compose name (lowercase letters, digits, hyphen,
+  underscore, dot). Initial value changed from `'web'` to empty so
+  the placeholder reads as the example it always was. Hover over
+  the disabled Deploy button shows the validation reason.
+
+### Known issues (under investigation)
+
+- **#57 — Files editor not editable in some user environments.**
+  Component-level vitest covers the open-empty / open-existing /
+  404-fallback paths and all pass; user reproduces the bug only on
+  a real-browser session. Needs DevTools console output from the
+  affected user before we can land a fix. If you hit this, F12 →
+  Console, copy any error lines onto the issue, please.
+
+### Documentation
+
+- **HTTPS Trust Onboarding Pattern spec expanded** with four new
+  sections derived from v0.3.0 hardening:
+  - **Persistence** — where to store CA, public-backup file
+    convention, what to back up vs what NOT to back up.
+  - **CA mismatch detection & recovery** — `/v1/sys/trust-state`
+    fingerprint endpoint, RFC 6797 §6.1.1 disarming window
+    (`max-age=0`), browser HSTS pin eviction.
+  - **CA rotation** — separate destructive flow with
+    type-to-confirm modal, `.previous` audit trail, why-not-cross-sign.
+  - **Download UX** — JS-driven Blob download instead of
+    `window.location.href` navigation; failure modes degrade
+    gracefully.
+
 ## [0.3.0] — 2026-05-07
 
 The "Local HTTPS + Localization + Developer Portal" release. Three

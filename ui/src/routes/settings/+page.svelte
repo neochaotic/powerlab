@@ -145,7 +145,7 @@
 				return;
 			}
 
-			toast.success('Trust established! Redirecting to secure connection…');
+			toast.success(t('settings.trustEstablishedRedirect'));
 			setTimeout(() => {
 				const secureUrl = new URL(window.location.href);
 				secureUrl.protocol = 'https:';
@@ -158,6 +158,37 @@
 			toast.error(`Connection test failed: ${(e as Error).message || 'unknown error'}. Confirm the certificate is installed and trusted.`);
 		} finally {
 			isTestingConnection = false;
+		}
+	}
+
+	// downloadCA — fetch the CA file via XHR and trigger a programmatic
+	// download. Replaces `window.location.href = '/v1/sys/...'` because
+	// that pattern navigates the browser to the URL, and on any
+	// non-2xx response the user sees a plain-text error page instead
+	// of a download. JS-driven download:
+	//   - pre-flight: failure → toast, page stays put
+	//   - saves to the BROWSER's local Downloads, never the server
+	//   - filename + content-type stay correct for the OS install flow
+	//
+	// Same pattern recommended in issue #50.
+	async function downloadCA(format: 'mobileconfig' | 'crt' | 'cer') {
+		try {
+			const r = await fetch(`/v1/sys/ca-certificate.${format}`);
+			if (!r.ok) {
+				toast.error(t('settings.caDownloadFailed'));
+				return;
+			}
+			const blob = await r.blob();
+			const objectUrl = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = objectUrl;
+			a.download = `powerlab-ca.${format}`;
+			document.body.appendChild(a);
+			a.click();
+			a.remove();
+			URL.revokeObjectURL(objectUrl);
+		} catch (e) {
+			toast.error(`${t('settings.caDownloadFailed')}: ${(e as Error).message}`);
 		}
 	}
 
@@ -176,7 +207,7 @@
 			if (!r.ok) throw new Error(`status ${r.status}`);
 			window.localStorage.removeItem('powerlab_trusted_ca_fp');
 			window.localStorage.removeItem('powerlab_ca_mismatch_dismissed');
-			toast.success('Trust reset. Re-run "Test Connection" when ready.');
+			toast.success(t('settings.trustResetSuccess'));
 		} catch (e) {
 			toast.error(`Could not reset trust: ${(e as Error).message}`);
 		}
@@ -218,7 +249,7 @@
 			window.localStorage.removeItem('powerlab_ca_mismatch_dismissed');
 			isRotateModalOpen = false;
 			rotateConfirmPhrase = '';
-			toast.success('CA rotated. Re-install the new CA on every device that needs to reach the panel.');
+			toast.success(t('settings.caRotatedSuccess'));
 		} catch (e) {
 			toast.error(`Rotation failed: ${(e as Error).message}`);
 		} finally {
@@ -278,11 +309,11 @@
 
 	function requestPortChange() {
 		if (!Number.isInteger(portInput) || portInput < 1 || portInput > 65535) {
-			toast.error('Port must be an integer between 1 and 65535');
+			toast.error(t('settings.portRangeError'));
 			return;
 		}
 		if (String(portInput) === currentPort) {
-			toast.info('That is already the current port');
+			toast.info(t('settings.alreadyCurrentPort'));
 			return;
 		}
 		confirmingPortChange = true;
@@ -735,7 +766,7 @@
 													<li>Go to <strong>Settings → General → About → Certificate Trust Settings</strong>.</li>
 													<li>Enable full trust for <strong>PowerLab Root CA</strong>.</li>
 												</ol>
-												<Button class="w-full bg-white text-zinc-950 font-bold" onclick={() => window.location.href = '/v1/sys/ca-certificate.mobileconfig'}>
+												<Button class="w-full bg-white text-zinc-950 font-bold" onclick={() => downloadCA('mobileconfig')}>
 													<Download class="h-4 w-4 mr-2" />
 													Download Profile
 												</Button>
@@ -749,8 +780,8 @@
 													<li>Alternatively, use the <a href="/v1/sys/ca-certificate.crt" class="text-emerald-400 hover:underline">CRT file</a> and set trust in Keychain Access.</li>
 												</ol>
 												<div class="flex gap-2">
-													<Button variant="secondary" class="flex-1 font-bold" onclick={() => window.location.href = '/v1/sys/ca-certificate.mobileconfig'}>.mobileconfig</Button>
-													<Button variant="secondary" class="flex-1 font-bold" onclick={() => window.location.href = '/v1/sys/ca-certificate.crt'}>.crt</Button>
+													<Button variant="secondary" class="flex-1 font-bold" onclick={() => downloadCA('mobileconfig')}>.mobileconfig</Button>
+													<Button variant="secondary" class="flex-1 font-bold" onclick={() => downloadCA('crt')}>.crt</Button>
 												</div>
 											</div>
 										{:else if activeSecurityTab === 'android'}
@@ -761,7 +792,7 @@
 													<li>Settings → Security → Encryption → Install from storage.</li>
 													<li>Select <strong>CA certificate</strong> and pick the file.</li>
 												</ol>
-												<Button class="w-full bg-white text-zinc-950 font-bold" onclick={() => window.location.href = '/v1/sys/ca-certificate.crt'}>
+												<Button class="w-full bg-white text-zinc-950 font-bold" onclick={() => downloadCA('crt')}>
 													<Download class="h-4 w-4 mr-2" />
 													Download CRT
 												</Button>
@@ -775,7 +806,7 @@
 													<li>Place in <strong>Trusted Root Certification Authorities</strong>.</li>
 													<li>On Linux: Copy to <code>/usr/local/share/ca-certificates/</code> and run <code>update-ca-certificates</code>.</li>
 												</ol>
-												<Button class="w-full bg-white text-zinc-950 font-bold" onclick={() => window.location.href = '/v1/sys/ca-certificate.crt'}>
+												<Button class="w-full bg-white text-zinc-950 font-bold" onclick={() => downloadCA('crt')}>
 													<Download class="h-4 w-4 mr-2" />
 													Download CRT
 												</Button>

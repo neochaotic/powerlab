@@ -843,18 +843,18 @@
 					<Trash2 class="h-5 w-5" />
 				</div>
 				<div>
-					<p class="font-semibold text-white">Uninstall app</p>
-					<p class="text-xs text-zinc-500">Containers stop and are removed</p>
+					<p class="font-semibold text-white">{t('apps.uninstallTitle')}</p>
+					<p class="text-xs text-zinc-500">{t('apps.uninstallSubtitle')}</p>
 				</div>
 			</div>
 			<p class="mb-5 text-sm leading-relaxed text-zinc-400">
-				Your data and config files in <code class="rounded bg-white/5 px-1 py-0.5 font-mono text-[11px] text-zinc-300">/DATA/AppData</code> are preserved.
+				{@html t('apps.uninstallDataPreserved')}
 			</p>
 			<div class="flex gap-2">
 				<Button
 					variant="ghost"
 					class="flex-1 rounded-xl"
-					onclick={() => (confirmingUninstall = null)}>Cancel</Button>
+					onclick={() => (confirmingUninstall = null)}>{t('action.cancel')}</Button>
 				<Button
 					class="flex-1 rounded-xl bg-red-600 text-white shadow-[0_8px_24px_-8px_rgba(220,38,38,0.6)] hover:bg-red-500"
 					onclick={() => handleUninstall(confirmingUninstall!)}

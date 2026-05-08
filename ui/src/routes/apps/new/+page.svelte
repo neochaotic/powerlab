@@ -9,6 +9,7 @@
 	import { readPowerLabExt, writePowerLabExt, deletePowerLabExtProperty } from '$lib/utils/compose-extension';
 	import ComposeForm, { type ComposeModel } from '$lib/components/orchestrator/ComposeForm.svelte';
 	import { page } from '$app/stores';
+	import { toast } from '$lib/stores/toast.svelte';
 	import { goto } from '$app/navigation';
 	import { fade } from 'svelte/transition';
 	import { t } from '$lib/i18n/index.svelte';
@@ -23,7 +24,7 @@ services:
 `);
 
 	let formModel = $state<ComposeModel>({
-		name: 'web',
+		name: '',
 		container_name: '',
 		image: 'nginx:latest',
 		icon: '',
@@ -47,6 +48,22 @@ services:
 	let error = $state<string | null>(null);
 	let isSyncing = $state(false);
 	let isDeploying = $state(false);
+
+	// Service-name validation. Docker Compose accepts lowercase
+	// letters, digits, and `_` `-` `.`; everything else (uppercase,
+	// spaces, special chars) is rejected at the API level. We pre-
+	// validate so the user sees a clear inline message instead of a
+	// stack-shaped backend error after Deploy. Empty input is also
+	// rejected — the previous fallback to `'web'` was confusing
+	// (user thought they had cleared the name, app deployed as
+	// `web` anyway).
+	const NAME_RE = /^[a-z0-9][a-z0-9_.-]*$/;
+	const nameValidationError = $derived.by<string | null>(() => {
+		const v = formModel.name?.trim() ?? '';
+		if (v === '') return t('form.nameRequired');
+		if (!NAME_RE.test(v)) return t('form.nameInvalidChars');
+		return null;
+	});
 	let deployResult = $state<{ success: boolean; message: string } | null>(null);
 	// Minimize the full-screen deploy overlay so the user can keep
 	// editing or browsing while the install runs in the background.
@@ -253,7 +270,7 @@ services:
 
 			const root: any = {
 				version: '3.8',
-				services: { [formModel.name || 'web']: svc }
+				services: { [formModel.name.trim()]: svc }
 			};
 
 			if (formModel.icon) root['x-icon'] = formModel.icon;
@@ -319,6 +336,10 @@ services:
 
 	async function handleDeploy() {
 		if (!yamlText || isDeploying) return;
+		if (nameValidationError) {
+			toast.error(nameValidationError);
+			return;
+		}
 
 		isDeploying = true;
 		error = null;
@@ -407,8 +428,9 @@ services:
 
 			<button
 				onclick={handleDeploy}
-				disabled={isDeploying}
-				class="flex h-9 items-center gap-2 rounded-xl bg-white px-4 text-xs font-bold text-black transition-transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100"
+				disabled={isDeploying || !!nameValidationError}
+				title={nameValidationError ?? undefined}
+				class="flex h-9 items-center gap-2 rounded-xl bg-white px-4 text-xs font-bold text-black transition-transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed"
 			>
 				{#if isDeploying}
 					<Loader2 class="h-3.5 w-3.5 animate-spin" />

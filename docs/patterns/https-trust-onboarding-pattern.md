@@ -932,6 +932,247 @@ This pattern is the missing UI layer.
 A Caddy-based implementation is a great fit; the WrapHSTS
 middleware drops in.
 
+## Persistence: where to store CA & how to back it up
+
+The pattern's headline promise — *"trust me once, trust me for 10
+years"* — is only credible if the CA file actually survives 10
+years of operations. v1 of this pattern was sloppy here: we put the
+CA inside the runtime data dir (`<runtime>/tls/`), and a single
+`rm -rf <runtime>/` voided every device's installed trust. Real bug,
+real users hit it.
+
+### Storage rules
+
+| Concern | Rule |
+|---|---|
+| Storage dir is **separate** from runtime/data dir | Storage survives `rm -rf` of caches, logs, app DBs. |
+| Prod path on `/etc/...` | `/etc/` is config-tier; sysadmin convention says it survives data-dir wipes. |
+| Dev path under `~/.config/...` | XDG-friendly, survives source-tree clean cycles. |
+| Permissions: `0700` dir, `0600` private keys | Daemon-only access. Inspectable by root for debugging. |
+| Public files (`ca.crt`, `ca-public-backup.crt`) at `0644` | Anyone can read; no secrets exposed (the cert is meant to be public). |
+
+Reference impl: `/etc/powerlab/security/` (prod),
+`~/.config/powerlab/security/` (dev). v1 of this pattern used
+`<runtime>/tls/` and was wrong; ADR 0010 records the migration.
+
+### Backup file
+
+Drop `ca-public-backup.crt` next to `ca.crt` with identical bytes
+but a clearer filename. The public cert is not a secret — it's
+literally what you ask devices to install. The CA *private key* is
+NEVER part of the backup; including it would compromise every
+device that trusts the CA.
+
+What to back up:
+- `ca-public-backup.crt` — public cert, safe to copy to USB / cloud / password manager
+- (optional) `ca.key` — private key. If you back this up, encrypt the backup. Lose it and you can't sign new leaves; leak it and the cat is out of the bag forever.
+
+What NEVER to back up:
+- `server.crt` / `server.key` — these are short-lived (1 year), regenerated on every IP change. Backing them up is busywork.
+
+## CA mismatch detection & recovery
+
+What happens when the server's CA changes (rotation, manual reset,
+disk restore from old backup) and the client's truststore still
+has the old one? Without detection, the user hits Chrome's red
+"Your connection is not private" wall and assumes the panel is
+broken.
+
+### Detection
+
+Server exposes a non-secret summary endpoint:
+
+```
+GET /v1/sys/trust-state
+
+  → { "armed": true, "ca_fingerprint": "01:05:8D:..." }
+```
+
+Unauthenticated by design — the CA fingerprint is published in
+every TLS handshake anyway, the HSTS armed state is observable
+from any client. Adding auth would just create a chicken-and-egg
+with the trust dance.
+
+Client (the SPA on first mount) compares the returned fingerprint
+against a value it persisted to localStorage on the last
+successful trust dance. Mismatch → show a discreet "Trust changed
+— re-install CA" pill that links into the walkthrough. The pill is
+silent on:
+- First-ever visit (no localStorage value yet — banner is HttpBanner's territory, not this one)
+- Match (server CA == stored fingerprint)
+- Network blip (server returned 5xx / timed out)
+
+The check fires before the user clicks anything that would trigger
+the cert-error wall. They get warned with context and a recovery
+path, not a stack of `ERR_CERT_AUTHORITY_INVALID` errors.
+
+### Browser HSTS pin recovery
+
+Detection is half the story. The other half is **the browser's
+own HSTS cache**: once the trust dance armed HSTS, the browser
+pinned `max-age=31536000`. Even if you remove the pin server-side
+(reset trust), the browser still refuses to talk HTTP to the host
+for up to a year. If the cert chain is also broken in that
+period, the user has no way back without
+`chrome://net-internals/#hsts`.
+
+Workaround that is not a workaround: emit `Strict-Transport-Security: max-age=0` for a while.
+
+Per RFC 6797 §6.1.1:
+
+> "If the value of `max-age` is 0, the UA MUST remove its cached
+> HSTS Policy information ... from the host's stored HSTS Policy
+> entries."
+
+This is the spec-blessed eviction mechanism, not a hack. The
+pattern uses a 15-minute disarming window after a Reset Trust or
+Rotate CA: a `.hsts-disarming` marker file gets touched, the
+middleware reads its mtime on every request, and during the
+window emits `max-age=0` instead of the long pin. Browsers comply,
+pins evict, recovery is fast.
+
+State machine of HSTS header emission:
+
+| Server state | HTTPS request | HTTP request |
+|---|---|---|
+| Unarmed (default) | no header | passthrough |
+| Armed | `max-age=31536000; includeSubDomains` | 301 → HTTPS |
+| **Disarming** (post-reset, < 15 min) | **`max-age=0`** | **passthrough** |
+
+Outside the 15-min window, behavior reverts to "unarmed" and the
+disarming marker is logically a no-op. The TTL is short enough
+that intermediate caches (CDN, corporate proxy) don't latch onto
+`max-age=0` for hours, and long enough for the user to load the
+panel once on each device they want to recover.
+
+ADR 0011 records the design.
+
+## CA rotation
+
+Sometimes you need a new CA — key leak, panel handed off, scheduled
+hygiene. The pattern separates "I need to regenerate everything"
+(destructive, voids trust on every device) from "I need to redo
+the trust dance" (light, CA stays, just re-walks the user through
+install).
+
+### Two distinct actions, two distinct prompts
+
+**Reset trust** — light, idempotent, one-click:
+
+- Endpoint: `DELETE /v1/sys/trust-confirmed`
+- Effect: removes the HSTS gate file, drops the disarming marker,
+  CA + leaf untouched.
+- UI: button inside an Advanced/Recovery fold, single confirm.
+- Use case: trust dance got tangled, redo it.
+
+**Rotate CA** — destructive, two-step type-to-confirm:
+
+- Endpoint: `POST /v1/sys/rotate-ca?confirm=ROTATE_CA`
+- Triple-gated: HTTPS only, non-localhost only, explicit confirm
+  query parameter.
+- Effect: writes current `ca.{crt,key}` aside as `ca.{crt,key}.previous`
+  (audit trail), generates fresh CA + leaf, refreshes the public
+  backup, drops the disarming marker.
+- UI: separate rose-tinted button. Modal with bullet list of
+  consequences ("Every device must re-install"). Type-to-confirm
+  input. Disabled action button until input matches `ROTATE`
+  exactly.
+- Use case: key leak, handover, hygiene rotation.
+
+### Why two actions instead of one with a checkbox
+
+A checkbox in a confirm dialog gets ignored. The pattern treats
+the rotation as severe enough to deserve its own surface and its
+own scary prompt. A user can click "Reset trust" a hundred times
+with no harm; they have to **type** "ROTATE" to actually rotate.
+The friction is intentional and matches the blast radius.
+
+### Audit trail
+
+`ca.crt.previous` and `ca.key.previous` are preserved for
+manual rollback. If a panicked admin clicks rotate by mistake,
+recovery is one shell command:
+
+```sh
+mv ca.crt.previous ca.crt && mv ca.key.previous ca.key
+systemctl restart powerlab-gateway
+```
+
+The pattern intentionally doesn't auto-clean these. They're tiny
+(~3 KB each) and the cost of accidental rotation is high enough
+that having a rollback path matters more than tidiness.
+
+ADR 0012 records the design and the why-not-cross-sign branch.
+
+## Download UX: never navigate the user to a cert URL
+
+Tempting first attempt:
+
+```html
+<a href="/v1/sys/ca-certificate.mobileconfig">Download Profile</a>
+```
+
+The handler typically sets `Content-Disposition: attachment`, so
+the browser saves the file. **On the happy path, this works.** On
+the unhappy path (CA not generated yet, server returns 503 with a
+plain-text error body, no Content-Disposition header on errors)
+the browser navigates to the URL and renders the error in place
+of the panel UI. The user sees `ca certificate not available
+yet` as a full page and thinks the panel crashed.
+
+Second tempting attempt:
+
+```ts
+button.onclick = () => { window.location.href = '/v1/sys/ca-certificate.crt'; };
+```
+
+Same failure mode — programmatic navigation with no error
+recovery.
+
+### The right shape
+
+Pre-flight via fetch, build a Blob, trigger an `<a download>` click:
+
+```ts
+async function downloadCA(format: 'mobileconfig' | 'crt' | 'cer') {
+  try {
+    const r = await fetch(`/v1/sys/ca-certificate.${format}`);
+    if (!r.ok) {
+      toast.error('Certificate is not ready yet — try again in a moment.');
+      return;
+    }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `powerlab-ca.${format}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    toast.error(`Download failed: ${e.message}`);
+  }
+}
+```
+
+Why it's better:
+
+- **Failure → toast, page stays put.** No more "navigated to JSON
+  error page" UX hole.
+- **Saves to the browser's local Downloads, never to the server.**
+  We had a real user report "the cert downloaded to my server,
+  not my Mac" — that report was actually a confused user, but the
+  pattern of `window.location.href` doesn't help: a curious user
+  who SSH'd in and fetched via curl on the server *would* leave a
+  file on the server. JS-driven download is unambiguous about
+  where bytes land.
+- **Filename is set explicitly.** No reliance on
+  `Content-Disposition` semantics that some proxies strip.
+
+The same shape works for `.crt`, `.cer`, and `.mobileconfig`.
+Single helper, three callers.
+
 ## Open extensions
 
 | Feature | Status | Notes |
