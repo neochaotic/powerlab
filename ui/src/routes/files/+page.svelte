@@ -2,6 +2,8 @@
 	import { useFileStore } from '$lib/stores/files.svelte';
 	import { renamePath, deletePaths, createFolder, createFile, operateFileOrDir, getDownloadUrl, getDefaultFilesPath } from '$lib/api/files';
 	import type { FileItem } from '$lib/api/files';
+	import { decideOpenAction, isPreviewable as isPreviewableFile } from '$lib/utils/file-open';
+	import { toast } from '$lib/stores/toast.svelte';
 	import Breadcrumbs from '$lib/components/files/Breadcrumbs.svelte';
 	import FileTable from '$lib/components/files/FileTable.svelte';
 	import ContextMenu from '$lib/components/files/ContextMenu.svelte';
@@ -79,31 +81,37 @@
 		store.fetchFiles(path);
 	}
 
+	// Routing decision is in $lib/utils/file-open so it can be unit
+	// tested independently. Keep the click handler thin: it just
+	// translates the decision into the right side effect (navigate /
+	// open editor / pop preview pane / toast on too-large).
 	function handleOpen(item: FileItem) {
-		if (item.is_dir) {
-			store.fetchFiles(item.path);
-		} else if (isEditable(item.name)) {
-			editingPath = item.path;
-		} else if (isPreviewable(item.name)) {
-			// Single-select the file so the FilePreview side panel opens.
-			if (!store.selectedPaths.has(item.path)) {
-				store.selectFile(item.path, false);
-			}
-		} else {
-			window.open(getDownloadUrl(item.path), '_blank');
+		const action = decideOpenAction(item);
+		switch (action.kind) {
+			case 'navigate':
+				store.fetchFiles(item.path);
+				return;
+			case 'preview':
+				if (!store.selectedPaths.has(item.path)) {
+					store.selectFile(item.path, false);
+				}
+				return;
+			case 'too-large':
+				toast.error(t('files.fileTooLargeForEditor'));
+				return;
+			case 'edit':
+				editingPath = item.path;
+				return;
 		}
 	}
 
 	function isEditable(name: string): boolean {
-		const ext = name.split('.').pop()?.toLowerCase();
-		const editable = ['txt', 'md', 'yaml', 'yml', 'json', 'conf', 'log', 'sh', 'js', 'ts', 'css', 'html', 'json', 'ini', 'xml', 'dockerfile'];
-		return !!ext && editable.includes(ext);
-	}
-
-	function isPreviewable(name: string): boolean {
-		const ext = name.split('.').pop()?.toLowerCase();
-		const previewable = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4', 'webm', 'mov', 'mp3', 'flac', 'wav', 'ogg', 'm4a', 'aac', 'pdf'];
-		return !!ext && previewable.includes(ext);
+		// Used by the context menu to label the open action ("Edit"
+		// vs "Download"). Keep aligned with the file-open decision —
+		// editable when the action is 'edit' (or 'too-large' would
+		// have been edit if smaller). isPreviewable goes to preview
+		// pane, not editor.
+		return !isPreviewableFile(name);
 	}
 
 	function handleContextMenu(e: MouseEvent, item: FileItem) {
@@ -233,6 +241,22 @@
 >
 	<AppHeader title={t('files.title')} subtitle={t('files.manageFiles')}>
 		{#snippet actions()}
+			<!-- Selection-aware destructive action: Delete becomes the
+				 first toolbar item the moment the user picks one or
+				 more files. Filebrowser surfaces the same affordance
+				 in the same position; previously delete was right-
+				 click-only, which is undiscoverable. -->
+			{#if store.selectedCount > 0}
+				<button
+					class="flex h-10 items-center gap-2 rounded-xl border border-red-400/20 bg-red-500/10 px-4 text-sm font-bold text-red-300 transition-all hover:border-red-400/40 hover:bg-red-500/15 hover:text-red-200 active:scale-[0.98]"
+					onclick={requestDelete}
+					title={t('action.delete')}
+				>
+					<Trash2 class="h-4 w-4" />
+					{t('action.delete')}
+					<span class="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500/20 px-1.5 text-[10px] font-bold text-red-200">{store.selectedCount}</span>
+				</button>
+			{/if}
 			<button
 				class="flex h-10 items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 text-sm font-medium text-zinc-300 transition-all hover:border-white/10 hover:bg-white/[0.05] hover:text-white"
 				onclick={() => { creatingFile = true; newFileName = ''; }}

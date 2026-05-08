@@ -6,6 +6,16 @@ on:
     tags: ['v*']
   pull_request:
     branches: [main]
+  # Manual trigger for release-candidate builds. Lets us push a
+  # prep branch and produce a Linux tarball as a workflow artifact
+  # (NOT a public release) to hand to a tester. The release job is
+  # gated on a tag push, so dispatch runs stop after `package`.
+  workflow_dispatch:
+    inputs:
+      version_label:
+        description: "Version label to stamp in the binary (e.g. 0.3.2-rc1)"
+        required: true
+        default: "0.3.2-rc1"
 
 jobs:
   # ─────────────────────────────────────────────────────────────────────
@@ -156,6 +166,14 @@ jobs:
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
             echo "is_release=true" >> "$GITHUB_OUTPUT"
+          elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            # Manual dispatch: stamp with the user-supplied label so the
+            # tarball binary reports a meaningful version (e.g. 0.3.2-rc1)
+            # instead of the generic CI placeholder. Still NOT a release —
+            # the release job is gated on tag push.
+            LABEL="${{ inputs.version_label }}"
+            echo "version=${LABEL}" >> "$GITHUB_OUTPUT"
+            echo "is_release=false" >> "$GITHUB_OUTPUT"
           else
             echo "version=0.0.0-ci" >> "$GITHUB_OUTPUT"
             echo "is_release=false" >> "$GITHUB_OUTPUT"

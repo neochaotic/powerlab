@@ -11,6 +11,85 @@ see `CONTRIBUTING.md` for the rule.
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-05-07
+
+Patch on v0.3.1. Several bugs reported in production, all under TDD —
+each fix lands with a regression test that fails on the bug's input
+and passes on the new behavior.
+
+### Fixed
+
+- **Apps disappear after page refresh** (Critical). Race condition
+  between the layout's async `auth.checkSession()` (which called
+  `setAuthToken`) and `+page.svelte`'s `fetchInstalledApps()` —
+  the apps fetch fired before the JWT was rehydrated into the http
+  client, so the gateway responded 401 and `installedApps` stayed
+  `{}`. The store now rehydrates the JWT synchronously at module
+  init. Locked in by `auth-rehydration.test.ts`.
+- **Sidebar `sidebar.files` / `sidebar.models` keys leaking** as
+  literal text in the launchpad. Keys were referenced from
+  `routes/+page.svelte` but never added to the locale JSONs.
+  Added in en/pt-BR/es.
+- **Files: clicking a file with an uncommon text extension
+  (`.py`, `.go`, `.toml`, `.env`, dotfiles) opened a new browser
+  tab instead of the editor**. The previous handler had a narrow
+  whitelist of editable extensions and fell through to
+  `window.open(downloadUrl)` for everything else. Now the routing
+  is positive-by-default: directory → navigate, media → preview
+  pane, large file (>10 MB) → toast pointing at right-click
+  Download, everything else → editor. Mirrors the filebrowser UX
+  rules. Locked in by `file-open.test.ts` (33 cases).
+- **Files: save toast invisible** because the toast container
+  rendered at `z-50` but the editor modal is `z-[100]` — the
+  toast was behind the modal. Bumped toast container to
+  `z-[200]` so it's always above any modal layer.
+- **Files: no Delete button in the toolbar** when items were
+  selected; deletion was right-click-only and undiscoverable.
+  Added a contextual Delete button that surfaces in the toolbar
+  whenever `selectedCount > 0`, with a count badge — matches
+  filebrowser's affordance.
+- **Verify (Test) button silently no-op'd in production**. The
+  4-guard probe armed HSTS correctly but the final redirect
+  target was identical to the current URL, so `window.location.
+  href = same` produced no visible navigation. User reported
+  "nada acontece". The dance now distinguishes redirect from
+  already-secure-noop and shows a distinct success toast in the
+  latter case. Locked in by `trust-dance.test.ts` (6 cases).
+- **CA download blocked by Chrome's High-Risk File policy** when
+  the panel was on HTTPS-with-untrusted-cert (catch-22 of Trust
+  Onboarding). Added four escape hatches in Settings → Security:
+  (1) primary advice banner explaining that clicking "Keep" on
+  Chrome's warning is safe, (2) "Download as .txt" using a new
+  backend endpoint (`/v1/sys/ca-certificate.txt`) that serves
+  the same PEM bytes with a NOT_DANGEROUS extension Chrome
+  won't block — user renames after, (3) "Show as text" inline
+  view with copy-to-clipboard, (4) "Open via HTTP" new-tab nav
+  that bypasses HTTPS-context blocking. Backend test
+  `TestHandleCATxt` asserts byte-equivalence with `.crt`.
+- **Install progress invisible** during compose deploys. Backend
+  was emitting "Phase N/M" markers in the SSE stream; the UI
+  ignored them. Added a parser and a visual progress bar with
+  percentage above the live log. Locked in by
+  `install-phase.test.ts` (12 cases).
+- **Docker subnet-pool exhaustion error opaque**. When the user
+  has installed enough apps that Docker's default 15-subnet pool
+  fills up, new installs fail with "all predefined address
+  pools have been fully subnetted" — a daemon-level error that
+  required searching forums. The install-error overlay now
+  detects this string and renders inline remediation:
+  explanation, the two prune commands the user can copy, and a
+  follow-up pointer to expanding `default-address-pools` in
+  `/etc/docker/daemon.json`.
+
+### Internal
+
+- 4 new test files (`auth-rehydration`, `trust-dance`,
+  `file-open`, `install-phase`) — 51 new test cases. Full
+  vitest suite at 219 passing.
+- New utility modules `lib/utils/trust-dance.ts`,
+  `lib/utils/file-open.ts`, `lib/utils/install-phase.ts` —
+  pure functions extracted from page components for testability.
+
 ## [0.3.1] — 2026-05-07
 
 Patch on the v0.3.0 bundle. Bugs reported within hours of the release

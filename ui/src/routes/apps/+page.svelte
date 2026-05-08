@@ -15,6 +15,7 @@
 		Play, Square, Activity, ScrollText, Trash2, ChevronRight, RefreshCw, Plus, CheckCircle2, Loader2, AlertCircle, ArrowRight, Boxes, Minimize2
 	} from 'lucide-svelte';
 	import { cn } from '$lib/utils';
+	import { parseLatestPhase, phaseProgress } from '$lib/utils/install-phase';
 	import { fade, scale } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
@@ -56,6 +57,13 @@
 	let installLogs = $state('');
 	let installLogEl = $state<HTMLPreElement | null>(null);
 	let activeSSE = $state<EventSource | null>(null);
+
+	// Visual progress derived from "Phase N/M" markers the backend
+	// emits in the SSE log stream. Bug #8: previously the user saw
+	// only a wall of `[hash] Extracting` lines and couldn't tell
+	// whether the install was 10% or 90% along.
+	const currentPhase = $derived.by(() => parseLatestPhase(installLogs));
+	const installProgress = $derived.by(() => phaseProgress(currentPhase));
 	let sseTimeoutId: ReturnType<typeof setTimeout> | null = null;
 	let installPortNote = $state<string | null>(null); // "Running on port 8081 (was 8080)"
 	// Minimize the full-screen overlay so the user can browse the
@@ -227,6 +235,15 @@
 		}
 		if (r.includes('network error')) {
 			return t('apps.errorBackend');
+		}
+		// Bug #9: Docker's default address pool is finite (~15 user
+		// bridge networks). Each compose stack creates a `<app>_default`
+		// network — after enough installs the pool is exhausted and
+		// new installs fail with this opaque daemon error. We surface
+		// a clear remediation path so the user doesn't have to search
+		// the docker docs.
+		if (r.includes('all predefined address pools have been fully subnetted')) {
+			return t('apps.errorSubnetExhausted');
 		}
 		// Truncate very long stack traces
 		if (raw.length > 240) return raw.slice(0, 240) + '…';
@@ -1292,12 +1309,52 @@
 					<p class="mt-1 text-sm text-zinc-400">{t('apps.installInBackground')}</p>
 				{:else if installPhase === 'error'}
 					<p class="mt-2 max-w-xs rounded-xl bg-red-950/50 px-4 py-2 text-xs leading-relaxed text-red-400">{installError}</p>
+					<!-- Bug #9: when the error is Docker subnet exhaustion,
+						 add inline remediation copy + the SSH commands the
+						 user can paste. Avoids the user having to search
+						 forums for "all predefined address pools" -->
+					{#if installError && installError.toLowerCase().includes('subnet') && installError.toLowerCase().includes('docker')}
+						<div class="mt-3 max-w-md rounded-xl border border-amber-500/20 bg-amber-500/[0.05] p-3 text-left">
+							<p class="mb-2 text-[11px] font-bold uppercase tracking-wider text-amber-300">
+								{t('apps.subnetRemediationTitle')}
+							</p>
+							<p class="mb-2 text-[11px] leading-relaxed text-zinc-400">
+								{t('apps.subnetRemediationExplain')}
+							</p>
+							<pre class="mb-2 overflow-x-auto rounded-lg bg-black/40 p-2 font-mono text-[10px] leading-relaxed text-emerald-300 select-all">docker container prune -f
+docker network prune -f</pre>
+							<p class="text-[10px] leading-relaxed text-zinc-500">
+								{t('apps.subnetRemediationFollowup')}
+							</p>
+						</div>
+					{/if}
 				{/if}
 			</div>
 
 			<!-- Live install log — shown during 'starting' and on error/timeout if logs available -->
 			{#if (installPhase === 'starting' || installPhase === 'error' || installPhase === 'timeout') && installLogs}
 				<div class="w-full max-w-lg shrink overflow-hidden rounded-2xl border border-white/[0.06] bg-black/40">
+					<!-- Visual progress bar derived from "Phase N/M" markers
+						 in the log stream. Replaces the previous wall-of-
+						 [hash]-Extracting noise as the primary feedback
+						 signal — fix for bug #8. -->
+					{#if currentPhase}
+						<div class="border-b border-white/[0.06] px-3 py-2.5">
+							<div class="mb-1.5 flex items-center justify-between gap-2 text-[11px]">
+								<span class="font-mono font-bold text-emerald-300">
+									{currentPhase.step}/{currentPhase.total}
+								</span>
+								<span class="truncate text-zinc-300">{currentPhase.label || t('apps.installLog')}</span>
+								<span class="font-mono text-zinc-500 tabular-nums">{Math.round(installProgress * 100)}%</span>
+							</div>
+							<div class="h-1.5 overflow-hidden rounded-full bg-white/5">
+								<div
+									class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-300 transition-[width] duration-500 ease-out"
+									style="width: {installProgress * 100}%"
+								></div>
+							</div>
+						</div>
+					{/if}
 					<div class="flex items-center gap-2 border-b border-white/[0.06] px-3 py-2">
 						<div class="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500"></div>
 						<span class="font-mono text-[10px] text-zinc-500">{t('apps.installLog')}</span>

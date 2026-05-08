@@ -74,6 +74,56 @@ func TestHandleCACrt(t *testing.T) {
 	}
 }
 
+// TestHandleCATxt — the .txt endpoint serves the same PEM bytes as
+// .crt but with text/plain headers. This is a Chrome-block workaround:
+// .crt is on Chromium's DANGEROUS_FILE_TYPE list and gets blocked
+// silently when the page is HTTPS-with-untrusted-cert, while .txt is
+// NOT_DANGEROUS and downloads cleanly. The user renames after.
+//
+// We assert: same cert bytes as .crt, but text/plain Content-Type and
+// .txt filename. Renaming back to .crt must yield a parseable cert.
+func TestHandleCATxt(t *testing.T) {
+	cm := newTestCertManager(t)
+	s := NewSecurityRoute(cm)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/v1/sys/ca-certificate.txt", nil)
+	s.handleCATxt(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200", rec.Code)
+	}
+	if got := rec.Header().Get("Content-Type"); !strings.HasPrefix(got, "text/plain") {
+		t.Errorf("Content-Type: got %q, want text/plain*", got)
+	}
+	if !strings.Contains(rec.Header().Get("Content-Disposition"), "powerlab-ca.txt") {
+		t.Errorf("Content-Disposition missing .txt filename: %q", rec.Header().Get("Content-Disposition"))
+	}
+
+	body, _ := io.ReadAll(rec.Body)
+	block, _ := pem.Decode(body)
+	if block == nil || block.Type != "CERTIFICATE" {
+		t.Fatalf("body is not valid PEM (block=%v)", block)
+	}
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("ParseCertificate: %v", err)
+	}
+	if !cert.IsCA {
+		t.Errorf("served cert is not flagged IsCA")
+	}
+
+	// Same content as .crt — confirm the workaround actually serves
+	// identical bytes (so the user gets a working cert after rename).
+	rec2 := httptest.NewRecorder()
+	req2 := httptest.NewRequest(http.MethodGet, "/v1/sys/ca-certificate.crt", nil)
+	s.handleCACrt(rec2, req2)
+	crtBody, _ := io.ReadAll(rec2.Body)
+	if string(crtBody) != string(body) {
+		t.Error(".txt body differs from .crt body — they must be byte-identical")
+	}
+}
+
 // TestHandleCACer — the .cer endpoint serves the DER bytes of the CA
 // cert (Windows Certificate Import Wizard expects pure DER, not PEM).
 func TestHandleCACer(t *testing.T) {
