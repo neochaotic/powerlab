@@ -391,5 +391,14 @@
   "apps.rollingUpdate": "Rolling Update",
   "settings.apiDocs": "Interactive API Documentation",
   "settings.apiDocsDesc": "Explore v1 and v2 endpoints with Scalar",
-  "nav.apiDocs": "API Docs"
+  "nav.apiDocs": "API Docs",
+  "launchpad.uninstall": "Uninstall",
+  "apps.uninstallTitle": "Uninstall app",
+  "apps.uninstallSubtitle": "Containers stop and are removed",
+  "apps.uninstallDataPreserved": "Your data and config files in <code class=\"rounded bg-white/5 px-1 py-0.5 font-mono text-[11px] text-zinc-300\">/DATA/AppData</code> are preserved.",
+  "settings.trustEstablishedRedirect": "Trust established! Redirecting to secure connection…",
+  "settings.trustResetSuccess": "Trust reset. Re-run \"Test Connection\" when ready.",
+  "settings.caRotatedSuccess": "CA rotated. Re-install the new CA on every device that needs to reach the panel.",
+  "settings.portRangeError": "Port must be an integer between 1 and 65535",
+  "settings.caDownloadFailed": "Could not download the certificate"
 }

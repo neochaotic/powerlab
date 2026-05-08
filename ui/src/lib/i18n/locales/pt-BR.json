@@ -391,5 +391,14 @@
   "apps.rollingUpdate": "Atualização Contínua",
   "settings.apiDocs": "Documentação Interativa da API",
   "settings.apiDocsDesc": "Explore os endpoints v1 e v2 com Scalar",
-  "nav.apiDocs": "Docs da API"
+  "nav.apiDocs": "Docs da API",
+  "launchpad.uninstall": "Desinstalar",
+  "apps.uninstallTitle": "Desinstalar app",
+  "apps.uninstallSubtitle": "Os containers param e são removidos",
+  "apps.uninstallDataPreserved": "Seus dados e arquivos de configuração em <code class=\"rounded bg-white/5 px-1 py-0.5 font-mono text-[11px] text-zinc-300\">/DATA/AppData</code> são preservados.",
+  "settings.trustEstablishedRedirect": "Confiança estabelecida! Redirecionando para conexão segura…",
+  "settings.trustResetSuccess": "Confiança redefinida. Execute \"Testar conexão\" quando estiver pronto.",
+  "settings.caRotatedSuccess": "CA rotacionada. Reinstale a nova CA em cada dispositivo que precisar acessar o painel.",
+  "settings.portRangeError": "A porta deve ser um inteiro entre 1 e 65535",
+  "settings.caDownloadFailed": "Não foi possível baixar o certificado"
 }

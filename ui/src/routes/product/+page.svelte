@@ -277,7 +277,7 @@
 			</div>
 
 			<p class="text-[11px] font-bold text-zinc-700 uppercase tracking-widest">
-				&copy; 2026 neochaotic
+				&copy; {new Date().getFullYear()} <a href="https://github.com/neochaotic" target="_blank" rel="noopener noreferrer" class="hover:text-emerald-400 transition-colors">neochaotic</a>
 			</p>
 		</div>
 	</footer>

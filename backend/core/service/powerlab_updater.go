@@ -96,6 +96,13 @@ type CheckResult struct {
 	ReleaseSummary string    `json:"release_summary,omitempty"`
 	ChangelogURL   string    `json:"changelog_url,omitempty"`
 	Manifest       *Manifest `json:"manifest,omitempty"`
+	// Warning surfaces a soft caveat when the upgrade is allowed
+	// but the comparison was non-standard (e.g., current version is
+	// not a tagged SemVer release — typical for dev / CI builds
+	// that didn't get the `-X POWERLAB_VERSION=...` ldflag).
+	// The UI shows this as an amber note alongside the upgrade
+	// button, not as a blocker.
+	Warning string `json:"warning,omitempty"`
 }
 
 // Check fetches the latest release manifest and compares it to the
@@ -120,6 +127,20 @@ func (u *PowerLabUpdater) Check(ctx context.Context) (*CheckResult, error) {
 		res.Decision = "skipped"
 	case m.Version == u.CurrentVersion:
 		res.Decision = "up_to_date"
+	case !looksLikeSemver(u.CurrentVersion):
+		// Current version is not a tagged release — typical for dev
+		// builds (`go build` without -ldflags) or CI fixtures
+		// (`0.0.0-ci`). The compareSemver-against-min_upgrade_from
+		// check would block these incorrectly, leaving the user
+		// stranded ("Cannot upgrade from vdev"). Allow the upgrade
+		// with a soft warning so they can recover via the UI
+		// instead of having to ssh and re-run install.sh manually.
+		if _, ok := m.Tarball[runtime.GOARCH]; !ok {
+			res.Decision = "no_arch"
+		} else {
+			res.Decision = "update_ok"
+			res.Warning = "Current build is not a tagged release; upgrading anyway"
+		}
 	case compareSemver(u.CurrentVersion, m.MinUpgradeFrom) < 0:
 		// Cannot upgrade directly — there's an intermediate version
 		// the user has to pass through first. Surface it in the UI.
