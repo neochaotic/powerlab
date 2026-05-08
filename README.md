@@ -157,6 +157,15 @@ The full power of Compose. None of the friction.
 
 PowerLab was designed with local AI in mind. The same Compose-native runtime that hosts your media library happily hosts **Ollama, Stable Diffusion WebUI, ChatGPT-Next-Web, AnythingLLM, ChatbotUI, Open WebUI, Whisper.cpp, ComfyUI** — every popular self-hosted AI tool ships as a Docker image and PowerLab knows how to install it.
 
+> **GPU monitoring is first-class — and not standard in this category.**
+> Most homelab panels still treat the GPU as an afterthought. PowerLab's
+> Dashboard renders live VRAM, GPU utilization, and temperature on
+> Apple Silicon (M-series via `ioreg`) and Nvidia (via `nvidia-smi`),
+> auto-detected on first boot. CasaOS doesn't ship this. ZimaOS, the
+> paid sibling, doesn't either. If you're running local models, the
+> blinking GPU on the Dashboard is the difference between "is this thing
+> even using the GPU?" and a real-time signal you can act on.
+
 What makes the AI experience effortless:
 
 - **GPU detection, automatic.** Apple Silicon (M-series via `ioreg`) and Nvidia (via `nvidia-smi`) appear on the Dashboard the moment you open it. No drivers to chase, no config files to edit.
