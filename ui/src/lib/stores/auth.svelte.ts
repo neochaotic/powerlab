@@ -30,6 +30,18 @@ function _safeGet(key: string): string | null {
 
 const _initialUserRaw = browser ? _safeGet('powerlab_user') : null;
 
+// Rehydrate the JWT into the http client SYNCHRONOUSLY at module init.
+// Without this, page-level onMount() handlers that fire requests (e.g.
+// the launchpad's fetchInstalledApps) race against the layout's async
+// checkSession() — the unauthenticated request hits the gateway, gets
+// 401, the apps store stays {}, and the user sees "No apps installed"
+// after a refresh even though the session is valid. checkSession()
+// still runs to verify the token is live and refresh user info.
+if (browser) {
+	const _savedToken = _safeGet('powerlab_token');
+	if (_savedToken) setAuthToken(_savedToken);
+}
+
 export const auth = $state({
 	isAuthenticated: !!(browser && _safeGet('powerlab_token')),
 	isInitialized: true,

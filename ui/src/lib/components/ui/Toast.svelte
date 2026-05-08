@@ -23,7 +23,7 @@
 </script>
 
 <div
-	class="pointer-events-none fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2"
+	class="pointer-events-none fixed bottom-6 right-6 z-[200] flex flex-col items-end gap-2"
 	aria-live="polite"
 	aria-label="Notifications"
 >
