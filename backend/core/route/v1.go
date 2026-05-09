@@ -44,7 +44,12 @@ func InitV1Router() http.Handler {
 	// JS bundle in their browser is older than what the backend just
 	// got upgraded to.
 	e.GET("/v1/powerlab/version", v1.GetPowerLabVersion)
-	e.GET("/v1/recover/:type", v1.GetRecoverStorage)
+	// /v1/recover/:type was the OAuth callback for cloud-drive recovery
+	// (Dropbox / Google Drive / OneDrive). Removed in Sprint 3 Phase 3
+	// (#101) along with backend/core/drivers/. The cloud-drive flow
+	// depended on the CasaOS-team-hosted OAuth proxy at
+	// `cloudoauth.files.casaos.app` — keeping it would have tethered
+	// the product to CasaOS infra forever.
 	v1Group := e.Group("/v1")
 	//	e.Any("/v1/test", v1.CheckNetwork)
 	v1Group.Use(echo_middleware.JWTWithConfig(echo_middleware.JWTConfig{
@@ -158,17 +163,9 @@ func InitV1Router() http.Handler {
 			v1FileGroup.GET("/ws", v1.ConnectWebSocket)
 			v1FileGroup.GET("/peers", v1.GetPeers)
 		}
-		v1CloudGroup := v1Group.Group("/cloud")
-		v1CloudGroup.Use()
-		{
-			v1CloudGroup.GET("", v1.ListStorages)
-			v1CloudGroup.DELETE("", v1.UmountStorage)
-		}
-		v1DriverGroup := v1Group.Group("/driver")
-		v1DriverGroup.Use()
-		{
-			v1DriverGroup.GET("", v1.ListDriverInfo)
-		}
+		// /v1/cloud and /v1/driver groups (cloud storage backends + driver
+		// listing) removed in Sprint 3 Phase 3 (#101). See route header
+		// comment above for rationale.
 
 		v1FolderGroup := v1Group.Group("/folder")
 		v1FolderGroup.Use()
