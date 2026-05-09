@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/model"
@@ -20,7 +21,7 @@ var (
 		LogPath:     constants.DefaultLogPath,
 		LogSaveName: "local-storage",
 		LogFileExt:  "log",
-		ShellPath:   "/usr/share/casaos/shell",
+		ShellPath:   filepath.Join(constants.DefaultConstantPath, "shell"),
 	}
 
 	ServerInfo = &model.ServerModel{

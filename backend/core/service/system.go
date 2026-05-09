@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/IceWhaleTech/CasaOS-Common/utils/command"
+	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
 	exec2 "github.com/IceWhaleTech/CasaOS-Common/utils/exec"
 
 	"github.com/IceWhaleTech/CasaOS-Common/utils/file"
@@ -124,7 +125,10 @@ func (c *systemService) GetDeviceInfo() model.DeviceInfo {
 }
 
 func (c *systemService) GenreateSystemEntry() {
-	modelsPath := "/var/lib/casaos/www/modules"
+	// constants.DefaultDataPath resolves per-platform: /var/lib/powerlab
+	// on Linux, /opt/powerlab/lib on darwin. Sprint 3 Phase 3 rebrand:
+	// was hardcoded /var/lib/casaos/www/modules.
+	modelsPath := filepath.Join(constants.DefaultDataPath, "www", "modules")
 	entryFileName := "entry.json"
 	entryFilePath := filepath.Join(config.AppInfo.DBPath, "db", entryFileName)
 	file.IsNotExistCreateFile(entryFilePath)
@@ -153,7 +157,10 @@ func (c *systemService) GenreateSystemEntry() {
 }
 
 func (c *systemService) GetSystemEntry() string {
-	modelsPath := "/var/lib/casaos/www/modules"
+	// constants.DefaultDataPath resolves per-platform: /var/lib/powerlab
+	// on Linux, /opt/powerlab/lib on darwin. Sprint 3 Phase 3 rebrand:
+	// was hardcoded /var/lib/casaos/www/modules.
+	modelsPath := filepath.Join(constants.DefaultDataPath, "www", "modules")
 	entryFileName := "entry.json"
 	dir, err := os.ReadDir(modelsPath)
 	if err != nil {

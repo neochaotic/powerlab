@@ -16,6 +16,7 @@ import (
 	v1 "github.com/IceWhaleTech/CasaOS-AppManagement/service/v1"
 	modelCommon "github.com/IceWhaleTech/CasaOS-Common/model"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
+	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/file"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/port"
@@ -31,10 +32,15 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	dockerRootDirFilePath             = "/var/lib/casaos/docker_root"
-	dockerDaemonConfigurationFilePath = "/etc/docker/daemon.json"
-)
+// dockerRootDirFilePath records the resolved Docker data-root location
+// so app-management can advertise it via /v2/app_management/docker.
+// constants.DefaultDataPath resolves per-platform: /var/lib/powerlab on
+// Linux, /opt/powerlab/lib on darwin, dev sandbox in dev. Sprint 3
+// Phase 3 rebrand: was hardcoded /var/lib/casaos/docker_root which
+// did not exist on PowerLab installs.
+var dockerRootDirFilePath = filepath.Join(constants.DefaultDataPath, "docker_root")
+
+const dockerDaemonConfigurationFilePath = "/etc/docker/daemon.json"
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 

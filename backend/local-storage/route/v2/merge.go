@@ -193,7 +193,7 @@ func (s *LocalStorage) InitMerge(ctx echo.Context) error {
 
 			dir, _ := os.ReadDir(constants.DefaultFilePath)
 			if len(dir) > 0 {
-				message := "Please make sure the /var/lib/casaos/files directory is empty"
+				message := "Please make sure the " + constants.DefaultFilePath + " directory is empty"
 				return ctx.JSON(http.StatusBadRequest, codegen.ResponseBadRequest{Message: &message})
 			}
 
@@ -202,7 +202,7 @@ func (s *LocalStorage) InitMerge(ctx echo.Context) error {
 			err := os.Rename(m.MountPoint, constants.DefaultFilePath)
 			if err != nil {
 				fmt.Println(err)
-				message := "move " + m.MountPoint + " to /var/lib/casaos/files failed"
+				message := "move " + m.MountPoint + " to " + constants.DefaultFilePath + " failed"
 				return ctx.JSON(http.StatusBadRequest, codegen.ResponseBadRequest{Message: &message})
 			}
 		}

@@ -29,7 +29,7 @@ var (
 		LogPath:      constants.DefaultLogPath,
 		LogSaveName:  common.SERVICENAME,
 		LogFileExt:   "log",
-		ShellPath:    "/usr/share/casaos/shell",
+		ShellPath:    filepath.Join(constants.DefaultConstantPath, "shell"),
 		UserDataPath: filepath.Join(constants.DefaultDataPath, "conf"),
 	}
 	CommonInfo = &model.CommonModel{
