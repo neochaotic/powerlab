@@ -27,9 +27,8 @@ import (
 	"github.com/neochaotic/powerlab/backend/message-bus/repository"
 	"github.com/neochaotic/powerlab/backend/message-bus/route"
 	"github.com/neochaotic/powerlab/backend/message-bus/service"
-	pkglifecycle "github.com/neochaotic/powerlab/backend/pkg/lifecycle"
+	pkgfoundation "github.com/neochaotic/powerlab/backend/pkg/foundation"
 	pkglogging "github.com/neochaotic/powerlab/backend/pkg/logging"
-	pkgtracing "github.com/neochaotic/powerlab/backend/pkg/tracing"
 )
 
 // _log is the package-level logger used by main.go's call sites and
@@ -48,9 +47,7 @@ var _log pkglogging.Logger
 // message-bus code remain on CasaOS-Common's logger for now;
 // call-site migration is part 3 of the message-bus kill series.
 func wrapWithFoundation(h http.Handler, logger pkglogging.Logger) http.Handler {
-	return pkgtracing.Middleware(
-		pkglifecycle.RecoverMiddleware(logger)(h),
-	)
+	return pkgfoundation.Wrap(h, logger)
 }
 
 const localhost = "127.0.0.1"

@@ -29,9 +29,9 @@ import (
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/route"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/service"
 	"github.com/coreos/go-systemd/daemon"
+	pkgfoundation "github.com/neochaotic/powerlab/backend/pkg/foundation"
 	pkglifecycle "github.com/neochaotic/powerlab/backend/pkg/lifecycle"
 	pkglogging "github.com/neochaotic/powerlab/backend/pkg/logging"
-	pkgtracing "github.com/neochaotic/powerlab/backend/pkg/tracing"
 	"github.com/robfig/cron/v3"
 	"github.com/samber/lo"
 	"go.uber.org/zap"
@@ -62,9 +62,7 @@ var _log pkglogging.Logger
 // if a handler dereferences a nil pointer or panics for any other
 // reason, the process keeps running.
 func wrapWithFoundation(h http.Handler) http.Handler {
-	return pkgtracing.Middleware(
-		pkglifecycle.RecoverMiddleware(_log)(h),
-	)
+	return pkgfoundation.Wrap(h, _log)
 }
 
 const localhost = "127.0.0.1"

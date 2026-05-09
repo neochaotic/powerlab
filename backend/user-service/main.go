@@ -29,9 +29,9 @@ import (
 	v1userroute "github.com/IceWhaleTech/CasaOS-UserService/route/v1"
 	"github.com/IceWhaleTech/CasaOS-UserService/service"
 	"github.com/coreos/go-systemd/daemon"
+	pkgfoundation "github.com/neochaotic/powerlab/backend/pkg/foundation"
 	pkglifecycle "github.com/neochaotic/powerlab/backend/pkg/lifecycle"
 	pkglogging "github.com/neochaotic/powerlab/backend/pkg/logging"
-	pkgtracing "github.com/neochaotic/powerlab/backend/pkg/tracing"
 )
 
 // _log is the PowerLab-owned slog-based logger used by the foundation
@@ -39,13 +39,11 @@ import (
 // once at the top of main() and passed to wrapWithFoundation.
 var _log pkglogging.Logger
 
-// wrapWithFoundation wraps any http.Handler with PowerLab's
-// foundation middleware. Same pattern as gateway and message-bus
-// part 2. Closes the bug-#64 SIGSEGV class within this process.
+// wrapWithFoundation delegates to pkg/foundation.Wrap so user-service
+// shares the canonical middleware chain (tracing + recover) with
+// every other PowerLab service. See pkg/foundation for the contract.
 func wrapWithFoundation(h http.Handler) http.Handler {
-	return pkgtracing.Middleware(
-		pkglifecycle.RecoverMiddleware(_log)(h),
-	)
+	return pkgfoundation.Wrap(h, _log)
 }
 
 const localhost = "127.0.0.1"
