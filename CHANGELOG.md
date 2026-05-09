@@ -13,6 +13,16 @@ see `CONTRIBUTING.md` for the rule.
 
 ### Internal
 
+- **Sprint 1 of CasaOS independence (#67) — foundation `pkg/tracing`.**
+  Correlation IDs end-to-end across the six services. `NewID()`
+  generates a 32-character hex string from `crypto/rand` (no
+  external dep). HTTP `Middleware` reads `X-Request-Id` from inbound
+  requests (or generates one), stores in context using the same key
+  as `pkg/logging`, and echoes the ID back on the response so users
+  can quote it from the UI. `InjectHeader(req, ctx)` carries the ID
+  forward on outbound calls. With this in place, a single grep on
+  `correlation_id=…` reconstructs the full path of one user action
+  through every service it touched. See ADR-0015. Closes #71.
 - **Sprint 1 of CasaOS independence (#67) — foundation `pkg/lifecycle`.**
   Three primitives for service reliability: `Manager` coordinates
   ordered shutdown of registered components (LIFO, deadline-bounded);
