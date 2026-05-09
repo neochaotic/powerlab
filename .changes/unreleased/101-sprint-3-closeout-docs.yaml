@@ -1,0 +1,24 @@
+kind: Added
+body: |
+  Sprint 3 closeout documentation.
+
+  - **ADR-0019**: codifies the project's tech-debt tracking pattern.
+    Three sources of truth — `docs/audits/` for structural audits,
+    `docs/decisions/` for ADRs, GitHub issues with labels for the
+    live work queue. **No `TECH-DEBT.md` / `TODO.md` at the repo
+    root** (they would inevitably go stale and lie). Includes the
+    refresh-discipline rules so the next person who has the reflex
+    to add one finds the reasoning first.
+
+  - **`docs/audits/casaos-dependencies.md`** refreshed per the
+    ADR-0019 convention (Update section appended at top, Sprint 1
+    baseline preserved below as historical record). Captures the
+    Sprint 2 + Sprint 3 outcomes: 10 closeout PRs (#139–#148),
+    ~3500 LOC removed, cloud-drive infrastructure killed in both
+    local-storage and core, /etc/casaos → /etc/powerlab paths
+    completed across 5 services, casaos:* → powerlab:* topics,
+    PersistentTypeCasaOS rebranded, 165 logger sites migrated.
+    Documents what's left in the CasaOS surface (Go module path
+    rename is the next major target).
+custom:
+  Issue: "67"
