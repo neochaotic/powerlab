@@ -208,7 +208,7 @@ func main() {
 		slog.String("filepath", addressFilePath))
 
 	var events []message_bus.EventType
-	events = append(events, message_bus.EventType{Name: "zimaos:user:save_config", SourceID: common.SERVICENAME, PropertyTypeList: []message_bus.PropertyType{}})
+	events = append(events, message_bus.EventType{Name: "powerlab:user:save_config", SourceID: common.SERVICENAME, PropertyTypeList: []message_bus.PropertyType{}})
 	// register at message bus
 	for i := 0; i < 10; i++ {
 		response, err := service.MyService.MessageBus().RegisterEventTypesWithResponse(context.Background(), events)
