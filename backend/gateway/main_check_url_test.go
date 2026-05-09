@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -159,9 +160,12 @@ func TestCheckURLWithRetry_DoesNotInfiniteLoop(t *testing.T) {
 // terminate; this test fails if the loop runs more attempts than
 // expected (which would happen if uint wraparound came back).
 func TestCheckURLWithRetry_StopsAfterMaxAttempts(t *testing.T) {
-	attempts := 0
+	// atomic counter — handler runs in a separate goroutine spawned by
+	// httptest.Server; plain int read+inc would race the test
+	// goroutine's read at the bottom.
+	var attempts atomic.Int64
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		attempts++
+		attempts.Add(1)
 		// Hijack to simulate connection-reset rather than a normal
 		// HTTP response — keeps checkURL in the err != nil path.
 		hj, _ := w.(http.Hijacker)
@@ -178,11 +182,12 @@ func TestCheckURLWithRetry_StopsAfterMaxAttempts(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected error after all retries failed, got nil")
 	}
-	if attempts > retries+1 {
-		t.Errorf("attempts: want at most %d (initial + %d retries), got %d (uint wraparound regression?)", retries+1, retries, attempts)
+	got := attempts.Load()
+	if got > int64(retries+1) {
+		t.Errorf("attempts: want at most %d (initial + %d retries), got %d (uint wraparound regression?)", retries+1, retries, got)
 	}
-	if attempts < 1 {
-		t.Errorf("attempts: want at least 1, got %d (loop didn't run?)", attempts)
+	if got < 1 {
+		t.Errorf("attempts: want at least 1, got %d (loop didn't run?)", got)
 	}
 }
 
