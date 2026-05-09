@@ -11,6 +11,19 @@ see `CONTRIBUTING.md` for the rule.
 
 ## [Unreleased]
 
+### Removed
+
+- **`/v1/sys/ca-certificate.txt` endpoint** and the two text-based
+  CA-cert escape hatches in Settings → Security ("Download as .txt"
+  and "Show as text + copy clipboard") — per the product policy
+  that the local CA is a binary artifact, never surfaced as text.
+  The remaining escape hatch when Chrome blocks the `.crt` download
+  is "Open via HTTP", which sidesteps the high-risk-file rule by
+  navigating to the HTTP variant of the panel. Backend test
+  `TestHandleCATxt` and unused i18n keys (`caShowAsText`,
+  `caDownloadAsTxt`, `caTextLoading`, `caCopied`, etc.) removed
+  alongside the endpoint.
+
 ### Internal
 
 - **Sprint 1 of CasaOS independence (#67) — Kill #2 gateway rebrand

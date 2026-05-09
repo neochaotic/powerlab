@@ -51,7 +51,6 @@ func NewSecurityRoute(cm *security.CertManager) *SecurityRoute {
 func (s *SecurityRoute) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/v1/sys/ca-certificate", s.handleCABase)
 	mux.HandleFunc("/v1/sys/ca-certificate.crt", s.handleCACrt)
-	mux.HandleFunc("/v1/sys/ca-certificate.txt", s.handleCATxt)
 	mux.HandleFunc("/v1/sys/ca-certificate.mobileconfig", s.handleCAMobileConfig)
 	mux.HandleFunc("/v1/sys/ca-certificate.cer", s.handleCACer)
 	mux.HandleFunc("/v1/sys/trust-confirmed", s.handleTrustConfirmed)
@@ -98,38 +97,6 @@ func (s *SecurityRoute) handleCACrt(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", `attachment; filename="powerlab-ca.crt"`)
 	logger.Info("CA certificate downloaded",
 		zap.String("format", "crt"),
-		zap.String("ua", r.UserAgent()),
-		zap.String("ip", r.RemoteAddr),
-	)
-	_, _ = w.Write(pemBytes)
-}
-
-// handleCATxt serves the same PEM bytes as handleCACrt but with
-// filename .txt and Content-Type text/plain. This is a Chrome-block
-// workaround: Chromium's download_file_types.asciipb categorizes
-// .crt/.cer/.pem/.mobileconfig/.config as DANGEROUS_FILE_TYPE, which
-// Chrome blocks silently when the originating page is HTTPS-with-
-// untrusted-cert (the exact moment the user is trying to escape).
-// .txt is NOT_DANGEROUS, so the download lands. The user renames the
-// file to .crt afterward — Keychain / certmgr / `update-ca-certificates`
-// import the same PEM bytes regardless of filename extension.
-//
-// Same content, same audit log, just different headers.
-func (s *SecurityRoute) handleCATxt(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	caCertPath, _ := s.cm.GetCAPaths()
-	pemBytes, err := os.ReadFile(caCertPath)
-	if err != nil {
-		http.Error(w, "ca certificate not available yet", http.StatusServiceUnavailable)
-		return
-	}
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.Header().Set("Content-Disposition", `attachment; filename="powerlab-ca.txt"`)
-	logger.Info("CA certificate downloaded",
-		zap.String("format", "txt"),
 		zap.String("ua", r.UserAgent()),
 		zap.String("ip", r.RemoteAddr),
 	)
