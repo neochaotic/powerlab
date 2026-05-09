@@ -7,9 +7,8 @@ import (
 
 	"github.com/IceWhaleTech/CasaOS-Common/utils/file"
 	"github.com/glebarez/sqlite"
+	pkgmigrations "github.com/neochaotic/powerlab/backend/pkg/migrations"
 	"gorm.io/gorm"
-
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/service/model"
 )
 
 type ContextKey string
@@ -120,8 +119,14 @@ func GetDBByFile(dbFile string) *gorm.DB {
 	c.SetMaxOpenConns(1)
 	c.SetConnMaxIdleTime(time.Second * 1000)
 
-	if err := db.AutoMigrate(&model.Merge{}, &model.Volume{}); err != nil {
-		panic(err)
+	// Run versioned migrations in place of GORM's AutoMigrate.
+	// Schema captured verbatim from what AutoMigrate produced;
+	// CREATE TABLE IF NOT EXISTS keeps existing installs safe.
+	// ADR-0018, Sprint 3 Phase 2.4 (#100).
+	if sqlDB, dbErr := db.DB(); dbErr == nil {
+		if err := pkgmigrations.Up(context.Background(), sqlDB, migrationsFS, "migrations"); err != nil {
+			panic(err)
+		}
 	}
 
 	if err := initializeHooks(db); err != nil {
