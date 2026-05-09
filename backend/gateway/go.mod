@@ -1,4 +1,4 @@
-module github.com/IceWhaleTech/CasaOS-Gateway
+module github.com/neochaotic/powerlab/backend/gateway
 
 go 1.25
 

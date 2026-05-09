@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS-Gateway/api/docs"
+	"github.com/neochaotic/powerlab/backend/gateway/api/docs"
 )
 
 // newDocsRoute is a tiny helper so tests don't have to construct a

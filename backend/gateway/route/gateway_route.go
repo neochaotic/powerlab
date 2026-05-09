@@ -6,7 +6,7 @@ import (
 
 	"github.com/IceWhaleTech/CasaOS-Common/pkg/security"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
-	"github.com/IceWhaleTech/CasaOS-Gateway/service"
+	"github.com/neochaotic/powerlab/backend/gateway/service"
 	"go.uber.org/zap"
 )
 

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-Gateway/service"
+	"github.com/neochaotic/powerlab/backend/gateway/service"
 	"github.com/labstack/echo/v4"
 	echo_middleware "github.com/labstack/echo/v4/middleware"
 )

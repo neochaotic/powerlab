@@ -3,7 +3,7 @@ package pkg
 import (
 	"errors"
 
-	"github.com/IceWhaleTech/CasaOS-Gateway/common"
+	"github.com/neochaotic/powerlab/backend/gateway/common"
 )
 
 func GetGatewayPort() (int, error) {

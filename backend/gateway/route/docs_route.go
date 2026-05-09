@@ -9,9 +9,9 @@ import (
 	"sync"
 
 	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
-	"github.com/IceWhaleTech/CasaOS-Gateway/api/docs"
-	docs_static "github.com/IceWhaleTech/CasaOS-Gateway/api/static/docs"
-	"github.com/IceWhaleTech/CasaOS-Gateway/service"
+	"github.com/neochaotic/powerlab/backend/gateway/api/docs"
+	docs_static "github.com/neochaotic/powerlab/backend/gateway/api/static/docs"
+	"github.com/neochaotic/powerlab/backend/gateway/service"
 	"go.uber.org/zap"
 )
 
