@@ -77,17 +77,14 @@ func InitV1Router() http.Handler {
 			v1StorageGroup.DELETE("", v1.DeleteStorage)
 			v1StorageGroup.GET("", v1.GetStorageList)
 		}
-		v1CloudGroup := v1Group.Group("/cloud")
-		v1CloudGroup.Use()
-		{
-			v1CloudGroup.GET("", v1.ListStorages)
-			v1CloudGroup.DELETE("", v1.UmountStorage)
-		}
-		v1DriverGroup := v1Group.Group("/driver")
-		v1DriverGroup.Use()
-		{
-			v1DriverGroup.GET("", v1.ListDriverInfo)
-		}
+		// Cloud drive backends (Dropbox, Google Drive) and the
+		// /driver list endpoint they fed were removed in Sprint 3
+		// Phase 3 (#101 / casaos-strip). Cloud drives depended on
+		// the CasaOS-team-hosted OAuth proxy at
+		// `cloudoauth.files.casaos.app` — keeping them tethered the
+		// product to CasaOS infra forever. Per #101 option 3,
+		// dropped entirely for v1.0; revisit post-rebrand if/when
+		// PowerLab hosts its own OAuth proxy.
 		v1USBGroup := v1Group.Group("/usb")
 		v1USBGroup.Use()
 		{

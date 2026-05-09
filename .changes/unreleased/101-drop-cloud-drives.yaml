@@ -1,0 +1,41 @@
+kind: Removed
+body: |
+  Cloud drive backends (Dropbox, Google Drive) and the
+  /v1/cloud, /v1/driver, /v1/recover endpoints removed entirely
+  in Sprint 3 Phase 3 (#101 / casaos-strip option 3).
+
+  Why: cloud drive flow depended on the CasaOS-team-hosted OAuth
+  proxy at `cloudoauth.files.casaos.app`. Keeping it tethered the
+  product to CasaOS infra forever — incompatible with the v1.0
+  goal of removing all CasaOS dependencies.
+
+  Per #101 option 3, dropped entirely for v1.0 instead of
+  spinning up our own OAuth proxy (which needs domain + cloud
+  worker infra + per-provider OAuth app registrations). If we
+  bring cloud drives back post-v1.0, it'll be on PowerLab-owned
+  infrastructure with the trust-dance redo (#118) addressed
+  first.
+
+  Removed:
+  - `backend/local-storage/drivers/` (dropbox, google_drive,
+    base, all.go) — 826 LOC
+  - `backend/local-storage/route/v1/cloud.go` (ListStorages,
+    UmountStorage handlers — body was already commented out)
+  - `backend/local-storage/route/v1/recover.go`
+    (GetRecoverStorage OAuth callback flow)
+  - `backend/local-storage/route/v1/driver.go`
+    (ListDriverInfo — fed from internal/op which only existed
+    for cloud drivers)
+  - `backend/local-storage/internal/` entire dir
+    (op, driver, sign, conf — all alist-derived cloud-driver
+    infrastructure with zero non-cloud callers)
+
+  Routes removed:
+  - GET    /v1/cloud
+  - DELETE /v1/cloud
+  - GET    /v1/driver
+
+  Net diff: ~1500 LOC removed, zero added. Eliminates the
+  `cloudoauth.files.casaos.app` external dependency.
+custom:
+  Issue: "101"
