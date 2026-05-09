@@ -57,6 +57,39 @@ needs_cgo() {
 
 CC_FOR_CGO="${CC_FOR_CGO:-gcc}"
 
+# Build-time version stamps injected via -ldflags. Issue #159: the old
+# ldflag string was double-broken — `main.version` was the wrong target
+# variable name (each main.go declares `commit` and `date`, not
+# `version`) AND the `github.com/IceWhaleTech/CasaOS/common.POWERLAB_VERSION`
+# path is dead after PR #151 renamed all modules to
+# `github.com/neochaotic/powerlab/backend/*`. Result: every release
+# binary shipped with `commit = "private build"` and the in-UI updater
+# read `currentVersion = "dev"`, surfacing a permanent (and false)
+# "Update available" prompt.
+#
+# Each ldflag below is documented inline so a future maintainer can
+# confirm the target var still exists by grep'ing the codebase. If any
+# `-X` target stops compiling into the binary, Go silently drops it —
+# no build error, no runtime warning. The regression test at
+# `scripts/check-package-linux-ldflags_test.sh` asserts the expected
+# strings stay present so this class of bit-rot is caught at CI time.
+GIT_COMMIT="${GIT_COMMIT:-$(cd "$ROOT" && git rev-parse --short HEAD 2>/dev/null || echo "unknown")}"
+BUILD_DATE="${BUILD_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
+
+# `main.commit` / `main.date` — declared in every <svc>/main.go.
+# `core/common.POWERLAB_VERSION` — read by /v1/powerlab/version handler.
+# `core/route/v1.powerLabVersionAtCompileTime` — read by the in-UI
+#   updater (currentPowerLabVersion()) to determine "current" in the
+#   update-available comparison.
+# Setting all four for every service is fine: Go silently ignores
+# `-X` for vars that don't exist in a given binary, so the gateway/
+# message-bus/etc. just get the `main.commit` and `main.date` ones.
+LDFLAGS_VERSION_STAMP="-s -w \
+  -X main.commit=$GIT_COMMIT \
+  -X main.date=$BUILD_DATE \
+  -X github.com/neochaotic/powerlab/backend/core/common.POWERLAB_VERSION=$VERSION \
+  -X github.com/neochaotic/powerlab/backend/core/route/v1.powerLabVersionAtCompileTime=$VERSION"
+
 for svc in "${SERVICES[@]}"; do
   log "  building $svc..."
   cd "$ROOT/backend/$svc"
@@ -70,13 +103,13 @@ for svc in "${SERVICES[@]}"; do
   if needs_cgo "$svc"; then
     GOOS=linux GOARCH="$ARCH" CGO_ENABLED=1 CC="$CC_FOR_CGO" go build \
       -trimpath \
-      -ldflags="-s -w -X main.version=$VERSION -X github.com/IceWhaleTech/CasaOS/common.POWERLAB_VERSION=$VERSION" \
+      -ldflags="$LDFLAGS_VERSION_STAMP" \
       -o "$STAGE/bin/powerlab-$svc" \
       .
   else
     GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
       -trimpath \
-      -ldflags="-s -w -X main.version=$VERSION -X github.com/IceWhaleTech/CasaOS/common.POWERLAB_VERSION=$VERSION" \
+      -ldflags="$LDFLAGS_VERSION_STAMP" \
       -o "$STAGE/bin/powerlab-$svc" \
       .
   fi
