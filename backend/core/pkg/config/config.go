@@ -1,13 +1,3 @@
-/*
- * @Author: LinkLeong link@icewhale.com
- * @Date: 2021-09-30 18:18:14
- * @LastEditors: LinkLeong
- * @LastEditTime: 2022-08-31 17:04:02
- * @FilePath: /CasaOS/pkg/config/config.go
- * @Description:
- * @Website: https://www.casaos.io
- * Copyright (c) 2022 by icewhale, All Rights Reserved.
- */
 package config
 
 import (
@@ -16,4 +6,18 @@ import (
 	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
 )
 
-var CasaOSConfigFilePath = filepath.Join(constants.DefaultConfigPath, "casaos.conf")
+// CoreConfigFilePath is the in-binary default config location used when
+// the binary is started without `-c`. In production install.sh ships the
+// sample to this exact path AND systemd passes the same path via `-c`,
+// so the constants.DefaultConfigPath base must agree with both.
+// Resolved per-platform via constants.DefaultConfigPath:
+//
+//	Linux  → /etc/powerlab/core.conf
+//	darwin → /opt/powerlab/etc/core.conf
+//	dev    → <repo>/backend/conf/core.conf  (sandbox)
+//
+// Sprint 3 Phase 3 rename: was `CasaOSConfigFilePath` pointing at
+// `casaos.conf`, which disagreed with the systemd unit's `-c
+// /etc/powerlab/core.conf`. The disagreement made install.sh ship a
+// sample the binary never read.
+var CoreConfigFilePath = filepath.Join(constants.DefaultConfigPath, "core.conf")

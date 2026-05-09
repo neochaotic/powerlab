@@ -129,6 +129,7 @@ require (
 	github.com/nwaples/rardecode v1.1.3 // indirect
 	github.com/onsi/gomega v1.28.1 // indirect
 	github.com/oracle/oci-go-sdk/v65 v65.32.0 // indirect
+	github.com/orca-zhang/ecache v1.1.3 // indirect
 	github.com/pengsrc/go-shared v0.2.1-0.20190131101655-1999055a4a14 // indirect
 	github.com/perimeterx/marshmallow v1.1.4 // indirect
 	github.com/pierrec/lz4/v4 v4.1.26 // indirect
@@ -200,3 +201,5 @@ require (
 )
 
 replace github.com/neochaotic/powerlab/backend/pkg => ../pkg
+
+replace github.com/IceWhaleTech/CasaOS-Common => ../common

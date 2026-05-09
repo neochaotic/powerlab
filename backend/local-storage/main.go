@@ -77,7 +77,7 @@ var (
 	//go:embed api/local_storage/openapi.yaml
 	_docYAML string
 
-	//go:embed build/sysroot/etc/casaos/local-storage.conf.sample
+	//go:embed build/sysroot/etc/powerlab/local-storage.conf.sample
 	_confSample string
 )
 

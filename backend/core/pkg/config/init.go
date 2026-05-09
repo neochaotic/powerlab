@@ -45,7 +45,7 @@ var (
 
 // 初始化设置，获取系统的部分信息。
 func InitSetup(config string, sample string) {
-	ConfigFilePath = CasaOSConfigFilePath
+	ConfigFilePath = CoreConfigFilePath
 	if len(config) > 0 {
 		ConfigFilePath = config
 	}

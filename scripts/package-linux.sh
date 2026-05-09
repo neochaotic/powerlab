@@ -144,7 +144,7 @@ StoragePath = /DATA
 appstore = https://cdn.jsdelivr.net/gh/IceWhaleTech/CasaOS-AppStore@gh-pages/store/main.zip
 EOF
 
-cat > "$STAGE/conf/casaos.conf.sample" <<EOF
+cat > "$STAGE/conf/core.conf.sample" <<EOF
 [common]
 RuntimeRootPath = /var/run/powerlab/
 LogPath = /var/log/powerlab/

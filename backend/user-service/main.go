@@ -58,7 +58,7 @@ var (
 	//go:embed api/user-service/openapi.yaml
 	_docYAML string
 
-	//go:embed build/sysroot/etc/casaos/user-service.conf.sample
+	//go:embed build/sysroot/etc/powerlab/user-service.conf.sample
 	_confSample string
 )
 

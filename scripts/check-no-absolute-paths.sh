@@ -2,7 +2,7 @@
 # Fails if any tracked file contains an absolute path that looks like
 # a developer's home directory (`/Users/<name>/...` on macOS,
 # `/home/<name>/...` on Linux). Catches the recurring regression where
-# a generated runtime config (gateway.ini, casaos.conf, etc.) gets
+# a generated runtime config (gateway.ini, core.conf, etc.) gets
 # committed with the working dev's home path baked in — leaks the
 # author's username and breaks every clone on someone else's machine.
 #
