@@ -571,7 +571,7 @@ func PostUserCustomConf(ctx echo.Context) error {
 	if name == "system" {
 		dataMap := make(map[string]string, 1)
 		dataMap["system"] = string(data)
-		response, err := service.MyService.MessageBus().PublishEventWithResponse(context.Background(), common.SERVICENAME, "zimaos:user:save_config", dataMap)
+		response, err := service.MyService.MessageBus().PublishEventWithResponse(context.Background(), common.SERVICENAME, "powerlab:user:save_config", dataMap)
 		if err != nil {
 			_log.Error(ctx.Request().Context(), "failed to publish event to message bus", err, slog.String("event", string(data)))
 		}
