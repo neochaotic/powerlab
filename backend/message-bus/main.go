@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -19,7 +20,7 @@ import (
 	"github.com/IceWhaleTech/CasaOS-Common/model"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/file"
 	util_http "github.com/IceWhaleTech/CasaOS-Common/utils/http"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"github.com/coreos/go-systemd/daemon"
 	"github.com/neochaotic/powerlab/backend/message-bus/codegen"
 	"github.com/neochaotic/powerlab/backend/message-bus/common"
 	"github.com/neochaotic/powerlab/backend/message-bus/config"
@@ -29,9 +30,11 @@ import (
 	pkglifecycle "github.com/neochaotic/powerlab/backend/pkg/lifecycle"
 	pkglogging "github.com/neochaotic/powerlab/backend/pkg/logging"
 	pkgtracing "github.com/neochaotic/powerlab/backend/pkg/tracing"
-	"github.com/coreos/go-systemd/daemon"
-	"go.uber.org/zap"
 )
+
+// _log is the package-level logger used by main.go's call sites and
+// shared with route/service/repository via SetLogger.
+var _log pkglogging.Logger
 
 // wrapWithFoundation wraps any http.Handler with PowerLab's foundation
 // middleware: tracing.Middleware (correlation IDs in/out via X-Request-Id)
@@ -41,7 +44,7 @@ import (
 // the message-bus's two http.Server instances (HTTP listener + UDS
 // socket listener — both share the same mux).
 //
-// Legacy `logger.Info(...)`-style call sites scattered across
+// Legacy `_log.Info(context.Background(), ...)`-style call sites scattered across
 // message-bus code remain on CasaOS-Common's logger for now;
 // call-site migration is part 3 of the message-bus kill series.
 func wrapWithFoundation(h http.Handler, logger pkglogging.Logger) http.Handler {
@@ -86,7 +89,28 @@ func main() {
 	// initialization
 	config.InitSetup(*configFlag, _confSample)
 
-	logger.LogInit(config.AppInfo.LogPath, config.AppInfo.LogSaveName, config.AppInfo.LogFileExt)
+	// Foundation logger replaces the legacy CasaOS logger.LogInit
+	// path. All production call sites in this service now use _log.
+	// Constructed early so the rest of main() and the route/service/
+	// repository packages can share the same instance.
+	{
+		level := os.Getenv("POWERLAB_LOG_LEVEL")
+		if level == "" {
+			level = "info"
+		}
+		format := os.Getenv("POWERLAB_LOG_FORMAT")
+		if format == "" {
+			format = "json"
+		}
+		fl, err := pkglogging.New(pkglogging.Config{Level: level, Format: format})
+		if err != nil {
+			fl, _ = pkglogging.New(pkglogging.Config{})
+		}
+		_log = fl
+		route.SetLogger(_log)
+		service.SetLogger(_log)
+		repository.SetLogger(_log)
+	}
 
 	// repository
 	if err := file.IsNotExistMkDir(config.CommonInfo.RuntimePath); err != nil {
@@ -180,38 +204,17 @@ func main() {
 
 	// notify systemd
 	if supported, err := daemon.SdNotify(false, daemon.SdNotifyReady); err != nil {
-		logger.Error("Failed to notify systemd that message bus service is ready", zap.Error(err))
+		_log.Error(context.Background(), "Failed to notify systemd that message bus service is ready", err)
 	} else if supported {
-		logger.Info("Notified systemd that message bus service is ready")
+		_log.Info(context.Background(), "Notified systemd that message bus service is ready")
 	} else {
-		logger.Info("This process is not running as a systemd service.")
+		_log.Info(context.Background(), "This process is not running as a systemd service.")
 	}
 
 	// start http server
-	logger.Info("MessageBus service is listening...", zap.Any("address", listener.Addr().String()), zap.String("filepath", addressFilePath))
+	_log.Info(context.Background(), "MessageBus service is listening...", slog.Any("address", listener.Addr().String()), slog.String("filepath", addressFilePath))
 
-	// Construct the PowerLab-owned logger used by the foundation
-	// middleware. Independent of the legacy CasaOS logger above
-	// (call-site migration is part 3 of the message-bus kill series);
-	// this one only feeds pkg/lifecycle.RecoverMiddleware and
-	// pkg/tracing.Middleware so panics get logged structurally with
-	// correlation IDs.
-	level := os.Getenv("POWERLAB_LOG_LEVEL")
-	if level == "" {
-		level = "info"
-	}
-	format := os.Getenv("POWERLAB_LOG_FORMAT")
-	if format == "" {
-		format = "json"
-	}
-	foundationLogger, err := pkglogging.New(pkglogging.Config{Level: level, Format: format})
-	if err != nil {
-		// Permissive fallback — boot without foundation middleware
-		// rather than not at all.
-		foundationLogger, _ = pkglogging.New(pkglogging.Config{})
-	}
-
-	wrappedMux := wrapWithFoundation(mux, foundationLogger)
+	wrappedMux := wrapWithFoundation(mux, _log)
 
 	server := &http.Server{
 		Handler:           wrappedMux,
@@ -239,12 +242,12 @@ func main() {
 	select {
 	case err := <-httpServerErrChan:
 		if err != nil {
-			logger.Info("MessageBus service is stopped", zap.Error(err))
+			_log.Info(context.Background(), "MessageBus service is stopped", slog.Any("error", err))
 			panic(err)
 		}
 	case err := <-socketServerErrChan:
 		if err != nil {
-			logger.Info("MessageBus socket service is stopped", zap.Error(err))
+			_log.Info(context.Background(), "MessageBus socket service is stopped", slog.Any("error", err))
 			panic(err)
 		}
 	}

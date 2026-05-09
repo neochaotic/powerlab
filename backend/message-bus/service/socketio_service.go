@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 
 	socketio "github.com/CorrectRoadH/go-socket.io"
@@ -9,9 +10,7 @@ import (
 	"github.com/CorrectRoadH/go-socket.io/engineio/transport"
 	"github.com/CorrectRoadH/go-socket.io/engineio/transport/polling"
 	"github.com/CorrectRoadH/go-socket.io/engineio/transport/websocket"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/neochaotic/powerlab/backend/message-bus/model"
-	"go.uber.org/zap"
 )
 
 type SocketIOService struct {
@@ -29,12 +28,12 @@ func (s *SocketIOService) Publish(message interface{}) {
 		return
 	}
 
-	logger.Error("unknown message type", zap.Any("message", message))
+	_log.Error(context.Background(), "unknown message type", nil, slog.Any("message", message))
 }
 
 func (s *SocketIOService) Start(ctx *context.Context) {
 	if err := s.server.Serve(); err != nil {
-		logger.Error("error when serving socketio for events", zap.Error(err))
+		_log.Error(context.Background(), "error when serving socketio for events", err)
 	}
 }
 
@@ -69,7 +68,7 @@ func buildServer() *socketio.Server {
 	server.OnConnect("/", func(s socketio.Conn) error {
 		// TODO add connector info. we need to know who is connecting
 		s.SetContext("")
-		logger.Info("a socketio connection has started", zap.Any("remote_addr", s.RemoteAddr()))
+		_log.Info(context.Background(), "a socketio connection has started", slog.Any("remote_addr", s.RemoteAddr()))
 
 		s.Join("event")
 		s.Join("action")
@@ -79,13 +78,13 @@ func buildServer() *socketio.Server {
 
 	server.OnError("/", func(s socketio.Conn, e error) {
 		// TODO add connector info. we need to know who is disconnecting
-		logger.Error("error in socketio connnection", zap.Any("error", e))
+		_log.Error(context.Background(), "error in socketio connnection", e)
 	})
 
 	server.OnDisconnect("/", func(s socketio.Conn, reason string) {
 		server.Remove(s.ID())
 		// TODO add connector info. we need to know who is disconnecting
-		logger.Info("a socketio connection is disconnected", zap.Any("reason", reason))
+		_log.Info(context.Background(), "a socketio connection is disconnected", slog.Any("reason", reason))
 	})
 
 	return server

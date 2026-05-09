@@ -3,9 +3,9 @@ package route
 import (
 	"net/http"
 
+	"github.com/labstack/echo/v4"
 	"github.com/neochaotic/powerlab/backend/message-bus/codegen"
 	"github.com/neochaotic/powerlab/backend/message-bus/pkg/ysk"
-	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 )
 

@@ -9,14 +9,14 @@ import (
 
 	"github.com/IceWhaleTech/CasaOS-Common/external"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/jwt"
-	"github.com/neochaotic/powerlab/backend/message-bus/codegen"
-	"github.com/neochaotic/powerlab/backend/message-bus/config"
-	"github.com/neochaotic/powerlab/backend/message-bus/service"
 	"github.com/deepmap/oapi-codegen/pkg/middleware"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/labstack/echo/v4"
 	echo_middleware "github.com/labstack/echo/v4/middleware"
+	"github.com/neochaotic/powerlab/backend/message-bus/codegen"
+	"github.com/neochaotic/powerlab/backend/message-bus/config"
+	"github.com/neochaotic/powerlab/backend/message-bus/service"
 )
 
 func NewAPIRouter(swagger *openapi3.T, services *service.Services) (http.Handler, error) {

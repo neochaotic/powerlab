@@ -2,13 +2,12 @@ package service
 
 import (
 	"context"
+	"log/slog"
 	"sync"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/neochaotic/powerlab/backend/message-bus/common"
 	"github.com/neochaotic/powerlab/backend/message-bus/model"
-	"go.uber.org/zap"
 )
 
 type ActionServiceWS struct {
@@ -24,7 +23,7 @@ type ActionServiceWS struct {
 
 func (s *ActionServiceWS) Trigger(action model.Action) {
 	if s.inboundChannel == nil {
-		logger.Error("error when triggering action via websocket", zap.Error(ErrInboundChannelNotFound))
+		_log.Error(context.Background(), "error when triggering action via websocket", ErrInboundChannelNotFound)
 	}
 
 	if action.Timestamp == 0 {
@@ -38,7 +37,7 @@ func (s *ActionServiceWS) Trigger(action model.Action) {
 
 	case <-(*s.ctx).Done():
 		if err := (*s.ctx).Err(); err != nil {
-			logger.Info(err.Error())
+			_log.Info(context.Background(), err.Error())
 		}
 		return
 
@@ -108,7 +107,7 @@ func (s *ActionServiceWS) Unsubscribe(sourceID string, name string, c chan model
 
 		if subscriber == c {
 			if i >= len(s.subscriberChannels[sourceID][name]) {
-				logger.Error("the i-th subscriber is removed before we get here - concurrency issue?", zap.Int("subscriber", i), zap.Int("total", len(s.subscriberChannels[sourceID][name])))
+				_log.Error(context.Background(), "the i-th subscriber is removed before we get here - concurrency issue?", nil, slog.Int("subscriber", i), slog.Int("total", len(s.subscriberChannels[sourceID][name])))
 				return ErrAlreadySubscribed
 			}
 			s.subscriberChannels[sourceID][name] = append(s.subscriberChannels[sourceID][name][:i], s.subscriberChannels[sourceID][name][i+1:]...)
