@@ -19,32 +19,42 @@ import (
 	"github.com/IceWhaleTech/CasaOS-Common/model"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/file"
 	util_http "github.com/IceWhaleTech/CasaOS-Common/utils/http"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/codegen/message_bus"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/common"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/pkg/cache"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/pkg/config"
+	mergerfspkg "github.com/IceWhaleTech/CasaOS-LocalStorage/pkg/mergerfs"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/pkg/sqlite"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/pkg/utils/merge"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/route"
+	v1route "github.com/IceWhaleTech/CasaOS-LocalStorage/route/v1"
+	v2route "github.com/IceWhaleTech/CasaOS-LocalStorage/route/v2"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/service"
+	v2service "github.com/IceWhaleTech/CasaOS-LocalStorage/service/v2"
 	"github.com/coreos/go-systemd/daemon"
 	pkgfoundation "github.com/neochaotic/powerlab/backend/pkg/foundation"
 	pkglifecycle "github.com/neochaotic/powerlab/backend/pkg/lifecycle"
 	pkglogging "github.com/neochaotic/powerlab/backend/pkg/logging"
 	"github.com/robfig/cron/v3"
 	"github.com/samber/lo"
-	"go.uber.org/zap"
 )
 
 // _log is the PowerLab-owned slog-based logger used by the foundation
-// middleware (panic recovery + correlation-ID tracing). Constructed
-// once at the top of main() and passed to wrapWithFoundation.
+// middleware (panic recovery + correlation-ID tracing) and by the
+// init() goroutines launched before main() runs.
 //
-// Legacy CasaOS `logger.Info(..., zap.X(...))`-style calls scattered
-// across local-storage code remain for now; the call-site migration
-// is part 3 of this kill series.
-var _log pkglogging.Logger
+// init() can call _log via background goroutines (e.g. ensureDefault-
+// Directories) before main() finishes constructing the configured
+// foundation logger. To avoid a nil-pointer crash in that window we
+// seed _log with a permissive default at process start; main() then
+// replaces it with the env-configured logger and wires the same
+// instance into every per-package _log via SetLogger calls.
+var _log pkglogging.Logger = mustDefaultLogger()
+
+func mustDefaultLogger() pkglogging.Logger {
+	l, _ := pkglogging.New(pkglogging.Config{Level: "info", Format: "json"})
+	return l
+}
 
 // wrapWithFoundation wraps any http.Handler with PowerLab's
 // foundation middleware:
@@ -101,7 +111,9 @@ func init() {
 
 	config.InitSetup(*configFlag, _confSample)
 
-	logger.LogInit(config.AppInfo.LogPath, config.AppInfo.LogSaveName, config.AppInfo.LogFileExt)
+	// pkg/logging is process-wide; no per-process file rotation init
+	// is needed (the legacy CasaOS logger.LogInit was a noop after the
+	// call-site migration in #104).
 
 	if len(*dbFlag) == 0 {
 		*dbFlag = config.AppInfo.DBPath
@@ -119,14 +131,14 @@ func init() {
 	if strings.ToLower(config.ServerInfo.EnableMergerFS) == "true" {
 		if !merge.IsMergerFSInstalled() {
 			config.ServerInfo.EnableMergerFS = "false"
-			logger.Info("mergerfs is disabled")
+			println("mergerfs is disabled")
 		}
 	}
 
 	if strings.ToLower(config.ServerInfo.EnableMergerFS) == "true" {
 		if !service.MyService.Disk().EnsureDefaultMergePoint() {
 			config.ServerInfo.EnableMergerFS = "false"
-			logger.Info("mergerfs is disabled")
+			println("mergerfs is disabled")
 		}
 	}
 
@@ -173,7 +185,7 @@ func ensureDefaultDirectories() {
 
 	for _, v := range dirArray {
 		if err := file.IsNotExistMkDir(v); err != nil {
-			logger.Error("ensureDefaultDirectories", zap.Error(err))
+			_log.Error(context.Background(), "ensureDefaultDirectories", err)
 		}
 	}
 }
@@ -200,6 +212,16 @@ func main() {
 		fl, _ = pkglogging.New(pkglogging.Config{})
 	}
 	_log = fl
+
+	// Wire the same instance into every package that owns a _log,
+	// so all log lines in this process flow through one logger.
+	// Mirrors the user-service main() pattern (ADR-0011).
+	service.SetLogger(_log)
+	v2service.SetLogger(_log)
+	v1route.SetLogger(_log)
+	v2route.SetLogger(_log)
+	merge.SetLogger(_log)
+	mergerfspkg.SetLogger(_log)
 
 	pkglifecycle.SafeGo(ctx, _log, func() { monitorUEvent(ctx) })
 

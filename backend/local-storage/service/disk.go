@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -19,7 +20,6 @@ import (
 	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/exec"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/file"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/codegen/message_bus"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/common"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/model"
@@ -33,7 +33,6 @@ import (
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/service/v2/fs"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/moby/sys/mountinfo"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -94,7 +93,7 @@ func (d *diskService) EnsureDefaultMergePoint() bool {
 	// check if /DATA is already a merge point
 	if len(existingMerges) > 0 {
 		if len(existingMerges) > 1 {
-			logger.Error("more than one merge point with the same mount point found", zap.String("mount point", mountPoint))
+			_log.Error(context.Background(), "more than one merge point with the same mount point found", nil, slog.String("mount point", mountPoint))
 		}
 		config.ServerInfo.EnableMergerFS = "true"
 		return true
@@ -107,9 +106,9 @@ func (d *diskService) EnsureDefaultMergePoint() bool {
 	}
 	if err := MyService.LocalStorage().CreateMerge(merge); err != nil {
 		if errors.Is(err, v2.ErrMergeMountPointAlreadyExists) {
-			logger.Info(err.Error(), zap.String("mount point", mountPoint))
+			_log.Info(context.Background(), err.Error(), slog.String("mount point", mountPoint))
 		} else if errors.Is(err, v2.ErrMountPointIsNotEmpty) {
-			logger.Error("Mount point "+mountPoint+" is not empty", zap.String("mount point", mountPoint))
+			_log.Error(context.Background(), "Mount point "+mountPoint+" is not empty", nil, slog.String("mount point", mountPoint))
 			return false
 		} else {
 			panic(err)
@@ -206,15 +205,15 @@ func (d *diskService) FormatDisk(path string) error {
 				count--
 				continue
 			}
-			logger.Error("error when checking partition path", zap.Error(err), zap.String("path", path))
+			_log.Error(context.Background(), "error when checking partition path", err, slog.String("path", path))
 			return err
 		}
 		break
 	}
 
-	logger.Info("formatting partition...", zap.String("path", path))
+	_log.Info(context.Background(), "formatting partition...", slog.String("path", path))
 	if err := partition.FormatPartition(path); err != nil {
-		logger.Error("failed to format partition", zap.Error(err), zap.String("path", path))
+		_log.Error(context.Background(), "failed to format partition", err, slog.String("path", path))
 		return err
 	}
 
@@ -225,11 +224,11 @@ func (d *diskService) FormatDisk(path string) error {
 func (d *diskService) UmountPointAndRemoveDir(m model.LSBLKModel) error {
 	if len(m.MountPoint) > 0 {
 		if err := mount.UmountByMountPoint(m.MountPoint); err != nil {
-			logger.Error("error when umounting partition", zap.Error(err), zap.String("path", m.Path), zap.String("mount point", m.MountPoint))
+			_log.Error(context.Background(), "error when umounting partition", err, slog.String("path", m.Path), slog.String("mount point", m.MountPoint))
 			return err
 		}
 		if err := file.RMDir(m.MountPoint); err != nil {
-			logger.Error("error when removing mount point directory", zap.Error(err), zap.String("path", m.Path), zap.String("mount point", m.MountPoint))
+			_log.Error(context.Background(), "error when removing mount point directory", err, slog.String("path", m.Path), slog.String("mount point", m.MountPoint))
 			return err
 		}
 	}
@@ -237,11 +236,11 @@ func (d *diskService) UmountPointAndRemoveDir(m model.LSBLKModel) error {
 		if len(p.MountPoint) > 0 {
 
 			if err := mount.UmountByMountPoint(p.MountPoint); err != nil {
-				logger.Error("error when umounting partition", zap.Error(err), zap.String("path", p.Path), zap.String("mount point", p.MountPoint))
+				_log.Error(context.Background(), "error when umounting partition", err, slog.String("path", p.Path), slog.String("mount point", p.MountPoint))
 				return err
 			}
 			if err := file.RMDir(p.MountPoint); err != nil {
-				logger.Error("error when removing mount point directory", zap.Error(err), zap.String("path", p.Path), zap.String("mount point", p.MountPoint))
+				_log.Error(context.Background(), "error when removing mount point directory", err, slog.String("path", p.Path), slog.String("mount point", p.MountPoint))
 				return err
 			}
 		}
@@ -252,16 +251,16 @@ func (d *diskService) UmountPointAndRemoveDir(m model.LSBLKModel) error {
 
 // part
 func (d *diskService) AddPartition(path string) error {
-	logger.Info("creating partition table...", zap.String("path", path))
+	_log.Info(context.Background(), "creating partition table...", slog.String("path", path))
 	if err := partition.CreatePartitionTable(path); err != nil {
-		logger.Error("failed to create partition table", zap.Error(err), zap.String("path", path))
+		_log.Error(context.Background(), "failed to create partition table", err, slog.String("path", path))
 		return err
 	}
 
-	logger.Info("creating partition...", zap.String("path", path))
+	_log.Info(context.Background(), "creating partition...", slog.String("path", path))
 	partitions, err := partition.AddPartition(path)
 	if err != nil {
-		logger.Error("failed to create partition", zap.Error(err), zap.String("path", path))
+		_log.Error(context.Background(), "failed to create partition", err, slog.String("path", path))
 		return err
 	}
 
@@ -277,15 +276,15 @@ func (d *diskService) AddPartition(path string) error {
 					count--
 					continue
 				}
-				logger.Error("error when checking partition path", zap.Error(err), zap.String("path", partitionPath))
+				_log.Error(context.Background(), "error when checking partition path", err, slog.String("path", partitionPath))
 				return err
 			}
 			break
 		}
 
-		logger.Info("formatting partition...", zap.String("path", partitionPath))
+		_log.Info(context.Background(), "formatting partition...", slog.String("path", partitionPath))
 		if err := partition.FormatPartition(partitionPath); err != nil {
-			logger.Error("failed to format partition", zap.Error(err), zap.String("path", partitionPath))
+			_log.Error(context.Background(), "failed to format partition", err, slog.String("path", partitionPath))
 			return err
 		}
 	}
@@ -299,10 +298,10 @@ func (d *diskService) DeletePartition(path string) error {
 		return errors.New("device " + path + " does not exists")
 	}
 
-	logger.Info("trying to get all partitions of device...", zap.String("path", path))
+	_log.Info(context.Background(), "trying to get all partitions of device...", slog.String("path", path))
 	partitions, err := partition.GetPartitions(path)
 	if err != nil {
-		logger.Error("error when getting all partitions of device", zap.Error(err), zap.String("path", path))
+		_log.Error(context.Background(), "error when getting all partitions of device", err, slog.String("path", path))
 		return err
 	}
 
@@ -310,13 +309,13 @@ func (d *diskService) DeletePartition(path string) error {
 
 		n, err := strconv.Atoi(p.PARTXProperties["NR"])
 		if err != nil {
-			logger.Error("error when converting partition number to int", zap.Error(err), zap.String("path", path), zap.String("partition number", p.PARTXProperties["NR"]))
+			_log.Error(context.Background(), "error when converting partition number to int", err, slog.String("path", path), slog.String("partition number", p.PARTXProperties["NR"]))
 			return err
 		}
 
-		logger.Info("trying to delete partition...", zap.String("path", p.LSBLKProperties["PATH"]))
+		_log.Info(context.Background(), "trying to delete partition...", slog.String("path", p.LSBLKProperties["PATH"]))
 		if err := partition.DeletePartition(path, n); err != nil {
-			logger.Error("error when deleting partition", zap.Error(err), zap.String("path", p.LSBLKProperties["PATH"]))
+			_log.Error(context.Background(), "error when deleting partition", err, slog.String("path", p.LSBLKProperties["PATH"]))
 			return err
 		}
 	}
@@ -338,13 +337,13 @@ func (d *diskService) LSBLK(isUseCache bool) []model.LSBLKModel {
 
 	str := command.ExecLSBLK()
 	if str == nil {
-		logger.Error("Failed to exec shell - lsblk exec error")
+		_log.Error(context.Background(), "Failed to exec shell - lsblk exec error", nil)
 		return nil
 	}
 
 	blkList, err := ParseBlockDevices(str)
 	if err != nil {
-		logger.Error("Failed to parse block devices from output of lsblk", zap.Error(err))
+		_log.Error(context.Background(), "Failed to parse block devices from output of lsblk", err)
 	}
 
 	var fsused uint64
@@ -388,7 +387,7 @@ func (d *diskService) LSBLK(isUseCache bool) []model.LSBLKModel {
 		if fsused > 0 {
 			blk.UsedPercent, err = strconv.ParseFloat(fmt.Sprintf("%.4f", float64(fsused)/float64(blk.Size)), 64)
 			if err != nil {
-				logger.Error("Failed to parse float", zap.Error(err))
+				_log.Error(context.Background(), "Failed to parse float", err)
 			}
 		}
 		result = append(result, blk)
@@ -404,13 +403,13 @@ func (d *diskService) LSBLK(isUseCache bool) []model.LSBLKModel {
 func (d *diskService) GetDiskInfo(path string) model.LSBLKModel {
 	str := command.ExecLSBLKByPath(path)
 	if str == nil {
-		logger.Error("Failed to exec shell - lsblk exec error")
+		_log.Error(context.Background(), "Failed to exec shell - lsblk exec error", nil)
 		return model.LSBLKModel{}
 	}
 
 	blkList, err := ParseBlockDevices(str)
 	if err != nil {
-		logger.Error("Failed to parse block devices from output of lsblk", zap.Error(err))
+		_log.Error(context.Background(), "Failed to parse block devices from output of lsblk", err)
 		return model.LSBLKModel{}
 	}
 
@@ -422,7 +421,7 @@ func (d *diskService) GetDiskInfo(path string) model.LSBLKModel {
 }
 
 func (d *diskService) MountDisk(path, mountPoint string) (string, error) {
-	logger.Info("trying to mount...", zap.String("path", path), zap.String("mountPoint", mountPoint))
+	_log.Info(context.Background(), "trying to mount...", slog.String("path", path), slog.String("mountPoint", mountPoint))
 
 	// check if path is already mounted at mountPoint
 	if mountInfoList, err := mountinfo.GetMounts(func(i *mountinfo.Info) (skip bool, stop bool) {
@@ -431,20 +430,20 @@ func (d *diskService) MountDisk(path, mountPoint string) (string, error) {
 		}
 		return true, false
 	}); err != nil {
-		logger.Error("error when trying to get mount info", zap.Error(err))
+		_log.Error(context.Background(), "error when trying to get mount info", err)
 		return "", err
 	} else if len(mountInfoList) > 0 {
-		logger.Info("already mounted", zap.String("path", path), zap.String("mount point", mountPoint))
+		_log.Info(context.Background(), "already mounted", slog.String("path", path), slog.String("mount point", mountPoint))
 		return "", nil
 	}
 
 	if err := file.IsNotExistMkDir(mountPoint); err != nil {
-		logger.Error("error when checking if mount point already exists, or when creating the mount point if it does not exists", zap.Error(err), zap.String("mount point", mountPoint))
+		_log.Error(context.Background(), "error when checking if mount point already exists, or when creating the mount point if it does not exists", err, slog.String("mount point", mountPoint))
 		return "", err
 	}
 
 	if out, err := command2.OnlyExec("source " + config.AppInfo.ShellPath + "/local-storage-helper.sh ;do_mount " + path + " " + mountPoint); err != nil {
-		logger.Error("error when mounting", zap.Error(err), zap.String("path", path), zap.String("mount point", mountPoint), zap.String("output", string(out)))
+		_log.Error(context.Background(), "error when mounting", err, slog.String("path", path), slog.String("mount point", mountPoint), slog.String("output", string(out)))
 		return out, err
 	}
 
@@ -462,7 +461,7 @@ func (d *diskService) SaveMountPointToDB(m model2.Volume) error {
 	result := d.db.Where(&model2.Volume{UUID: m.UUID}).Limit(1).Find(&existing)
 
 	if result.Error != nil {
-		logger.Error("error when querying volume by UUID", zap.Error(result.Error), zap.Any("uuid", m.UUID))
+		_log.Error(context.Background(), "error when querying volume by UUID", result.Error, slog.Any("uuid", m.UUID))
 		return result.Error
 	}
 
@@ -471,7 +470,7 @@ func (d *diskService) SaveMountPointToDB(m model2.Volume) error {
 	}
 
 	if result := d.db.Save(&m); result.Error != nil {
-		logger.Error("error when saving volume to db", zap.Error(result.Error), zap.Any("volume", m))
+		_log.Error(context.Background(), "error when saving volume to db", result.Error, slog.Any("volume", m))
 		return result.Error
 	}
 
@@ -481,11 +480,11 @@ func (d *diskService) SaveMountPointToDB(m model2.Volume) error {
 func (d *diskService) UpdateMountPointInDB(m model2.Volume) error {
 	result := d.db.Model(&model2.Volume{}).Where(&model2.Volume{UUID: m.UUID}).Update("mount_point", m.MountPoint)
 	if result.Error != nil {
-		logger.Error("error when updating mount point in db by UUID", zap.Error(result.Error), zap.String("uuid", m.UUID), zap.String("mount point", m.MountPoint))
+		_log.Error(context.Background(), "error when updating mount point in db by UUID", result.Error, slog.String("uuid", m.UUID), slog.String("mount point", m.MountPoint))
 		return result.Error
 	}
 
-	logger.Info(strconv.Itoa(int(result.RowsAffected))+" volume(s) with mount point updated in db by UUID", zap.String("uuid", m.UUID), zap.String("mount point", m.MountPoint))
+	_log.Info(context.Background(), strconv.Itoa(int(result.RowsAffected))+" volume(s) with mount point updated in db by UUID", slog.String("uuid", m.UUID), slog.String("mount point", m.MountPoint))
 
 	return nil
 }
@@ -493,34 +492,34 @@ func (d *diskService) UpdateMountPointInDB(m model2.Volume) error {
 func (d *diskService) DeleteMountPointFromDB(path, mountPoint string) error {
 	partitions, err := partition.GetPartitions(path)
 	if err != nil {
-		logger.Error("error when getting partitions by path", zap.Error(err), zap.String("path", path))
+		_log.Error(context.Background(), "error when getting partitions by path", err, slog.String("path", path))
 		return err
 	}
 
 	if len(partitions) != 1 {
-		logger.Error("there should be only 1 partition returned", zap.Any("partitions", partitions))
+		_log.Error(context.Background(), "there should be only 1 partition returned", nil, slog.Any("partitions", partitions))
 	}
 
 	var existingVolumes []model2.Volume
 	f := model2.Volume{MountPoint: mountPoint}
 	if len(partitions) > 0 {
 		f.UUID = partitions[0].LSBLKProperties[`UUID`]
-		logger.Info("trying to delete volume by path and mount point", zap.String("path", path), zap.String("mount point", mountPoint), zap.Any("uuid", partitions[0].LSBLKProperties[`UUID`]), zap.Any("partitons", partitions))
+		_log.Info(context.Background(), "trying to delete volume by path and mount point", slog.String("path", path), slog.String("mount point", mountPoint), slog.Any("uuid", partitions[0].LSBLKProperties[`UUID`]), slog.Any("partitons", partitions))
 	}
 
 	result := d.db.Where(&f).Limit(1).Find(&existingVolumes)
-	logger.Info("result", zap.Any("result", result))
+	_log.Info(context.Background(), "result", slog.Any("result", result))
 	if result.Error != nil {
-		logger.Error("error when finding the volume by path and mount point", zap.Error(result.Error), zap.String("path", path), zap.String("mount point", mountPoint))
+		_log.Error(context.Background(), "error when finding the volume by path and mount point", result.Error, slog.String("path", path), slog.String("mount point", mountPoint))
 	}
 
 	if result.RowsAffected == 0 {
-		logger.Info("no volume found by path and mount point", zap.String("path", path), zap.String("mount point", mountPoint))
+		_log.Info(context.Background(), "no volume found by path and mount point", slog.String("path", path), slog.String("mount point", mountPoint))
 		return nil
 	}
 
 	if result := d.db.Delete(&existingVolumes); result.Error != nil {
-		logger.Error("error when deleting volume", zap.Error(result.Error), zap.Any("volume", existingVolumes))
+		_log.Error(context.Background(), "error when deleting volume", result.Error, slog.Any("volume", existingVolumes))
 		return result.Error
 	}
 
@@ -532,7 +531,7 @@ func (d *diskService) GetSerialAllFromDB() ([]model2.Volume, error) {
 
 	result := d.db.Find(&volumes)
 	if result.Error != nil {
-		logger.Error("error when querying all volumes from db", zap.Error(result.Error))
+		_log.Error(context.Background(), "error when querying all volumes from db", result.Error)
 		return nil, result.Error
 	}
 
@@ -544,14 +543,14 @@ func (d *diskService) GetPersistentTypeByUUID(uuid string) string {
 	var m model2.Volume
 
 	if result := d.db.Where(&model2.Volume{UUID: uuid}).Limit(1).Find(&m); result.Error != nil {
-		logger.Error("error when finding the volume by uuid in database", zap.Error(result.Error), zap.String("uuid", uuid))
+		_log.Error(context.Background(), "error when finding the volume by uuid in database", result.Error, slog.String("uuid", uuid))
 	} else if result.RowsAffected > 0 {
 		return PersistentTypePowerLab
 	}
 
 	// check if it is in fstab
 	if entry, err := fstab.Get().GetEntryBySource(uuid); err != nil {
-		logger.Error("error when finding the volume by uuid in fstab", zap.Error(err), zap.String("uuid", uuid))
+		_log.Error(context.Background(), "error when finding the volume by uuid in fstab", err, slog.String("uuid", uuid))
 	} else if entry != nil {
 		return PersistentTypeFStab
 	}
@@ -561,12 +560,13 @@ func (d *diskService) GetPersistentTypeByUUID(uuid string) string {
 }
 
 func (d *diskService) CheckSerialDiskMount() {
-	logger.Info("Checking serial disk mount...")
+	ctx := context.Background()
+	_log.Info(ctx, "Checking serial disk mount...")
 
 	// check mount point
 	dbList, err := d.GetSerialAllFromDB()
 	if err != nil {
-		logger.Error("error when getting all volumes from db", zap.Error(err))
+		_log.Error(ctx, "error when getting all volumes from db", err)
 		return
 	}
 
@@ -577,7 +577,7 @@ func (d *diskService) CheckSerialDiskMount() {
 
 	// remount
 	for _, v := range dbList {
-		logger.Info("previously persisted mount point", zap.Any("volume", v))
+		_log.Info(ctx, "previously persisted mount point", slog.Any("volume", v))
 		mountPointMap[v.UUID] = v.MountPoint
 	}
 
@@ -585,9 +585,9 @@ func (d *diskService) CheckSerialDiskMount() {
 		output, err := command.ExecEnabledSMART(currentDisk.Path)
 		if err != nil {
 			if output != nil {
-				logger.Error("failed to enable S.M.A.R.T: "+string(output), zap.Error(err), zap.String("path", currentDisk.Path))
+				_log.Error(ctx, "failed to enable S.M.A.R.T: "+string(output), err, slog.String("path", currentDisk.Path))
 			} else {
-				logger.Error("failed to enable S.M.A.R.T", zap.Error(err), zap.String("path", currentDisk.Path))
+				_log.Error(ctx, "failed to enable S.M.A.R.T", err, slog.String("path", currentDisk.Path))
 			}
 		}
 
@@ -599,7 +599,7 @@ func (d *diskService) CheckSerialDiskMount() {
 			if blkChild.MountPoint == m {
 				continue
 			}
-			logger.Info("trying to re-mount...", zap.String("path", blkChild.Path), zap.String("mount point", m))
+			_log.Info(ctx, "trying to re-mount...", slog.String("path", blkChild.Path), slog.String("mount point", m))
 			// mount point check
 			mountPoint := m
 			mount.UmountByMountPoint(m)
@@ -613,17 +613,17 @@ func (d *diskService) CheckSerialDiskMount() {
 					}
 					i++
 				}
-				logger.Info("mount point already exists, using new mount point", zap.String("path", blkChild.Path), zap.String("mount point", mountPoint))
+				_log.Info(ctx, "mount point already exists, using new mount point", slog.String("path", blkChild.Path), slog.String("mount point", mountPoint))
 			}
 
 			if output, err := d.MountDisk(blkChild.Path, mountPoint); err != nil {
-				logger.Error(output, zap.Error(err), zap.String("path", blkChild.Path), zap.String("volume", mountPoint))
+				_log.Error(ctx, output, err, slog.String("path", blkChild.Path), slog.String("volume", mountPoint))
 			}
 
 			// obtain the actual mount path (just in case)
 			partitions, err := partition.GetPartitions(blkChild.Path)
 			if err != nil {
-				logger.Error("error when getting partitions by path", zap.Error(err), zap.String("path", blkChild.Path))
+				_log.Error(ctx, "error when getting partitions by path", err, slog.String("path", blkChild.Path))
 				continue
 			}
 
@@ -635,7 +635,7 @@ func (d *diskService) CheckSerialDiskMount() {
 					MountPoint: mountPoint,
 				}
 				if err := d.UpdateMountPointInDB(v); err != nil {
-					logger.Error("error when updating mount point in db", zap.Error(err), zap.Any("volume", v))
+					_log.Error(ctx, "error when updating mount point in db", err, slog.Any("volume", v))
 				}
 			}
 		}
@@ -719,16 +719,16 @@ func (d *diskService) InitCheck() {
 					continue
 				}
 
-				logger.Info("disk added", zap.Any("eventModel", eventModel))
+				_log.Info(context.Background(), "disk added", slog.Any("eventModel", eventModel))
 
 				response, err := MyService.MessageBus().PublishEventWithResponse(context.Background(), event.SourceID, event.Name, event.Properties)
 				if err != nil {
-					logger.Error("failed to publish event to message bus", zap.Error(err), zap.Any("event", event))
+					_log.Error(context.Background(), "failed to publish event to message bus", err, slog.Any("event", event))
 					continue
 				}
 
 				if response.StatusCode() != http.StatusOK {
-					logger.Error("failed to publish event to message bus", zap.String("status", response.Status()), zap.Any("response", response))
+					_log.Error(context.Background(), "failed to publish event to message bus", nil, slog.String("status", response.Status()), slog.Any("response", response))
 				}
 
 			}
@@ -737,7 +737,7 @@ func (d *diskService) InitCheck() {
 	}
 	for k, v := range diskMap {
 		if _, ok := diskMapNew[k]; !ok {
-			logger.Info("disk removed", zap.Any("disk", v))
+			_log.Info(context.Background(), "disk removed", slog.Any("disk", v))
 			properties := common.AdditionalProperties(v)
 			eventModel := message_bus.Event{
 				SourceID:   "local-storage",
@@ -745,14 +745,14 @@ func (d *diskService) InitCheck() {
 				Properties: properties,
 			}
 			event := common.EventAdapterWithUIProperties(&eventModel)
-			logger.Info("InitCheck disk removed", zap.Any("eventModel", eventModel))
+			_log.Info(context.Background(), "InitCheck disk removed", slog.Any("eventModel", eventModel))
 			response, err := MyService.MessageBus().PublishEventWithResponse(context.Background(), event.SourceID, event.Name, event.Properties)
 			if err != nil {
-				logger.Error("failed to publish event to message bus", zap.Error(err), zap.Any("event", event))
+				_log.Error(context.Background(), "failed to publish event to message bus", err, slog.Any("event", event))
 			}
 
 			if response.StatusCode() != http.StatusOK {
-				logger.Error("failed to publish event to message bus", zap.String("status", response.Status()), zap.Any("response", response))
+				_log.Error(context.Background(), "failed to publish event to message bus", nil, slog.String("status", response.Status()), slog.Any("response", response))
 			}
 		}
 	}

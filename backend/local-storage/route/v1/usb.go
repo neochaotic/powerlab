@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"log/slog"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -9,12 +10,10 @@ import (
 	"github.com/IceWhaleTech/CasaOS-Common/model"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/file"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	model1 "github.com/IceWhaleTech/CasaOS-LocalStorage/model"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/pkg/config"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/service"
 	"github.com/labstack/echo/v4"
-	"go.uber.org/zap"
 )
 
 const messagePathSysUSB = "sys_usb"
@@ -47,7 +46,7 @@ func PutSystemUSBAutoMount(ctx echo.Context) error {
 		}
 
 		if err := service.MyService.Notify().SendNotify(messagePathSysUSB, message); err != nil {
-			logger.Error("failed to send notify", zap.Any("message", message), zap.Error(err))
+			_log.Error(ctx.Request().Context(), "failed to send notify", err, slog.Any("message", message))
 		}
 	}()
 
@@ -77,7 +76,7 @@ func GetSystemUSBAutoMount(ctx echo.Context) error {
 		}
 
 		if err := service.MyService.Notify().SendNotify(messagePathSysUSB, message); err != nil {
-			logger.Error("failed to send notify", zap.Any("message", message), zap.Error(err))
+			_log.Error(ctx.Request().Context(), "failed to send notify", err, slog.Any("message", message))
 		}
 	}()
 
