@@ -18,6 +18,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/IceWhaleTech/CasaOS/common"
 	"github.com/IceWhaleTech/CasaOS/model"
 	"github.com/IceWhaleTech/CasaOS/service"
 )
@@ -70,7 +71,7 @@ func SendAllHardwareStatusBySocket() {
 		body[key.(string)] = value
 		return true
 	})
-	service.MyService.Notify().SendNotify("casaos:system:utilization", body)
+	service.MyService.Notify().SendNotify(common.EventSystemUtilization, body)
 }
 
 // func MonitoryUSB() {

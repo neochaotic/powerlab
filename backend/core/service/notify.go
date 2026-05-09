@@ -88,7 +88,7 @@ func (i *notifyServer) SendFileOperateNotify(nowSend bool) {
 				bt, _ := json.Marshal(v)
 				msg[k] = string(bt)
 			}
-			response, err := MyService.MessageBus().PublishEventWithResponse(context.Background(), common.SERVICENAME, "casaos:file:operate", msg)
+			response, err := MyService.MessageBus().PublishEventWithResponse(context.Background(), common.SERVICENAME, common.EventFileOperate, msg)
 			if err != nil {
 				logger.Error("failed to publish event to message bus", zap.Error(err), zap.Any("event", msg))
 			}
@@ -147,7 +147,7 @@ func (i *notifyServer) SendFileOperateNotify(nowSend bool) {
 			bt, _ := json.Marshal(v)
 			msg[k] = string(bt)
 		}
-		response, err := MyService.MessageBus().PublishEventWithResponse(context.Background(), common.SERVICENAME, "casaos:file:operate", msg)
+		response, err := MyService.MessageBus().PublishEventWithResponse(context.Background(), common.SERVICENAME, common.EventFileOperate, msg)
 		if err != nil {
 			logger.Error("failed to publish event to message bus", zap.Error(err), zap.Any("event", msg))
 		}
@@ -216,7 +216,7 @@ func (i *notifyServer) SendFileOperateNotify(nowSend bool) {
 				bt, _ := json.Marshal(v)
 				msg[k] = string(bt)
 			}
-			response, err := MyService.MessageBus().PublishEventWithResponse(context.Background(), common.SERVICENAME, "casaos:file:operate", msg)
+			response, err := MyService.MessageBus().PublishEventWithResponse(context.Background(), common.SERVICENAME, common.EventFileOperate, msg)
 			if err != nil {
 				logger.Error("failed to publish event to message bus", zap.Error(err), zap.Any("event", msg))
 			}
