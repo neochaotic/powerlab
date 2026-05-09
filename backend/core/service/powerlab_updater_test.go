@@ -173,6 +173,36 @@ func TestCheck_InvalidVersion(t *testing.T) {
 	}
 }
 
+// Regression for #55 — when the running binary is built without the
+// -X POWERLAB_VERSION ldflag, the version stamp is "dev" (default in
+// constants.go) or "vdev" (older builds). Both should be allowed to
+// upgrade with a soft warning, NOT rejected as too-old. Without this
+// fence, a fresh `go build`-from-source install can't be upgraded
+// from the UI and the user has to ssh in to re-run install.sh.
+func TestCheck_NonSemverCurrentAllowedWithWarning(t *testing.T) {
+	for _, currentVersion := range []string{"dev", "vdev", "v0.0.0-source", "main", "0.1.0-dev"} {
+		t.Run(currentVersion, func(t *testing.T) {
+			body := fixtureManifest("0.4.0", nil)
+			_, url := manifestServer(t, body, 200)
+			u := &PowerLabUpdater{
+				CurrentVersion: currentVersion,
+				ManifestURL:    url,
+				HTTPClient:     http.DefaultClient,
+			}
+			res, err := u.Check(context.Background())
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if res.Decision != "update_ok" {
+				t.Errorf("decision = %q, want update_ok (current = %q)", res.Decision, currentVersion)
+			}
+			if res.Warning == "" {
+				t.Errorf("expected non-empty Warning for non-SemVer current %q", currentVersion)
+			}
+		})
+	}
+}
+
 // compareSemver is the boundary that decides too_old. Pin the
 // boundaries directly — we already had a regression where a poorly-
 // implemented compare let v0.1.5 upgrade to v0.5.0 in spite of the

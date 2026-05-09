@@ -582,11 +582,28 @@ func compareSemver(a, b string) int {
 }
 
 // looksLikeSemver mirrors the structural check in scripts/build-manifest.
+//
+// A version is considered a "tagged release" only when:
+//   - it doesn't start with "v" (we strip leading v in tarball naming;
+//     stamps like "vdev" are conventional non-release markers)
+//   - the core (before any "-suffix") parses as exactly 3 numeric
+//     components
+//   - the suffix (if any) does not match a conventional non-release
+//     marker: -dev, -source, -ci, -snapshot, -local
+//
+// The non-release-marker rule catches the package-linux.sh default
+// VERSION="0.1.0-dev" — which structurally parses as SemVer but is
+// emitted by `./scripts/package-linux.sh` (no version arg) for local
+// builds and CI fixtures. Without the marker rule, those builds get
+// classified as tagged releases and get the strict compareSemver
+// path, which can wrongly reject upgrades. With the marker rule
+// they fall into the soft-warning "update_ok" branch.
 func looksLikeSemver(v string) bool {
 	if v == "" || strings.HasPrefix(v, "v") {
 		return false
 	}
-	core := strings.Split(strings.SplitN(v, "-", 2)[0], ".")
+	parts := strings.SplitN(v, "-", 2)
+	core := strings.Split(parts[0], ".")
 	if len(core) != 3 {
 		return false
 	}
@@ -600,7 +617,24 @@ func looksLikeSemver(v string) bool {
 			}
 		}
 	}
+	if len(parts) == 2 && isNonReleaseMarker(parts[1]) {
+		return false
+	}
 	return true
+}
+
+// isNonReleaseMarker returns true when a version pre-release suffix
+// signals "this binary is not a tagged release, do not compare strict
+// SemVer." Matched case-insensitively against the start of the
+// suffix so e.g. "dev.20260509" still triggers.
+func isNonReleaseMarker(suffix string) bool {
+	s := strings.ToLower(suffix)
+	for _, marker := range []string{"dev", "source", "ci", "snapshot", "local"} {
+		if s == marker || strings.HasPrefix(s, marker+".") || strings.HasPrefix(s, marker+"-") {
+			return true
+		}
+	}
+	return false
 }
 
 // freeDiskMB is split out so tests can stub the syscall. The
