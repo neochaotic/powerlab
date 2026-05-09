@@ -17,6 +17,20 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+// EventListen subscribes to the message-bus websocket for the
+// "local-storage" topic and persists every event into the user-service
+// EventModel store via service.MyService.Event().CreateEvemt.
+//
+// It runs as a background goroutine spawned from main() under
+// pkglifecycle.SafeGo so a panic anywhere in the websocket loop is
+// recovered and logged rather than killing the process. The function
+// retries connection up to 1000 times with a 1s backoff between
+// attempts; once a connection is established it loops forever reading
+// messages until the websocket closes.
+//
+// Filtering: events named "local-storage:raid_status" are dropped to
+// avoid persisting noisy periodic status updates that have no user
+// value.
 func EventListen() {
 	ctx := context.Background()
 

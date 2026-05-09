@@ -278,6 +278,20 @@ func main() {
 		panic(err)
 	}
 }
+// RegMsg registers the local-storage service's event types with the
+// PowerLab message-bus. Two static event types ("merge_status" and
+// "storage_status") are always registered; additionally every event
+// type declared in common.EventTypes (per device kind) is registered.
+//
+// The first registration phase retries up to 10 times with a 1s
+// backoff to handle the case where main() finishes booting before the
+// message-bus service is ready to accept registrations. Subsequent
+// per-devtype registrations run once and any errors are logged but
+// not retried.
+//
+// Called as a background goroutine from main() under
+// pkglifecycle.SafeGo; a panic during registration is recovered and
+// logged.
 func RegMsg() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
