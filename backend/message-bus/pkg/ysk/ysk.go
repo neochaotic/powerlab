@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/IceWhaleTech/CasaOS-MessageBus/common"
+	"github.com/neochaotic/powerlab/backend/message-bus/common"
 )
 
 func DefineCard(ctx context.Context, cardID string) YSKCard {

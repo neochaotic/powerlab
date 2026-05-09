@@ -1,4 +1,4 @@
-module github.com/IceWhaleTech/CasaOS-MessageBus
+module github.com/neochaotic/powerlab/backend/message-bus
 
 go 1.25
 

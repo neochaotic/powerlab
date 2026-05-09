@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS-MessageBus/codegen"
-	"github.com/IceWhaleTech/CasaOS-MessageBus/pkg/ysk"
+	"github.com/neochaotic/powerlab/backend/message-bus/codegen"
+	"github.com/neochaotic/powerlab/backend/message-bus/pkg/ysk"
 	"gotest.tools/assert"
 )
 

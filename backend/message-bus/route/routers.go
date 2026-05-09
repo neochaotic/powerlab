@@ -9,9 +9,9 @@ import (
 
 	"github.com/IceWhaleTech/CasaOS-Common/external"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/jwt"
-	"github.com/IceWhaleTech/CasaOS-MessageBus/codegen"
-	"github.com/IceWhaleTech/CasaOS-MessageBus/config"
-	"github.com/IceWhaleTech/CasaOS-MessageBus/service"
+	"github.com/neochaotic/powerlab/backend/message-bus/codegen"
+	"github.com/neochaotic/powerlab/backend/message-bus/config"
+	"github.com/neochaotic/powerlab/backend/message-bus/service"
 	"github.com/deepmap/oapi-codegen/pkg/middleware"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"

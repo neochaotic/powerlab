@@ -13,6 +13,17 @@ see `CONTRIBUTING.md` for the rule.
 
 ### Internal
 
+- **Sprint 1 of CasaOS independence (#67) — Kill #1 message-bus rebrand
+  (#72, part 1).** Module path renamed from
+  `github.com/IceWhaleTech/CasaOS-MessageBus` to
+  `github.com/neochaotic/powerlab/backend/message-bus`. 36 files updated
+  to reference the new internal path. Compile and existing tests
+  green. **Deferred to follow-up PRs in the same kill series:**
+  swap `CasaOS-Common/utils/logger` → `pkg/logging`, wire
+  `pkg/lifecycle.RecoverMiddleware` + `pkg/tracing.Middleware`, and
+  delete confirmed-dead functions (audit's coarse-grained
+  classification needs per-function verification — pkg/ysk types
+  are still used by active code, so the package stays).
 - **Sprint 1 of CasaOS independence (#67) — supply chain audit (#62).**
   Four documents under `docs/audits/`: (1) CasaOS dependency map —
   every existing service `go.mod` declares an `IceWhaleTech/CasaOS-*`

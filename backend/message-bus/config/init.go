@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
-	"github.com/IceWhaleTech/CasaOS-MessageBus/common"
-	"github.com/IceWhaleTech/CasaOS-MessageBus/model"
+	"github.com/neochaotic/powerlab/backend/message-bus/common"
+	"github.com/neochaotic/powerlab/backend/message-bus/model"
 	"gopkg.in/ini.v1"
 )
 
