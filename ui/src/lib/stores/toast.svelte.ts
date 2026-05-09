@@ -1,3 +1,5 @@
+import { generateID } from '$lib/utils/uuid';
+
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 export interface Toast {
@@ -15,7 +17,12 @@ function add(type: ToastType, message: string, duration = 4000) {
 		return;
 	}
 
-	const id = crypto.randomUUID();
+	// generateID falls back to crypto.getRandomValues / Math.random
+	// when crypto.randomUUID is unavailable. Required for
+	// non-secure contexts (http://IP:port) — crypto.randomUUID
+	// only exists in secure contexts and threw a TypeError in
+	// v0.5.2 after HTTPS was gated by default (#130).
+	const id = generateID();
 	toasts = [...toasts, { id, type, message, duration }];
 	if (duration > 0) {
 		setTimeout(() => dismiss(id), duration);
