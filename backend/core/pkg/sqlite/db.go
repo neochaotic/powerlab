@@ -1,34 +1,41 @@
-/*
- * @Author: LinkLeong link@icewhale.com
- * @Date: 2022-05-13 18:15:46
- * @LastEditors: LinkLeong
- * @LastEditTime: 2022-08-31 13:39:24
- * @FilePath: /CasaOS/pkg/sqlite/db.go
- * @Description:
- * @Website: https://www.casaos.io
- * Copyright (c) 2022 by icewhale, All Rights Reserved.
- */
 package sqlite
 
 import (
-	"fmt"
+	"context"
 	"time"
 
 	"github.com/IceWhaleTech/CasaOS/pkg/utils/file"
-	model2 "github.com/IceWhaleTech/CasaOS/service/model"
 	"github.com/glebarez/sqlite"
+	pkgmigrations "github.com/neochaotic/powerlab/backend/pkg/migrations"
 	"gorm.io/gorm"
 )
 
 var gdb *gorm.DB
 
+// GetDb returns the core SQLite database, lazily opening it from
+// dbPath/casaOS.db on the first call. Subsequent calls reuse the
+// same handle.
+//
+// SetMaxOpenConns(1) because SQLite serializes writes process-wide
+// and multiple writers race-deadlock on file locks. Up to 10 idle
+// connections are kept warm; idle conns expire after ~16 minutes.
+//
+// Schema migration runs eagerly via pkg/migrations on first call
+// (Sprint 3 Phase 2.3). The migration is also responsible for
+// dropping the legacy CasaOS tables (`o_application`, `o_friend`,
+// `o_person_download`, `o_person_down_record`) on upgrade —
+// previously those drops happened in Go code right after
+// AutoMigrate; now they're co-located with the schema definition
+// inside `migrations/0001_initial.sql`.
+//
+// A migration failure is logged but does NOT panic — the caller
+// proceeds with best-effort reads against whatever schema is on
+// disk. (Same behavior as user-service. Versioned migrations
+// per #100; ADR-0018.)
 func GetDb(dbPath string) *gorm.DB {
 	if gdb != nil {
 		return gdb
 	}
-	// Refer https://github.com/go-sql-driver/mysql#dsn-data-source-name
-	// dsn := fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?charset=utf8mb4&parseTime=True&loc=Local", m.User, m.PWD, m.IP, m.Port, m.DBName)
-	// db, err := gorm.Open(mysql2.Open(dsn), &gorm.Config{})
 	file.IsNotExistMkDir(dbPath)
 	db, err := gorm.Open(sqlite.Open(dbPath+"/casaOS.db"), &gorm.Config{})
 	if err != nil {
@@ -41,14 +48,8 @@ func GetDb(dbPath string) *gorm.DB {
 	c.SetConnMaxIdleTime(time.Second * 1000)
 	gdb = db
 
-	err = db.AutoMigrate(&model2.AppNotify{}, model2.SharesDBModel{}, model2.ConnectionsDBModel{}, model2.PeerDriveDBModel{})
-	if err != nil {
-		fmt.Println(err)
+	if sqlDB, dbErr := db.DB(); dbErr == nil {
+		_ = pkgmigrations.Up(context.Background(), sqlDB, migrationsFS, "migrations")
 	}
-
-	db.Exec("DROP TABLE IF EXISTS o_application")
-	db.Exec("DROP TABLE IF EXISTS o_friend")
-	db.Exec("DROP TABLE IF EXISTS o_person_download")
-	db.Exec("DROP TABLE IF EXISTS o_person_down_record")
 	return db
 }
