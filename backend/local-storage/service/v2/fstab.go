@@ -1,10 +1,11 @@
 package v2
 
 import (
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"context"
+	"log/slog"
+
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/codegen"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/pkg/fstab"
-	"go.uber.org/zap"
 )
 
 func (s *LocalStorageService) SaveToFStab(m codegen.Mount) error {
@@ -19,7 +20,7 @@ func (s *LocalStorageService) SaveToFStab(m codegen.Mount) error {
 		Dump:    0,
 		Pass:    fstab.PassDoNotCheck,
 	}, true); err != nil {
-		logger.Error("Error when trying to persist mount", zap.Error(err), zap.Any("mount", m))
+		_log.Error(context.Background(), "Error when trying to persist mount", err, slog.Any("mount", m))
 		return err
 	}
 	return nil
@@ -29,7 +30,7 @@ func (s *LocalStorageService) RemoveFromFStab(mountpoint string) error {
 	ft := fstab.Get()
 
 	if err := ft.RemoveByMountPoint(mountpoint, false); err != nil {
-		logger.Error("Error when trying to unpersist mount", zap.Error(err), zap.String("mount point", mountpoint))
+		_log.Error(context.Background(), "Error when trying to unpersist mount", err, slog.String("mount point", mountpoint))
 		return err
 	}
 	return nil

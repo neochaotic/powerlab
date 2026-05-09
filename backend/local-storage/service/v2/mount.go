@@ -1,17 +1,17 @@
 package v2
 
 import (
+	"context"
 	"errors"
+	"log/slog"
 	"strconv"
 
 	"github.com/IceWhaleTech/CasaOS-Common/utils/file"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/codegen"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/pkg/mount"
 
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/service/v2/fs"
 	"github.com/moby/sys/mountinfo"
-	"go.uber.org/zap"
 )
 
 var (
@@ -45,7 +45,7 @@ func (s *LocalStorageService) GetMounts(params codegen.GetMountsParams) ([]codeg
 		return false, false
 	})
 	if err != nil {
-		logger.Error("Error when trying to get mounted volume(s)", zap.Error(err))
+		_log.Error(context.Background(), "Error when trying to get mounted volume(s)", err)
 		return nil, err
 	}
 
@@ -59,6 +59,7 @@ func (s *LocalStorageService) GetMounts(params codegen.GetMountsParams) ([]codeg
 }
 
 func (s *LocalStorageService) Mount(m codegen.Mount) (*codegen.Mount, error) {
+	ctx := context.Background()
 	m = *fs.PreMountAll(m)
 
 	// check if mountpoint is already mounted
@@ -67,27 +68,27 @@ func (s *LocalStorageService) Mount(m codegen.Mount) (*codegen.Mount, error) {
 		Type:       m.Fstype,
 	})
 	if err != nil {
-		logger.Error("Error when trying to get mounted volume", zap.Error(err), zap.Any("mount", m))
+		_log.Error(ctx, "Error when trying to get mounted volume", err, slog.Any("mount", m))
 		return nil, err
 	}
 
 	if len(results) > 0 {
-		logger.Info("Volume is already mounted", zap.Any("mount", results[0]))
+		_log.Info(ctx, "Volume is already mounted", slog.Any("mount", results[0]))
 		return &results[0], ErrAlreadyMounted
 	}
 
 	// check if mountpoint is empty
-	//logger.Info("checking if mount point exist", zap.String("mount point", m.MountPoint))
+	//_log.Info(ctx, "checking if mount point exist", slog.String("mount point", m.MountPoint))
 	if empty, err := file.IsDirEmpty(m.MountPoint); err != nil {
-		logger.Error("error when trying to check if mount point is empty", zap.Error(err), zap.Any("mount", m))
+		_log.Error(ctx, "error when trying to check if mount point is empty", err, slog.Any("mount", m))
 		return nil, err
 	} else if !empty {
-		logger.Error("mount point is not empty", zap.Any("mount", m))
+		_log.Error(ctx, "mount point is not empty", nil, slog.Any("mount", m))
 		return nil, ErrMountPointIsNotEmpty
 	}
 
 	if err := mount.Mount(*m.Source, m.MountPoint, m.Fstype, m.Options); err != nil {
-		logger.Error("error when trying to mount", zap.Error(err), zap.Any("mount", m))
+		_log.Error(ctx, "error when trying to mount", err, slog.Any("mount", m))
 		return nil, err
 	}
 
@@ -104,7 +105,7 @@ func (s *LocalStorageService) Mount(m codegen.Mount) (*codegen.Mount, error) {
 	}
 
 	if len(results) > 1 {
-		logger.Error("More than one mount with same mount point and fstype found", zap.Any("mounts", results))
+		_log.Error(ctx, "More than one mount with same mount point and fstype found", nil, slog.Any("mounts", results))
 	}
 
 	results[0] = *fs.PostMountAll(results[0])
@@ -113,22 +114,23 @@ func (s *LocalStorageService) Mount(m codegen.Mount) (*codegen.Mount, error) {
 }
 
 func (s *LocalStorageService) Umount(mountpoint string) error {
+	ctx := context.Background()
 	// check if mountpoint is already mounted
 	results, err := s.GetMounts(codegen.GetMountsParams{
 		MountPoint: &mountpoint,
 	})
 	if err != nil {
-		logger.Error("Error when trying to get mounted volume", zap.Error(err), zap.String("mount point", mountpoint))
+		_log.Error(ctx, "Error when trying to get mounted volume", err, slog.String("mount point", mountpoint))
 		return err
 	}
 
 	if len(results) == 0 {
-		logger.Info("not mounted", zap.String("mount point", mountpoint))
+		_log.Info(ctx, "not mounted", slog.String("mount point", mountpoint))
 		return ErrNotMounted
 	}
 
 	if err := mount.UmountByMountPoint(mountpoint); err != nil {
-		logger.Error("error when trying to umount by mount point", zap.Error(err), zap.String("mount point", mountpoint))
+		_log.Error(ctx, "error when trying to umount by mount point", err, slog.String("mount point", mountpoint))
 		return err
 	}
 
