@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -81,6 +82,15 @@ var (
 )
 
 func init() {
+	// Skip the entire init in test binaries. init() here does heavy
+	// startup work (flag.Parse, config load, logger init, _state setup)
+	// that's not appropriate during `go test` — flag.Parse in particular
+	// fails the test binary because it doesn't recognize -test.* flags.
+	// Production main() calls runMain() which still does this setup.
+	if strings.HasSuffix(os.Args[0], ".test") || strings.Contains(os.Args[0], "/_test/") {
+		return
+	}
+
 	versionFlag := flag.Bool("v", false, "version")
 	wwwPathFlag := flag.String("w", filepath.Join(constants.DefaultDataPath, "www"), "www path")
 	flag.Parse()
@@ -506,9 +516,12 @@ func reloadGateway(port string, route http.Handler) error {
 		}
 	}()
 
-	// test if gateway is running
-	url := "http://" + addr + "/ping"
-	if err := checkURLWithRetry(url, 10); err != nil {
+	// test if gateway is running. listener.Addr() returns the BIND
+	// address (e.g. "[::]:8765" or "0.0.0.0:8765") which is invalid
+	// as a CLIENT destination — http.Get to "[::]:PORT" fails on
+	// IPv6-strict configs. Substitute the loopback before pinging.
+	checkURL := "http://" + clientLoopback(addr) + "/ping"
+	if err := checkURLWithRetry(checkURL, 10); err != nil {
 		return err
 	}
 
@@ -531,34 +544,66 @@ func reloadGateway(port string, route http.Handler) error {
 	return nil
 }
 
-func checkURLWithRetry(url string, retry uint) error {
-	count := retry
-	var err error
-
-	for count >= 0 {
-		_log.Info(context.Background(), "Checking if service at URL is running...", slog.Any("url", url), slog.Any("retry", count))
-		if err = checkURL(url); err != nil {
-			time.Sleep(time.Second)
-			count--
-			continue
-		}
-		break
+// clientLoopback rewrites a server bind address to a client-routable
+// loopback address. listener.Addr() returns the BIND address (e.g.
+// "[::]:8765" or "0.0.0.0:8765") — neither is valid as a TCP client
+// destination on IPv6-strict configs.  Without this rewrite, a
+// self-ping can fail with connection-refused even though the server
+// is listening on every interface.
+func clientLoopback(addr string) string {
+	switch {
+	case strings.HasPrefix(addr, "[::]:"):
+		return "127.0.0.1:" + strings.TrimPrefix(addr, "[::]:")
+	case strings.HasPrefix(addr, "0.0.0.0:"):
+		return "127.0.0.1:" + strings.TrimPrefix(addr, "0.0.0.0:")
+	default:
+		return addr
 	}
+}
 
+// checkURLWithRetry retries checkURL up to `retry` times with a 1s
+// sleep between attempts. Returns the last error, or nil on first
+// success.
+//
+// `retry` is `int` deliberately. Previously this was `uint` with the
+// loop condition `count >= 0`, which is ALWAYS true for unsigned
+// integers — `count--` from 0 wraps to MAX_UINT64, making the loop
+// run forever. Combined with the boot-time self-ping bug (the URL
+// pointed at a non-routable bind address), this turned the gateway
+// into a 100% CPU spinner that never finished startup. Locked in
+// by gateway/main_check_url_test.go.
+func checkURLWithRetry(url string, retry int) error {
+	var err error
+	for i := 0; i <= retry; i++ {
+		_log.Info(context.Background(), "Checking if service at URL is running...", slog.Any("url", url), slog.Any("attempt", i+1), slog.Any("max", retry+1))
+		if err = checkURL(url); err == nil {
+			return nil
+		}
+		time.Sleep(time.Second)
+	}
 	return err
 }
 
+// checkURL pings url and returns nil if any HTTP response was received
+// (including 301/302 — the gateway's HTTP→HTTPS redirect), or the
+// underlying transport error if the server didn't respond at all.
+// The boot path is the most common caller — it retries via
+// checkURLWithRetry while services come up.
+//
+// Bug-#64 history: this function used to nil-deref on the err != nil
+// branch because the original code wrote `if err == nil { return err }`
+// then unconditionally `defer response.Body.Close()`, which crashed
+// when http.Get returned (nil, err). Fixed here while DELIBERATELY
+// preserving the original "any response is up" semantics — the
+// gateway's HTTP listener returns 301 for /ping (redirect to HTTPS),
+// and a stricter "must be 200" check would loop forever during boot
+// because the HTTPS listener hasn't started yet.
 func checkURL(url string) error {
 	response, err := http2.Get(url, 5*time.Second)
-	if err == nil {
+	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
-
-	if response.StatusCode == http.StatusOK {
-		return ErrCheckURLNotOK
-	}
-
+	_ = response.Body.Close()
 	return nil
 }
 
