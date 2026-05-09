@@ -2,6 +2,7 @@ package v2
 
 import (
 	"fmt"
+	"log/slog"
 
 	"net/http"
 	"os"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/file"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/codegen"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/common"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/pkg/config"
@@ -17,7 +17,6 @@ import (
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/service"
 	model2 "github.com/IceWhaleTech/CasaOS-LocalStorage/service/model"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/service/v2/fs"
-	"go.uber.org/zap"
 
 	"github.com/labstack/echo/v4"
 )
@@ -72,7 +71,7 @@ func (s *LocalStorage) SetMerge(ctx echo.Context) error {
 	if m.SourceVolumeUuids != nil {
 		volumesFromDB, err := service.MyService.Disk().GetSerialAllFromDB()
 		if err != nil {
-			logger.Error("failed to get serial disks from database", zap.Error(err))
+			_log.Error(ctx.Request().Context(), "failed to get serial disks from database", err)
 			message := err.Error()
 			return ctx.JSON(http.StatusInternalServerError, codegen.BaseResponse{Message: &message})
 		}
@@ -98,7 +97,7 @@ func (s *LocalStorage) SetMerge(ctx echo.Context) error {
 	merge, err := service.MyService.LocalStorage().GetFirstMergeFromDB(m.MountPoint)
 	if err != nil {
 		message := err.Error()
-		logger.Error("failed to get merge from database", zap.Error(err), zap.String("mount point", m.MountPoint))
+		_log.Error(ctx.Request().Context(), "failed to get merge from database", err, slog.String("mount point", m.MountPoint))
 		return ctx.JSON(http.StatusInternalServerError, codegen.BaseResponse{Message: &message})
 	}
 
@@ -113,12 +112,12 @@ func (s *LocalStorage) SetMerge(ctx echo.Context) error {
 		if err := service.MyService.LocalStorage().CreateMerge(merge); err != nil {
 
 			message := err.Error()
-			logger.Error("failed to create merge", zap.Error(err), zap.String("mount point", m.MountPoint))
+			_log.Error(ctx.Request().Context(), "failed to create merge", err, slog.String("mount point", m.MountPoint))
 			return ctx.JSON(http.StatusInternalServerError, codegen.BaseResponse{Message: &message})
 		}
 
 		if err := service.MyService.LocalStorage().CreateMergeInDB(merge); err != nil {
-			logger.Error("failed to create merge in database", zap.Error(err), zap.String("mount point", m.MountPoint))
+			_log.Error(ctx.Request().Context(), "failed to create merge in database", err, slog.String("mount point", m.MountPoint))
 			message := err.Error()
 			return ctx.JSON(http.StatusInternalServerError, codegen.BaseResponse{Message: &message})
 		}
@@ -133,13 +132,13 @@ func (s *LocalStorage) SetMerge(ctx echo.Context) error {
 
 		if err := service.MyService.LocalStorage().UpdateMerge(merge); err != nil {
 			message := err.Error()
-			logger.Error("failed to update merge", zap.Error(err), zap.String("mount point", m.MountPoint))
+			_log.Error(ctx.Request().Context(), "failed to update merge", err, slog.String("mount point", m.MountPoint))
 			return ctx.JSON(http.StatusInternalServerError, codegen.BaseResponse{Message: &message})
 		}
 
 		if err := service.MyService.LocalStorage().UpdateMergeSourcesInDB(merge); err != nil {
 			message := err.Error()
-			logger.Error("failed to update merge sources in database", zap.Error(err), zap.String("mount point", m.MountPoint))
+			_log.Error(ctx.Request().Context(), "failed to update merge sources in database", err, slog.String("mount point", m.MountPoint))
 			return ctx.JSON(http.StatusInternalServerError, codegen.BaseResponse{Message: &message})
 		}
 	}
@@ -154,7 +153,7 @@ func (s *LocalStorage) SetMerge(ctx echo.Context) error {
 	msg["updated_at"] = result.UpdatedAt
 
 	if err := service.MyService.Notify().SendNotify(messageStatus, msg); err != nil {
-		logger.Error("error when sending notification", zap.Error(err), zap.String("message path", messageStatus), zap.Any("message", msg))
+		_log.Error(ctx.Request().Context(), "error when sending notification", err, slog.String("message path", messageStatus), slog.Any("message", msg))
 	}
 
 	return ctx.JSON(http.StatusOK, codegen.SetMergeResponseOK{
