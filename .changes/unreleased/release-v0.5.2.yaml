@@ -1,0 +1,11 @@
+kind: Internal
+body: |
+  Release v0.5.2 — incident response patch over v0.5.1. Closes the
+  v0.5.0 → v0.5.1 in-app upgrade incident class via three coordinated
+  fixes: install.sh cgroup escape (#129/#132), 4 boot-time gateway
+  bugs (#131), and surgical HTTPS feature gate (#130/#133). HTTPS is
+  now opt-in via `POWERLAB_HTTPS_ENABLED=true` and gates re-enable in
+  v0.6 on trust-dance redo (#118) + integration tests. Plus the
+  message-bus migration adoption (#127) from Sprint 3 Phase 2.
+custom:
+  Issue: "130"
