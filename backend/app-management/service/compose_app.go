@@ -1076,7 +1076,7 @@ func removeRuntime(a *ComposeApp) {
 }
 
 func NewComposeAppFromYAML(yaml []byte, skipInterpolation, skipValidation bool) (*ComposeApp, error) {
-	tmpWorkingDir, err := os.MkdirTemp("", "casaos-compose-app-*")
+	tmpWorkingDir, err := os.MkdirTemp("", "powerlab-compose-app-*")
 	if err != nil {
 		return nil, err
 	}
