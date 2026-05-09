@@ -7,11 +7,11 @@ import (
 	"log"
 
 	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
-	"github.com/IceWhaleTech/CasaOS-MessageBus/common"
-	"github.com/IceWhaleTech/CasaOS-MessageBus/model"
-	"github.com/IceWhaleTech/CasaOS-MessageBus/pkg/ysk"
-	"github.com/IceWhaleTech/CasaOS-MessageBus/repository"
-	"github.com/IceWhaleTech/CasaOS-MessageBus/utils"
+	"github.com/neochaotic/powerlab/backend/message-bus/common"
+	"github.com/neochaotic/powerlab/backend/message-bus/model"
+	"github.com/neochaotic/powerlab/backend/message-bus/pkg/ysk"
+	"github.com/neochaotic/powerlab/backend/message-bus/repository"
+	"github.com/neochaotic/powerlab/backend/message-bus/utils"
 	"go.uber.org/zap"
 )
 

@@ -1,8 +1,8 @@
 package in
 
 import (
-	"github.com/IceWhaleTech/CasaOS-MessageBus/codegen"
-	"github.com/IceWhaleTech/CasaOS-MessageBus/model"
+	"github.com/neochaotic/powerlab/backend/message-bus/codegen"
+	"github.com/neochaotic/powerlab/backend/message-bus/model"
 )
 
 func ActionAdapter(action codegen.Action) model.Action {

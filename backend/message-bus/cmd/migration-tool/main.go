@@ -8,7 +8,7 @@ import (
 
 	interfaces "github.com/IceWhaleTech/CasaOS-Common"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/systemctl"
-	"github.com/IceWhaleTech/CasaOS-MessageBus/common"
+	"github.com/neochaotic/powerlab/backend/message-bus/common"
 )
 
 const (

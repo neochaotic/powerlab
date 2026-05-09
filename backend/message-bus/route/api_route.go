@@ -1,8 +1,8 @@
 package route
 
 import (
-	"github.com/IceWhaleTech/CasaOS-MessageBus/codegen"
-	"github.com/IceWhaleTech/CasaOS-MessageBus/service"
+	"github.com/neochaotic/powerlab/backend/message-bus/codegen"
+	"github.com/neochaotic/powerlab/backend/message-bus/service"
 	jsoniter "github.com/json-iterator/go"
 )
 

@@ -7,8 +7,8 @@ import (
 
 	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 
-	"github.com/IceWhaleTech/CasaOS-MessageBus/common"
-	"github.com/IceWhaleTech/CasaOS-MessageBus/model"
+	"github.com/neochaotic/powerlab/backend/message-bus/common"
+	"github.com/neochaotic/powerlab/backend/message-bus/model"
 	"go.uber.org/zap"
 )
 

@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS-MessageBus/model"
-	"github.com/IceWhaleTech/CasaOS-MessageBus/repository"
-	"github.com/IceWhaleTech/CasaOS-MessageBus/service"
+	"github.com/neochaotic/powerlab/backend/message-bus/model"
+	"github.com/neochaotic/powerlab/backend/message-bus/repository"
+	"github.com/neochaotic/powerlab/backend/message-bus/service"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/goleak"
