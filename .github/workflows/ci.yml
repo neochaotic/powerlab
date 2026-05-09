@@ -19,6 +19,45 @@ on:
 
 jobs:
   # ─────────────────────────────────────────────────────────────────────
+  # Changelog fragment gate. Every PR that touches code (backend/, ui/src/,
+  # scripts/) MUST add at least one .changes/unreleased/*.yaml fragment.
+  # Eliminates the conflict-on-CHANGELOG.md class — see CONTRIBUTING.md.
+  # Issue #98 + adoption ADR.
+  # ─────────────────────────────────────────────────────────────────────
+  changelog-fragment:
+    name: Changelog fragment present
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute changed files (PR vs base)
+        id: diff
+        run: |
+          # List files changed by this PR. We use the base ref the PR
+          # targets (typically main) so this works for stacked PRs too.
+          git diff --name-only origin/${{ github.base_ref }}...HEAD > /tmp/changed.txt
+          cat /tmp/changed.txt
+
+      - name: Verify fragment present when code changed
+        run: |
+          set -e
+          # If any of the watched paths changed, require a fragment.
+          if grep -qE '^(backend/|ui/src/|scripts/)' /tmp/changed.txt; then
+            if ! grep -qE '^\.changes/unreleased/[^/]+\.yaml$' /tmp/changed.txt; then
+              echo "::error::This PR touches code under backend/, ui/src/, or scripts/ but does not add a changelog fragment under .changes/unreleased/."
+              echo "::error::Run 'changie new' (or hand-write a YAML fragment) and include it in the PR."
+              echo "::error::See CONTRIBUTING.md for the workflow."
+              exit 1
+            fi
+            echo "✓ Changelog fragment present"
+          else
+            echo "✓ No code change watched; fragment not required"
+          fi
+
+  # ─────────────────────────────────────────────────────────────────────
   # Frontend: type-check + unit tests + production build.
   # No cache-dependency-path because package-lock.json is gitignored;
   # `npm install` resolves the tree fresh each run.

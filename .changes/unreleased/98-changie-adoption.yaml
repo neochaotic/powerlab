@@ -1,0 +1,9 @@
+kind: Internal
+body: |
+  Adopt changie for changelog fragment workflow (#98). Each PR adds
+  a tiny YAML fragment under .changes/unreleased/; release time
+  aggregates fragments into a single CHANGELOG section. Eliminates
+  the conflict-on-CHANGELOG class that consumed merge-cascade time
+  during Sprint 1 (~5-10 min per cascade).
+custom:
+  Issue: "98"

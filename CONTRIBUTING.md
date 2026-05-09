@@ -32,18 +32,39 @@ commit, and `scripts/validate.sh --quick` must stay green.
 
 Any commit that lands a user-visible change MUST also update:
 
-- **`CHANGELOG.md`** — add an entry under `[Unreleased]`. The format is
-  Keep-a-Changelog (Added / Changed / Deprecated / Removed / Fixed /
-  Security). Prose sentences, not bullet-only fragments.
+- **A changelog fragment under `.changes/unreleased/`** — run
+  `changie new` to create one interactively (or hand-write a YAML
+  file matching the format in existing fragments). The fragment
+  declares its `kind` (Added / Changed / Deprecated / Removed /
+  Fixed / Security / Internal) and a prose `body`. Two PRs never
+  edit the same file, so this eliminates the "merge conflict on
+  CHANGELOG.md" class entirely. See `.changes/header.tpl.md` for
+  the format.
 - **`README.md`** — when the change affects what's promised on the
   product page (install command, supported platforms, headline
   features). Skip for purely-internal refactors.
 - **`SUPPORT.md`** — when the change affects platform support, distro
   compatibility, hardware tiers, or auth mechanism.
 
-The `[Unreleased]` block is renamed to `[X.Y.Z]` with the date when
-the release is tagged. CI will be extended to enforce the
-"changelog entry present" rule once the codebase stabilises.
+`CHANGELOG.md` is **generated** at release time by `changie batch
+<version>`, which aggregates the unreleased fragments into a new
+section and archives them under `.changes/<version>/`. **Do not
+hand-edit `CHANGELOG.md`** unless you're fixing a typo in an
+already-released section. CI gates that every code-touching PR
+includes at least one fragment.
+
+To install changie locally:
+
+    go install github.com/miniscruff/changie@latest
+
+Then `changie new` (interactive) or just drop a `.yaml` file like:
+
+    kind: Fixed
+    body: |
+      Files: save toast invisible because z-index conflict between
+      toast container and editor modal.
+    custom:
+      Issue: "3"
 
 For roadmap items tracked as GitHub issues, the issue itself is the
 working spec. As features land, copy the salient bits from the issue
