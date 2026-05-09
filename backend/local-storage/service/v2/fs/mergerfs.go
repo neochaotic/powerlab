@@ -11,7 +11,7 @@ const (
 	MergerFSFullName       = "fuse.mergerfs"
 	MergerFSDefaultOptions = "category.create=mfs,moveonenospc=true,minfreespace=1M"
 
-	MergerFSExtendedKeySource = "mergerfs.src" // corresponding value could be for example: /var/lib/casaos/files
+	MergerFSExtendedKeySource = "mergerfs.src" // corresponding value could be for example: /var/lib/casaos/files (legacy path; see #101 for migration)
 
 )
 

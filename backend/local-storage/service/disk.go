@@ -690,7 +690,7 @@ func (d *diskService) InitCheck() {
 					Name:       "local-storage:disk:added",
 					Properties: properties,
 				}
-				// add UI properties to applicable events so that CasaOS UI can render it
+				// add UI properties to applicable events so that PowerLab UI can render it
 				event := common.EventAdapterWithUIProperties(&eventModel)
 
 				bk := false

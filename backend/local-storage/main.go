@@ -132,11 +132,11 @@ func ensureDefaultDirectories() {
 	}
 
 	if sysType == "windows" {
-		dirArray = []string{"C:\\CasaOS\\DATA\\AppData", "C:\\CasaOS\\DATA\\Documents", "C:\\CasaOS\\DATA\\Downloads", "C:\\CasaOS\\DATA\\Gallery", "C:\\CasaOS\\DATA\\Media/Movies", "C:\\CasaOS\\DATA\\Media\\TV Shows", "C:\\CasaOS\\DATA\\Media\\Music"}
+		dirArray = []string{"C:\\PowerLab\\DATA\\AppData", "C:\\PowerLab\\DATA\\Documents", "C:\\PowerLab\\DATA\\Downloads", "C:\\PowerLab\\DATA\\Gallery", "C:\\PowerLab\\DATA\\Media/Movies", "C:\\PowerLab\\DATA\\Media\\TV Shows", "C:\\PowerLab\\DATA\\Media\\Music"}
 	}
 
 	if sysType == "darwin" {
-		dirArray = []string{"./CasaOS/DATA/AppData", "./CasaOS/DATA/Documents", "./CasaOS/DATA/Downloads", "./CasaOS/DATA/Gallery", "./CasaOS/DATA/Media/Movies", "./CasaOS/DATA/Media/TV Shows", "./CasaOS/DATA/Media/Music"}
+		dirArray = []string{"./PowerLab/DATA/AppData", "./PowerLab/DATA/Documents", "./PowerLab/DATA/Downloads", "./PowerLab/DATA/Gallery", "./PowerLab/DATA/Media/Movies", "./PowerLab/DATA/Media/TV Shows", "./PowerLab/DATA/Media/Music"}
 	}
 
 	for _, v := range dirArray {

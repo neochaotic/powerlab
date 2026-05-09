@@ -24,6 +24,12 @@ import (
 
 var MessageMergerFSNotEnabled = "mergerfs is not enabled - either it is not enabled in configuration file; merge point is not empty before mounting; or mergerfs is not installed"
 
+// MessageVolumeNotPowerLabStorage is returned when the user references a
+// volume UUID that exists on the host but is not registered as a
+// PowerLab-managed volume. The storage layer only operates on volumes it
+// has on file. Adding the volume via the storage UI marks it managed.
+const MessageVolumeNotPowerLabStorage = "volume %s not found, or it is not a PowerLab storage. Consider adding it to PowerLab first."
+
 func (s *LocalStorage) GetMerges(ctx echo.Context, params codegen.GetMergesParams) error {
 	if strings.ToLower(config.ServerInfo.EnableMergerFS) != "true" {
 		return ctx.JSON(http.StatusServiceUnavailable, codegen.ResponseServiceUnavailable{Message: &MessageMergerFSNotEnabled})
@@ -77,7 +83,7 @@ func (s *LocalStorage) SetMerge(ctx echo.Context) error {
 			}
 
 			if !volumeFound {
-				message := "volume " + volumeUUID + " not found, or it is not a CasaOS storage. Consider adding it to CasaOS first."
+				message := fmt.Sprintf(MessageVolumeNotPowerLabStorage, volumeUUID)
 				return ctx.JSON(http.StatusBadRequest, codegen.ResponseBadRequest{Message: &message})
 			}
 		}
