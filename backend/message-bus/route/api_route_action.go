@@ -1,21 +1,21 @@
 package route
 
 import (
+	"context"
+	"log/slog"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/IceWhaleTech/CasaOS-Common/utils"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"github.com/gobwas/ws"
+	"github.com/gobwas/ws/wsutil"
+	"github.com/labstack/echo/v4"
 	"github.com/neochaotic/powerlab/backend/message-bus/codegen"
 	"github.com/neochaotic/powerlab/backend/message-bus/common"
 	"github.com/neochaotic/powerlab/backend/message-bus/model"
 	"github.com/neochaotic/powerlab/backend/message-bus/route/adapter/in"
 	"github.com/neochaotic/powerlab/backend/message-bus/route/adapter/out"
-	"github.com/gobwas/ws"
-	"github.com/gobwas/ws/wsutil"
-	"github.com/labstack/echo/v4"
-	"go.uber.org/zap"
 )
 
 func (r *APIRoute) GetActionTypes(c echo.Context) error {
@@ -153,23 +153,23 @@ func (r *APIRoute) SubscribeActionWS(c echo.Context, sourceID codegen.SourceID, 
 		defer func(actionNames []string) {
 			for _, name := range actionNames {
 				if err := r.services.ActionServiceWS.Unsubscribe(sourceID, name, channel); err != nil {
-					logger.Error("error when trying to unsubscribe an action type via websocket", zap.Error(err), zap.String("source_id", sourceID), zap.String("name", name))
+					_log.Error(context.Background(), "error when trying to unsubscribe an action type via websocket", err, slog.String("source_id", sourceID), slog.String("name", name))
 				}
 			}
 		}(actionNames)
 
-		logger.Info("a websocket connection has started for actions", zap.String("remote_addr", conn.RemoteAddr().String()))
+		_log.Info(context.Background(), "a websocket connection has started for actions", slog.String("remote_addr", conn.RemoteAddr().String()))
 
 		for {
 			action, ok := <-channel
 			if !ok {
-				logger.Info("websocket channel for events is closed")
+				_log.Info(context.Background(), "websocket channel for events is closed")
 				return
 			}
 
 			if action.SourceID == common.MessageBusSourceID && action.Name == common.MessageBusHeartbeatName {
 				if err := wsutil.WriteServerMessage(conn, ws.OpPing, []byte{}); err != nil {
-					logger.Error("error when trying to send ping message via websocket", zap.Error(err))
+					_log.Error(context.Background(), "error when trying to send ping message via websocket", err)
 					return
 				}
 				continue
@@ -177,17 +177,17 @@ func (r *APIRoute) SubscribeActionWS(c echo.Context, sourceID codegen.SourceID, 
 
 			message, err := json.Marshal(out.ActionAdapter(action))
 			if err != nil {
-				logger.Error("error when trying to marshal action for websocket", zap.Error(err))
+				_log.Error(context.Background(), "error when trying to marshal action for websocket", err)
 				continue
 			}
 
-			logger.Info("sending action via websocket", zap.String("remote_addr", conn.RemoteAddr().String()), zap.String("message", string(message)))
+			_log.Info(context.Background(), "sending action via websocket", slog.String("remote_addr", conn.RemoteAddr().String()), slog.String("message", string(message)))
 
 			if err := wsutil.WriteServerBinary(conn, message); err != nil {
 				if _, ok := err.(*net.OpError); ok {
-					logger.Info("websocket connection ended", zap.String("error", err.Error()))
+					_log.Info(context.Background(), "websocket connection ended", slog.String("error", err.Error()))
 				} else {
-					logger.Error("error when sending event via websocket", zap.String("error", err.Error()))
+					_log.Error(context.Background(), "error when sending event via websocket", err)
 				}
 				return
 			}

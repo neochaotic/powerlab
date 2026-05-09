@@ -1,15 +1,15 @@
 package repository
 
 import (
+	"context"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"github.com/glebarez/sqlite"
 	"github.com/neochaotic/powerlab/backend/message-bus/model"
 	"github.com/neochaotic/powerlab/backend/message-bus/pkg/ysk"
-	"github.com/glebarez/sqlite"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -86,7 +86,7 @@ func (r *DatabaseRepository) GetEventType(sourceID string, name string) (*model.
 	var eventType model.EventType
 
 	if err := r.db.Preload(model.PropertyTypeList).Where(&model.EventType{SourceID: sourceID, Name: name}).First(&eventType).Error; err != nil {
-		logger.Error("can't find event type", zap.String("sourceID", sourceID), zap.String("EventName", name), zap.Error(err))
+		_log.Error(context.Background(), "can't find event type", err, slog.String("sourceID", sourceID), slog.String("EventName", name))
 		return nil, err
 	}
 

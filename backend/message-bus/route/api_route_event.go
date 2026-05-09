@@ -1,24 +1,24 @@
 package route
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
+	"log/slog"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/IceWhaleTech/CasaOS-Common/utils"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"github.com/gobwas/ws"
+	"github.com/gobwas/ws/wsutil"
+	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 	"github.com/neochaotic/powerlab/backend/message-bus/codegen"
 	"github.com/neochaotic/powerlab/backend/message-bus/common"
 	"github.com/neochaotic/powerlab/backend/message-bus/model"
 	"github.com/neochaotic/powerlab/backend/message-bus/route/adapter/in"
 	"github.com/neochaotic/powerlab/backend/message-bus/route/adapter/out"
-	"github.com/gobwas/ws"
-	"github.com/gobwas/ws/wsutil"
-	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
-	"go.uber.org/zap"
 )
 
 func (r *APIRoute) GetEventTypes(ctx echo.Context) error {
@@ -159,23 +159,23 @@ func (r *APIRoute) SubscribeEventWS(c echo.Context, sourceID codegen.SourceID, p
 		defer func(eventNames []string) {
 			for _, name := range eventNames {
 				if err := r.services.EventServiceWS.Unsubscribe(sourceID, name, channel); err != nil {
-					logger.Error("error when trying to unsubscribe an event type via websocket", zap.Error(err), zap.String("source_id", sourceID), zap.String("name", name))
+					_log.Error(context.Background(), "error when trying to unsubscribe an event type via websocket", err, slog.String("source_id", sourceID), slog.String("name", name))
 				}
 			}
 		}(eventNames)
 
-		logger.Info("a websocket connection has started for events", zap.String("remote_addr", conn.RemoteAddr().String()))
+		_log.Info(context.Background(), "a websocket connection has started for events", slog.String("remote_addr", conn.RemoteAddr().String()))
 
 		for {
 			event, ok := <-channel
 			if !ok {
-				logger.Info("websocket channel for events is closed")
+				_log.Info(context.Background(), "websocket channel for events is closed")
 				return
 			}
 
 			if event.SourceID == common.MessageBusSourceID && event.Name == common.MessageBusHeartbeatName {
 				if err := wsutil.WriteServerMessage(conn, ws.OpPing, []byte{}); err != nil {
-					logger.Error("error when trying to send ping message via websocket", zap.Error(err))
+					_log.Error(context.Background(), "error when trying to send ping message via websocket", err)
 					return
 				}
 				continue
@@ -183,17 +183,17 @@ func (r *APIRoute) SubscribeEventWS(c echo.Context, sourceID codegen.SourceID, p
 
 			message, err := json.Marshal(out.EventAdapter(event))
 			if err != nil {
-				logger.Error("error when trying to marshal event for websocket", zap.Error(err))
+				_log.Error(context.Background(), "error when trying to marshal event for websocket", err)
 				continue
 			}
 
-			logger.Info("sending event via websocket", zap.String("remote_addr", conn.RemoteAddr().String()), zap.String("message", string(message)))
+			_log.Info(context.Background(), "sending event via websocket", slog.String("remote_addr", conn.RemoteAddr().String()), slog.String("message", string(message)))
 
 			if err := wsutil.WriteServerText(conn, message); err != nil {
 				if _, ok := err.(*net.OpError); ok {
-					logger.Info("websocket connection ended", zap.String("error", err.Error()))
+					_log.Info(context.Background(), "websocket connection ended", slog.String("error", err.Error()))
 				} else {
-					logger.Error("error when sending event via websocket", zap.String("error", err.Error()))
+					_log.Error(context.Background(), "error when sending event via websocket", err)
 				}
 				return
 			}

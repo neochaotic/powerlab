@@ -6,13 +6,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/neochaotic/powerlab/backend/message-bus/common"
 	"github.com/neochaotic/powerlab/backend/message-bus/model"
 	"github.com/neochaotic/powerlab/backend/message-bus/pkg/ysk"
 	"github.com/neochaotic/powerlab/backend/message-bus/repository"
 	"github.com/neochaotic/powerlab/backend/message-bus/utils"
-	"go.uber.org/zap"
 )
 
 type YSKService struct {
@@ -97,7 +95,7 @@ func (s *YSKService) Start(init bool) {
 		common.EventTypeYSKCardUpsert.Name, common.EventTypeYSKCardDelete.Name,
 	})
 	if err != nil {
-		logger.Error("failed to subscribe to event", zap.Error(err))
+		_log.Error(context.Background(), "failed to subscribe to event", err)
 		return
 	}
 
@@ -113,17 +111,17 @@ func (s *YSKService) Start(init bool) {
 					var card ysk.YSKCard
 					err := json.Unmarshal([]byte(event.Properties[common.PropertyTypeCardBody.Name]), &card)
 					if err != nil {
-						logger.Error("failed to umarshal ysk card", zap.Error(err))
+						_log.Error(context.Background(), "failed to umarshal ysk card", err)
 						continue
 					}
 					err = s.UpsertYSKCard(context.Background(), card)
 					if err != nil {
-						logger.Error("failed to upsert ysk card", zap.Error(err))
+						_log.Error(context.Background(), "failed to upsert ysk card", err)
 					}
 				case common.EventTypeYSKCardDelete.Name:
 					err = s.DeleteYSKCard(context.Background(), event.Properties[common.PropertyTypeCardID.Name])
 					if err != nil {
-						logger.Error("failed to delete ysk card", zap.Error(err))
+						_log.Error(context.Background(), "failed to delete ysk card", err)
 					}
 				default:
 					fmt.Println(event)

@@ -1,9 +1,9 @@
 package route
 
 import (
+	jsoniter "github.com/json-iterator/go"
 	"github.com/neochaotic/powerlab/backend/message-bus/codegen"
 	"github.com/neochaotic/powerlab/backend/message-bus/service"
-	jsoniter "github.com/json-iterator/go"
 )
 
 type APIRoute struct {

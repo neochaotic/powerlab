@@ -2,14 +2,12 @@ package service
 
 import (
 	"context"
+	"log/slog"
 	"sync"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
-
 	"github.com/neochaotic/powerlab/backend/message-bus/common"
 	"github.com/neochaotic/powerlab/backend/message-bus/model"
-	"go.uber.org/zap"
 )
 
 type EventServiceWS struct {
@@ -26,7 +24,7 @@ var mutex = &sync.Mutex{}
 
 func (s *EventServiceWS) Publish(event model.Event) {
 	if s.inboundChannel == nil {
-		logger.Error("error when publishing event via websocket", zap.Error(ErrInboundChannelNotFound))
+		_log.Error(context.Background(), "error when publishing event via websocket", ErrInboundChannelNotFound)
 	}
 
 	if event.Timestamp == 0 {
@@ -40,7 +38,7 @@ func (s *EventServiceWS) Publish(event model.Event) {
 
 	case <-(*s.ctx).Done():
 		if err := (*s.ctx).Err(); err != nil {
-			logger.Info(err.Error())
+			_log.Info(context.Background(), err.Error())
 		}
 		return
 
@@ -115,9 +113,9 @@ func (s *EventServiceWS) Unsubscribe(sourceID string, name string, c chan model.
 		defer mutex.Unlock()
 
 		if subscriber == c {
-			logger.Info("unsubscribing from event type", zap.String("sourceID", sourceID), zap.String("name", name), zap.Int("subscriber", i))
+			_log.Info(context.Background(), "unsubscribing from event type", slog.String("sourceID", sourceID), slog.String("name", name), slog.Int("subscriber", i))
 			if i >= len(s.subscriberChannels[sourceID][name]) {
-				logger.Error("the i-th subscriber is removed before we get here - concurrency issue?", zap.Int("subscriber", i), zap.Int("total", len(s.subscriberChannels[sourceID][name])))
+				_log.Error(context.Background(), "the i-th subscriber is removed before we get here - concurrency issue?", nil, slog.Int("subscriber", i), slog.Int("total", len(s.subscriberChannels[sourceID][name])))
 				return ErrAlreadySubscribed
 			}
 			s.subscriberChannels[sourceID][name] = append(s.subscriberChannels[sourceID][name][:i], s.subscriberChannels[sourceID][name][i+1:]...)
