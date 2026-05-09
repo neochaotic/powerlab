@@ -7,11 +7,13 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"math/big"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -388,7 +390,7 @@ func (m *CertManager) GenerateServerCert() error {
 		NotAfter:    time.Now().AddDate(1, 0, 0), // 1 year
 		KeyUsage:    x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
 		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		DNSNames:    []string{"powerlab.local", "localhost", hostname + ".local"},
+		DNSNames:    buildDNSNames(hostname),
 		IPAddresses: []net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")},
 	}
 
@@ -615,4 +617,63 @@ func ShouldIncludeIP(ifaceName string, ip net.IP) bool {
 		return true
 	}
 	return false
+}
+
+// buildDNSNames constructs the DNSNames slice for a leaf cert. Always
+// includes powerlab.local + localhost + <system-hostname>.local. When
+// Tailscale is installed and authenticated on this host, also includes
+// the MagicDNS hostname (e.g. m900.tailnet-name.ts.net) so users
+// reaching PowerLab over their Tailscale mesh see the green padlock
+// without certificate warnings (#44).
+//
+// Tailscale lookup is best-effort: if the `tailscale` CLI isn't
+// installed, isn't authenticated, or returns an unexpected JSON shape,
+// we silently skip and fall back to the LAN names. A logged-in
+// admin reading the cert SAN will see whether Tailscale was detected.
+func buildDNSNames(hostname string) []string {
+	names := []string{"powerlab.local", "localhost", hostname + ".local"}
+	if ts := tailscaleMagicDNSName(); ts != "" {
+		names = append(names, ts)
+		logger.Info("included Tailscale MagicDNS hostname in cert SAN",
+			zap.String("hostname", ts),
+		)
+	}
+	return names
+}
+
+// tailscaleMagicDNSName returns the host's Tailscale MagicDNS hostname
+// (e.g. m900.tailnet-name.ts.net) without the trailing dot, or empty
+// string if Tailscale is unavailable.
+//
+// Implementation: shells out to `tailscale status --json` and reads
+// `Self.DNSName`. The CLI is used (not the local API) because:
+//   - the CLI is the supported integration surface
+//   - it works whether tailscaled is talking to control or in
+//     login-required state — the JSON has DNSName populated as soon
+//     as the host has a stable identity
+//   - shelling out is invoked once per cert generation (not hot
+//     path), so the process spawn cost is irrelevant
+//
+// 2-second timeout so a hung tailscaled never blocks cert rotation.
+func tailscaleMagicDNSName() string {
+	if _, err := exec.LookPath("tailscale"); err != nil {
+		return ""
+	}
+	cmd := exec.Command("tailscale", "status", "--json")
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	var status struct {
+		Self struct {
+			DNSName string `json:"DNSName"`
+		} `json:"Self"`
+	}
+	if err := json.Unmarshal(out, &status); err != nil {
+		return ""
+	}
+	// Tailscale returns the FQDN with a trailing dot (DNS canonical
+	// form). x509 SAN entries should NOT have the trailing dot, so
+	// strip it.
+	return strings.TrimSuffix(status.Self.DNSName, ".")
 }

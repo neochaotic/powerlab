@@ -67,7 +67,7 @@ When something is wrong, in this order:
 | `powerlab.local` doesn't resolve | avahi only publishes hostnames it owns (the system's hostname); `powerlab.local` is not aliased | Set the host's hostname to `powerlab` (`sudo hostnamectl set-hostname powerlab && sudo systemctl restart avahi-daemon powerlab-gateway`). Otherwise use `<hostname>.local` (the system's actual hostname) which the install banner prints |
 | `<hostname>.local` doesn't resolve from Linux client | Linux clients need `nss-mdns` configured | Install: `sudo apt install libnss-mdns` (Debian/Ubuntu), `sudo dnf install nss-mdns` (Fedora). Verify `/etc/nsswitch.conf` has `mdns_minimal` in the `hosts:` line — this is the default after install |
 | `<hostname>.local` doesn't resolve even with nss-mdns | avahi-daemon not running on the server | `sudo systemctl status avahi-daemon`. The gateway logs `"avahi_running": false` in the "mDNS announce — startup state" line on boot — grep `journalctl -u powerlab-gateway` for that |
-| HTTPS cert SAN missing Tailscale hostname | Cert generation didn't query Tailscale | Tracked in #44 — Sprint 1, dies in gateway rewrite |
+| HTTPS works on LAN but warns over Tailscale | Tailscale MagicDNS hostname not in cert SAN until v0.4.0 (#44) | v0.4.0+: cert auto-includes Tailscale's `*.ts.net` hostname when `tailscale` CLI is installed and authenticated. Run `tailscale status --json` to verify Self.DNSName is populated; then `sudo systemctl restart powerlab-gateway` to trigger cert regeneration |
 | Gateway crashed with SIGSEGV during config reload | `checkURL` inverted condition + nil-deref (#64, CasaOS legacy) | Mitigated by panic recovery middleware once Sprint 1 part 3 lands; structurally closed in gateway rewrite |
 
 ## Process / OS
