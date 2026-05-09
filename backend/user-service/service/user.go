@@ -1,24 +1,14 @@
-/*
- * @Author: LinkLeong link@icewhale.com
- * @Date: 2022-03-18 11:40:55
- * @LastEditors: LinkLeong
- * @LastEditTime: 2022-07-12 10:05:37
- * @Description:
- * @Website: https://www.casaos.io
- * Copyright (c) 2022 by icewhale, All Rights Reserved.
- */
 package service
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"io"
 	"mime/multipart"
 	"os"
 
 	"github.com/IceWhaleTech/CasaOS-Common/utils/jwt"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/IceWhaleTech/CasaOS-UserService/service/model"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -116,7 +106,7 @@ func NewUserService(db *gorm.DB) UserService {
 	// DO NOT store private key anywhere - keep it in memory ONLY!!!
 	privateKey, publicKey, err := jwt.GenerateKeyPair()
 	if err != nil {
-		logger.Error("failed to generate key pair for JWT", zap.Error(err))
+		_log.Error(context.Background(), "failed to generate key pair for JWT", err)
 		return nil
 	}
 

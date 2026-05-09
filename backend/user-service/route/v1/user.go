@@ -20,11 +20,12 @@ import (
 	"strings"
 	"time"
 
+	"log/slog"
+
 	"github.com/IceWhaleTech/CasaOS-Common/external"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/jwt"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/IceWhaleTech/CasaOS-UserService/common"
 	"github.com/IceWhaleTech/CasaOS-UserService/model"
 	"github.com/IceWhaleTech/CasaOS-UserService/model/system_model"
@@ -35,7 +36,6 @@ import (
 	"github.com/labstack/echo/v4"
 	uuid "github.com/satori/go.uuid"
 	"github.com/tidwall/gjson"
-	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 
 	"github.com/IceWhaleTech/CasaOS-UserService/service"
@@ -263,13 +263,13 @@ func PutUserAvatar(ctx echo.Context) error {
 	os.Remove(avatarPath)
 	outFile, err := os.Create(avatarPath)
 	if err != nil {
-		logger.Error("create file error", zap.Error(err))
+		_log.Error(ctx.Request().Context(), "create file error", err)
 	}
 	defer outFile.Close()
 
 	err = png.Encode(outFile, img)
 	if err != nil {
-		logger.Error("encode error", zap.Error(err))
+		_log.Error(ctx.Request().Context(), "encode error", err)
 	}
 	user.Avatar = avatarPath
 	service.MyService.User().UpdateUser(user)
@@ -573,10 +573,12 @@ func PostUserCustomConf(ctx echo.Context) error {
 		dataMap["system"] = string(data)
 		response, err := service.MyService.MessageBus().PublishEventWithResponse(context.Background(), common.SERVICENAME, "zimaos:user:save_config", dataMap)
 		if err != nil {
-			logger.Error("failed to publish event to message bus", zap.Error(err), zap.Any("event", string(data)))
+			_log.Error(ctx.Request().Context(), "failed to publish event to message bus", err, slog.String("event", string(data)))
 		}
 		if response.StatusCode() != http.StatusOK {
-			logger.Error("failed to publish event to message bus", zap.String("status", response.Status()), zap.Any("response", response))
+			_log.Error(ctx.Request().Context(), "failed to publish event to message bus", nil,
+				slog.String("status", response.Status()),
+				slog.Any("response", response))
 		}
 
 	}
@@ -840,7 +842,7 @@ func GetUserStatus(ctx echo.Context) error {
 	}
 	gpus, err := external.NvidiaGPUInfoList()
 	if err != nil {
-		logger.Error("NvidiaGPUInfoList error", zap.Error(err))
+		_log.Error(ctx.Request().Context(), "NvidiaGPUInfoList error", err)
 	}
 	data["gpus"] = len(gpus)
 	return ctx.JSON(common_err.SUCCESS,
