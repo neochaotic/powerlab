@@ -1,23 +1,13 @@
-/*
- * @Author: LinkLeong link@icewhale.com
- * @Date: 2022-05-13 18:15:46
- * @LastEditors: LinkLeong
- * @LastEditTime: 2022-07-11 18:10:53
- * @Description:
- * @Website: https://www.casaos.io
- * Copyright (c) 2022 by icewhale, All Rights Reserved.
- */
 package sqlite
 
 import (
+	"context"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/IceWhaleTech/CasaOS-UserService/model"
 	"github.com/IceWhaleTech/CasaOS-UserService/pkg/utils/file"
 	model2 "github.com/IceWhaleTech/CasaOS-UserService/service/model"
 	"github.com/glebarez/sqlite"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -43,7 +33,7 @@ func GetDb(dbPath string) *gorm.DB {
 
 	err = db.AutoMigrate(model2.UserDBModel{}, model.EventModel{})
 	if err != nil {
-		logger.Error("check or create db error", zap.Any("error", err))
+		_log.Error(context.Background(), "check or create db error", err)
 	}
 	return db
 }

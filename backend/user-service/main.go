@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -18,18 +19,34 @@ import (
 	"github.com/IceWhaleTech/CasaOS-Common/model"
 	util_http "github.com/IceWhaleTech/CasaOS-Common/utils/http"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/jwt"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/IceWhaleTech/CasaOS-UserService/codegen/message_bus"
 	"github.com/IceWhaleTech/CasaOS-UserService/common"
 	"github.com/IceWhaleTech/CasaOS-UserService/pkg/config"
 	"github.com/IceWhaleTech/CasaOS-UserService/pkg/sqlite"
 	"github.com/IceWhaleTech/CasaOS-UserService/pkg/utils/encryption"
 	"github.com/IceWhaleTech/CasaOS-UserService/pkg/utils/random"
-	"github.com/IceWhaleTech/CasaOS-UserService/route"
+	v1route "github.com/IceWhaleTech/CasaOS-UserService/route"
+	v1userroute "github.com/IceWhaleTech/CasaOS-UserService/route/v1"
 	"github.com/IceWhaleTech/CasaOS-UserService/service"
 	"github.com/coreos/go-systemd/daemon"
-	"go.uber.org/zap"
+	pkglifecycle "github.com/neochaotic/powerlab/backend/pkg/lifecycle"
+	pkglogging "github.com/neochaotic/powerlab/backend/pkg/logging"
+	pkgtracing "github.com/neochaotic/powerlab/backend/pkg/tracing"
 )
+
+// _log is the PowerLab-owned slog-based logger used by the foundation
+// middleware (panic recovery + correlation-ID tracing). Constructed
+// once at the top of main() and passed to wrapWithFoundation.
+var _log pkglogging.Logger
+
+// wrapWithFoundation wraps any http.Handler with PowerLab's
+// foundation middleware. Same pattern as gateway and message-bus
+// part 2. Closes the bug-#64 SIGSEGV class within this process.
+func wrapWithFoundation(h http.Handler) http.Handler {
+	return pkgtracing.Middleware(
+		pkglifecycle.RecoverMiddleware(_log)(h),
+	)
+}
 
 const localhost = "127.0.0.1"
 
@@ -66,7 +83,10 @@ func init() {
 
 	config.InitSetup(*configFlag, _confSample)
 
-	logger.LogInit(config.AppInfo.LogPath, config.AppInfo.LogSaveName, config.AppInfo.LogFileExt)
+	// LogInit removed in Sprint 2 Kill #4 — pkg/logging is constructed
+	// in main() and is the single logger for this process. No
+	// remaining call sites in user-service use the CasaOS-Common
+	// legacy logger after this kill.
 
 	if len(*dbFlag) == 0 {
 		*dbFlag = config.AppInfo.DBPath
@@ -103,9 +123,34 @@ func init() {
 }
 
 func main() {
-	v1Router := route.InitRouter()
-	v2Router := route.InitV2Router()
-	v2DocRouter := route.InitV2DocRouter(_docHTML, _docYAML)
+	// Initialize the PowerLab foundation logger before anything else
+	// in main(). wrapWithFoundation, SafeGo, and the per-package
+	// _log overrides all need this. Same env-var contract as
+	// gateway / message-bus / local-storage.
+	level := os.Getenv("POWERLAB_LOG_LEVEL")
+	if level == "" {
+		level = "info"
+	}
+	format := os.Getenv("POWERLAB_LOG_FORMAT")
+	if format == "" {
+		format = "json"
+	}
+	fl, lerr := pkglogging.New(pkglogging.Config{Level: level, Format: format})
+	if lerr != nil {
+		fl, _ = pkglogging.New(pkglogging.Config{})
+	}
+	_log = fl
+
+	// Wire the same instance into every package that owns a _log,
+	// so all log lines in this process flow through one logger.
+	v1route.SetLogger(_log)
+	v1userroute.SetLogger(_log)
+	service.SetLogger(_log)
+	sqlite.SetLogger(_log)
+
+	v1Router := v1route.InitRouter()
+	v2Router := v1route.InitV2Router()
+	v2DocRouter := v1route.InitV2DocRouter(_docHTML, _docYAML)
 
 	_, publicKey := service.MyService.User().GetKeyPair()
 
@@ -130,8 +175,8 @@ func main() {
 
 	apiPaths := []string{
 		"/v1/users",
-		route.V2APIPath,
-		route.V2DocPath,
+		v1route.V2APIPath,
+		v1route.V2DocPath,
 		"/" + jwt.JWKSPath,
 	}
 	for _, v := range apiPaths {
@@ -151,15 +196,18 @@ func main() {
 		panic(err)
 	}
 
+	bgCtx := context.Background()
 	if supported, err := daemon.SdNotify(false, daemon.SdNotifyReady); err != nil {
-		logger.Error("Failed to notify systemd that user service is ready", zap.Any("error", err))
+		_log.Error(bgCtx, "Failed to notify systemd that user service is ready", err)
 	} else if supported {
-		logger.Info("Notified systemd that user service is ready")
+		_log.Info(bgCtx, "Notified systemd that user service is ready")
 	} else {
-		logger.Info("This process is not running as a systemd service.")
+		_log.Info(bgCtx, "This process is not running as a systemd service.")
 	}
-	go route.EventListen()
-	logger.Info("User service is listening...", zap.Any("address", listener.Addr().String()), zap.String("filepath", addressFilePath))
+	pkglifecycle.SafeGo(bgCtx, _log, v1route.EventListen)
+	_log.Info(bgCtx, "User service is listening...",
+		slog.String("address", listener.Addr().String()),
+		slog.String("filepath", addressFilePath))
 
 	var events []message_bus.EventType
 	events = append(events, message_bus.EventType{Name: "zimaos:user:save_config", SourceID: common.SERVICENAME, PropertyTypeList: []message_bus.PropertyType{}})
@@ -167,10 +215,12 @@ func main() {
 	for i := 0; i < 10; i++ {
 		response, err := service.MyService.MessageBus().RegisterEventTypesWithResponse(context.Background(), events)
 		if err != nil {
-			logger.Error("error when trying to register one or more event types - some event type will not be discoverable", zap.Error(err))
+			_log.Error(bgCtx, "error when trying to register one or more event types - some event type will not be discoverable", err)
 		}
 		if response != nil && response.StatusCode() != http.StatusOK {
-			logger.Error("error when trying to register one or more event types - some event type will not be discoverable", zap.String("status", response.Status()), zap.String("body", string(response.Body)))
+			_log.Error(bgCtx, "error when trying to register one or more event types - some event type will not be discoverable", nil,
+				slog.String("status", response.Status()),
+				slog.String("body", string(response.Body)))
 		}
 		if response.StatusCode() == http.StatusOK {
 			break
@@ -179,7 +229,7 @@ func main() {
 	}
 
 	s := &http.Server{
-		Handler:           mux,
+		Handler:           wrapWithFoundation(mux),
 		ReadHeaderTimeout: 5 * time.Second, // fix G112: Potential slowloris attack (see https://github.com/securego/gosec)
 	}
 
