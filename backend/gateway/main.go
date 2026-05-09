@@ -27,9 +27,8 @@ import (
 	"github.com/neochaotic/powerlab/backend/gateway/common"
 	"github.com/neochaotic/powerlab/backend/gateway/route"
 	"github.com/neochaotic/powerlab/backend/gateway/service"
-	pkglifecycle "github.com/neochaotic/powerlab/backend/pkg/lifecycle"
+	pkgfoundation "github.com/neochaotic/powerlab/backend/pkg/foundation"
 	pkglogging "github.com/neochaotic/powerlab/backend/pkg/logging"
-	pkgtracing "github.com/neochaotic/powerlab/backend/pkg/tracing"
 	"go.uber.org/fx"
 )
 
@@ -43,25 +42,14 @@ import (
 // so panics get caught and correlation IDs propagate.
 var _log pkglogging.Logger
 
-// wrapWithFoundation wraps any http.Handler with PowerLab's
-// foundation middleware:
-//
-//  1. tracing.Middleware — outermost. Reads X-Request-Id (or mints
-//     one), stores in context for log emission, echoes back.
-//  2. lifecycle.RecoverMiddleware — catches panics in the handler
-//     chain, logs with stack trace + correlation ID, writes 500
-//     via pkg/errors.WriteHTTP.
-//
-// Apply to every http.Server.Handler in this process — there are
-// four (management, HTTPS, static, port-changeable gateway).
-//
-// This is the structural close for bug #64 (gateway checkURL
-// SIGSEGV class). Even if a handler dereferences a nil pointer or
-// panics for any other reason, the process keeps running.
+// wrapWithFoundation delegates to pkg/foundation.Wrap so the gateway
+// shares the canonical middleware chain (tracing + recover) with
+// every other PowerLab service. See pkg/foundation for the
+// composition contract — this thin shim exists only because
+// callers reference wrapWithFoundation in many places and renaming
+// would churn the diff.
 func wrapWithFoundation(h http.Handler) http.Handler {
-	return pkgtracing.Middleware(
-		pkglifecycle.RecoverMiddleware(_log)(h),
-	)
+	return pkgfoundation.Wrap(h, _log)
 }
 
 const localhost = "127.0.0.1"
