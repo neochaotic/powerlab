@@ -178,7 +178,7 @@
 			{:else}
 				<!-- Top virtual spacer -->
 				{#if topPadding > 0}
-					<tr aria-hidden="true" style="height: {topPadding}px"><td colspan="4"></td></tr>
+					<tr aria-hidden="true" style="height: {topPadding}px"><td colspan="5"></td></tr>
 				{/if}
 
 				{#each visibleFiles as item (item.path)}
@@ -213,6 +213,16 @@
 						tabindex="0"
 						onkeydown={(e) => e.key === 'Enter' && onOpen(item)}
 					>
+						<td class="px-3 text-center" onclick={(e) => e.stopPropagation()}>
+							<input
+								type="checkbox"
+								class="cursor-pointer accent-[var(--color-accent)]"
+								aria-label={`Select ${item.name}`}
+								checked={selectedPaths.has(item.path)}
+								onchange={() => onSelect(item.path, true)}
+								onclick={(e) => e.stopPropagation()}
+							/>
+						</td>
 						<td class="px-3 text-center">
 							<IconComponent class="h-4 w-4 {iconColor}" />
 						</td>
@@ -230,7 +240,7 @@
 
 				<!-- Bottom virtual spacer -->
 				{#if bottomPadding > 0}
-					<tr aria-hidden="true" style="height: {bottomPadding}px"><td colspan="4"></td></tr>
+					<tr aria-hidden="true" style="height: {bottomPadding}px"><td colspan="5"></td></tr>
 				{/if}
 			{/if}
 		</tbody>
