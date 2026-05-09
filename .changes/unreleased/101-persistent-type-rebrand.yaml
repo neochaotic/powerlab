@@ -1,0 +1,18 @@
+kind: Changed
+body: |
+  /v1/storage `PersistedIn` field value `"casaos"` → `"powerlab"`.
+  Sprint 3 Phase 3 — fourth structural rebrand PR (#101). The
+  Go-side const also renamed: `PersistentTypeCasaOS` →
+  `PersistentTypePowerLab` (value `"powerlab"`).
+
+  Wire-format change. Pre-v1.0 (current is v0.5.3), so allowed.
+  Verified by grep across the SvelteKit UI that no PowerLab
+  consumer switches on the literal `"casaos"` value.
+
+  Risk: external API consumers (apps installed in the user's
+  PowerLab) that read /v1/storage and switch on the
+  `PersistedIn` field. Such consumers would need to update.
+  No PowerLab-shipped app does this. v1.0 wire format will be
+  documented as part of #71 (mkdocs-material site).
+custom:
+  Issue: "101"
