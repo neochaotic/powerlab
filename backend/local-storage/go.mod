@@ -16,6 +16,7 @@ require (
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/maruel/natural v1.1.0
 	github.com/moby/sys/mountinfo v0.6.2
+	github.com/neochaotic/powerlab/backend/pkg v0.0.0-00010101000000-000000000000
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pilebones/go-udev v0.9.0
 	github.com/pkg/errors v0.9.1
@@ -196,3 +197,9 @@ require (
 	storj.io/drpc v0.0.32 // indirect
 	storj.io/uplink v1.10.0 // indirect
 )
+
+// Foundation packages live in a sibling Go module under backend/pkg.
+// Replace lets local-storage import them by their canonical path
+// without publishing the pkg module to a registry. Same pattern used
+// by gateway and message-bus. See ADR-0011 (strangler).
+replace github.com/neochaotic/powerlab/backend/pkg => ../pkg
