@@ -1,0 +1,11 @@
+kind: Internal
+body: |
+  Release v0.5.1 — bug-fix patch over v0.5.0. Three user-reported
+  bugs from the v0.5.0 testing session are addressed: discoverable
+  file selection on Files page (#121), cert download diagnostics
+  on Settings (#124), and orchestrator deploy phase indicator +
+  timeout parity with native-app install (#125). Plus pkg/migrations
+  foundation (#115) and user-service migration adoption (#117) from
+  Sprint 3 Phase 1-2.
+custom:
+  Issue: "116"
