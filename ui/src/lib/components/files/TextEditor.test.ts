@@ -278,9 +278,9 @@ describe('TextEditor — save success emits toast (#116 regression)', () => {
 		await waitFor(
 			() => {
 				expect(successSpy).not.toHaveBeenCalled(); // not yet — we haven't clicked save
-				const btn = container.querySelector('button.bg-emerald-500');
+				const btn = container.querySelector('button.bg-emerald-500') as HTMLButtonElement | null;
 				expect(btn).toBeTruthy();
-				expect(btn).not.toHaveAttribute('disabled');
+				expect(btn?.hasAttribute('disabled')).toBe(false);
 			},
 			{ timeout: 1500 }
 		);

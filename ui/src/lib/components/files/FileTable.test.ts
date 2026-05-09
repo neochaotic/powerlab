@@ -20,9 +20,14 @@ import { render, fireEvent } from '@testing-library/svelte';
 import FileTable from './FileTable.svelte';
 import type { FileItem } from '$lib/api/files';
 
+// Minimal fixture covering all FileItem fields. The trailing fields
+// (sign/thumb/type/date/extensions) are CasaOS legacy carryovers that
+// the table doesn't render — they're here only to satisfy the type.
 const sample: FileItem[] = [
-	{ name: 'photos', path: '/data/photos', is_dir: true, size: 0, modified: '2026-05-01T00:00:00Z' },
-	{ name: 'notes.txt', path: '/data/notes.txt', is_dir: false, size: 1024, modified: '2026-05-08T12:00:00Z' }
+	{ name: 'photos', path: '/data/photos', is_dir: true, size: 0, modified: '2026-05-01T00:00:00Z',
+		sign: '', thumb: '', type: 0, date: '', extensions: null },
+	{ name: 'notes.txt', path: '/data/notes.txt', is_dir: false, size: 1024, modified: '2026-05-08T12:00:00Z',
+		sign: '', thumb: '', type: 0, date: '', extensions: null }
 ];
 
 describe('FileTable — discoverable file selection (#116 regression)', () => {
