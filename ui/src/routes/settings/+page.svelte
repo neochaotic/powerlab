@@ -7,7 +7,7 @@
 		SlidersHorizontal, Network, Boxes, Info, Globe, Clock, Hash,
 		Power, RefreshCw, Copy, Check, ExternalLink, ShieldCheck, KeyRound,
 		Code2, Scale, Heart, Sparkles, Container, Zap, Wifi, AlertTriangle,
-		FileText, Loader2, AlertCircle
+		AlertCircle
 	} from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { cn } from '$lib/utils';
@@ -204,92 +204,16 @@
 	// Chrome (and Safari/Edge to a lesser extent) blocks .crt /
 	// .mobileconfig / .config downloads when the originating page is
 	// HTTPS-with-untrusted-cert — exactly the catch-22 the user is
-	// in DURING the Trust Onboarding bootstrap. The browser shows
-	// "Insecure download blocked" and there is no recovery from JS:
-	// the download() call appears to succeed but the file never
-	// reaches the user's Downloads folder.
+	// in DURING the Trust Onboarding bootstrap. The remaining escape
+	// hatch is `openHttpDownload`, which opens the download URL on
+	// the HTTP variant of the panel: top-level HTTP navigation is
+	// treated as Mixed Content (warned but allowed), and once on
+	// HTTP the high-risk-file rule no longer fires.
 	//
-	// The escape hatches below sidestep the block:
-	//
-	//   - viewCaAsText():   fetch the PEM as a string and show it
-	//                       inline. The user copies the text and
-	//                       pastes into Keychain / certmgr. No
-	//                       download = no Chrome blocker.
-	//   - copyCaText():     one-click clipboard copy of the PEM.
-	//   - openHttpDownload: open the HTTP variant of the download
-	//                       URL in a new tab. Top-level navigation
-	//                       to HTTP is treated differently from
-	//                       subresource fetches — Chrome warns but
-	//                       doesn't block.
-	//
-	// True root cause: Chrome's high-risk-file policy + self-signed
-	// HTTPS = no .crt downloads. We work around it; we cannot fix it.
-	let caTextVisible = $state(false);
-	let caTextContent = $state('');
-	let caTextLoading = $state(false);
-
-	async function viewCaAsText() {
-		caTextVisible = true;
-		if (caTextContent) return;
-		caTextLoading = true;
-		try {
-			const r = await fetch('/v1/sys/ca-certificate.crt');
-			if (!r.ok) {
-				toast.error(t('settings.caDownloadFailed'));
-				caTextVisible = false;
-				return;
-			}
-			caTextContent = await r.text();
-		} catch (e) {
-			toast.error(`${t('settings.caDownloadFailed')}: ${(e as Error).message}`);
-			caTextVisible = false;
-		} finally {
-			caTextLoading = false;
-		}
-	}
-
-	async function copyCaText() {
-		if (!caTextContent) await viewCaAsText();
-		if (!caTextContent) return;
-		try {
-			await navigator.clipboard.writeText(caTextContent);
-			toast.success(t('settings.caCopied'));
-		} catch (e) {
-			toast.error(`Clipboard failed: ${(e as Error).message}`);
-		}
-	}
-
-	// Download the CA cert with a .txt filename. Chromium's
-	// download_file_types.asciipb categorizes .crt/.cer/.pem/
-	// .mobileconfig as DANGEROUS_FILE_TYPE; .txt is NOT_DANGEROUS.
-	// The PEM bytes don't change — the user renames after.
-	//
-	// This is the most reliable workaround for the Chrome
-	// "Insecure download blocked" issue: same Blob/anchor pattern
-	// as downloadCA, but the request hits /v1/sys/ca-certificate.txt
-	// (a separate backend handler that swaps Content-Disposition).
-	async function downloadCAAsTxt() {
-		try {
-			const r = await fetch('/v1/sys/ca-certificate.txt');
-			if (!r.ok) {
-				toast.error(t('settings.caDownloadFailed'));
-				return;
-			}
-			const blob = await r.blob();
-			const objectUrl = URL.createObjectURL(blob);
-			const a = document.createElement('a');
-			a.href = objectUrl;
-			a.download = 'powerlab-ca.txt';
-			document.body.appendChild(a);
-			a.click();
-			a.remove();
-			URL.revokeObjectURL(objectUrl);
-			toast.success(t('settings.caTxtDownloaded'), 5000);
-		} catch (e) {
-			toast.error(`${t('settings.caDownloadFailed')}: ${(e as Error).message}`);
-		}
-	}
-
+	// PowerLab does not surface the certificate as text. Past
+	// iterations included a `.txt` rename trick and an inline
+	// "Show as text + copy clipboard" view; both were removed
+	// (per product policy: cert is a binary artifact, not text).
 	function openHttpDownload(format: 'mobileconfig' | 'crt' | 'cer') {
 		// Build the HTTP variant of the panel URL. Top-level navigation
 		// to HTTP from an HTTPS page is treated as a Mixed Content
@@ -954,66 +878,17 @@
 
 														<p class="text-zinc-500">{t('settings.caBlockedExplain')}</p>
 
-														<!-- Fallbacks for when Keep isn't available (mobile Chrome, locked-down browsers). -->
-														<div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-															<button
-																type="button"
-																onclick={downloadCAAsTxt}
-																class="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-[11px] font-bold text-white hover:bg-white/[0.05] transition-colors"
-																title={t('settings.caDownloadAsTxtHint')}
-															>
-																<Download class="h-3.5 w-3.5" />
-																.txt
-															</button>
-															<button
-																type="button"
-																onclick={viewCaAsText}
-																class="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-[11px] font-bold text-white hover:bg-white/[0.05] transition-colors"
-																title={t('settings.caShowAsTextHint')}
-															>
-																<FileText class="h-3.5 w-3.5" />
-																{t('settings.caShowAsText')}
-															</button>
-															<button
-																type="button"
-																onclick={() => openHttpDownload('crt')}
-																class="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-[11px] font-bold text-white hover:bg-white/[0.05] transition-colors"
-																title={t('settings.caOpenViaHttpHint')}
-															>
-																<ExternalLink class="h-3.5 w-3.5" />
-																HTTP
-															</button>
-														</div>
-
-														{#if caTextVisible}
-															<div class="mt-3 rounded-xl border border-white/10 bg-zinc-950/60 p-3">
-																{#if caTextLoading}
-																	<div class="flex items-center gap-2 text-zinc-500">
-																		<Loader2 class="h-3.5 w-3.5 animate-spin" />
-																		<span>{t('settings.caTextLoading')}</span>
-																	</div>
-																{:else}
-																	<pre class="max-h-64 overflow-auto whitespace-pre text-[10px] leading-tight text-zinc-300 font-mono select-all">{caTextContent}</pre>
-																	<div class="mt-2 flex justify-end gap-2">
-																		<button
-																			type="button"
-																			onclick={copyCaText}
-																			class="flex items-center gap-1.5 rounded-md bg-emerald-500 px-2.5 py-1 text-[10px] font-bold text-zinc-950 hover:bg-emerald-400 transition-colors"
-																		>
-																			<Copy class="h-3 w-3" />
-																			{t('settings.caCopyButton')}
-																		</button>
-																		<button
-																			type="button"
-																			onclick={() => { caTextVisible = false; }}
-																			class="rounded-md px-2.5 py-1 text-[10px] font-bold text-zinc-500 hover:text-white transition-colors"
-																		>
-																			{t('action.close')}
-																		</button>
-																	</div>
-																{/if}
-															</div>
-														{/if}
+														<!-- Single fallback: open via HTTP. Top-level HTTP navigation
+														     bypasses Chrome's HTTPS-untrusted high-risk-file rule. -->
+														<button
+															type="button"
+															onclick={() => openHttpDownload('crt')}
+															class="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-[11px] font-bold text-white hover:bg-white/[0.05] transition-colors w-full"
+															title={t('settings.caOpenViaHttpHint')}
+														>
+															<ExternalLink class="h-3.5 w-3.5" />
+															{t('settings.caOpenViaHttp')}
+														</button>
 													</div>
 												</details>
 											</div>
