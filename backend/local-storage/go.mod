@@ -16,6 +16,7 @@ require (
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/maruel/natural v1.1.0
 	github.com/moby/sys/mountinfo v0.6.2
+	github.com/neochaotic/powerlab/backend/pkg v0.0.0-00010101000000-000000000000
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pilebones/go-udev v0.9.0
 	github.com/pkg/errors v0.9.1
