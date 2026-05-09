@@ -1,0 +1,18 @@
+kind: Internal
+body: |
+  Sprint 2 Phase 5 closer — three pre-tag gates that were missing.
+  (1) Verified `changie batch --dry-run v0.5.0` end-to-end: all 8
+  unreleased fragments aggregate cleanly into a `## [v0.5.0]`
+  section with the right kind groupings — the workflow #98
+  introduced now has empirical proof of working at tag time.
+  (2) Added `Frontend E2E (Playwright)` to branch-protection
+  required status checks so the job introduced by #109 actually
+  gates merges instead of being a passive CI signal.
+  (3) Added `docs/release-checklist.md` — the authoritative
+  playbook for cutting a PowerLab release, split into
+  Phase 1 (verification, ~10min) and Phase 2 (release, ~5min)
+  with a separate v1.0 gate covering contract, docs site,
+  pkg/migrations exercise, and explicit user sign-off. All three
+  gaps were surfaced during the post-#111 stabilization audit.
+custom:
+  Issue: "67"
