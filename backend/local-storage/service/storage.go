@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"log/slog"
 	"os"
 	"runtime"
 	"sync"
@@ -11,7 +12,6 @@ import (
 
 	command2 "github.com/IceWhaleTech/CasaOS-Common/utils/command"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/file"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/pkg/mount"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/pkg/utils/httper"
 	_ "github.com/rclone/rclone/backend/all"
@@ -20,7 +20,6 @@ import (
 	rconfig "github.com/rclone/rclone/fs/config"
 	"github.com/rclone/rclone/fs/rc"
 	"github.com/rclone/rclone/vfs/vfscommon"
-	"go.uber.org/zap"
 )
 
 type StorageService interface {
@@ -50,7 +49,7 @@ func (s *storageStruct) MountStorage(mountPoint, deviceName string) error {
 	defer mountMu.Unlock()
 	currentFS, err := fs.NewFs(context.TODO(), deviceName+":")
 	if err != nil {
-		logger.Error("when CheckAndMountAll then", zap.Error(err))
+		_log.Error(context.Background(), "when CheckAndMountAll then", err)
 		return err
 	}
 	mountOptin := mountlib.Options{
@@ -92,7 +91,7 @@ func (s *storageStruct) MountStorage(mountPoint, deviceName string) error {
 	mnt := mountlib.NewMountPoint(mount.MountFn, mountPoint, currentFS, &mountOptin, &vfsOpt)
 	_, err = mnt.Mount()
 	if err != nil {
-		logger.Error("when CheckAndMountAll then", zap.Error(err))
+		_log.Error(context.Background(), "when CheckAndMountAll then", err)
 		return err
 	}
 	go func() {
@@ -111,7 +110,7 @@ func (s *storageStruct) MountStorage(mountPoint, deviceName string) error {
 func (s *storageStruct) UnmountStorage(mountPoint string) error {
 	err := MountLists[mountPoint].Unmount()
 	if err != nil {
-		logger.Error("when umount then", zap.Error(err))
+		_log.Error(context.Background(), "when umount then", err)
 		return err
 	}
 	return nil
@@ -121,7 +120,7 @@ func (s *storageStruct) UnmountAllStorage() {
 	for _, v := range MountLists {
 		err := v.Unmount()
 		if err != nil {
-			logger.Error("when umount then", zap.Error(err))
+			_log.Error(context.Background(), "when umount then", err)
 		}
 	}
 }
@@ -148,27 +147,28 @@ func (s *storageStruct) CreateConfig(data rc.Params, name string, t string) erro
 func (s *storageStruct) CheckAndMountByName(name string) error {
 	mountPoint, found := rconfig.LoadedData().GetValue(name, "mount_point")
 	if !found && len(mountPoint) == 0 {
-		logger.Error("when CheckAndMountAll then mountpint is empty", zap.String("mountPoint", mountPoint), zap.String("fs", name))
+		_log.Error(context.Background(), "when CheckAndMountAll then mountpint is empty", nil, slog.String("mountPoint", mountPoint), slog.String("fs", name))
 		return errors.New("mountpoint is empty")
 	}
 	return MyService.Storage().MountStorage(mountPoint, name)
 }
 
 func (s *storageStruct) CheckAndMountAll() error {
+	ctx := context.Background()
 	section := rconfig.LoadedData().GetSectionList()
 
-	logger.Info("when CheckAndMountAll section", zap.Any("section", section))
+	_log.Info(ctx, "when CheckAndMountAll section", slog.Any("section", section))
 	for _, v := range section {
 		command2.OnlyExec("umount /mnt/" + v)
 		mountPoint, found := rconfig.LoadedData().GetValue(v, "mount_point")
 
 		if !found && len(mountPoint) == 0 {
-			logger.Info("when CheckAndMountAll then mountpint is empty", zap.String("mountPoint", mountPoint), zap.String("fs", v))
+			_log.Info(ctx, "when CheckAndMountAll then mountpint is empty", slog.String("mountPoint", mountPoint), slog.String("fs", v))
 			continue
 		}
 		err := MyService.Storage().MountStorage(mountPoint, v)
 		if err != nil {
-			logger.Error("when CheckAndMountAll then", zap.Error(err))
+			_log.Error(ctx, "when CheckAndMountAll then", err)
 			return err
 		}
 	}

@@ -3,11 +3,10 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/common"
-	"go.uber.org/zap"
 )
 
 type NotifyServer interface {
@@ -25,11 +24,11 @@ func (i *notifyServer) SendNotify(name string, message map[string]interface{}) e
 	}
 	response, err := MyService.MessageBus().PublishEventWithResponse(context.Background(), common.ServiceName, name, msg)
 	if err != nil {
-		logger.Error("failed to publish event to message bus", zap.Error(err), zap.Any("event", msg))
+		_log.Error(context.Background(), "failed to publish event to message bus", err, slog.Any("event", msg))
 		return err
 	}
 	if response.StatusCode() != http.StatusOK {
-		logger.Error("failed to publish event to message bus", zap.String("status", response.Status()), zap.Any("response", response))
+		_log.Error(context.Background(), "failed to publish event to message bus", nil, slog.String("status", response.Status()), slog.Any("response", response))
 	}
 	// SocketServer.BroadcastToRoom("/", "public", path, message)
 	return nil
