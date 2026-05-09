@@ -1,12 +1,3 @@
-/*@Author: LinkLeong link@icewhale.com
- *@Date: 2022-07-13 10:43:45
- *@LastEditors: LinkLeong
- *@LastEditTime: 2022-08-03 14:45:35
- *@FilePath: /CasaOS/model/disk.go
- *@Description:
- *@Website: https://www.casaos.io
- *Copyright (c) 2022 by icewhale, All Rights Reserved.
- */
 package model
 
 import "encoding/json"
@@ -95,7 +86,7 @@ type Storage struct {
 	Path        string `json:"path"`
 	DriveName   string `json:"drive_name"`
 	Label       string `json:"label"`
-	PersistedIn string `json:"persisted_in"` // none, fstab, casaos
+	PersistedIn string `json:"persisted_in"` // none, fstab, or "casaos" (legacy literal — preserved for DB compat with installs that pre-date PowerLab; see issue #101)
 }
 type Storages struct {
 	DiskName string    `json:"disk_name"`

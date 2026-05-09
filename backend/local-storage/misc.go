@@ -122,7 +122,7 @@ func monitorUEvent(ctx context.Context) {
 
 			if event := common.EventAdapter(uevent); event != nil {
 
-				// add UI properties to applicable events so that CasaOS UI can render it
+				// add UI properties to applicable events so that PowerLab UI can render it
 				event := common.EventAdapterWithUIProperties(event)
 
 				if v, ok := event.Properties["local-storage:path"]; ok && strings.Contains(event.Name, "disk") {
