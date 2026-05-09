@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"log/slog"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -8,13 +9,11 @@ import (
 
 	"github.com/IceWhaleTech/CasaOS-Common/model"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/common"
 	model1 "github.com/IceWhaleTech/CasaOS-LocalStorage/model"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/service"
 	"github.com/labstack/echo/v4"
 	"github.com/shirou/gopsutil/v3/disk"
-	"go.uber.org/zap"
 )
 
 const messagePathStorageStatus = common.ServiceName + ":storage_status"
@@ -41,7 +40,7 @@ func GetDiskList(ctx echo.Context) error {
 
 	dbList, err := service.MyService.Disk().GetSerialAllFromDB()
 	if err != nil {
-		logger.Error("error when getting all volumes from database", zap.Error(err))
+		_log.Error(ctx.Request().Context(), "error when getting all volumes from database", err)
 		return ctx.JSON(http.StatusInternalServerError, model.Result{Success: common_err.SERVICE_ERROR, Message: err.Error()})
 	}
 
@@ -198,11 +197,11 @@ func DeleteDisksUmount(ctx echo.Context) error {
 
 		// delete data
 		if err := service.MyService.Disk().DeleteMountPointFromDB(v.Path, v.MountPoint); err != nil {
-			logger.Error("error when deleting mount point from database", zap.Error(err), zap.String("path", v.Path), zap.String("mount point", v.MountPoint))
+			_log.Error(ctx.Request().Context(), "error when deleting mount point from database", err, slog.String("path", v.Path), slog.String("mount point", v.MountPoint))
 		}
 
 		if err := service.MyService.Shares().DeleteShare(v.MountPoint); err != nil {
-			logger.Error("error when deleting share by mount point", zap.Error(err), zap.String("mount point", v.MountPoint))
+			_log.Error(ctx.Request().Context(), "error when deleting share by mount point", err, slog.String("mount point", v.MountPoint))
 		}
 	}
 
@@ -221,7 +220,7 @@ func DeleteDisksUmount(ctx echo.Context) error {
 		}
 
 		if err := service.MyService.Notify().SendNotify(messagePathStorageStatus, message); err != nil {
-			logger.Error("error when sending notification", zap.Error(err), zap.String("message path", messagePathStorageStatus), zap.Any("message", message))
+			_log.Error(ctx.Request().Context(), "error when sending notification", err, slog.String("message path", messagePathStorageStatus), slog.Any("message", message))
 		}
 	}()
 

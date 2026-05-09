@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"log/slog"
 	"net/http"
 	"path/filepath"
 	"reflect"
@@ -8,9 +9,7 @@ import (
 
 	"github.com/IceWhaleTech/CasaOS-Common/model"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/labstack/echo/v4"
-	"go.uber.org/zap"
 
 	model1 "github.com/IceWhaleTech/CasaOS-LocalStorage/model"
 	model2 "github.com/IceWhaleTech/CasaOS-LocalStorage/service/model"
@@ -64,7 +63,7 @@ func GetStorageList(ctx echo.Context) error {
 					tempDisk.DiskName = "System"
 					foundSystem = true
 					tempSystemDisk = true
-					logger.Info("found system disk", zap.String("disk", blkChild.Path))
+					_log.Info(ctx.Request().Context(), "found system disk", slog.String("disk", blkChild.Path))
 				}
 			}
 			if blkChild.MountPoint == "" {
@@ -161,17 +160,17 @@ func PostAddStorage(ctx echo.Context) error {
 	if format {
 
 		if err := service.MyService.Disk().UmountPointAndRemoveDir(currentDisk); err != nil {
-			logger.Error("error when trying to umount storage", zap.Error(err), zap.String("path", path))
+			_log.Error(ctx.Request().Context(), "error when trying to umount storage", err, slog.String("path", path))
 			return ctx.JSON(common_err.SERVICE_ERROR, model.Result{Success: common_err.REMOVE_MOUNT_POINT_ERROR, Message: err.Error()})
 		}
 
-		logger.Info("deleting storage...", zap.String("path", path))
+		_log.Info(ctx.Request().Context(), "deleting storage...", slog.String("path", path))
 		if err := service.MyService.Disk().DeletePartition(path); err != nil {
-			logger.Error("error when trying to delete partition", zap.Error(err), zap.String("path", path))
+			_log.Error(ctx.Request().Context(), "error when trying to delete partition", err, slog.String("path", path))
 			return ctx.JSON(common_err.SERVICE_ERROR, model.Result{Success: common_err.SERVICE_ERROR, Message: err.Error()})
 		}
 
-		logger.Info("formatting storage...", zap.String("path", path))
+		_log.Info(ctx.Request().Context(), "formatting storage...", slog.String("path", path))
 		if err := service.MyService.Disk().AddPartition(path); err != nil {
 			return ctx.JSON(http.StatusInternalServerError, model.Result{Success: common_err.SERVICE_ERROR, Message: err.Error()})
 		}
@@ -230,7 +229,7 @@ func PostAddStorage(ctx echo.Context) error {
 		mountPoint := blkChild.GetMountPoint(name)
 		// mount disk
 		if output, err := service.MyService.Disk().MountDisk(blkChild.Path, mountPoint); err != nil {
-			logger.Error("err", zap.Error(err), zap.String("mountPoint", mountPoint), zap.String("output", output))
+			_log.Error(ctx.Request().Context(), "err", err, slog.String("mountPoint", mountPoint), slog.String("output", output))
 			message += blkChild.Path + "\n"
 			continue
 			// return ctx.JSON(http.StatusInternalServerError, model.Result{Success: common_err.SERVICE_ERROR, Message: output, Data: err.Error()})
@@ -273,7 +272,7 @@ func PostAddStorage(ctx echo.Context) error {
 			}
 
 			if err := service.MyService.Notify().SendNotify(messagePathStorageStatus, message); err != nil {
-				logger.Error("error when sending notification", zap.Error(err), zap.String("message path", messagePathStorageStatus), zap.Any("message", message))
+				_log.Error(ctx.Request().Context(), "error when sending notification", err, slog.String("message path", messagePathStorageStatus), slog.Any("message", message))
 			}
 		}(blkChild)
 	}
@@ -379,7 +378,7 @@ func DeleteStorage(ctx echo.Context) error {
 	// delete data
 	defer func() {
 		if err := service.MyService.Disk().DeleteMountPointFromDB(path, mountPoint); err != nil {
-			logger.Error("error when deleting mount point from database", zap.Error(err))
+			_log.Error(ctx.Request().Context(), "error when deleting mount point from database", err)
 		}
 	}()
 	defer service.MyService.Disk().RemoveLSBLKCache()
@@ -397,7 +396,7 @@ func DeleteStorage(ctx echo.Context) error {
 		}
 
 		if err := service.MyService.Notify().SendNotify(messagePathStorageStatus, message); err != nil {
-			logger.Error("error when sending notification", zap.Error(err), zap.String("message path", messagePathStorageStatus), zap.Any("message", message))
+			_log.Error(ctx.Request().Context(), "error when sending notification", err, slog.String("message path", messagePathStorageStatus), slog.Any("message", message))
 		}
 	}()
 
