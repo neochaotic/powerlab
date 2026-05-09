@@ -139,9 +139,8 @@ func main() {
 		"/v1/image",
 		"/v1/samba",
 		"/v1/notify",
-		"/v1/driver",
-		"/v1/cloud",
-		"/v1/recover",
+		// /v1/driver, /v1/cloud, /v1/recover removed in Sprint 3 Phase 3
+		// (#101) — see backend/core/route/v1.go for rationale.
 		"/v1/other",
 		"/v1/zt",
 		"/v1/test",
