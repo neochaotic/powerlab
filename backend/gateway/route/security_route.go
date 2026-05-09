@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -13,10 +14,8 @@ import (
 	"strings"
 
 	"github.com/IceWhaleTech/CasaOS-Common/pkg/security"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/digitorus/pkcs7"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 )
 
 // SecurityRoute exposes the local CA + HSTS-trust endpoints described
@@ -26,13 +25,13 @@ import (
 //
 // Endpoints (all under /v1/sys):
 //
-//   GET  /v1/sys/ca-certificate                    UA-based 302 redirect
-//   GET  /v1/sys/ca-certificate.crt                PEM-encoded CA cert
-//   GET  /v1/sys/ca-certificate.mobileconfig       PKCS#7-signed Apple
-//                                                  Configuration Profile
-//   GET  /v1/sys/ca-certificate.cer                DER-encoded CA cert
-//                                                  (Windows import wizard)
-//   POST /v1/sys/trust-confirmed                   arms the HSTS gate
+//	GET  /v1/sys/ca-certificate                    UA-based 302 redirect
+//	GET  /v1/sys/ca-certificate.crt                PEM-encoded CA cert
+//	GET  /v1/sys/ca-certificate.mobileconfig       PKCS#7-signed Apple
+//	                                               Configuration Profile
+//	GET  /v1/sys/ca-certificate.cer                DER-encoded CA cert
+//	                                               (Windows import wizard)
+//	POST /v1/sys/trust-confirmed                   arms the HSTS gate
 //
 // The download endpoints are unauthenticated by design (catch-22:
 // users need the CA in order to authenticate over HTTPS in the first
@@ -95,10 +94,10 @@ func (s *SecurityRoute) handleCACrt(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/x-x509-ca-cert")
 	w.Header().Set("Content-Disposition", `attachment; filename="powerlab-ca.crt"`)
-	logger.Info("CA certificate downloaded",
-		zap.String("format", "crt"),
-		zap.String("ua", r.UserAgent()),
-		zap.String("ip", r.RemoteAddr),
+	_log.Info(r.Context(), "CA certificate downloaded",
+		slog.String("format", "crt"),
+		slog.String("ua", r.UserAgent()),
+		slog.String("ip", r.RemoteAddr),
 	)
 	_, _ = w.Write(pemBytes)
 }
@@ -160,7 +159,7 @@ func (s *SecurityRoute) handleCAMobileConfig(w http.ResponseWriter, r *http.Requ
 	// the user is doing here.
 	signed, err := signPKCS7(plist, caCert, caKey)
 	if err != nil {
-		logger.Error("mobileconfig signing failed", zap.Error(err))
+		_log.Error(r.Context(), "mobileconfig signing failed", err)
 		// Fall back to unsigned plist — iOS will show "Unverified"
 		// but the install still works. Better than 500.
 		signed = plist
@@ -168,11 +167,11 @@ func (s *SecurityRoute) handleCAMobileConfig(w http.ResponseWriter, r *http.Requ
 
 	w.Header().Set("Content-Type", "application/x-apple-aspen-config")
 	w.Header().Set("Content-Disposition", `attachment; filename="PowerLab Local CA.mobileconfig"`)
-	logger.Info("CA mobileconfig downloaded",
-		zap.String("format", "mobileconfig"),
-		zap.Bool("signed", err == nil),
-		zap.String("ua", r.UserAgent()),
-		zap.String("ip", r.RemoteAddr),
+	_log.Info(r.Context(), "CA mobileconfig downloaded",
+		slog.String("format", "mobileconfig"),
+		slog.Bool("signed", err == nil),
+		slog.String("ua", r.UserAgent()),
+		slog.String("ip", r.RemoteAddr),
 	)
 	_, _ = w.Write(signed)
 }
@@ -206,10 +205,10 @@ func (s *SecurityRoute) handleCACer(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/pkix-cert")
 	w.Header().Set("Content-Disposition", `attachment; filename="powerlab-ca.cer"`)
-	logger.Info("CA cer downloaded",
-		zap.String("format", "cer"),
-		zap.String("ua", r.UserAgent()),
-		zap.String("ip", r.RemoteAddr),
+	_log.Info(r.Context(), "CA cer downloaded",
+		slog.String("format", "cer"),
+		slog.String("ua", r.UserAgent()),
+		slog.String("ip", r.RemoteAddr),
 	)
 	_, _ = w.Write(caCert.Raw)
 }
@@ -229,9 +228,9 @@ func (s *SecurityRoute) handleTrustConfirmed(w http.ResponseWriter, r *http.Requ
 			http.Error(w, fmt.Sprintf("failed to disarm HSTS: %v", err), http.StatusInternalServerError)
 			return
 		}
-		logger.Info("HSTS gate disarmed (reset trust)",
-			zap.String("ip", r.RemoteAddr),
-			zap.String("ua", r.UserAgent()))
+		_log.Info(r.Context(), "HSTS gate disarmed (reset trust)",
+			slog.String("ip", r.RemoteAddr),
+			slog.String("ua", r.UserAgent()))
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"armed":false}`))
 		return
@@ -257,9 +256,9 @@ func (s *SecurityRoute) handleTrustConfirmed(w http.ResponseWriter, r *http.Requ
 		http.Error(w, fmt.Sprintf("failed to arm HSTS: %v", err), http.StatusInternalServerError)
 		return
 	}
-	logger.Info("HSTS gate armed",
-		zap.String("ip", host),
-		zap.String("ua", r.UserAgent()),
+	_log.Info(r.Context(), "HSTS gate armed",
+		slog.String("ip", host),
+		slog.String("ua", r.UserAgent()),
 	)
 	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write([]byte(`{"armed":true}`))
@@ -424,13 +423,13 @@ func (s *SecurityRoute) handleRotateCA(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.cm.RotateCA(); err != nil {
-		logger.Error("CA rotation failed", zap.Error(err))
+		_log.Error(r.Context(), "CA rotation failed", err)
 		http.Error(w, fmt.Sprintf("rotation failed: %v", err), http.StatusInternalServerError)
 		return
 	}
-	logger.Info("CA rotated by client request",
-		zap.String("ip", host),
-		zap.String("ua", r.UserAgent()))
+	_log.Info(r.Context(), "CA rotated by client request",
+		slog.String("ip", host),
+		slog.String("ua", r.UserAgent()))
 
 	newFingerprint, _ := s.cm.CAFingerprint()
 	w.Header().Set("Content-Type", "application/json")

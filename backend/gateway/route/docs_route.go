@@ -4,15 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/neochaotic/powerlab/backend/gateway/api/docs"
 	docs_static "github.com/neochaotic/powerlab/backend/gateway/api/static/docs"
 	"github.com/neochaotic/powerlab/backend/gateway/service"
-	"go.uber.org/zap"
 )
 
 // DocsRoute serves the API documentation portal at:
@@ -92,14 +91,14 @@ func (d *DocsRoute) handleDocs(w http.ResponseWriter, r *http.Request) {
 
 	tmpl, err := d.template()
 	if err != nil {
-		logger.Error("portal template parse failed", zap.Error(err))
+		_log.Error(r.Context(), "portal template parse failed", err)
 		http.Error(w, "portal template unavailable", http.StatusInternalServerError)
 		return
 	}
 
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, view); err != nil {
-		logger.Error("portal template render failed", zap.Error(err))
+		_log.Error(r.Context(), "portal template render failed", err)
 		http.Error(w, "portal render failed", http.StatusInternalServerError)
 		return
 	}
@@ -118,20 +117,20 @@ func (d *DocsRoute) handleSpec(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		current, _ = docs.LookupService("gateway")
 	}
-	d.serveSpec(w, current.Spec)
+	d.serveSpec(w, r, current.Spec)
 }
 
 func (d *DocsRoute) handleScalarJS(w http.ResponseWriter, r *http.Request) {
 	content, err := docs_static.EmbeddedAssets.ReadFile(docs_static.ScalarJSName)
 	if err != nil {
-		logger.Error("Failed to read embedded Scalar runtime", zap.Error(err))
+		_log.Error(r.Context(), "Failed to read embedded Scalar runtime", err)
 		http.Error(w, "asset not found", http.StatusNotFound)
 		return
 	}
 	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
 	w.Header().Set("Cache-Control", "public, max-age=3600")
 	if _, err := w.Write(content); err != nil {
-		logger.Error("Failed to write Scalar runtime", zap.Error(err))
+		_log.Error(r.Context(), "Failed to write Scalar runtime", err)
 	}
 }
 
@@ -142,21 +141,21 @@ func (d *DocsRoute) handleScalarJS(w http.ResponseWriter, r *http.Request) {
 func (d *DocsRoute) handleLogo(w http.ResponseWriter, r *http.Request) {
 	content, err := docs_static.EmbeddedAssets.ReadFile(docs_static.PowerLabLogoSVG)
 	if err != nil {
-		logger.Error("Failed to read embedded PowerLab logo", zap.Error(err))
+		_log.Error(r.Context(), "Failed to read embedded PowerLab logo", err)
 		http.Error(w, "asset not found", http.StatusNotFound)
 		return
 	}
 	w.Header().Set("Content-Type", "image/svg+xml")
 	w.Header().Set("Cache-Control", "public, max-age=86400")
 	if _, err := w.Write(content); err != nil {
-		logger.Error("Failed to write PowerLab logo", zap.Error(err))
+		_log.Error(r.Context(), "Failed to write PowerLab logo", err)
 	}
 }
 
 // serveSpec writes the embedded YAML directly. Content-Type is set
 // to a YAML-aware media type so Scalar's loader picks the right
 // parser.
-func (d *DocsRoute) serveSpec(w http.ResponseWriter, filename string) {
+func (d *DocsRoute) serveSpec(w http.ResponseWriter, r *http.Request, filename string) {
 	// Defensive: the filename always comes from a lookup over
 	// docs.Services, but reject anything with slashes or `..`
 	// components anyway, in case future code lets a request param
@@ -168,8 +167,8 @@ func (d *DocsRoute) serveSpec(w http.ResponseWriter, filename string) {
 
 	content, err := docs.EmbeddedFiles.ReadFile(filename)
 	if err != nil {
-		logger.Error("Failed to read embedded OpenAPI spec",
-			zap.String("filename", filename), zap.Error(err))
+		_log.Error(r.Context(), "Failed to read embedded OpenAPI spec",
+			err, slog.String("filename", filename))
 		http.Error(w, "specification not found", http.StatusNotFound)
 		return
 	}
@@ -177,7 +176,7 @@ func (d *DocsRoute) serveSpec(w http.ResponseWriter, filename string) {
 	w.Header().Set("Content-Type", "application/yaml; charset=utf-8")
 	w.Header().Set("Cache-Control", "public, max-age=300")
 	if _, err := w.Write(content); err != nil {
-		logger.Error("Failed to write OpenAPI spec", zap.Error(err))
+		_log.Error(r.Context(), "Failed to write OpenAPI spec", err)
 	}
 }
 

@@ -23,12 +23,12 @@ func makeFixture(t *testing.T) string {
 	t.Cleanup(func() { _ = os.RemoveAll(dir) })
 
 	files := map[string]string{
-		"index.html":                 "<!doctype html><html><body>SPA SHELL</body></html>",
-		"settings.html":              "<!doctype html><html><body>SETTINGS PAGE</body></html>",
-		"dashboard.html":              "<!doctype html><html><body>DASHBOARD PAGE</body></html>",
-		"apps/index.html":            "<!doctype html><html><body>APPS DIR INDEX</body></html>",
-		"_app/immutable/start.js":     "console.log('hashed asset');",
-		"favicon-abc123.png":          "PNG\xff",
+		"index.html":              "<!doctype html><html><body>SPA SHELL</body></html>",
+		"settings.html":           "<!doctype html><html><body>SETTINGS PAGE</body></html>",
+		"dashboard.html":          "<!doctype html><html><body>DASHBOARD PAGE</body></html>",
+		"apps/index.html":         "<!doctype html><html><body>APPS DIR INDEX</body></html>",
+		"_app/immutable/start.js": "console.log('hashed asset');",
+		"favicon-abc123.png":      "PNG\xff",
 	}
 	for rel, body := range files {
 		full := filepath.Join(dir, rel)
@@ -199,7 +199,7 @@ func TestIsAssetPath(t *testing.T) {
 		{"/", false},
 		{"/settings", false},
 		{"/files/deep/path", false},
-		{"/foo.html", false},     // .html paths are NOT assets — they go through the SPA chain
+		{"/foo.html", false}, // .html paths are NOT assets — they go through the SPA chain
 		{"/foo.js", true},
 		{"/foo.css", true},
 		{"/foo.png", true},
