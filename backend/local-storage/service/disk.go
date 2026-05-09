@@ -65,10 +65,16 @@ type diskService struct {
 	db *gorm.DB
 }
 
+// PersistentType* constants are the wire-format tokens returned via
+// the /v1/storage API in the `PersistedIn` field. Sprint 3 Phase 3
+// rebrand: "casaos" → "powerlab" + const renamed
+// PersistentTypeCasaOS → PersistentTypePowerLab so the API surface
+// is self-describing. Pre-v1.0 wire-format change; verified via grep
+// that no PowerLab UI consumer switches on the literal "casaos".
 const (
-	PersistentTypeNone   = "none"
-	PersistentTypeFStab  = "fstab"
-	PersistentTypeCasaOS = "casaos"
+	PersistentTypeNone     = "none"
+	PersistentTypeFStab    = "fstab"
+	PersistentTypePowerLab = "powerlab"
 )
 
 var (
@@ -540,7 +546,7 @@ func (d *diskService) GetPersistentTypeByUUID(uuid string) string {
 	if result := d.db.Where(&model2.Volume{UUID: uuid}).Limit(1).Find(&m); result.Error != nil {
 		logger.Error("error when finding the volume by uuid in database", zap.Error(result.Error), zap.String("uuid", uuid))
 	} else if result.RowsAffected > 0 {
-		return PersistentTypeCasaOS
+		return PersistentTypePowerLab
 	}
 
 	// check if it is in fstab
