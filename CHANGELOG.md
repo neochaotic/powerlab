@@ -13,6 +13,17 @@ see `CONTRIBUTING.md` for the rule.
 
 ### Internal
 
+- **Sprint 1 of CasaOS independence (#67) — foundation `pkg/errors`.**
+  Typed `*Error` carrying Code (machine-readable, e.g. `ports.conflict`),
+  I18nKey (UI translation key), HTTPStatus, Cause (chain-preserving),
+  and Fields (structured incident details). Catalog of universal
+  HTTP-tier errors (`ErrBadRequest`, `ErrUnauthorized`, `ErrForbidden`,
+  `ErrNotFound`, `ErrConflict`, `ErrTooManyRequests`, `ErrInternal`,
+  `ErrServiceUnavailable`). `WithField` / `WithFields` are immutable —
+  catalog entries stay pristine across concurrent callers. `WriteHTTP`
+  helper writes a stable JSON body with correlation ID auto-injected
+  from context. Closes the class of bug behind #50 (plain-text error
+  page) once handlers adopt it. See ADR-0013. Closes #69.
 - **Sprint 1 of CasaOS independence (#67) — foundation `pkg/logging`.**
   New Go module at `backend/pkg/` (module path
   `github.com/neochaotic/powerlab/backend/pkg`) coexists with the legacy
