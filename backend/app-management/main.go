@@ -44,7 +44,7 @@ var (
 	//go:embed api/app_management/openapi_v1.yaml
 	_docYAMLV1 string
 
-	//go:embed build/sysroot/etc/casaos/app-management.conf.sample
+	//go:embed build/sysroot/etc/powerlab/app-management.conf.sample
 	_confSample string
 )
 

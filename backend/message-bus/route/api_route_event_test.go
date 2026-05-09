@@ -19,9 +19,14 @@ import (
 var json2 = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func TestEventRoute(t *testing.T) {
+	// Snapshot pre-test goroutines (e.g. ecache's init janitor pulled
+	// in transitively after Sprint 3 Phase 3 added the `replace
+	// ../common` for CasaOS-Common). We only care about goroutines
+	// THIS test creates, not eternal package-init goroutines.
 	defer goleak.VerifyNone(
 		t,
 		goleak.IgnoreTopFunction("github.com/CorrectRoadH/go-socket.io/engineio.(*Server).Accept"), // there is a goroutine leak in go-socket.io
+		goleak.IgnoreCurrent(),
 	)
 
 	sourceID := "Foo"

@@ -47,7 +47,7 @@ var (
 	//go:embed api/casaos/openapi.yaml
 	_docYAML string
 
-	//go:embed build/sysroot/etc/casaos/casaos.conf.sample
+	//go:embed build/sysroot/etc/powerlab/core.conf.sample
 	_confSample string
 
 	configFlag  = flag.String("c", "", "config address")

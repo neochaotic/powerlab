@@ -62,7 +62,7 @@ var (
 	//go:embed api/message_bus/openapi.yaml
 	_docYAML string
 
-	//go:embed build/sysroot/etc/casaos/message-bus.conf.sample
+	//go:embed build/sysroot/etc/powerlab/message-bus.conf.sample
 	_confSample string
 
 	unixSocketPath = "/tmp/message-bus.sock"
