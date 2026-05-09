@@ -311,9 +311,55 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
+# ── Distro detection ────────────────────────────────────────────────────
+# PowerLab is mostly distro-agnostic (Go binaries, systemd units, FHS
+# paths). The only distro-specific surfaces are: error messages that
+# suggest install/uninstall commands, and the "remove CasaOS first"
+# instruction below. We detect ID from /etc/os-release and map to a
+# package-manager hint string.
+detect_distro_family() {
+  if [[ -r /etc/os-release ]]; then
+    # shellcheck source=/dev/null
+    . /etc/os-release
+    case "${ID:-}${ID_LIKE:-}" in
+      *debian*|*ubuntu*) echo "debian" ;;
+      *fedora*|*rhel*|*centos*|*rocky*|*almalinux*|*amzn*) echo "rhel" ;;
+      *suse*|*opensuse*) echo "suse" ;;
+      *arch*|*manjaro*) echo "arch" ;;
+      *) echo "unknown" ;;
+    esac
+  else
+    echo "unknown"
+  fi
+}
+
+DISTRO_FAMILY="$(detect_distro_family)"
+
+docker_install_hint() {
+  case "$DISTRO_FAMILY" in
+    debian) echo "  apt-get update && apt-get install -y docker.io docker-compose-plugin" ;;
+    rhel)   echo "  dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin" ;;
+    suse)   echo "  zypper install -y docker docker-compose" ;;
+    arch)   echo "  pacman -Sy --noconfirm docker docker-compose" ;;
+    *)      echo "  See https://docs.docker.com/engine/install/" ;;
+  esac
+}
+
+casaos_uninstall_hint() {
+  case "$DISTRO_FAMILY" in
+    debian) echo "  apt remove --purge 'casaos*'" ;;
+    rhel)   echo "  dnf remove 'casaos*'" ;;
+    suse)   echo "  zypper remove 'casaos*'" ;;
+    arch)   echo "  pacman -Rns \$(pacman -Qq | grep '^casaos')" ;;
+    *)      echo "  (use your distro's package manager to remove casaos*)" ;;
+  esac
+}
+
 if ! command -v docker &>/dev/null; then
   echo "ERROR: Docker is not installed. Install Docker Engine first." >&2
-  echo "  See https://docs.docker.com/engine/install/" >&2
+  echo "  Detected distro family: $DISTRO_FAMILY" >&2
+  echo "$(docker_install_hint)" >&2
+  echo "  Or see https://docs.docker.com/engine/install/" >&2
   exit 1
 fi
 
@@ -365,7 +411,7 @@ if [[ -n "$CASAOS_UNITS" ]]; then
     echo "         sudo systemctl disable --now casaos casaos-gateway \\"
     echo "             casaos-app-management casaos-message-bus \\"
     echo "             casaos-user-service casaos-local-storage"
-    echo "         sudo apt remove --purge 'casaos*'"
+    echo "         sudo $(casaos_uninstall_hint | sed 's/^  //')"
     echo "         (your /DATA volumes and Docker containers are preserved)"
     echo ""
     echo "    B) Keep both side by side: re-run with --allow-coexist:"
