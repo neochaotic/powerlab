@@ -1,0 +1,14 @@
+kind: Changed
+body: |
+  Custom-app deploy (#116 item 3): the orchestrator's deploy
+  overlay now shows the same `Phase N/M — label` indicator and
+  progress bar that the native-app install overlay has, parsed
+  from the SSE log stream via the existing `parseLatestPhase`
+  helper. Adds a 10-minute safety timeout (matches native-app
+  `streamInstallLogs`); when the SSE stream wedges past that
+  window the overlay surfaces a "taking longer than expected"
+  banner instead of spinning silently. Existing
+  `install-phase.test.ts` (12 tests) covers the parsing; the
+  wiring is template-only.
+custom:
+  Issue: "116"
