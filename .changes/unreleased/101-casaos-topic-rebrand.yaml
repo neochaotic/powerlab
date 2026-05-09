@@ -1,0 +1,30 @@
+kind: Changed
+body: |
+  Message-bus topic prefixes migrated from `casaos:*` to
+  `powerlab:*` for self-describing routing in logs + traces.
+  Sprint 3 Phase 3 — third structural rebrand PR (#101).
+
+  Concrete renames in core's EventTypes registry + all
+  publish call-sites:
+
+    casaos:system:utilization  → powerlab:system:utilization
+    casaos:file:operate        → powerlab:file:operate
+
+  Both topics + their publish call-sites are now wrapped in
+  named constants in `backend/core/common/message.go`
+  (EventSystemUtilization, EventFileOperate) so the rename
+  is single-source.
+
+  Held back: `casaos:file:recover` stays on the legacy
+  prefix (kept as `EventCloudFileRecover` const) because
+  it's still referenced by core's parallel cloud-drive
+  infrastructure (drivers/{dropbox,google_drive,onedrive},
+  route/v1/recover.go). That topic dies together with that
+  infrastructure in a follow-up PR mirroring #139's
+  local-storage cloud-drive removal.
+
+  Safety: verified by grep across the SvelteKit UI + all
+  6 backend services that no PowerLab component subscribes
+  to the `casaos:` prefix. The rename is non-breaking.
+custom:
+  Issue: "101"
