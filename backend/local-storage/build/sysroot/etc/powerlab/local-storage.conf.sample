@@ -1,12 +1,12 @@
 [common]
-RuntimePath=/var/run/casaos
+RuntimePath=/var/run/powerlab
 
 [app]
-LogPath=/var/log/casaos
+LogPath=/var/log/powerlab
 LogSaveName=local-storage
 LogFileExt=log
-DBPath=/var/lib/casaos/db
-ShellPath=/usr/share/casaos/shell
+DBPath=/var/lib/powerlab/db
+ShellPath=/usr/share/powerlab/shell
 
 [server]
 USBAutoMount=

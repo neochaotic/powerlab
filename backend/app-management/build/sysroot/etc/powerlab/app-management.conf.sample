@@ -1,12 +1,12 @@
 [common]
-RuntimePath = /var/run/casaos
+RuntimePath = /var/run/powerlab
 
 [app]
-LogPath = /var/log/casaos/
+LogPath = /var/log/powerlab/
 LogSaveName = app-management
 LogFileExt = log
-AppStorePath = /var/lib/casaos/appstore
-AppsPath = /var/lib/casaos/apps
+AppStorePath = /var/lib/powerlab/appstore
+AppsPath = /var/lib/powerlab/apps
 
 [server]
 appstore = https://cdn.jsdelivr.net/gh/IceWhaleTech/CasaOS-AppStore@gh-pages/store/main.zip
