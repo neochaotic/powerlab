@@ -13,6 +13,7 @@
 	import { goto } from '$app/navigation';
 	import { fade } from 'svelte/transition';
 	import { t } from '$lib/i18n/index.svelte';
+	import { parseLatestPhase, phaseProgress } from '$lib/utils/install-phase';
 
 	let yamlText = $state(`version: '3.8'
 services:
@@ -75,9 +76,29 @@ services:
 	let deployAppId = $state<string | null>(null);
 	let logScrollEl = $state<HTMLElement | null>(null);
 	let eventSource: EventSource | null = null;
+	let sseTimeoutId: ReturnType<typeof setTimeout> | null = null;
+	let deployTimedOut = $state(false);
+
+	// Phase indicator parity with native-app install (#116 item 3).
+	// The same `parseLatestPhase` helper that drives the native-app
+	// install overlay's progress bar now drives the custom-app
+	// deploy overlay too. Pure derivation — feeds the new progress
+	// bar in the deploy modal.
+	const deployJoinedLogs = $derived(deployLogs.join('\n'));
+	const currentDeployPhase = $derived.by(() => parseLatestPhase(deployJoinedLogs));
+	const deployProgress = $derived.by(() => phaseProgress(currentDeployPhase));
+
+	function clearSseTimeout() {
+		if (sseTimeoutId) {
+			clearTimeout(sseTimeoutId);
+			sseTimeoutId = null;
+		}
+	}
+
 	function startLogStreaming(id: string) {
 		stopLogStreaming();
 		deployLogs = [];
+		deployTimedOut = false;
 		// EventSource can't send Authorization header, so the JWT
 		// must travel as ?token=… instead. The gateway and
 		// app-management both accept it as a fallback.
@@ -85,7 +106,7 @@ services:
 		const path = ENDPOINTS.APP_COMPOSE_TASK_LOGS.replace(':id', id);
 		const url = token ? `${path}?token=${encodeURIComponent(token)}` : path;
 		eventSource = new EventSource(url);
-		
+
 		eventSource.onmessage = (event) => {
 			if (event.data) {
 				deployLogs = [...deployLogs, event.data];
@@ -102,6 +123,17 @@ services:
 		eventSource.addEventListener('end', () => {
 			stopLogStreaming();
 		});
+
+		// Safety timeout: matches native-app install (apps/+page.svelte
+		// streamInstallLogs). Without this a wedged SSE leaves the
+		// deploy overlay spinning forever; with it, after 10 minutes
+		// the user gets a "taking longer than expected" surface and can
+		// dismiss / retry.
+		clearSseTimeout();
+		sseTimeoutId = setTimeout(() => {
+			stopLogStreaming();
+			deployTimedOut = true;
+		}, 600_000);
 	}
 
 	function stopLogStreaming() {
@@ -109,6 +141,7 @@ services:
 			eventSource.close();
 			eventSource = null;
 		}
+		clearSseTimeout();
 	}
 
 	onDestroy(stopLogStreaming);
@@ -502,6 +535,28 @@ services:
 					</div>
 					<h3 class="text-lg font-bold text-white">{t('orchestrator.deployingService')}</h3>
 					<p class="mt-1 text-[10px] text-zinc-500 uppercase tracking-[0.2em]">{t('orchestrator.orchestrating')}</p>
+
+					<!-- Phase indicator (#116 item 3 parity with native-app
+						 install). Renders only when the SSE stream has
+						 emitted at least one "Phase N/M:" line; otherwise
+						 hidden so we don't show 0% pre-Phase-1 noise. -->
+					{#if currentDeployPhase}
+						<div class="mt-4 text-left">
+							<div class="mb-1 flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+								<span>Phase {currentDeployPhase.step}/{currentDeployPhase.total} — {currentDeployPhase.label}</span>
+								<span class="tabular-nums text-zinc-400">{Math.round(deployProgress * 100)}%</span>
+							</div>
+							<div class="h-1 w-full overflow-hidden rounded-full bg-white/[0.04]">
+								<div class="h-full bg-emerald-500 transition-[width] duration-300" style="width: {deployProgress * 100}%"></div>
+							</div>
+						</div>
+					{/if}
+
+					{#if deployTimedOut}
+						<div class="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-left text-[11px] text-amber-300">
+							{t('apps.takingLonger')}
+						</div>
+					{/if}
 
 					<!-- Terminal Area -->
 					<div class="mt-6 flex flex-col overflow-hidden rounded-xl border border-white/5 bg-black/40 text-left shadow-inner">
