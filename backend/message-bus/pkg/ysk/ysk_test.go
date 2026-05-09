@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"github.com/neochaotic/powerlab/backend/common/utils/logger"
 	"github.com/neochaotic/powerlab/backend/message-bus/model"
 	"github.com/neochaotic/powerlab/backend/message-bus/pkg/ysk"
 	"github.com/neochaotic/powerlab/backend/message-bus/repository"

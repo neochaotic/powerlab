@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS-UserService/pkg/utils/encryption"
-	"github.com/IceWhaleTech/CasaOS-UserService/service/model"
+	"github.com/neochaotic/powerlab/backend/user-service/pkg/utils/encryption"
+	"github.com/neochaotic/powerlab/backend/user-service/service/model"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 	"github.com/stretchr/testify/assert"

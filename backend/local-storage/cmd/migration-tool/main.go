@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	interfaces "github.com/IceWhaleTech/CasaOS-Common"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/systemctl"
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/common"
+	interfaces "github.com/neochaotic/powerlab/backend/common"
+	"github.com/neochaotic/powerlab/backend/common/utils/systemctl"
+	"github.com/neochaotic/powerlab/backend/local-storage/common"
 )
 
 const (

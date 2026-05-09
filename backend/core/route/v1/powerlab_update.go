@@ -3,9 +3,9 @@ package v1
 import (
 	"net/http"
 
-	"github.com/IceWhaleTech/CasaOS-Common/model"
-	common_err "github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
-	"github.com/IceWhaleTech/CasaOS/service"
+	"github.com/neochaotic/powerlab/backend/common/model"
+	common_err "github.com/neochaotic/powerlab/backend/common/utils/common_err"
+	"github.com/neochaotic/powerlab/backend/core/service"
 	"github.com/labstack/echo/v4"
 )
 

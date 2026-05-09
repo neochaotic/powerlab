@@ -5,13 +5,13 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/codegen"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/common"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/pkg/docker"
-	v2 "github.com/IceWhaleTech/CasaOS-AppManagement/route/v2"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/service"
-	"github.com/IceWhaleTech/CasaOS-Common/utils"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/file"
+	"github.com/neochaotic/powerlab/backend/app-management/codegen"
+	"github.com/neochaotic/powerlab/backend/app-management/common"
+	"github.com/neochaotic/powerlab/backend/app-management/pkg/docker"
+	v2 "github.com/neochaotic/powerlab/backend/app-management/route/v2"
+	"github.com/neochaotic/powerlab/backend/app-management/service"
+	"github.com/neochaotic/powerlab/backend/common/utils"
+	"github.com/neochaotic/powerlab/backend/common/utils/file"
 	"gotest.tools/v3/assert"
 )
 

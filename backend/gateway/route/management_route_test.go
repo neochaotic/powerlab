@@ -9,10 +9,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"github.com/neochaotic/powerlab/backend/common/utils/logger"
 	"github.com/labstack/echo/v4"
 
-	"github.com/IceWhaleTech/CasaOS-Common/model"
+	"github.com/neochaotic/powerlab/backend/common/model"
 	"github.com/neochaotic/powerlab/backend/gateway/service"
 	"gotest.tools/v3/assert"
 )

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/IceWhaleTech/CasaOS/service"
-	"github.com/IceWhaleTech/CasaOS/types"
+	"github.com/neochaotic/powerlab/backend/core/service"
+	"github.com/neochaotic/powerlab/backend/core/types"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 )

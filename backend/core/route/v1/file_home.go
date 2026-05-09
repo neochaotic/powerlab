@@ -9,12 +9,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/IceWhaleTech/CasaOS-Common/external"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/jwt"
-	"github.com/IceWhaleTech/CasaOS/model"
-	"github.com/IceWhaleTech/CasaOS/pkg/config"
-	"github.com/IceWhaleTech/CasaOS/pkg/utils/common_err"
+	"github.com/neochaotic/powerlab/backend/common/external"
+	"github.com/neochaotic/powerlab/backend/common/utils/constants"
+	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
+	"github.com/neochaotic/powerlab/backend/core/model"
+	"github.com/neochaotic/powerlab/backend/core/pkg/config"
+	"github.com/neochaotic/powerlab/backend/core/pkg/utils/common_err"
 	"github.com/labstack/echo/v4"
 )
 

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/model"
+	"github.com/neochaotic/powerlab/backend/app-management/model"
 	"gopkg.in/yaml.v3"
 )
 

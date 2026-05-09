@@ -11,12 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/codegen"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/common"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/pkg/config"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/pkg/utils/downloadHelper"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/file"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"github.com/neochaotic/powerlab/backend/app-management/codegen"
+	"github.com/neochaotic/powerlab/backend/app-management/common"
+	"github.com/neochaotic/powerlab/backend/app-management/pkg/config"
+	"github.com/neochaotic/powerlab/backend/app-management/pkg/utils/downloadHelper"
+	"github.com/neochaotic/powerlab/backend/common/utils/file"
+	"github.com/neochaotic/powerlab/backend/common/utils/logger"
 	"github.com/samber/lo"
 	"go.uber.org/zap"
 )

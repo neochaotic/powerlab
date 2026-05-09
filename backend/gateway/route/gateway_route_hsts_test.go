@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS-Common/pkg/security"
+	"github.com/neochaotic/powerlab/backend/common/pkg/security"
 )
 
 // TestWrapHSTS_HTTPSArmedSetsHeader — request comes in over TLS,

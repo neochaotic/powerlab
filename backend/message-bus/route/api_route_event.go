@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils"
+	"github.com/neochaotic/powerlab/backend/common/utils"
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
 	"github.com/google/uuid"

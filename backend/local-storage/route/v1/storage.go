@@ -7,14 +7,14 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-Common/model"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
+	"github.com/neochaotic/powerlab/backend/common/model"
+	"github.com/neochaotic/powerlab/backend/common/utils/common_err"
 	"github.com/labstack/echo/v4"
 
-	model1 "github.com/IceWhaleTech/CasaOS-LocalStorage/model"
-	model2 "github.com/IceWhaleTech/CasaOS-LocalStorage/service/model"
+	model1 "github.com/neochaotic/powerlab/backend/local-storage/model"
+	model2 "github.com/neochaotic/powerlab/backend/local-storage/service/model"
 
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/service"
+	"github.com/neochaotic/powerlab/backend/local-storage/service"
 )
 
 func GetStorageList(ctx echo.Context) error {

@@ -1,4 +1,4 @@
-module github.com/IceWhaleTech/CasaOS-Common
+module github.com/neochaotic/powerlab/backend/common
 
 go 1.25
 

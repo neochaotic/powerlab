@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils"
-	"github.com/IceWhaleTech/CasaOS/codegen"
-	"github.com/IceWhaleTech/CasaOS/common"
-	"github.com/IceWhaleTech/CasaOS/pkg/utils/httper"
+	"github.com/neochaotic/powerlab/backend/common/utils"
+	"github.com/neochaotic/powerlab/backend/core/codegen"
+	"github.com/neochaotic/powerlab/backend/core/common"
+	"github.com/neochaotic/powerlab/backend/core/pkg/utils/httper"
 	"github.com/labstack/echo/v4"
 	"github.com/tidwall/gjson"
 )

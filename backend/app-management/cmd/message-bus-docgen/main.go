@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/IceWhaleTech/CasaOS-AppManagement/codegen/message_bus"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/common"
-	"github.com/IceWhaleTech/CasaOS-Common/external"
+	"github.com/neochaotic/powerlab/backend/app-management/codegen/message_bus"
+	"github.com/neochaotic/powerlab/backend/app-management/common"
+	"github.com/neochaotic/powerlab/backend/common/external"
 	"github.com/samber/lo"
 )
 

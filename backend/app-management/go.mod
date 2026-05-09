@@ -1,4 +1,4 @@
-module github.com/IceWhaleTech/CasaOS-AppManagement
+module github.com/neochaotic/powerlab/backend/app-management
 
 go 1.25
 
@@ -220,7 +220,6 @@ require (
 )
 
 require (
-	github.com/IceWhaleTech/CasaOS-Common v0.4.8-alpha19
 	github.com/compose-spec/compose-go v1.20.2
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
 	github.com/docker/cli v24.0.7+incompatible
@@ -230,6 +229,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/neochaotic/powerlab/backend/common v0.4.8-alpha19
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
@@ -249,4 +249,4 @@ require (
 // Override for e2e tests
 replace github.com/cucumber/godog => github.com/laurazard/godog v0.0.0-20220922095256-4c4b17abdae7
 
-replace github.com/IceWhaleTech/CasaOS-Common => ../common
+replace github.com/neochaotic/powerlab/backend/common => ../common

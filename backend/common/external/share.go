@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	http2 "github.com/IceWhaleTech/CasaOS-Common/utils/http"
+	http2 "github.com/neochaotic/powerlab/backend/common/utils/http"
 )
 
 const (

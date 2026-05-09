@@ -22,23 +22,23 @@ import (
 
 	"log/slog"
 
-	"github.com/IceWhaleTech/CasaOS-Common/external"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/jwt"
-	"github.com/IceWhaleTech/CasaOS-UserService/common"
-	"github.com/IceWhaleTech/CasaOS-UserService/model"
-	"github.com/IceWhaleTech/CasaOS-UserService/model/system_model"
-	"github.com/IceWhaleTech/CasaOS-UserService/pkg/config"
-	"github.com/IceWhaleTech/CasaOS-UserService/pkg/utils/encryption"
-	"github.com/IceWhaleTech/CasaOS-UserService/pkg/utils/file"
-	model2 "github.com/IceWhaleTech/CasaOS-UserService/service/model"
+	"github.com/neochaotic/powerlab/backend/common/external"
+	"github.com/neochaotic/powerlab/backend/common/utils/common_err"
+	"github.com/neochaotic/powerlab/backend/common/utils/constants"
+	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
+	"github.com/neochaotic/powerlab/backend/user-service/common"
+	"github.com/neochaotic/powerlab/backend/user-service/model"
+	"github.com/neochaotic/powerlab/backend/user-service/model/system_model"
+	"github.com/neochaotic/powerlab/backend/user-service/pkg/config"
+	"github.com/neochaotic/powerlab/backend/user-service/pkg/utils/encryption"
+	"github.com/neochaotic/powerlab/backend/user-service/pkg/utils/file"
+	model2 "github.com/neochaotic/powerlab/backend/user-service/service/model"
 	"github.com/labstack/echo/v4"
 	uuid "github.com/satori/go.uuid"
 	"github.com/tidwall/gjson"
 	"golang.org/x/time/rate"
 
-	"github.com/IceWhaleTech/CasaOS-UserService/service"
+	"github.com/neochaotic/powerlab/backend/user-service/service"
 )
 
 // @Summary register user

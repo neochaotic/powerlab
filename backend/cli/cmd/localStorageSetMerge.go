@@ -22,8 +22,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/IceWhaleTech/CasaOS-CLI/codegen/local_storage"
-	"github.com/IceWhaleTech/CasaOS-Common/utils"
+	"github.com/neochaotic/powerlab/backend/cli/codegen/local_storage"
+	"github.com/neochaotic/powerlab/backend/common/utils"
 	"github.com/spf13/cobra"
 )
 

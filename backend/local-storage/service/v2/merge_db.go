@@ -1,9 +1,9 @@
 package v2
 
 import (
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/pkg/sqlite"
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/service/model"
-	model2 "github.com/IceWhaleTech/CasaOS-LocalStorage/service/model"
+	"github.com/neochaotic/powerlab/backend/local-storage/pkg/sqlite"
+	"github.com/neochaotic/powerlab/backend/local-storage/service/model"
+	model2 "github.com/neochaotic/powerlab/backend/local-storage/service/model"
 )
 
 func init() {

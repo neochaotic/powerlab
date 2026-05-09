@@ -14,11 +14,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/command"
-	"github.com/IceWhaleTech/CasaOS/pkg/config"
-	"github.com/IceWhaleTech/CasaOS/pkg/utils/file"
-	"github.com/IceWhaleTech/CasaOS/service/model"
-	model2 "github.com/IceWhaleTech/CasaOS/service/model"
+	"github.com/neochaotic/powerlab/backend/common/utils/command"
+	"github.com/neochaotic/powerlab/backend/core/pkg/config"
+	"github.com/neochaotic/powerlab/backend/core/pkg/utils/file"
+	"github.com/neochaotic/powerlab/backend/core/service/model"
+	model2 "github.com/neochaotic/powerlab/backend/core/service/model"
 	"gorm.io/gorm"
 )
 

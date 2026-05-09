@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
+	"github.com/neochaotic/powerlab/backend/common/utils/constants"
 )
 
 // AppManagementConfigFilePath / AppManagementGlobalEnvFilePath are

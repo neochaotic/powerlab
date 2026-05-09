@@ -3,11 +3,11 @@ module github.com/neochaotic/powerlab/backend/gateway
 go 1.25.7
 
 require (
-	github.com/IceWhaleTech/CasaOS-Common v0.4.8-alpha9
 	github.com/digitorus/pkcs7 v0.0.0-20250730155240-ffadbf3f398c
 	github.com/google/uuid v1.6.0
 	github.com/grandcat/zeroconf v1.0.0
 	github.com/labstack/echo/v4 v4.12.0
+	github.com/neochaotic/powerlab/backend/common v0.4.8-alpha9
 	github.com/neochaotic/powerlab/backend/pkg v0.0.0-00010101000000-000000000000
 	github.com/spf13/viper v1.18.2
 	go.uber.org/fx v1.20.1
@@ -69,6 +69,6 @@ require (
 	gotest.tools/v3 v3.5.1
 )
 
-replace github.com/IceWhaleTech/CasaOS-Common => ../common
+replace github.com/neochaotic/powerlab/backend/common => ../common
 
 replace github.com/neochaotic/powerlab/backend/pkg => ../pkg

@@ -6,13 +6,13 @@ import (
 	"os/exec"
 	"strconv"
 
-	"github.com/IceWhaleTech/CasaOS/pkg/utils"
+	"github.com/neochaotic/powerlab/backend/core/pkg/utils"
 	"github.com/creack/pty"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"github.com/neochaotic/powerlab/backend/common/utils/logger"
 )
 
 // WsShell opens a local pseudo-terminal on the host PowerLab is running on

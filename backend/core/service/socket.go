@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	model2 "github.com/IceWhaleTech/CasaOS/service/model"
+	model2 "github.com/neochaotic/powerlab/backend/core/service/model"
 	"github.com/mileusna/useragent"
 )
 
