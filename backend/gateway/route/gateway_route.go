@@ -118,6 +118,20 @@ func (g *GatewayRoute) GetRoute() *http.ServeMux {
 // default 443).
 func (g *GatewayRoute) WrapHSTS(next http.Handler, httpsPort string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// HTTPS gated by POWERLAB_HTTPS_ENABLED (#130, v0.5.2).
+		// Skip ALL HSTS / redirect logic; just serve the request.
+		// On the off chance an HTTPS request comes in (cert from
+		// previous install still on disk + listener somehow up),
+		// emit max-age=0 to actively reset cached HSTS in browsers
+		// already locked. cm may be nil when HTTPS is gated.
+		if !security.HTTPSEnabled() {
+			if r.TLS != nil {
+				w.Header().Set("Strict-Transport-Security", "max-age=0")
+			}
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		armed := g.cm.IsHSTSArmed()
 		disarming := g.cm.IsHSTSDisarming()
 

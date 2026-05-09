@@ -22,6 +22,19 @@ import (
 	"github.com/digitorus/pkcs7"
 )
 
+// TestMain enables the HTTPS feature gate for the duration of every
+// test in this package. Default v0.5.2 state is HTTPS=gated (#130),
+// but these tests exercise the HTTPS flow itself — cert generation,
+// download endpoints, trust state — so they need the gate open.
+// Outside of tests, the gate is opened by setting
+// POWERLAB_HTTPS_ENABLED=true in the environment.
+func TestMain(m *testing.M) {
+	_ = os.Setenv(security.HTTPSGateEnvVar, "true")
+	code := m.Run()
+	_ = os.Unsetenv(security.HTTPSGateEnvVar)
+	os.Exit(code)
+}
+
 // newTestCertManager wires a CertManager onto a tmp dir so tests can
 // hit handleCAMobileConfig / handleCACer / handleCACrt without
 // touching /etc.

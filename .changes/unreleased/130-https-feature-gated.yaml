@@ -1,0 +1,34 @@
+kind: Changed
+body: |
+  HTTPS feature is now opt-in via `POWERLAB_HTTPS_ENABLED=true`
+  environment variable (default: gated). Closes #130.
+
+  When gated:
+  - Cert manager `Setup()` is a no-op — no CA generated, no
+    server cert written
+  - Cert download endpoints (`.crt`, `.mobileconfig`, `.cer`,
+    `ca-certificate` redirect) return 503 with
+    `{code: "https.gated", message: ...}` JSON
+  - Trust mutations (`/v1/sys/trust-confirmed`, `/v1/sys/rotate-ca`)
+    return the same 503
+  - HSTS header NOT emitted on HTTP requests; emitted as
+    `max-age=0` on HTTPS requests to actively reset cached HSTS
+    in already-locked browsers
+  - HTTP→HTTPS 301 redirect is suppressed; users access the
+    panel directly on port 8765
+  - HTTPS listener (8443) is not bound (cert files don't exist
+    so the existing graceful skip in main.go fires)
+  - Read-only `/v1/sys/trust-state` is INTENTIONALLY NOT gated
+    so the UI can render the gated banner
+
+  When the env var is set to exactly `"true"` (strict comparison —
+  no "1" / "yes" / "TRUE"), the full HTTPS flow is restored. v0.6
+  ships with HTTPS re-enabled by default after trust-dance redo
+  (#118) and integration tests land.
+
+  Surgical change — no code deletion, no frontend changes. Re-enable
+  in v0.6 = flip one default. New `pkg/security.HTTPSEnabled()`
+  helper + 11 regression tests across 3 test files lock the gate
+  shape.
+custom:
+  Issue: "130"

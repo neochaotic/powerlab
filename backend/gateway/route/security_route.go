@@ -57,11 +57,33 @@ func (s *SecurityRoute) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/v1/sys/rotate-ca", s.handleRotateCA)
 }
 
+// httpsGatedResponse writes a 503 ServiceUnavailable + JSON envelope
+// describing why HTTPS is offline (#130). Returns true if the
+// response was written and the caller should bail. Returns false if
+// HTTPS is enabled and processing should continue.
+//
+// Used at the top of every cert-download / trust-state mutation
+// handler so the UI receives a structured error instead of cert
+// data when the feature is gated.
+func httpsGatedResponse(w http.ResponseWriter) bool {
+	if security.HTTPSEnabled() {
+		return false
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Retry-After", "0")
+	w.WriteHeader(http.StatusServiceUnavailable)
+	_, _ = w.Write([]byte(`{"code":"https.gated","message":"HTTPS feature is gated until v0.6 — see https://github.com/neochaotic/powerlab/issues/130"}`))
+	return true
+}
+
 // handleCABase redirects to the format that matches the User-Agent.
 // Apple devices get the .mobileconfig (one-tap install). Windows gets
 // .cer (DER, accepted by the Certificate Import Wizard). Everyone else
 // gets the raw .crt.
 func (s *SecurityRoute) handleCABase(w http.ResponseWriter, r *http.Request) {
+	if httpsGatedResponse(w) {
+		return
+	}
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -82,6 +104,9 @@ func (s *SecurityRoute) handleCABase(w http.ResponseWriter, r *http.Request) {
 // Android, Windows (manual install path), or as a fallback for any
 // platform.
 func (s *SecurityRoute) handleCACrt(w http.ResponseWriter, r *http.Request) {
+	if httpsGatedResponse(w) {
+		return
+	}
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -107,6 +132,9 @@ func (s *SecurityRoute) handleCACrt(w http.ResponseWriter, r *http.Request) {
 // CA itself so iOS / macOS render "Verified by PowerLab Local CA"
 // instead of the red "Unverified" banner. ADR 0002 (digitorus/pkcs7).
 func (s *SecurityRoute) handleCAMobileConfig(w http.ResponseWriter, r *http.Request) {
+	if httpsGatedResponse(w) {
+		return
+	}
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -182,6 +210,9 @@ func (s *SecurityRoute) handleCAMobileConfig(w http.ResponseWriter, r *http.Requ
 // (raw DER, not a PKCS#12 bundle). A real PKCS#12 (.p12) wrapper can
 // land in a later release if a use case for it appears.
 func (s *SecurityRoute) handleCACer(w http.ResponseWriter, r *http.Request) {
+	if httpsGatedResponse(w) {
+		return
+	}
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -219,6 +250,9 @@ func (s *SecurityRoute) handleCACer(w http.ResponseWriter, r *http.Request) {
 // Conditions: the request must come over HTTPS (r.TLS != nil) and
 // from a non-localhost address. We log who armed the gate.
 func (s *SecurityRoute) handleTrustConfirmed(w http.ResponseWriter, r *http.Request) {
+	if httpsGatedResponse(w) {
+		return
+	}
 	// DELETE is the lighter "Reset trust" action: clear the HSTS
 	// gate so HTTP works again, but leave the CA + leaf alone.
 	// Distinct from `/v1/sys/rotate-ca` which regenerates the CA.
@@ -401,6 +435,9 @@ func (s *SecurityRoute) handleTrustState(w http.ResponseWriter, r *http.Request)
 //
 // See ADR 0012.
 func (s *SecurityRoute) handleRotateCA(w http.ResponseWriter, r *http.Request) {
+	if httpsGatedResponse(w) {
+		return
+	}
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
