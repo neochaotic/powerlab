@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -20,7 +21,6 @@ import (
 	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/devmode"
 	http2 "github.com/IceWhaleTech/CasaOS-Common/utils/http"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/coreos/go-systemd/daemon"
 
 	"github.com/IceWhaleTech/CasaOS-Common/pkg/security"
@@ -31,27 +31,26 @@ import (
 	pkglogging "github.com/neochaotic/powerlab/backend/pkg/logging"
 	pkgtracing "github.com/neochaotic/powerlab/backend/pkg/tracing"
 	"go.uber.org/fx"
-	"go.uber.org/zap"
 )
 
-// _foundationLogger is the PowerLab-owned logger used by the
+// _log is the PowerLab-owned logger used by the
 // foundation middleware (panic recovery + correlation-ID tracing).
 // Constructed once in main(), passed to wrapWithFoundation.
 //
-// The legacy CasaOS `logger.Info(...)`-style calls scattered across
+// The legacy CasaOS `_log.Info(context.Background(), ...)`-style calls scattered across
 // gateway code remain for now; the call-site migration is part 3 of
 // the gateway kill series. Part 2 (this) only wires the middleware
 // so panics get caught and correlation IDs propagate.
-var _foundationLogger pkglogging.Logger
+var _log pkglogging.Logger
 
 // wrapWithFoundation wraps any http.Handler with PowerLab's
 // foundation middleware:
 //
-//   1. tracing.Middleware — outermost. Reads X-Request-Id (or mints
-//      one), stores in context for log emission, echoes back.
-//   2. lifecycle.RecoverMiddleware — catches panics in the handler
-//      chain, logs with stack trace + correlation ID, writes 500
-//      via pkg/errors.WriteHTTP.
+//  1. tracing.Middleware — outermost. Reads X-Request-Id (or mints
+//     one), stores in context for log emission, echoes back.
+//  2. lifecycle.RecoverMiddleware — catches panics in the handler
+//     chain, logs with stack trace + correlation ID, writes 500
+//     via pkg/errors.WriteHTTP.
 //
 // Apply to every http.Server.Handler in this process — there are
 // four (management, HTTPS, static, port-changeable gateway).
@@ -61,7 +60,7 @@ var _foundationLogger pkglogging.Logger
 // panics for any other reason, the process keeps running.
 func wrapWithFoundation(h http.Handler) http.Handler {
 	return pkgtracing.Middleware(
-		pkglifecycle.RecoverMiddleware(_foundationLogger)(h),
+		pkglifecycle.RecoverMiddleware(_log)(h),
 	)
 }
 
@@ -149,17 +148,12 @@ func init() {
 		}
 	}
 
-	logger.LogInit(
-		config.GetString(common.ConfigKeyLogPath),
-		config.GetString(common.ConfigKeyLogSaveName),
-		config.GetString(common.ConfigKeyLogFileExt),
-	)
-
-	// Construct the PowerLab-owned logger used by foundation middleware.
-	// Independent of the legacy CasaOS logger above (call-site migration
-	// is part 3 of the gateway kill series); this one only feeds
-	// pkg/lifecycle.RecoverMiddleware and pkg/tracing.Middleware so
-	// panics get logged structurally with correlation IDs.
+	// PowerLab-owned logger. Replaces the CasaOS-Common
+	// utils/logger global init that lived here in part 2 (file
+	// rotation via lumberjack on disk; the new logger emits to
+	// stdout/journalctl which is the production pattern anyway).
+	// All call sites in this service now go through this logger
+	// (part 3 of the gateway kill series, ADR-0016).
 	level := os.Getenv("POWERLAB_LOG_LEVEL")
 	if level == "" {
 		level = "info"
@@ -170,33 +164,34 @@ func init() {
 	}
 	fl, err := pkglogging.New(pkglogging.Config{Level: level, Format: format})
 	if err != nil {
-		// Fall back to a permissive default rather than crash init —
-		// the legacy logger above already works, and we'd rather have
-		// the gateway boot without foundation middleware than not at
-		// all.
+		// Fall back to a permissive default rather than crash init.
 		fl, _ = pkglogging.New(pkglogging.Config{})
 	}
-	_foundationLogger = fl
+	_log = fl
+	// Wire the same instance into the route and service packages so
+	// every log line in the gateway flows through one logger.
+	route.SetLogger(_log)
+	service.SetLogger(_log)
 
 	runtimePath := config.GetString(common.ConfigKeyRuntimePath)
 	if err := _state.SetRuntimePath(runtimePath); err != nil {
-		logger.Error("Failed to set runtime path", zap.Any("error", err), zap.Any(common.ConfigKeyRuntimePath, runtimePath))
+		_log.Error(context.Background(), "Failed to set runtime path", err, slog.Any(common.ConfigKeyRuntimePath, runtimePath))
 		panic(err)
 	}
 
 	gatewayPort := config.GetString(common.ConfigKeyGatewayPort)
 	if err := _state.SetGatewayPort(gatewayPort); err != nil {
-		logger.Error("Failed to set gateway port", zap.Any("error", err), zap.Any(common.ConfigKeyGatewayPort, gatewayPort))
+		_log.Error(context.Background(), "Failed to set gateway port", err, slog.Any(common.ConfigKeyGatewayPort, gatewayPort))
 		panic(err)
 	}
 
 	if err := _state.SetWWWPath(*wwwPathFlag); err != nil {
-		logger.Error("Failed to set www path", zap.Any("error", err), zap.String("wwwpath", *wwwPathFlag))
+		_log.Error(context.Background(), "Failed to set www path", err, slog.String("wwwpath", *wwwPathFlag))
 		panic(err)
 	}
 
 	if err := checkPrequisites(_state); err != nil {
-		logger.Error("Failed to check prequisites", zap.Any("error", err))
+		_log.Error(context.Background(), "Failed to check prequisites", err)
 		panic(err)
 	}
 
@@ -209,7 +204,7 @@ func init() {
 func main() {
 	pidFilename, err := writePidFile(_state.GetRuntimePath())
 	if err != nil {
-		logger.Error("Failed to write pid file to runtime path", zap.Any("error", err), zap.Any("runtimePath", _state.GetRuntimePath()))
+		_log.Error(context.Background(), "Failed to write pid file to runtime path", err, slog.Any("runtimePath", _state.GetRuntimePath()))
 		panic(err)
 	}
 
@@ -221,7 +216,7 @@ func main() {
 	defer func() {
 		if _gateway != nil {
 			if err := _gateway.Shutdown(context.Background()); err != nil {
-				logger.Error("Failed to stop gateway", zap.Any("error", err))
+				_log.Error(context.Background(), "Failed to stop gateway", err)
 			}
 		}
 	}()
@@ -240,11 +235,11 @@ func main() {
 		<-_gatewayServiceReady
 
 		if supported, err := daemon.SdNotify(false, daemon.SdNotifyReady); err != nil {
-			logger.Error("Failed to notify systemd that gateway is ready", zap.Any("error", err))
+			_log.Error(context.Background(), "Failed to notify systemd that gateway is ready", err)
 		} else if supported {
-			logger.Info("Notified systemd that gateway is ready")
+			_log.Info(context.Background(), "Notified systemd that gateway is ready")
 		} else {
-			logger.Info("This process is not running as a systemd service.")
+			_log.Info(context.Background(), "This process is not running as a systemd service.")
 		}
 	}()
 
@@ -253,7 +248,7 @@ func main() {
 	// reset on app.Stop. Initialize once + go.
 	_certmgr = security.NewCertManager(_state.GetRuntimePath())
 	if err := _certmgr.Setup(); err != nil {
-		logger.Error("CertManager setup failed (HTTPS will be unavailable)", zap.Error(err))
+		_log.Error(context.Background(), "CertManager setup failed (HTTPS will be unavailable)", err)
 		// Non-fatal: gateway still serves HTTP. The user just gets
 		// no HTTPS until the next boot resolves whatever broke us.
 	} else {
@@ -272,7 +267,7 @@ func main() {
 
 	if err := app.Start(ctx); err != nil {
 		if err != context.Canceled {
-			logger.Error("Failed to start gateway", zap.Any("error", err))
+			_log.Error(context.Background(), "Failed to start gateway", err)
 		}
 	}
 }
@@ -304,13 +299,13 @@ func run(
 				}
 
 				go func() {
-					logger.Info("Management service is listening...",
-						zap.Any("address", listener.Addr().String()),
-						zap.Any("filepath", urlFilePath),
+					_log.Info(context.Background(), "Management service is listening...",
+						slog.Any("address", listener.Addr().String()),
+						slog.Any("filepath", urlFilePath),
 					)
 					err := managementServer.Serve(listener)
 					if err != nil {
-						logger.Error("management server error", zap.Any("error", err))
+						_log.Error(context.Background(), "management server error", err)
 						os.Exit(1)
 					}
 				}()
@@ -355,10 +350,10 @@ func run(
 					port := ""
 					for _, p := range portsToCheck {
 						port = fmt.Sprintf("%d", p)
-						logger.Info("Checking if port is available...", zap.Any("port", port))
+						_log.Info(context.Background(), "Checking if port is available...", slog.Any("port", port))
 						if listener, err := net.Listen("tcp", net.JoinHostPort("", port)); err == nil {
 							if err = listener.Close(); err != nil {
-								logger.Error("Failed to close listener", zap.Any("error", err), zap.Any("port", port))
+								_log.Error(context.Background(), "Failed to close listener", err, slog.Any("port", port))
 								continue
 							}
 							break
@@ -388,9 +383,9 @@ func run(
 				portInt, _ := strconv.Atoi(_state.GetGatewayPort())
 				if portInt > 0 {
 					if err := _mdns.Announce(portInt); err != nil {
-						logger.Info("Failed to announce mDNS service (non-fatal)",
-							zap.Any("error", err),
-							zap.Any("port", portInt),
+						_log.Info(context.Background(), "Failed to announce mDNS service (non-fatal)",
+							slog.Any("error", err),
+							slog.Any("port", portInt),
 						)
 					}
 				}
@@ -417,14 +412,14 @@ func run(
 	lifecycle.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			if _certmgr == nil {
-				logger.Info("HTTPS skipped — CertManager not initialized")
+				_log.Info(context.Background(), "HTTPS skipped — CertManager not initialized")
 				return nil
 			}
 			serverCert, serverKey := _certmgr.GetServerPaths()
 			if _, err := os.Stat(serverCert); err != nil {
-				logger.Info("HTTPS skipped — server cert not yet available",
-					zap.String("path", serverCert),
-					zap.Error(err))
+				_log.Info(context.Background(), "HTTPS skipped — server cert not yet available",
+					slog.String("path", serverCert),
+					slog.Any("error", err))
 				return nil
 			}
 
@@ -436,12 +431,12 @@ func run(
 			}
 
 			go func() {
-				logger.Info("HTTPS gateway is listening...",
-					zap.String("addr", _https.Addr),
-					zap.String("cert", serverCert),
+				_log.Info(context.Background(), "HTTPS gateway is listening...",
+					slog.String("addr", _https.Addr),
+					slog.String("cert", serverCert),
 				)
 				if err := _https.ListenAndServeTLS(serverCert, serverKey); err != nil && err != http.ErrServerClosed {
-					logger.Error("HTTPS gateway error", zap.Error(err))
+					_log.Error(context.Background(), "HTTPS gateway error", err)
 				}
 			}()
 			return nil
@@ -482,10 +477,10 @@ func run(
 				return err
 			}
 
-			logger.Info(
+			_log.Info(context.Background(),
 				"Static web service is listening...",
-				zap.Any("address", listener.Addr().String()),
-				zap.Any("filepath", urlFilePath),
+				slog.Any("address", listener.Addr().String()),
+				slog.Any("filepath", urlFilePath),
 			)
 			return staticServer.Serve(listener)
 		},
@@ -501,7 +496,7 @@ func reloadGateway(port string, route http.Handler) error {
 	addr := listener.Addr().String()
 
 	if _gateway != nil && _gateway.Addr == addr {
-		logger.Info("Port is the same as current running gateway - no change is required")
+		_log.Info(context.Background(), "Port is the same as current running gateway - no change is required")
 		return nil
 	}
 
@@ -516,10 +511,10 @@ func reloadGateway(port string, route http.Handler) error {
 		err := gatewayNew.Serve(listener)
 		if err != nil {
 			if errors.Is(err, http.ErrServerClosed) {
-				logger.Info("A gateway is stopped", zap.Any("address", gatewayNew.Addr))
+				_log.Info(context.Background(), "A gateway is stopped", slog.Any("address", gatewayNew.Addr))
 				return
 			}
-			logger.Error("Error when serving a gateway", zap.Any("error", err), zap.Any("address", gatewayNew.Addr))
+			_log.Error(context.Background(), "Error when serving a gateway", err, slog.Any("address", gatewayNew.Addr))
 		}
 	}()
 
@@ -529,16 +524,16 @@ func reloadGateway(port string, route http.Handler) error {
 		return err
 	}
 
-	logger.Info("New gateway is listening...", zap.Any("address", gatewayNew.Addr))
+	_log.Info(context.Background(), "New gateway is listening...", slog.Any("address", gatewayNew.Addr))
 
 	// stop old gateway
 	if _gateway != nil {
 		gatewayOld := _gateway
 		go func() {
-			logger.Info("Stopping previous gateway in 1 seconds...", zap.Any("address", gatewayOld.Addr))
+			_log.Info(context.Background(), "Stopping previous gateway in 1 seconds...", slog.Any("address", gatewayOld.Addr))
 			time.Sleep(time.Second) // so that any request to the old gateway gets a response
 			if err := gatewayOld.Shutdown(context.Background()); err != nil {
-				logger.Error("Error when stopping previous gateway", zap.Any("error", err), zap.Any("address", gatewayOld.Addr))
+				_log.Error(context.Background(), "Error when stopping previous gateway", err, slog.Any("address", gatewayOld.Addr))
 			}
 		}()
 	}
@@ -553,7 +548,7 @@ func checkURLWithRetry(url string, retry uint) error {
 	var err error
 
 	for count >= 0 {
-		logger.Info("Checking if service at URL is running...", zap.Any("url", url), zap.Any("retry", count))
+		_log.Info(context.Background(), "Checking if service at URL is running...", slog.Any("url", url), slog.Any("retry", count))
 		if err = checkURL(url); err != nil {
 			time.Sleep(time.Second)
 			count--
@@ -599,7 +594,7 @@ func cleanupFiles(runtimePath string, filenames ...string) {
 	for _, filename := range filenames {
 		err := os.Remove(filepath.Join(runtimePath, filename))
 		if err != nil {
-			logger.Error("Failed to cleanup file", zap.Any("error", err), zap.Any("filename", filename))
+			_log.Error(context.Background(), "Failed to cleanup file", err, slog.Any("filename", filename))
 		}
 	}
 }

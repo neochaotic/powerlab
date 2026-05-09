@@ -1,8 +1,10 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http/httputil"
 	"net/url"
 	"os"
@@ -12,8 +14,6 @@ import (
 	"strings"
 
 	"github.com/IceWhaleTech/CasaOS-Common/model"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
-	"go.uber.org/zap"
 )
 
 const RoutesFile = "routes.json"
@@ -31,7 +31,7 @@ func NewManagementService(state *State) *Management {
 	// try to load routes from routes.json
 	pathTargetMap, err := loadPathTargetMapFrom(routesFilepath)
 	if err != nil {
-		logger.Error("Failed to load routes", zap.Any("error", err), zap.Any("filepath", routesFilepath))
+		_log.Error(context.Background(), "Failed to load routes", err, slog.Any("filepath", routesFilepath))
 		pathTargetMap = make(map[string]string)
 	}
 
@@ -40,7 +40,7 @@ func NewManagementService(state *State) *Management {
 	for path, target := range pathTargetMap {
 		targetURL, err := url.Parse(target)
 		if err != nil {
-			logger.Error("Failed to parse target", zap.Any("error", err), zap.String("target", target))
+			_log.Error(context.Background(), "Failed to parse target", err, slog.String("target", target))
 			continue
 		}
 		pathReverseProxyMap[path] = httputil.NewSingleHostReverseProxy(targetURL)
@@ -106,13 +106,14 @@ func (g *Management) GetGatewayPort() string {
 // onChange callbacks (re-bind the listener, write gateway.ini).
 //
 // Validation:
-//   · Port must parse as an integer.
-//   · Port must be in [1, 65535] (1–1023 needs root, which the
-//     gateway already has — but we refuse 0 and >65535 outright).
-//   · Port must not be currently held by another process. We
-//     don't probe here because the State.SetGatewayPort callback
-//     stack does the actual rebind, and bind-failure returns a
-//     typed error from the kernel which the caller surfaces.
+//
+//	· Port must parse as an integer.
+//	· Port must be in [1, 65535] (1–1023 needs root, which the
+//	  gateway already has — but we refuse 0 and >65535 outright).
+//	· Port must not be currently held by another process. We
+//	  don't probe here because the State.SetGatewayPort callback
+//	  stack does the actual rebind, and bind-failure returns a
+//	  typed error from the kernel which the caller surfaces.
 //
 // The validation is in this layer (and not the route handler)
 // because both the public PUT /v1/gateway/port endpoint AND the

@@ -1,15 +1,15 @@
 package service
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 	"path/filepath"
 	"sync"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/grandcat/zeroconf"
-	"go.uber.org/zap"
 )
 
 // MDNSService publishes the gateway over Bonjour/mDNS so users can reach
@@ -22,14 +22,14 @@ import (
 // directly, our process would race with avahi for incoming queries —
 // usually losing silently. The right pattern is dual-path:
 //
-//   1. If `/etc/avahi/services/` exists, drop a `powerlab.service` XML
-//      file there. avahi watches the directory and re-publishes it on
-//      our behalf. This is what AirPrint, Plex, and most well-behaved
-//      Linux daemons do.
-//   2. ALSO call grandcat/zeroconf. On hosts without avahi this is the
-//      only path; on hosts with avahi the bind fails harmlessly (avahi
-//      owns the socket), we log it, the avahi service file does the
-//      actual work.
+//  1. If `/etc/avahi/services/` exists, drop a `powerlab.service` XML
+//     file there. avahi watches the directory and re-publishes it on
+//     our behalf. This is what AirPrint, Plex, and most well-behaved
+//     Linux daemons do.
+//  2. ALSO call grandcat/zeroconf. On hosts without avahi this is the
+//     only path; on hosts with avahi the bind fails harmlessly (avahi
+//     owns the socket), we log it, the avahi service file does the
+//     actual work.
 //
 // Service type: `_http._tcp.local.` — the standard for web UIs; shows
 // up in Safari's Bonjour bookmarks and in `dns-sd -B _http._tcp.`.
@@ -76,25 +76,25 @@ func (m *MDNSService) Announce(port int) error {
 	//     <hostname>.local URL instead of the misleading powerlab.local.
 	//   - Linux clients ALSO need `nss-mdns` package + nsswitch.conf
 	//     entry to resolve any *.local names.
-	logger.Info("mDNS announce — startup state",
-		zap.String("requested_hostname", m.hostname+".local"),
-		zap.String("system_hostname", sysHostname+".local"),
-		zap.Bool("avahi_running", avahiRunning),
-		zap.Bool("hostname_matches", sysHostname == m.hostname),
-		zap.Int("port", port),
+	_log.Info(context.Background(), "mDNS announce — startup state",
+		slog.String("requested_hostname", m.hostname+".local"),
+		slog.String("system_hostname", sysHostname+".local"),
+		slog.Bool("avahi_running", avahiRunning),
+		slog.Bool("hostname_matches", sysHostname == m.hostname),
+		slog.Int("port", port),
 	)
 
 	// Path 1: drop an avahi service file (best-effort, Linux only).
 	// avahi-daemon picks it up via inotify within a couple of seconds.
 	if err := writeAvahiServiceFile(m.hostname, port); err != nil {
-		logger.Info("avahi service file not written (will fall back to direct multicast)",
-			zap.Any("error", err),
+		_log.Info(context.Background(), "avahi service file not written (will fall back to direct multicast)",
+			slog.Any("error", err),
 		)
 	} else if avahiRunning {
-		logger.Info("mDNS service announced via avahi service file",
-			zap.String("file", "/etc/avahi/services/powerlab.service"),
-			zap.String("resolves_at", sysHostname+".local"),
-			zap.String("note", "Linux clients need nss-mdns; macOS/iOS resolve out of the box"),
+		_log.Info(context.Background(), "mDNS service announced via avahi service file",
+			slog.String("file", "/etc/avahi/services/powerlab.service"),
+			slog.String("resolves_at", sysHostname+".local"),
+			slog.String("note", "Linux clients need nss-mdns; macOS/iOS resolve out of the box"),
 		)
 	}
 
@@ -123,20 +123,20 @@ func (m *MDNSService) Announce(port int) error {
 	if err != nil {
 		// Don't return the error — the avahi path above may have
 		// succeeded even when the direct one fails.
-		logger.Info("direct mDNS bind failed (avahi owns the socket — service file is the active path)",
-			zap.Any("error", err),
-			zap.String("hostname", m.hostname+".local"),
-			zap.Int("port", port),
-			zap.Bool("avahi_running", avahiRunning),
+		_log.Info(context.Background(), "direct mDNS bind failed (avahi owns the socket — service file is the active path)",
+			slog.Any("error", err),
+			slog.String("hostname", m.hostname+".local"),
+			slog.Int("port", port),
+			slog.Bool("avahi_running", avahiRunning),
 		)
 		return nil
 	}
 
 	m.server = server
-	logger.Info("mDNS service announced (direct multicast)",
-		zap.String("hostname", m.hostname+".local"),
-		zap.Int("port", port),
-		zap.Strings("ips", ips),
+	_log.Info(context.Background(), "mDNS service announced (direct multicast)",
+		slog.String("hostname", m.hostname+".local"),
+		slog.Int("port", port),
+		slog.Any("ips", ips),
 	)
 	return nil
 }
@@ -153,7 +153,7 @@ func (m *MDNSService) Shutdown() {
 	if m.server != nil {
 		m.server.Shutdown()
 		m.server = nil
-		logger.Info("mDNS service withdrawn")
+		_log.Info(context.Background(), "mDNS service withdrawn")
 	}
 }
 

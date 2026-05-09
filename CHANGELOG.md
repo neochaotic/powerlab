@@ -13,6 +13,26 @@ see `CONTRIBUTING.md` for the rule.
 
 ### Added
 
+- **ADR-0016: kill scope = modular (Sprints 1-4) + full extraction
+  (Sprint 4.5).** Documents the two-stage strategy: each per-service
+  kill (rebrand → middleware → logger swap → dead-code review) is a
+  modular kill; `pkg/security` extraction, JWT migration, and the
+  remaining small-package swaps batch into a dedicated Sprint 4.5
+  before v1.0. `backend/common/` is deleted at the end of Sprint 4.5,
+  not Sprint 4.
+- **Sprint 1 of CasaOS independence (#67) — Kill #2 gateway part 3:
+  logger migration (#73, part 3).** All PowerLab-owned production
+  code in `backend/gateway/` now logs through `pkg/logging`. 8 files
+  migrated (`main.go` + 3 route + 2 service); ~120 call sites
+  converted from `logger.Info(msg, zap.X(...))` to
+  `_log.Info(ctx, msg, slog.X(...))`. Package-level `_log` in
+  `route/` and `service/` is set from `main.go` after constructing
+  the foundation logger. HTTP handlers use `r.Context()` so the
+  correlation ID set by `pkg/tracing.Middleware` flows into every
+  log line. `CasaOS-Common/utils/logger` import removed from all
+  production files. Test helpers retain `logger.LogInitConsoleOnly()`
+  because `CasaOS-Common/pkg/security` (still in use, scheduled for
+  Sprint 4.5 extraction) calls the CasaOS logger internally.
 - **Sprint 1 of CasaOS independence (#67) — Kill #2 gateway part 2:
   foundation middleware wired (#73, part 2).** All four
   `http.Server.Handler` instances in `backend/gateway/main.go`

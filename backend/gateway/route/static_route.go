@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/neochaotic/powerlab/backend/gateway/service"
 	"github.com/labstack/echo/v4"
 	echo_middleware "github.com/labstack/echo/v4/middleware"
+	"github.com/neochaotic/powerlab/backend/gateway/service"
 )
 
 type StaticRoute struct {

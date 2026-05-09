@@ -148,7 +148,8 @@ func TestServeSpec_RejectsTraversal(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			rec := httptest.NewRecorder()
-			d.serveSpec(rec, name)
+			req := httptest.NewRequest("GET", "/", nil)
+			d.serveSpec(rec, req, name)
 			if rec.Code != http.StatusBadRequest {
 				t.Fatalf("got %d for %q, want 400", rec.Code, name)
 			}
@@ -202,7 +203,12 @@ func TestHandleLogo_ServesEmbeddedSVG(t *testing.T) {
 	}
 }
 
-func min(a, b int) int { if a < b { return a }; return b }
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
 
 // TestServicesListCoversAllSpecs — the canonical Services list in
 // docs.go must reference exactly the spec files we embed. Catches a

@@ -5,9 +5,7 @@ import (
 	"strings"
 
 	"github.com/IceWhaleTech/CasaOS-Common/pkg/security"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/neochaotic/powerlab/backend/gateway/service"
-	"go.uber.org/zap"
 )
 
 type GatewayRoute struct {
@@ -83,7 +81,7 @@ func (g *GatewayRoute) GetRoute() *http.ServeMux {
 		if r.URL.Path == "/ping" {
 			w.WriteHeader(http.StatusOK)
 			if _, err := w.Write([]byte("pong from gateway service")); err != nil {
-				logger.Error("Failed to `pong` in resposne to `ping`", zap.Any("error", err))
+				_log.Error(r.Context(), "Failed to `pong` in resposne to `ping`", err)
 			}
 			return
 		}
@@ -113,7 +111,7 @@ func (g *GatewayRoute) GetRoute() *http.ServeMux {
 //   - On HTTP requests:
 //     · If gate is armed → 301 redirect to https://<host>:<httpsPort>
 //     · If gate is NOT armed → pass through to next (HTTP keeps working
-//       so the user can complete the trust dance).
+//     so the user can complete the trust dance).
 //
 // httpsPort is the port the HTTPS listener is bound to (typically
 // "8443"). If empty, the redirect omits the port (so it goes to the
