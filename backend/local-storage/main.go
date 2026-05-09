@@ -28,10 +28,43 @@ import (
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/route"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/service"
 	"github.com/coreos/go-systemd/daemon"
+	pkglifecycle "github.com/neochaotic/powerlab/backend/pkg/lifecycle"
+	pkglogging "github.com/neochaotic/powerlab/backend/pkg/logging"
+	pkgtracing "github.com/neochaotic/powerlab/backend/pkg/tracing"
 	"github.com/robfig/cron/v3"
 	"github.com/samber/lo"
 	"go.uber.org/zap"
 )
+
+// _log is the PowerLab-owned slog-based logger used by the foundation
+// middleware (panic recovery + correlation-ID tracing). Constructed
+// once at the top of main() and passed to wrapWithFoundation.
+//
+// Legacy CasaOS `logger.Info(..., zap.X(...))`-style calls scattered
+// across local-storage code remain for now; the call-site migration
+// is part 3 of this kill series.
+var _log pkglogging.Logger
+
+// wrapWithFoundation wraps any http.Handler with PowerLab's
+// foundation middleware:
+//
+//  1. tracing.Middleware — outermost. Reads X-Request-Id (or mints
+//     one), stores in context for log emission, echoes back.
+//  2. lifecycle.RecoverMiddleware — catches panics in the handler
+//     chain, logs with stack trace + correlation ID, writes 500
+//     via pkg/errors.WriteHTTP.
+//
+// Apply to local-storage's single http.Server.Handler. Same pattern
+// as gateway and message-bus (ADR-0011 strangler — see those services'
+// part 2 PRs for the precedent). This is the structural close for
+// the bug-#64 SIGSEGV class within the local-storage process: even
+// if a handler dereferences a nil pointer or panics for any other
+// reason, the process keeps running.
+func wrapWithFoundation(h http.Handler) http.Handler {
+	return pkgtracing.Middleware(
+		pkglifecycle.RecoverMiddleware(_log)(h),
+	)
+}
 
 const localhost = "127.0.0.1"
 
@@ -151,9 +184,27 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go monitorUEvent(ctx)
+	// Initialize the PowerLab foundation logger before anything else
+	// in main() — wrapWithFoundation and SafeGo both need _log to be
+	// non-nil. Same env-var contract as gateway / message-bus.
+	level := os.Getenv("POWERLAB_LOG_LEVEL")
+	if level == "" {
+		level = "info"
+	}
+	format := os.Getenv("POWERLAB_LOG_FORMAT")
+	if format == "" {
+		format = "json"
+	}
+	fl, err := pkglogging.New(pkglogging.Config{Level: level, Format: format})
+	if err != nil {
+		// Fall back to a permissive default rather than crash main.
+		fl, _ = pkglogging.New(pkglogging.Config{})
+	}
+	_log = fl
 
-	go sendStorageStats()
+	pkglifecycle.SafeGo(ctx, _log, func() { monitorUEvent(ctx) })
+
+	pkglifecycle.SafeGo(ctx, _log, sendStorageStats)
 
 	crontab := cron.New(cron.WithSeconds())
 	if _, err := crontab.AddFunc("@every 5s", sendStorageStats); err != nil {
@@ -165,6 +216,9 @@ func main() {
 
 	listener, err := net.Listen("tcp", net.JoinHostPort(localhost, "0"))
 	if err != nil {
+		// Listener bind is a hard startup failure — there is nothing
+		// useful the process can do without a port. panic here is
+		// equivalent to os.Exit(1) and runs deferred funcs.
 		panic(err)
 	}
 
@@ -189,8 +243,8 @@ func main() {
 			panic(err)
 		}
 	}
-	go RegMsg()
-	go service.MyService.Disk().InitCheck()
+	pkglifecycle.SafeGo(ctx, _log, RegMsg)
+	pkglifecycle.SafeGo(ctx, _log, func() { service.MyService.Disk().InitCheck() })
 	v1Router := route.InitV1Router()
 	v2Router := route.InitV2Router()
 	v2DocRouter := route.InitV2DocRouter(_docHTML, _docYAML)
@@ -214,7 +268,7 @@ func main() {
 	logger.Info("LocalStorage service is listening...", zap.Any("address", listener.Addr().String()))
 
 	server := &http.Server{
-		Handler:           mux,
+		Handler:           wrapWithFoundation(mux),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

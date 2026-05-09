@@ -196,3 +196,9 @@ require (
 	storj.io/drpc v0.0.32 // indirect
 	storj.io/uplink v1.10.0 // indirect
 )
+
+// Foundation packages live in a sibling Go module under backend/pkg.
+// Replace lets local-storage import them by their canonical path
+// without publishing the pkg module to a registry. Same pattern used
+// by gateway and message-bus. See ADR-0011 (strangler).
+replace github.com/neochaotic/powerlab/backend/pkg => ../pkg
