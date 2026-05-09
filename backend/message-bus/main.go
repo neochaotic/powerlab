@@ -26,9 +26,29 @@ import (
 	"github.com/neochaotic/powerlab/backend/message-bus/repository"
 	"github.com/neochaotic/powerlab/backend/message-bus/route"
 	"github.com/neochaotic/powerlab/backend/message-bus/service"
+	pkglifecycle "github.com/neochaotic/powerlab/backend/pkg/lifecycle"
+	pkglogging "github.com/neochaotic/powerlab/backend/pkg/logging"
+	pkgtracing "github.com/neochaotic/powerlab/backend/pkg/tracing"
 	"github.com/coreos/go-systemd/daemon"
 	"go.uber.org/zap"
 )
+
+// wrapWithFoundation wraps any http.Handler with PowerLab's foundation
+// middleware: tracing.Middleware (correlation IDs in/out via X-Request-Id)
+// → lifecycle.RecoverMiddleware (panic recovery → structured 500).
+//
+// Mirrors the gateway's wrapWithFoundation; same playbook applied to
+// the message-bus's two http.Server instances (HTTP listener + UDS
+// socket listener — both share the same mux).
+//
+// Legacy `logger.Info(...)`-style call sites scattered across
+// message-bus code remain on CasaOS-Common's logger for now;
+// call-site migration is part 3 of the message-bus kill series.
+func wrapWithFoundation(h http.Handler, logger pkglogging.Logger) http.Handler {
+	return pkgtracing.Middleware(
+		pkglifecycle.RecoverMiddleware(logger)(h),
+	)
+}
 
 const localhost = "127.0.0.1"
 
@@ -170,13 +190,36 @@ func main() {
 	// start http server
 	logger.Info("MessageBus service is listening...", zap.Any("address", listener.Addr().String()), zap.String("filepath", addressFilePath))
 
+	// Construct the PowerLab-owned logger used by the foundation
+	// middleware. Independent of the legacy CasaOS logger above
+	// (call-site migration is part 3 of the message-bus kill series);
+	// this one only feeds pkg/lifecycle.RecoverMiddleware and
+	// pkg/tracing.Middleware so panics get logged structurally with
+	// correlation IDs.
+	level := os.Getenv("POWERLAB_LOG_LEVEL")
+	if level == "" {
+		level = "info"
+	}
+	format := os.Getenv("POWERLAB_LOG_FORMAT")
+	if format == "" {
+		format = "json"
+	}
+	foundationLogger, err := pkglogging.New(pkglogging.Config{Level: level, Format: format})
+	if err != nil {
+		// Permissive fallback — boot without foundation middleware
+		// rather than not at all.
+		foundationLogger, _ = pkglogging.New(pkglogging.Config{})
+	}
+
+	wrappedMux := wrapWithFoundation(mux, foundationLogger)
+
 	server := &http.Server{
-		Handler:           mux,
+		Handler:           wrappedMux,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
 	socketServer := &http.Server{
-		Handler:           mux,
+		Handler:           wrappedMux,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

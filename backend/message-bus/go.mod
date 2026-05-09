@@ -8,11 +8,14 @@ require (
 	github.com/glebarez/sqlite v1.7.0
 	github.com/gobwas/ws v1.1.0
 	github.com/json-iterator/go v1.1.12
+	github.com/neochaotic/powerlab/backend/pkg v0.0.0-00010101000000-000000000000
 	github.com/samber/lo v1.46.0
 	go.uber.org/goleak v1.2.1
 	gorm.io/gorm v1.24.6
 	gotest.tools v2.2.0+incompatible
 )
+
+replace github.com/neochaotic/powerlab/backend/pkg => ../pkg
 
 require (
 	github.com/andybalholm/brotli v1.0.5 // indirect

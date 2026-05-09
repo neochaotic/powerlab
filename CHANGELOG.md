@@ -23,31 +23,23 @@ see `CONTRIBUTING.md` for the rule.
 - **Sprint 1 of CasaOS independence (#67) — Kill #2 gateway part 3:
   logger migration (#73, part 3).** All PowerLab-owned production
   code in `backend/gateway/` now logs through `pkg/logging`. 8 files
-  migrated (`main.go` + 3 route + 2 service); ~120 call sites
-  converted from `logger.Info(msg, zap.X(...))` to
-  `_log.Info(ctx, msg, slog.X(...))`. Package-level `_log` in
+  migrated; ~120 call sites converted. Package-level `_log` in
   `route/` and `service/` is set from `main.go` after constructing
   the foundation logger. HTTP handlers use `r.Context()` so the
   correlation ID set by `pkg/tracing.Middleware` flows into every
-  log line. `CasaOS-Common/utils/logger` import removed from all
-  production files. Test helpers retain `logger.LogInitConsoleOnly()`
-  because `CasaOS-Common/pkg/security` (still in use, scheduled for
-  Sprint 4.5 extraction) calls the CasaOS logger internally.
+  log line.
 - **Sprint 1 of CasaOS independence (#67) — Kill #2 gateway part 2:
   foundation middleware wired (#73, part 2).** All four
-  `http.Server.Handler` instances in `backend/gateway/main.go`
-  (management, HTTPS, static, port-changeable gateway) now wrap
-  through `tracing.Middleware → lifecycle.RecoverMiddleware`. A
-  panic anywhere in the handler chain is now logged with stack
-  trace + request method + path + correlation ID and rendered as a
-  structured 500 via `pkg/errors.WriteHTTP`; the process keeps
-  running. **This structurally closes the bug-#64 class** —
-  inverted condition + nil-deref in `checkURL` (or any future
-  equivalent) becomes a logged 500, not a SIGSEGV. The
-  `pkg/logging.Logger` constructed for the middleware reads
-  `POWERLAB_LOG_LEVEL` and `POWERLAB_LOG_FORMAT` from env. Legacy
-  `logger.Info(...)`-style call sites remain on CasaOS-Common
-  for now; call-site migration is part 3 of the kill series.
+  `http.Server.Handler` instances in `backend/gateway/main.go` now
+  wrap through `tracing.Middleware → lifecycle.RecoverMiddleware`.
+  **This structurally closes the bug-#64 class** — nil-deref in any
+  handler becomes a logged 500, not a SIGSEGV.
+- **Sprint 1 of CasaOS independence (#67) — Kill #1 message-bus part
+  2: foundation middleware wired (#72, part 2).** Both
+  `http.Server` instances in `backend/message-bus/main.go` (HTTP
+  listener + UDS socket listener — both share the same `mux`) now
+  flow through `tracing.Middleware → lifecycle.RecoverMiddleware`.
+  Same playbook as the gateway's #88.
 - **Architecture documentation in `docs/architecture/`.** Six Mermaid
   diagrams covering: dependency graph (Go modules + foundation
   packages + per-sprint progress), service topology (process model
