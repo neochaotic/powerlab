@@ -183,7 +183,13 @@ func (s *appStore) UpdateCatalog() error {
 		return err
 	}
 
-	placeholderFile := filepath.Join(storeRoot, ".casaos-appstore")
+	// Marker file written into each app store dir so the registry
+	// service can identify the store provenance from disk. The file
+	// is regenerated on every store sync, so renaming the basename
+	// from ".casaos-appstore" to ".powerlab-appstore" leaves no
+	// stale state behind. Sprint 4 PR1 cosmetic rebrand (#85, audit
+	// `docs/audits/sprint-4-app-management-prep.md`).
+	placeholderFile := filepath.Join(storeRoot, ".powerlab-appstore")
 	if err := file.CreateFileAndWriteContent(placeholderFile, s.url); err != nil {
 		return err
 	}
