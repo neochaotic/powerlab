@@ -4,10 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-UserService/model"
 	"github.com/IceWhaleTech/CasaOS-UserService/pkg/utils/file"
-	model2 "github.com/IceWhaleTech/CasaOS-UserService/service/model"
 	"github.com/glebarez/sqlite"
+	pkgmigrations "github.com/neochaotic/powerlab/backend/pkg/migrations"
 	"gorm.io/gorm"
 )
 
@@ -49,9 +48,19 @@ func GetDb(dbPath string) *gorm.DB {
 
 	gdb = db
 
-	err = db.AutoMigrate(model2.UserDBModel{}, model.EventModel{})
-	if err != nil {
-		_log.Error(context.Background(), "check or create db error", err)
+	// Run versioned migrations in place of GORM's AutoMigrate.
+	// migrationsFS is defined in migrations.go alongside the .sql
+	// files. ADR-0018 documents the choice (goose) and the
+	// rationale for retiring AutoMigrate.
+	//
+	// On a pre-existing install with tables already created by
+	// AutoMigrate, the 0001_initial.sql uses CREATE TABLE IF NOT
+	// EXISTS so the migration is a safe no-op that simply records
+	// the schema as being at version 1 in goose_db_version.
+	if sqlDB, dbErr := db.DB(); dbErr == nil {
+		if err := pkgmigrations.Up(context.Background(), sqlDB, migrationsFS, "migrations"); err != nil {
+			_log.Error(context.Background(), "migration error", err)
+		}
 	}
 	return db
 }
