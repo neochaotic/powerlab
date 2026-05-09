@@ -10,6 +10,7 @@ import (
 	"github.com/glebarez/sqlite"
 	"github.com/neochaotic/powerlab/backend/message-bus/model"
 	"github.com/neochaotic/powerlab/backend/message-bus/pkg/ysk"
+	pkgmigrations "github.com/neochaotic/powerlab/backend/pkg/migrations"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -157,7 +158,19 @@ func GetType[T any](db *gorm.DB, sourceID string, name string) (*T, error) {
 }
 
 func NewDatabaseRepositoryInMemory() (Repository, error) {
-	return NewDatabaseRepository("file::memory:?cache=shared", "file::memory:?cache=shared")
+	// Use distinct named in-memory shared caches per DB. Previously
+	// both DBs were "file::memory:?cache=shared" — the same identifier
+	// — which made them connect to the SAME backing store. With
+	// pkg/migrations, goose's version-tracking table is then shared
+	// across the two migration runs, so the second Up sees v=1 from
+	// the first and skips its own migrations. Result: persistDB never
+	// gets settings/ysk_cards.
+	//
+	// Each cache name produces its own isolated in-memory DB.
+	return NewDatabaseRepository(
+		"file:events?mode=memory&cache=shared",
+		"file:persist?mode=memory&cache=shared",
+	)
 }
 
 func NewDatabaseRepository(databaseFilePath string, persistDatabaseFilePath string) (Repository, error) {
@@ -189,17 +202,23 @@ func NewDatabaseRepository(databaseFilePath string, persistDatabaseFilePath stri
 		}
 	}
 
-	if err := db.AutoMigrate(
-		&model.EventType{}, &model.ActionType{}, &model.PropertyType{},
-	); err != nil {
-		return nil, err
+	// Run versioned migrations in place of GORM's AutoMigrate. Two
+	// embed.FS — one per DB — because each goose run owns its own
+	// goose_db_version table and migration sequence. ADR-0018.
+	//
+	// On a pre-existing install with tables already created by
+	// AutoMigrate, the 0001_initial.sql files use CREATE TABLE
+	// IF NOT EXISTS so the migration is a safe no-op that simply
+	// records the schema as version 1 in goose_db_version.
+	if sqlDB, dbErr := db.DB(); dbErr == nil {
+		if err := pkgmigrations.Up(context.Background(), sqlDB, migrationsEventsFS, "migrations_events"); err != nil {
+			return nil, err
+		}
 	}
-
-	if err := persistDB.AutoMigrate(
-		&ysk.YSKCard{},
-		&model.Settings{},
-	); err != nil {
-		return nil, err
+	if sqlDB, dbErr := persistDB.DB(); dbErr == nil {
+		if err := pkgmigrations.Up(context.Background(), sqlDB, migrationsPersistFS, "migrations_persist"); err != nil {
+			return nil, err
+		}
 	}
 
 	return &DatabaseRepository{
