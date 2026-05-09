@@ -11,6 +11,17 @@ see `CONTRIBUTING.md` for the rule.
 
 ## [Unreleased]
 
+### Internal
+
+- **Sprint 1 of CasaOS independence (#67) — foundation `pkg/logging`.**
+  New Go module at `backend/pkg/` (module path
+  `github.com/neochaotic/powerlab/backend/pkg`) coexists with the legacy
+  `backend/common/` (which is `github.com/IceWhaleTech/CasaOS-Common`)
+  during the multi-sprint strip; see ADR-0011. First package is
+  `pkg/logging`, a structured logger built on `log/slog` with levels,
+  correlation-ID auto-injection from context, and configurable format
+  (`console` / `json`); see ADR-0012. Closes #68.
+
 ## [0.3.2] — 2026-05-07
 
 Patch on v0.3.1. Several bugs reported in production, all under TDD —
