@@ -13,6 +13,18 @@ see `CONTRIBUTING.md` for the rule.
 
 ### Internal
 
+- **Sprint 1 of CasaOS independence (#67) — supply chain audit (#62).**
+  Four documents under `docs/audits/`: (1) CasaOS dependency map —
+  every existing service `go.mod` declares an `IceWhaleTech/CasaOS-*`
+  module path; (2) dead-code report from `deadcode` and
+  `staticcheck` showing **368 unreachable functions** across the
+  backend, including entire abandoned subsystems (Dropbox driver,
+  Google Drive driver, `route/v1/` legacy in core); (3) HTTP
+  endpoint usage matrix with full mapping for the Sprint 1 kill
+  targets (gateway, message-bus) and methodology for Sprints 2-4;
+  (4) UI feature → backend service map identifying which UI areas
+  need regression-testing per kill. Aggregate impact: **~4,400 LOC
+  will not need to be ported** during the kill PRs.
 - **Sprint 1 of CasaOS independence (#67) — foundation `pkg/tracing`.**
   Correlation IDs end-to-end across the six services. `NewID()`
   generates a 32-character hex string from `crypto/rand` (no

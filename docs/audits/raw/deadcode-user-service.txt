@@ -1,0 +1,5 @@
+cmd/migration-tool/log.go:25:18: unreachable func: Logger.Debug
+pkg/config/init.go:67:6: unreachable func: SaveSetup
+pkg/config/init.go:89:6: unreachable func: reflectFrom
+route/v1/user.go:404:6: unreachable func: PutUserNick
+route/v1/user.go:430:6: unreachable func: PutUserDesc

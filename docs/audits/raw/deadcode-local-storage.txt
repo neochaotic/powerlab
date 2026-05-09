@@ -1,0 +1,25 @@
+/Users/neochaotic/go/pkg/mod/github.com/pilebones/go-udev@v0.9.0/netlink/conn.go:23:15: undefined: syscall.SockaddrNetlink
+/Users/neochaotic/go/pkg/mod/github.com/pilebones/go-udev@v0.9.0/netlink/conn.go:40:40: undefined: syscall.AF_NETLINK
+/Users/neochaotic/go/pkg/mod/github.com/pilebones/go-udev@v0.9.0/netlink/conn.go:40:78: undefined: syscall.NETLINK_KOBJECT_UEVENT
+/Users/neochaotic/go/pkg/mod/github.com/pilebones/go-udev@v0.9.0/netlink/conn.go:44:19: undefined: syscall.SockaddrNetlink
+/Users/neochaotic/go/pkg/mod/github.com/pilebones/go-udev@v0.9.0/netlink/conn.go:45:19: undefined: syscall.AF_NETLINK
+/Users/neochaotic/go/pkg/mod/bazil.org/fuse@v0.0.0-20230120002735-62a210ff1fd5/error_std.go:26:20: undefined: errNoXattr
+/Users/neochaotic/go/pkg/mod/bazil.org/fuse@v0.0.0-20230120002735-62a210ff1fd5/fuse.go:411:32: undefined: maxWrite
+/Users/neochaotic/go/pkg/mod/bazil.org/fuse@v0.0.0-20230120002735-62a210ff1fd5/fuse_kernel.go:1011:43: undefined: unix.FALLOC_FL_KEEP_SIZE
+/Users/neochaotic/go/pkg/mod/bazil.org/fuse@v0.0.0-20230120002735-62a210ff1fd5/fuse_kernel.go:1012:43: undefined: unix.FALLOC_FL_PUNCH_HOLE
+/Users/neochaotic/go/pkg/mod/bazil.org/fuse@v0.0.0-20230120002735-62a210ff1fd5/fuse.go:157:12: undefined: mount
+/Users/neochaotic/go/pkg/mod/bazil.org/fuse@v0.0.0-20230120002735-62a210ff1fd5/fuse.go:222:24: undefined: maxWrite
+/Users/neochaotic/go/pkg/mod/bazil.org/fuse@v0.0.0-20230120002735-62a210ff1fd5/fuse.go:800:15: undefined: openFlags
+/Users/neochaotic/go/pkg/mod/bazil.org/fuse@v0.0.0-20230120002735-62a210ff1fd5/fuse.go:819:18: undefined: openFlags
+/Users/neochaotic/go/pkg/mod/bazil.org/fuse@v0.0.0-20230120002735-62a210ff1fd5/fuse.go:836:18: undefined: openFlags
+/Users/neochaotic/go/pkg/mod/bazil.org/fuse@v0.0.0-20230120002735-62a210ff1fd5/fuse.go:859:18: undefined: openFlags
+/Users/neochaotic/go/pkg/mod/bazil.org/fuse@v0.0.0-20230120002735-62a210ff1fd5/fuse.go:987:12: undefined: openFlags
+/Users/neochaotic/go/pkg/mod/bazil.org/fuse@v0.0.0-20230120002735-62a210ff1fd5/fuse.go:1458:20: undefined: maxWrite
+/Users/neochaotic/go/pkg/mod/bazil.org/fuse@v0.0.0-20230120002735-62a210ff1fd5/fuse.go:1459:18: undefined: maxWrite
+/Users/neochaotic/go/pkg/mod/bazil.org/fuse@v0.0.0-20230120002735-62a210ff1fd5/options.go:75:9: undefined: daemonTimeout
+/Users/neochaotic/Documents/dev/powerlab/backend/local-storage/pkg/mergerfs/mergerfs.go:21:23: undefined: syscall.Listxattr
+/Users/neochaotic/Documents/dev/powerlab/backend/local-storage/pkg/mergerfs/mergerfs.go:35:24: undefined: syscall.Getxattr
+/Users/neochaotic/Documents/dev/powerlab/backend/local-storage/pkg/mergerfs/mergerfs.go:63:17: undefined: syscall.Setxattr
+/Users/neochaotic/Documents/dev/powerlab/backend/local-storage/pkg/mergerfs/mergerfs.go:87:17: undefined: syscall.Setxattr
+/Users/neochaotic/Documents/dev/powerlab/backend/local-storage/pkg/mergerfs/mergerfs.go:96:17: undefined: syscall.Setxattr
+deadcode: packages contain errors
