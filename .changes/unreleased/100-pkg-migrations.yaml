@@ -1,0 +1,17 @@
+kind: Added
+body: |
+  `backend/pkg/migrations` — a thin wrapper over `pressly/goose/v3`
+  that gives every PowerLab service a versioned, transactional,
+  rollbackable schema migration runner. Three exported functions:
+  `Up(ctx, db, fsys, dir)`, `Down(ctx, db, fsys, dir)`,
+  `Version(ctx, db) (int64, error)`. Six TDD'd tests cover happy
+  path, idempotency, partial-already-applied, malformed-SQL-fails,
+  fresh-DB-returns-zero, and Down rollback. `Version` queries
+  `goose_db_version` directly so it can be called from health
+  endpoints without threading a migration FS. Lays the foundation
+  for retiring `db.AutoMigrate(...)` across all four
+  state-owning services in subsequent Sprint 3 PRs (see ADR-0018
+  for the rationale and goose-vs-golang-migrate-vs-atlas
+  comparison).
+custom:
+  Issue: "100"
