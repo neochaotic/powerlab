@@ -11,6 +11,23 @@ see `CONTRIBUTING.md` for the rule.
 
 ## [Unreleased]
 
+### Added
+
+- **Architecture documentation in `docs/architecture/`.** Six Mermaid
+  diagrams covering: dependency graph (Go modules + foundation
+  packages + per-sprint progress), service topology (process model
+  + boot order + ownership table), request lifecycle (happy path
+  with correlation IDs, error path with panic recovery, error path
+  with typed errors), foundation interfaces (composition view of
+  `pkg/{logging,errors,lifecycle,tracing}`), data persistence map
+  (every on-disk path + upgrade preservation guarantees), and
+  CasaOS strangler progress (live tracker per sprint). Plus
+  `docs/troubleshooting.md` — error → cause → fix matrix pulled
+  from production reports across v0.2.x, v0.3.x and the Sprint 1
+  audit. The Scalar API portal at `/docs` (ADR-0008) remains the
+  reference for HTTP endpoints; this set covers the architecture
+  and operational layers Scalar does not.
+
 ### Changed
 
 - **Installer is distro-aware** (#76). The bundled `install.sh`
