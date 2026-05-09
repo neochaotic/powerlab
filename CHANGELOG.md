@@ -13,6 +13,21 @@ see `CONTRIBUTING.md` for the rule.
 
 ### Added
 
+- **Sprint 1 of CasaOS independence (#67) — Kill #2 gateway part 2:
+  foundation middleware wired (#73, part 2).** All four
+  `http.Server.Handler` instances in `backend/gateway/main.go`
+  (management, HTTPS, static, port-changeable gateway) now wrap
+  through `tracing.Middleware → lifecycle.RecoverMiddleware`. A
+  panic anywhere in the handler chain is now logged with stack
+  trace + request method + path + correlation ID and rendered as a
+  structured 500 via `pkg/errors.WriteHTTP`; the process keeps
+  running. **This structurally closes the bug-#64 class** —
+  inverted condition + nil-deref in `checkURL` (or any future
+  equivalent) becomes a logged 500, not a SIGSEGV. The
+  `pkg/logging.Logger` constructed for the middleware reads
+  `POWERLAB_LOG_LEVEL` and `POWERLAB_LOG_FORMAT` from env. Legacy
+  `logger.Info(...)`-style call sites remain on CasaOS-Common
+  for now; call-site migration is part 3 of the kill series.
 - **Architecture documentation in `docs/architecture/`.** Six Mermaid
   diagrams covering: dependency graph (Go modules + foundation
   packages + per-sprint progress), service topology (process model
