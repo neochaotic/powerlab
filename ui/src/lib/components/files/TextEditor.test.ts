@@ -136,3 +136,166 @@ describe('TextEditor — backend 500 still surfaces error', () => {
 		expect(queryByText('New')).toBeNull();
 	});
 });
+
+describe('TextEditor — save success emits toast (#116 regression)', () => {
+	beforeEach(() => vi.restoreAllMocks());
+
+	// Bug observed during v0.5.0 testing (#116 item 1): user saves a
+	// text file in the editor, the save persists to disk, but no
+	// success toast appears. This test was missing — that absence is
+	// exactly how the regression got through.
+	//
+	// Tests the new-file path (404 → POST), where the Save button is
+	// enabled from the start (no need to fight CodeMirror to flip
+	// isDirty). The save handler's success branch is the same code
+	// for create and update — exercising create gives us coverage of
+	// the toast call without jsdom-vs-CodeMirror friction.
+	it('calls toast.success with "Created {name}" after a successful save', async () => {
+		// First fetch (GET) returns 404 → editor opens in new-file
+		// mode. Second fetch (POST /v1/file) returns success.
+		let fetchCallCount = 0;
+		const fetchMock = vi.fn(async (_url: unknown, opts?: RequestInit) => {
+			fetchCallCount++;
+			const method = opts?.method || 'GET';
+			if (method === 'GET') {
+				return {
+					ok: false,
+					status: 404,
+					statusText: 'Not Found',
+					headers: new Headers({ 'content-type': 'application/json' }),
+					text: () => Promise.resolve(JSON.stringify({
+						success: 60001,
+						message: 'file does not exist'
+					}))
+				} as Response;
+			}
+			// POST or PUT — successful save.
+			return {
+				ok: true,
+				status: 200,
+				statusText: 'OK',
+				headers: new Headers({ 'content-type': 'application/json' }),
+				text: () => Promise.resolve(JSON.stringify({
+					success: 200,
+					message: 'ok',
+					data: null
+				}))
+			} as Response;
+		});
+		vi.stubGlobal('fetch', fetchMock);
+
+		const { toast } = await import('$lib/stores/toast.svelte');
+		const successSpy = vi.spyOn(toast, 'success');
+
+		const { findByText, getByRole } = render(TextEditor, {
+			path: '/tmp/brand-new-save.txt',
+			onClose: () => {}
+		});
+
+		// Wait for new-file mode — proves load completed in 404 branch
+		// and Save button is therefore enabled (isNewFile=true).
+		await findByText('New');
+
+		// Save button is now active. Click.
+		const saveBtn = getByRole('button', {
+			name: /save|salvar|guardar|create|criar|crear/i
+		});
+		saveBtn.click();
+
+		// Toast should fire with "Created {name}" / "Criado {name}".
+		// Assert success() was invoked with the file name embedded.
+		await waitFor(
+			() => {
+				expect(successSpy).toHaveBeenCalled();
+				const lastCall = successSpy.mock.calls.at(-1);
+				expect(lastCall?.[0]).toContain('brand-new-save.txt');
+			},
+			{ timeout: 1500 }
+		);
+
+		// Sanity: at least 2 fetch calls (initial GET + the save).
+		expect(fetchCallCount).toBeGreaterThanOrEqual(2);
+	});
+
+	// Same regression class but exercising the existing-file PUT path.
+	// SKIPPED in vitest because jsdom does not run CodeMirror's input
+	// pipeline reliably enough to flip isDirty. The PUT save path is
+	// covered by the Playwright suite (#108) once the Files-page
+	// per-area tests land — until then, the create-flow test above
+	// is the regression guard, since the success branch in handleSave
+	// is symmetric between create and update (both call
+	// toast.success(...)). A bug specific to the PUT path would be
+	// in the API response handling, not the toast emission.
+	it.skip('calls toast.success on PUT save of an existing file', async () => {
+		const fetchMock = vi.fn(async (_url: unknown, opts?: RequestInit) => {
+			const method = opts?.method || 'GET';
+			const body = method === 'PUT'
+				? { success: 200, message: 'ok', data: null }
+				: { success: 200, message: 'ok', data: 'starting content' };
+			return {
+				ok: true,
+				status: 200,
+				statusText: 'OK',
+				headers: new Headers({ 'content-type': 'application/json' }),
+				text: () => Promise.resolve(JSON.stringify(body))
+			} as Response;
+		});
+		vi.stubGlobal('fetch', fetchMock);
+
+		const { toast } = await import('$lib/stores/toast.svelte');
+		const successSpy = vi.spyOn(toast, 'success');
+
+		const { container, findByText } = render(TextEditor, {
+			path: '/tmp/edit-existing.txt',
+			onClose: () => {}
+		});
+
+		await findByText('edit-existing.txt');
+		await waitFor(
+			() => {
+				expect(container.querySelector('.cm-editor')).toBeTruthy();
+			},
+			{ timeout: 1500 }
+		);
+
+		// Reach into the rendered DOM to find the CodeMirror EditorView
+		// instance via the cmView property the library exposes on
+		// .cm-content. Dispatching a transaction simulates a real edit
+		// and triggers updateListener → isDirty=true.
+		const cmContent = container.querySelector('.cm-content') as
+			| (HTMLElement & { cmView?: { view?: unknown } })
+			| null;
+		if (cmContent?.cmView?.view) {
+			const view = cmContent.cmView.view as {
+				dispatch: (tr: { changes: { from: number; insert: string } }) => void;
+				state: { doc: { length: number } };
+			};
+			view.dispatch({
+				changes: { from: view.state.doc.length, insert: 'X' }
+			});
+		}
+
+		await waitFor(
+			() => {
+				expect(successSpy).not.toHaveBeenCalled(); // not yet — we haven't clicked save
+				const btn = container.querySelector('button.bg-emerald-500') as HTMLButtonElement | null;
+				expect(btn).toBeTruthy();
+				expect(btn?.hasAttribute('disabled')).toBe(false);
+			},
+			{ timeout: 1500 }
+		);
+
+		// Click the green Save button.
+		const saveBtn = container.querySelector('button.bg-emerald-500') as HTMLButtonElement;
+		saveBtn.click();
+
+		await waitFor(
+			() => {
+				expect(successSpy).toHaveBeenCalled();
+				const lastCall = successSpy.mock.calls.at(-1);
+				expect(lastCall?.[0]).toContain('edit-existing.txt');
+			},
+			{ timeout: 1500 }
+		);
+	});
+});

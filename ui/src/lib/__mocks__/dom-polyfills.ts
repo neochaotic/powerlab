@@ -8,6 +8,19 @@
  * the visual transition in tests — we only assert on rendered DOM
  * after the component settles.
  */
+// ResizeObserver isn't implemented in jsdom either. Components like
+// FileTable that observe their container size will throw on render
+// without a stub. Returning a no-op observer is fine — tests don't
+// assert on layout, only on rendered DOM.
+if (typeof globalThis !== 'undefined' && typeof (globalThis as { ResizeObserver?: unknown }).ResizeObserver === 'undefined') {
+	class NoopResizeObserver {
+		observe() {}
+		unobserve() {}
+		disconnect() {}
+	}
+	(globalThis as { ResizeObserver: unknown }).ResizeObserver = NoopResizeObserver;
+}
+
 if (typeof Element !== 'undefined' && !Element.prototype.animate) {
 	Element.prototype.animate = function () {
 		const noopAnimation = {
