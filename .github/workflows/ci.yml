@@ -70,6 +70,7 @@ jobs:
           - message-bus
           - app-management
           - local-storage
+          - pkg
     steps:
       - uses: actions/checkout@v4
 
