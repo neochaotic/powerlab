@@ -1,7 +1,7 @@
 [common]
-RuntimePath=/var/run/casaos
+RuntimePath=/var/run/powerlab
 
 [app]
-LogPath=/var/log/casaos
+LogPath=/var/log/powerlab
 LogSaveName=message-bus
 LogFileExt=log

@@ -1,9 +1,9 @@
 [common]
-RuntimePath=/var/run/casaos
+RuntimePath=/var/run/powerlab
 
 [app]
-LogPath = /var/log/casaos
+LogPath = /var/log/powerlab
 LogSaveName = user-service
 LogFileExt = log
-DBPath     = /var/lib/casaos/db
-UserDataPath = /var/lib/casaos
+DBPath     = /var/lib/powerlab/db
+UserDataPath = /var/lib/powerlab
