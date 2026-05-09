@@ -111,7 +111,20 @@ func (m *CertManager) GetPublicBackupPath() string {
 	return filepath.Join(m.StoragePath, PublicBackupFile)
 }
 
+// Setup initializes the cert manager: ensures CA exists, generates
+// server cert if missing, etc. NO-OP when HTTPS is gated (see
+// pkg/security/gate.go and issue #130) — returns nil immediately so
+// the caller's gateway boot continues HTTP-only without producing
+// a CA on disk that the user never asked for.
+//
+// Why gate at this layer: every entry point to cert generation
+// (GenerateRootCA, CheckAndRotate, writePublicBackup) is reached
+// from Setup. Gating here is one check that covers all paths.
 func (m *CertManager) Setup() error {
+	if !HTTPSEnabled() {
+		return nil
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
