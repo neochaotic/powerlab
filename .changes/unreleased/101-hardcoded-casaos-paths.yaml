@@ -1,0 +1,50 @@
+kind: Fixed
+body: |
+  Multiple hardcoded `/var/lib/casaos/...` and `/var/log/casaos/...`
+  paths in runtime code that survived the #140 etc-paths rebrand
+  because they reference data/log/share dirs (constants.Default*Path)
+  rather than config dirs (constants.DefaultConfigPath).
+
+  Each is a real production bug: PowerLab installs put data under
+  `/var/lib/powerlab/`, logs under `/var/log/powerlab/`, and shared
+  data under `/usr/share/powerlab/`, so the hardcoded `/casaos/`
+  paths pointed at directories that don't exist.
+
+  Fixes:
+
+    backend/app-management/route/v1/docker.go
+      dockerRootDirFilePath
+      "/var/lib/casaos/docker_root"
+      → filepath.Join(constants.DefaultDataPath, "docker_root")
+
+    backend/core/route/v2/health.go
+      GetHealthlogs log archiver
+      "/var/log/casaos" (3 sites)
+      → constants.DefaultLogPath
+
+    backend/core/service/system.go
+      GenreateSystemEntry + GetSystemEntry
+      "/var/lib/casaos/www/modules" (2 sites)
+      → filepath.Join(constants.DefaultDataPath, "www", "modules")
+
+    backend/core/pkg/config/init.go
+      AppInfo.ShellPath default
+      "/usr/share/casaos/shell"
+      → filepath.Join(constants.DefaultConstantPath, "shell")
+
+    backend/local-storage/pkg/config/init.go
+      AppInfo.ShellPath default
+      "/usr/share/casaos/shell"
+      → filepath.Join(constants.DefaultConstantPath, "shell")
+
+    backend/local-storage/route/v2/merge.go
+      User-facing error messages mentioned "/var/lib/casaos/files"
+      → use the resolved constants.DefaultFilePath value
+
+  Held back: backend/common/utils/version/migration.go's
+  GlobalMigrationStatusDirPath = "/var/lib/casaos/migration" is
+  intentionally CasaOS-pointed (it tracks legacy CasaOS-→PowerLab
+  migration status). Belongs to the migration-tool surface that
+  #140 explicitly held back.
+custom:
+  Issue: "101"
