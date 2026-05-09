@@ -4,8 +4,11 @@ go 1.25
 
 require (
 	github.com/IceWhaleTech/CasaOS-Common v0.4.8-alpha9
+	github.com/digitorus/pkcs7 v0.0.0-20250730155240-ffadbf3f398c
+	github.com/google/uuid v1.6.0
 	github.com/grandcat/zeroconf v1.0.0
 	github.com/labstack/echo/v4 v4.12.0
+	github.com/neochaotic/powerlab/backend/pkg v0.0.0-00010101000000-000000000000
 	github.com/spf13/viper v1.18.2
 	go.uber.org/fx v1.20.1
 	gotest.tools v2.2.0+incompatible
@@ -15,11 +18,9 @@ require (
 	github.com/benbjohnson/clock v1.3.1 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
-	github.com/digitorus/pkcs7 v0.0.0-20250730155240-ffadbf3f398c // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang-jwt/jwt/v5 v5.0.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/labstack/echo-jwt/v4 v4.2.0 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -69,3 +70,5 @@ require (
 )
 
 replace github.com/IceWhaleTech/CasaOS-Common => ../common
+
+replace github.com/neochaotic/powerlab/backend/pkg => ../pkg

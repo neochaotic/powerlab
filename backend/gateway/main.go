@@ -27,9 +27,43 @@ import (
 	"github.com/neochaotic/powerlab/backend/gateway/common"
 	"github.com/neochaotic/powerlab/backend/gateway/route"
 	"github.com/neochaotic/powerlab/backend/gateway/service"
+	pkglifecycle "github.com/neochaotic/powerlab/backend/pkg/lifecycle"
+	pkglogging "github.com/neochaotic/powerlab/backend/pkg/logging"
+	pkgtracing "github.com/neochaotic/powerlab/backend/pkg/tracing"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
+
+// _foundationLogger is the PowerLab-owned logger used by the
+// foundation middleware (panic recovery + correlation-ID tracing).
+// Constructed once in main(), passed to wrapWithFoundation.
+//
+// The legacy CasaOS `logger.Info(...)`-style calls scattered across
+// gateway code remain for now; the call-site migration is part 3 of
+// the gateway kill series. Part 2 (this) only wires the middleware
+// so panics get caught and correlation IDs propagate.
+var _foundationLogger pkglogging.Logger
+
+// wrapWithFoundation wraps any http.Handler with PowerLab's
+// foundation middleware:
+//
+//   1. tracing.Middleware — outermost. Reads X-Request-Id (or mints
+//      one), stores in context for log emission, echoes back.
+//   2. lifecycle.RecoverMiddleware — catches panics in the handler
+//      chain, logs with stack trace + correlation ID, writes 500
+//      via pkg/errors.WriteHTTP.
+//
+// Apply to every http.Server.Handler in this process — there are
+// four (management, HTTPS, static, port-changeable gateway).
+//
+// This is the structural close for bug #64 (gateway checkURL
+// SIGSEGV class). Even if a handler dereferences a nil pointer or
+// panics for any other reason, the process keeps running.
+func wrapWithFoundation(h http.Handler) http.Handler {
+	return pkgtracing.Middleware(
+		pkglifecycle.RecoverMiddleware(_foundationLogger)(h),
+	)
+}
 
 const localhost = "127.0.0.1"
 
@@ -120,6 +154,29 @@ func init() {
 		config.GetString(common.ConfigKeyLogSaveName),
 		config.GetString(common.ConfigKeyLogFileExt),
 	)
+
+	// Construct the PowerLab-owned logger used by foundation middleware.
+	// Independent of the legacy CasaOS logger above (call-site migration
+	// is part 3 of the gateway kill series); this one only feeds
+	// pkg/lifecycle.RecoverMiddleware and pkg/tracing.Middleware so
+	// panics get logged structurally with correlation IDs.
+	level := os.Getenv("POWERLAB_LOG_LEVEL")
+	if level == "" {
+		level = "info"
+	}
+	format := os.Getenv("POWERLAB_LOG_FORMAT")
+	if format == "" {
+		format = "json"
+	}
+	fl, err := pkglogging.New(pkglogging.Config{Level: level, Format: format})
+	if err != nil {
+		// Fall back to a permissive default rather than crash init —
+		// the legacy logger above already works, and we'd rather have
+		// the gateway boot without foundation middleware than not at
+		// all.
+		fl, _ = pkglogging.New(pkglogging.Config{})
+	}
+	_foundationLogger = fl
 
 	runtimePath := config.GetString(common.ConfigKeyRuntimePath)
 	if err := _state.SetRuntimePath(runtimePath); err != nil {
@@ -237,7 +294,7 @@ func run(
 				}
 
 				managementServer := &http.Server{
-					Handler:           managementRoute.GetRoute(),
+					Handler:           wrapWithFoundation(managementRoute.GetRoute()),
 					ReadHeaderTimeout: 5 * time.Second,
 				}
 
@@ -374,7 +431,7 @@ func run(
 			route := gatewayRoute.WrapHSTS(gatewayRoute.GetRoute(), HTTPSPort)
 			_https = &http.Server{
 				Addr:              ":" + HTTPSPort,
-				Handler:           route,
+				Handler:           wrapWithFoundation(route),
 				ReadHeaderTimeout: 5 * time.Second,
 			}
 
@@ -407,7 +464,7 @@ func run(
 			}
 
 			staticServer := &http.Server{
-				Handler:           staticRoute.GetRoute(),
+				Handler:           wrapWithFoundation(staticRoute.GetRoute()),
 				ReadHeaderTimeout: 5 * time.Second,
 			}
 
@@ -451,7 +508,7 @@ func reloadGateway(port string, route http.Handler) error {
 	// start new gateway
 	gatewayNew := &http.Server{
 		Addr:              addr,
-		Handler:           route,
+		Handler:           wrapWithFoundation(route),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
