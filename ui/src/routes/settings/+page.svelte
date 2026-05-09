@@ -181,13 +181,30 @@
 	//
 	// Same pattern recommended in issue #50.
 	async function downloadCA(format: 'mobileconfig' | 'crt' | 'cer') {
+		const url = `/v1/sys/ca-certificate.${format}`;
 		try {
-			const r = await fetch(`/v1/sys/ca-certificate.${format}`);
+			const r = await fetch(url);
 			if (!r.ok) {
-				toast.error(t('settings.caDownloadFailed'));
+				// Surface enough info that the next bug-report has a
+				// fingerprint to act on. Previous "Could not download"
+				// message swallowed status code + body, leaving us
+				// guessing during user testing (#118).
+				let bodyHint = '';
+				try {
+					const text = await r.text();
+					if (text && text.length < 200) bodyHint = ` — ${text}`;
+				} catch { /* body unreadable; ignore */ }
+				const detail = `HTTP ${r.status}${bodyHint}`;
+				console.error('CA download failed', { url, status: r.status, detail });
+				toast.error(`${t('settings.caDownloadFailed')} (${detail})`);
 				return;
 			}
 			const blob = await r.blob();
+			if (blob.size === 0) {
+				console.error('CA download returned empty body', { url });
+				toast.error(`${t('settings.caDownloadFailed')} (empty body)`);
+				return;
+			}
 			const objectUrl = URL.createObjectURL(blob);
 			const a = document.createElement('a');
 			a.href = objectUrl;
@@ -197,7 +214,9 @@
 			a.remove();
 			URL.revokeObjectURL(objectUrl);
 		} catch (e) {
-			toast.error(`${t('settings.caDownloadFailed')}: ${(e as Error).message}`);
+			const msg = (e as Error).message;
+			console.error('CA download exception', { url, error: e });
+			toast.error(`${t('settings.caDownloadFailed')}: ${msg}`);
 		}
 	}
 
