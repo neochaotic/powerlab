@@ -90,6 +90,44 @@ jobs:
         run: npm run build
 
   # ─────────────────────────────────────────────────────────────────────
+  # Frontend E2E: Playwright + chromium. Baseline is a single smoke
+  # test per #86. Real feature coverage is added per kill PR / per new
+  # feature. Runs alongside `frontend` so total wall time isn't
+  # serialized.
+  # ─────────────────────────────────────────────────────────────────────
+  frontend-e2e:
+    name: Frontend E2E (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: ui
+        run: npm install
+
+      - name: Install Playwright chromium
+        working-directory: ui
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        working-directory: ui
+        run: npm run test:e2e
+
+      # Always upload so test failures can be diagnosed from artifacts.
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: ui/playwright-report/
+          retention-days: 7
+
+  # ─────────────────────────────────────────────────────────────────────
   # Backend: matrix per service. Each service has its own go.mod.
   # `local-storage` needs libfuse to compile (Linux-only dependency).
   # `cli` is excluded — its codegen sub-packages live in a separate
