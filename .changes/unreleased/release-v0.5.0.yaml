@@ -1,8 +1,0 @@
-kind: Internal
-body: |
-  Release v0.5.0 — Sprint 2 ships. CHANGELOG.md generated from the
-  unreleased fragments via `changie batch v0.5.0` + `changie merge`,
-  consumed fragments archived to `.changes/v0.5.0.md`. This is
-  the first release using the changie workflow #98 introduced.
-custom:
-  Issue: "67"
