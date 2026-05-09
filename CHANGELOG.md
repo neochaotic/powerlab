@@ -13,6 +13,16 @@ see `CONTRIBUTING.md` for the rule.
 
 ### Internal
 
+- **Sprint 1 of CasaOS independence (#67) — foundation `pkg/lifecycle`.**
+  Three primitives for service reliability: `Manager` coordinates
+  ordered shutdown of registered components (LIFO, deadline-bounded);
+  `RecoverMiddleware` wraps HTTP chains so a panic in any handler is
+  logged with stack trace and rendered as a structured 500 via
+  `pkg/errors.WriteHTTP` instead of crashing the process; `SafeGo`
+  replaces bare `go fn()` for goroutines that must not take down the
+  process on panic. Once consumers adopt `RecoverMiddleware`, the
+  bug-#64 class (nil-deref in a handler → SIGSEGV → restart loop) is
+  closed for good. See ADR-0014. Closes #70.
 - **Sprint 1 of CasaOS independence (#67) — foundation `pkg/errors`.**
   Typed `*Error` carrying Code (machine-readable, e.g. `ports.conflict`),
   I18nKey (UI translation key), HTTPStatus, Cause (chain-preserving),
