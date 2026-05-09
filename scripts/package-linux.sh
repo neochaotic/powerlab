@@ -685,9 +685,16 @@ printf "    ${CYAN}→  http://localhost${PORT_SUFFIX}${RESET}                ${
 if [[ -n "$LAN_IP" ]]; then
   printf "    ${CYAN}→  http://${LAN_IP}${PORT_SUFFIX}${RESET}      ${DIM}(any device on this LAN)${RESET}\n"
 fi
-printf "    ${CYAN}→  http://powerlab.local${PORT_SUFFIX}${RESET}           ${DIM}(via Bonjour/mDNS)${RESET}\n"
-if [[ -n "$HOSTNAME_SHORT" && "$HOSTNAME_SHORT" != "powerlab" ]]; then
-  printf "    ${CYAN}→  http://${HOSTNAME_SHORT}.local${PORT_SUFFIX}${RESET}      ${DIM}(this host's own mDNS name)${RESET}\n"
+# mDNS hostname: avahi only publishes the system's own hostname.
+# `powerlab.local` only resolves if the host's static hostname is
+# literally `powerlab`. We print the host's actual hostname here, not
+# the misleading `powerlab.local` (which used to suggest mDNS aliasing
+# we don't actually have — see issue #33).
+if [[ -n "$HOSTNAME_SHORT" ]]; then
+  printf "    ${CYAN}→  http://${HOSTNAME_SHORT}.local${PORT_SUFFIX}${RESET}      ${DIM}(via Bonjour/mDNS — requires nss-mdns on Linux clients)${RESET}\n"
+  if [[ "$HOSTNAME_SHORT" != "powerlab" ]]; then
+    printf "    ${DIM}                                            (To use http://powerlab.local, run: sudo hostnamectl set-hostname powerlab && sudo systemctl restart avahi-daemon powerlab-gateway)${RESET}\n"
+  fi
 fi
 echo ""
 echo "  First sign-in: use your operating-system username and password."
