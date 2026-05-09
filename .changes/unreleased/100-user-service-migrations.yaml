@@ -1,0 +1,17 @@
+kind: Changed
+body: |
+  user-service now uses `pkg/migrations` (versioned goose
+  migrations) in place of GORM's `db.AutoMigrate(...)`. Schema
+  is captured in `backend/user-service/pkg/sqlite/migrations/0001_initial.sql`
+  and embedded in the binary via `embed.FS`. Existing installs
+  continue to work because the migration uses
+  `CREATE TABLE IF NOT EXISTS` — running it on a DB that already
+  has the tables (created previously by AutoMigrate) is a safe
+  no-op that simply records the schema as version 1 in
+  `goose_db_version`. Two new tests in `pkg/sqlite` smoke the
+  embedded migrations: `TestEmbeddedMigrations_Up_ProducesExpectedTables`
+  and `TestEmbeddedMigrations_Up_Idempotent`. First service to
+  retire AutoMigrate; message-bus, core, local-storage follow
+  in subsequent PRs.
+custom:
+  Issue: "100"
