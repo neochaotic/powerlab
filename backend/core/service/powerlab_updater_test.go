@@ -417,3 +417,70 @@ func TestLastUpgradeStatus_RolledBack(t *testing.T) {
 		t.Fatalf("unexpected content: %+v", got)
 	}
 }
+
+// TestUpgradeCommand_UsesSystemdRunScope locks in the fix for
+// issue #129: install.sh must spawn inside a transient systemd unit
+// (its own cgroup) so `systemctl stop powerlab-core` from inside
+// install.sh does not kill install.sh as a side effect.
+//
+// The previous implementation used SysProcAttr.Setsid=true which
+// only escaped the SESSION — systemd tracks units by CGROUP, so
+// install.sh died together with core, leaving the upgrade
+// half-applied (binaries swapped, services stopped, never
+// restarted).
+func TestUpgradeCommand_UsesSystemdRunScope(t *testing.T) {
+	cmd := upgradeCommand("/tmp/install.sh", "/var/log/powerlab/upgrade.log")
+
+	if cmd.Path != "systemd-run" && !strings.HasSuffix(cmd.Path, "/systemd-run") {
+		t.Errorf("upgrade command path: want systemd-run, got %q", cmd.Path)
+	}
+
+	// Required flags for cgroup escape and detached operation.
+	required := []string{
+		"--no-block",                              // return immediately, don't block HTTP caller
+		"--collect",                               // garbage-collect the unit when done
+		"--unit=powerlab-upgrade",                 // predictable unit name for status checks
+		"--description=PowerLab in-app upgrade",   // human-readable
+	}
+	for _, want := range required {
+		found := false
+		for _, arg := range cmd.Args {
+			if arg == want {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("upgrade command missing required flag %q in args: %v", want, cmd.Args)
+		}
+	}
+
+	// install.sh path + log path must appear in the bash command.
+	bashCmd := cmd.Args[len(cmd.Args)-1]
+	if !strings.Contains(bashCmd, "/tmp/install.sh") {
+		t.Errorf("install script path missing from bash command: %q", bashCmd)
+	}
+	if !strings.Contains(bashCmd, "/var/log/powerlab/upgrade.log") {
+		t.Errorf("log path missing from bash command: %q", bashCmd)
+	}
+	if !strings.Contains(bashCmd, "--upgrade") {
+		t.Errorf("--upgrade flag missing from bash command: %q", bashCmd)
+	}
+	// Use exec to replace bash with install.sh so PID accounting is
+	// clean (one process, not bash + install.sh).
+	if !strings.HasPrefix(bashCmd, "exec ") {
+		t.Errorf("bash command should start with 'exec' to replace bash: %q", bashCmd)
+	}
+}
+
+// TestUpgradeCommand_HasNoSysProcAttr — corollary: with systemd-run
+// handling cgroup escape, the old SysProcAttr.Setsid trick is
+// neither needed nor used. If a future change re-introduces it,
+// double-escaping a process via Setsid + scope can produce
+// non-obvious bugs (subreaper inheritance, signal handling).
+func TestUpgradeCommand_HasNoSysProcAttr(t *testing.T) {
+	cmd := upgradeCommand("/tmp/install.sh", "/var/log/powerlab/upgrade.log")
+	if cmd.SysProcAttr != nil {
+		t.Errorf("upgrade command should not set SysProcAttr; cgroup escape is via systemd-run --scope. Got: %+v", cmd.SysProcAttr)
+	}
+}

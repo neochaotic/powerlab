@@ -1,0 +1,20 @@
+kind: Fixed
+body: |
+  In-app upgrade no longer kills install.sh mid-flight (#129).
+  Previously `core` spawned `install.sh` with
+  `SysProcAttr.Setsid=true`, betting that escaping the SESSION
+  would prevent SIGTERM propagation when install.sh ran
+  `systemctl stop powerlab-core`. But systemd tracks units by
+  CGROUP, not session — so the default `KillMode=control-group`
+  on `powerlab-core.service` sent SIGTERM to every process in
+  core's cgroup, INCLUDING install.sh. Result: binaries copied,
+  services stopped, restart loop never executed → users locked
+  out. Now `core` spawns install.sh via `systemd-run --no-block
+  --collect --unit=powerlab-upgrade ...` which creates a
+  transient systemd scope unit with its own cgroup. install.sh
+  survives the stop of core and completes the upgrade-restart-
+  health-check cycle as designed. Two regression tests in
+  `powerlab_updater_test.go` lock the spawn pattern (must use
+  systemd-run, must NOT set SysProcAttr).
+custom:
+  Issue: "129"

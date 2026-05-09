@@ -477,32 +477,53 @@ func (u *PowerLabUpdater) RunInstall(ctx context.Context, m *Manifest) error {
 	// HTTP caller before install.sh starts stopping services. Output
 	// goes to /var/log/powerlab/upgrade.log; the UI polls a status
 	// file install.sh writes when it finishes.
-	logPath := "/var/log/powerlab/upgrade.log"
-	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
-	if err != nil {
-		return fmt.Errorf("open upgrade log: %w", err)
-	}
-
-	upgrade := exec.Command("bash", installScript, "--upgrade")
-	upgrade.Stdout = logFile
-	upgrade.Stderr = logFile
-	// Detach: the child becomes its own session leader so it survives
-	// the parent's exit. The host signal SIGTERM that systemd sends
-	// to core (when install.sh's `systemctl stop powerlab-core` fires)
-	// will not propagate to upgrade because they are in separate
-	// sessions.
-	upgrade.SysProcAttr = detachSysProcAttr()
+	const logPath = "/var/log/powerlab/upgrade.log"
+	upgrade := upgradeCommand(installScript, logPath)
 	if err := upgrade.Start(); err != nil {
-		_ = logFile.Close()
-		return fmt.Errorf("spawn install.sh: %w", err)
+		return fmt.Errorf("spawn upgrade: %w", err)
 	}
-	// Don't wait — install.sh runs for ~30 s and we want the HTTP
-	// caller to get an immediate 200. Release the *Process so the
-	// runtime doesn't hold a zombie around.
+	// systemd-run --no-block returns immediately. The install.sh
+	// process runs inside the transient scope, fully detached from
+	// powerlab-core's cgroup. Release here just to be tidy with the
+	// runtime's process bookkeeping for systemd-run itself.
 	_ = upgrade.Process.Release()
-	_ = logFile.Close()
 
 	return nil
+}
+
+// upgradeCommand returns the exec.Cmd that spawns install.sh --upgrade
+// inside a transient systemd scope, escaping the powerlab-core
+// cgroup so `systemctl stop powerlab-core` (run from inside
+// install.sh) does NOT take down install.sh as a side effect.
+//
+// Bug history (#129): the previous implementation used
+// `exec.Command("bash", installScript, "--upgrade")` with
+// SysProcAttr.Setsid=true. Setsid escapes the controlling SESSION
+// only — systemd tracks units by CGROUP. The default
+// KillMode=control-group on powerlab-core.service meant that when
+// install.sh stopped core, systemd sent SIGTERM to every process in
+// core's cgroup — including install.sh itself — leaving the upgrade
+// half-applied (binaries copied, services stopped, never restarted).
+//
+// The fix uses `systemd-run --scope` (or `systemd-run` with a
+// transient service, here we use a service via --no-block which
+// already separates the cgroup) so install.sh's processes live in
+// their own cgroup. Locked in by powerlab_updater_test.go.
+func upgradeCommand(installScript, logPath string) *exec.Cmd {
+	// We use bash to redirect stdout/stderr to the log file rather
+	// than systemd's --property=StandardOutput=file:... because the
+	// file: target requires systemd >= 240 (released 2018) and we
+	// want broad distro compatibility. bash redirect works
+	// everywhere systemd-run is available (any systemd >= 230).
+	return exec.Command(
+		"systemd-run",
+		"--no-block",
+		"--collect",
+		"--unit=powerlab-upgrade",
+		"--description=PowerLab in-app upgrade",
+		"bash", "-c",
+		fmt.Sprintf("exec %s --upgrade > %s 2>&1", installScript, logPath),
+	)
 }
 
 // downloadFile streams an HTTP body to disk. Used only by RunInstall.
