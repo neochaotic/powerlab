@@ -101,9 +101,17 @@ func (u *userService) GetKeyPair() (*ecdsa.PrivateKey, *ecdsa.PublicKey) {
 	return u.privateKey, u.publicKey
 }
 
-// 获取用户Service
+// NewUserService constructs a UserService backed by the supplied
+// gorm.DB. It generates a fresh in-memory JWT signing keypair on
+// every call — the private key is intentionally NEVER persisted, so
+// every restart of the service issues tokens under a new key and
+// invalidates outstanding sessions. This is a deliberate trade-off:
+// session continuity across restarts is sacrificed for a stronger
+// guarantee that a stolen disk image cannot forge tokens.
+//
+// Returns nil if keypair generation fails. Callers MUST check the
+// return value before dereferencing.
 func NewUserService(db *gorm.DB) UserService {
-	// DO NOT store private key anywhere - keep it in memory ONLY!!!
 	privateKey, publicKey, err := jwt.GenerateKeyPair()
 	if err != nil {
 		_log.Error(context.Background(), "failed to generate key pair for JWT", err)

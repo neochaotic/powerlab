@@ -11,8 +11,26 @@ import (
 	"gorm.io/gorm"
 )
 
+// gdb is the package-singleton gorm.DB. Once GetDb has constructed
+// it the first time, every subsequent call returns the same handle —
+// the connection pool sized at SetMaxOpenConns(1) below makes
+// concurrent writes safe under SQLite's "one writer at a time" rule.
 var gdb *gorm.DB
 
+// GetDb returns the user-service SQLite database, lazily opening it
+// from dbPath/user.db on the first call. Subsequent calls reuse the
+// same handle.
+//
+// The database is configured with a single open connection
+// (SetMaxOpenConns(1)) because SQLite serializes writes process-wide
+// and multiple writers race-deadlock on file locks. Up to 10 idle
+// connections are kept warm; idle conns expire after ~16 minutes.
+//
+// Schema migration runs eagerly via gorm.AutoMigrate on UserDBModel
+// and EventModel at first call. A failure here is logged but does
+// NOT panic — the caller still gets a *gorm.DB and may proceed with
+// best-effort reads against whatever schema is currently on disk.
+// Versioned migrations are tracked in #100.
 func GetDb(dbPath string) *gorm.DB {
 	if gdb != nil {
 		return gdb

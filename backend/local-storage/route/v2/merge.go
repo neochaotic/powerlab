@@ -22,6 +22,12 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// MessageMergerFSNotEnabled is the user-facing message returned in a
+// 503 ServiceUnavailable response when the operator hits a mergerfs
+// endpoint while the merge driver is disabled. The condition is true
+// when any of (a) the config file disables mergerfs, (b) the merge
+// point is non-empty before the first mount, or (c) the mergerfs
+// binary is not installed on the host.
 var MessageMergerFSNotEnabled = "mergerfs is not enabled - either it is not enabled in configuration file; merge point is not empty before mounting; or mergerfs is not installed"
 
 // MessageVolumeNotPowerLabStorage is returned when the user references a
