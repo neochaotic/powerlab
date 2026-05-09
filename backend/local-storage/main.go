@@ -8,6 +8,7 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -208,7 +209,7 @@ func main() {
 
 	crontab := cron.New(cron.WithSeconds())
 	if _, err := crontab.AddFunc("@every 5s", sendStorageStats); err != nil {
-		logger.Error("crontab add func error", zap.Error(err))
+		_log.Error(ctx, "crontab add func error", err)
 	}
 
 	crontab.Start()
@@ -258,14 +259,14 @@ func main() {
 	}
 
 	if supported, err := daemon.SdNotify(false, daemon.SdNotifyReady); err != nil {
-		logger.Error("Failed to notify systemd that local storage service is ready", zap.Error(err))
+		_log.Error(ctx, "Failed to notify systemd that local storage service is ready", err)
 	} else if supported {
-		logger.Info("Notified systemd that local storage service is ready")
+		_log.Info(ctx, "Notified systemd that local storage service is ready")
 	} else {
-		logger.Info("This process is not running as a systemd service.")
+		_log.Info(ctx, "This process is not running as a systemd service.")
 	}
 
-	logger.Info("LocalStorage service is listening...", zap.Any("address", listener.Addr().String()))
+	_log.Info(ctx, "LocalStorage service is listening...", slog.String("address", listener.Addr().String()))
 
 	server := &http.Server{
 		Handler:           wrapWithFoundation(mux),
@@ -287,10 +288,12 @@ func RegMsg() {
 	for i := 0; i < 10; i++ {
 		response, err := service.MyService.MessageBus().RegisterEventTypesWithResponse(context.Background(), events)
 		if err != nil {
-			logger.Error("error when trying to register one or more event types - some event type will not be discoverable", zap.Error(err))
+			_log.Error(ctx, "error when trying to register one or more event types - some event type will not be discoverable", err)
 		}
 		if response != nil && response.StatusCode() != http.StatusOK {
-			logger.Error("error when trying to register one or more event types - some event type will not be discoverable", zap.String("status", response.Status()), zap.String("body", string(response.Body)))
+			_log.Error(ctx, "error when trying to register one or more event types - some event type will not be discoverable", nil,
+				slog.String("status", response.Status()),
+				slog.String("body", string(response.Body)))
 		}
 		if response.StatusCode() == http.StatusOK {
 			break
@@ -301,11 +304,15 @@ func RegMsg() {
 	for devtype, eventTypesByAction := range common.EventTypes {
 		response, err := service.MyService.MessageBus().RegisterEventTypesWithResponse(ctx, lo.Values(eventTypesByAction))
 		if err != nil {
-			logger.Error("error when trying to register one or more event types - some event type will not be discoverable", zap.Error(err), zap.String("devtype", devtype))
+			_log.Error(ctx, "error when trying to register one or more event types - some event type will not be discoverable", err,
+				slog.String("devtype", devtype))
 		}
 
 		if response != nil && response.StatusCode() != http.StatusOK {
-			logger.Error("error when trying to register one or more event types - some event type will not be discoverable", zap.String("status", response.Status()), zap.String("body", string(response.Body)), zap.String("devtype", devtype))
+			_log.Error(ctx, "error when trying to register one or more event types - some event type will not be discoverable", nil,
+				slog.String("status", response.Status()),
+				slog.String("body", string(response.Body)),
+				slog.String("devtype", devtype))
 		}
 	}
 

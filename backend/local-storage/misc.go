@@ -2,18 +2,17 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/common"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/model"
 	"github.com/IceWhaleTech/CasaOS-LocalStorage/service"
 	"github.com/pilebones/go-udev/netlink"
-	"go.uber.org/zap"
 )
 
 func sendDiskBySocket() {
@@ -22,24 +21,7 @@ func sendDiskBySocket() {
 	status := model.DiskStatus{}
 	healthy := true
 
-	//var systemDisk *model.LSBLKModel
-
 	for _, currentDisk := range blkList {
-
-		// if systemDisk == nil {
-		// 	// go 5 level deep to look for system block device by mount point being "/"
-		// 	systemDisk = service.WalkDisk(currentDisk, 5, func(blk model.LSBLKModel) bool { return blk.MountPoint == "/" })
-
-		// 	if systemDisk != nil {
-		// 		s, _ := strconv.ParseUint(systemDisk.FSSize.String(), 10, 64)
-		// 		a, _ := strconv.ParseUint(systemDisk.FSAvail.String(), 10, 64)
-		// 		u, _ := strconv.ParseUint(systemDisk.FSUsed.String(), 10, 64)
-		// 		status.Size += s
-		// 		status.Avail += a
-		// 		status.Used += u
-		//		continue
-		// 	}
-		// }
 		if !service.IsDiskSupported(currentDisk) {
 			continue
 		}
@@ -80,7 +62,7 @@ func sendDiskBySocket() {
 	message := make(map[string]interface{})
 	message["sys_disk"] = status
 	if err := service.MyService.NotifySystem().SendSystemStatusNotify(message); err != nil {
-		logger.Error("failed to send notify", zap.Any("message", message), zap.Error(err))
+		_log.Error(context.Background(), "failed to send notify", err, slog.Any("message", message))
 	}
 }
 
@@ -90,7 +72,7 @@ func sendUSBBySocket() {
 	}
 
 	if err := service.MyService.NotifySystem().SendSystemStatusNotify(message); err != nil {
-		logger.Error("failed to send notify", zap.Any("message", message), zap.Error(err))
+		_log.Error(context.Background(), "failed to send notify", err, slog.Any("message", message))
 	}
 }
 
@@ -99,7 +81,7 @@ func monitorUEvent(ctx context.Context) {
 
 	conn := new(netlink.UEventConn)
 	if err := conn.Connect(netlink.UdevEvent); err != nil {
-		logger.Error("udev err", zap.Any("Unable to connect to Netlink Kobject UEvent socket", err))
+		_log.Error(ctx, "udev err: unable to connect to Netlink Kobject UEvent socket", err)
 	}
 	defer conn.Close()
 
@@ -136,14 +118,16 @@ func monitorUEvent(ctx context.Context) {
 						}
 					}
 				}
-				logger.Info("disk model", zap.Any("diskModel", event.Name))
+				_log.Info(ctx, "disk model", slog.String("diskModel", event.Name))
 				response, err := service.MyService.MessageBus().PublishEventWithResponse(ctx, event.SourceID, event.Name, event.Properties)
 				if err != nil {
-					logger.Error("failed to publish event to message bus", zap.Error(err), zap.Any("event", event))
+					_log.Error(ctx, "failed to publish event to message bus", err, slog.Any("event", event))
 				}
 
 				if response.StatusCode() != http.StatusOK {
-					logger.Error("failed to publish event to message bus", zap.String("status", response.Status()), zap.Any("response", response))
+					_log.Error(ctx, "failed to publish event to message bus", nil,
+						slog.String("status", response.Status()),
+						slog.Any("response", response))
 				}
 			}
 
@@ -159,7 +143,7 @@ func monitorUEvent(ctx context.Context) {
 			}
 
 		case err := <-errors:
-			logger.Error("udev err", zap.Error(err))
+			_log.Error(ctx, "udev err", err)
 		}
 	}
 }
