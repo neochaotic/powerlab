@@ -22,12 +22,6 @@ func NewLogger() *Logger {
 	}
 }
 
-func (l *Logger) Debug(format string, v ...interface{}) {
-	if l.DebugMode {
-		l._debug.Printf(format, v...)
-	}
-}
-
 func (l *Logger) Info(format string, v ...interface{}) {
 	l._info.Printf(format, v...)
 }
