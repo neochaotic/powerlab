@@ -23,7 +23,6 @@ type Services interface {
 	NotifySystem() external.NotifyService
 	Shares() external.ShareService
 	MessageBus() *message_bus.ClientWithResponses
-	Storage() StorageService
 }
 
 func NewService(db *gorm.DB) Services {
@@ -43,7 +42,6 @@ func NewService(db *gorm.DB) Services {
 		notify:       NewNotifyService(),
 		notifySystem: notifySystem,
 		shares:       sharesService,
-		storage:      NewStorageService(),
 	}
 }
 
@@ -55,15 +53,10 @@ type store struct {
 	notify       NotifyServer
 	notifySystem external.NotifyService
 	shares       external.ShareService
-	storage      StorageService
 }
 
 func (c *store) NotifySystem() external.NotifyService {
 	return c.notifySystem
-}
-
-func (c *store) Storage() StorageService {
-	return c.storage
 }
 
 func (c *store) Gateway() external.ManagementService {
