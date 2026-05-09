@@ -23,11 +23,21 @@ skip_release: false
 # One-paragraph summary for the "Update available" toast. The full
 # changelog goes in CHANGELOG.md (the package script computes the
 # correct anchor for the version being released).
+#
+# IMPORTANT: edit this on every release. scripts/check-manifest-fresh.sh
+# (added by issue #156 / v0.5.4 mishap) runs as part of the release
+# checklist and refuses to proceed if the summary text matches the
+# previously published release. It will catch the "forgot to update"
+# mistake but not detect staleness against older releases — so be
+# disciplined about rewriting this on every cut.
 summary: |
-  Settings → change gateway port from the UI. mDNS coexistence with
-  avahi-daemon (powerlab.local resolves on stock Linux installs). New
-  in-UI updater with pre-flight checks, snapshot + rollback, and
-  signed release manifest.
+  Sprint 3 closeout — "kill CasaOS" rebrand wave. ~3500 LOC removed:
+  cloud drive backends gone (Dropbox/Google Drive/OneDrive), all Go
+  module paths renamed to PowerLab-owned, /etc/casaos → /etc/powerlab
+  paths migrated. Real prod bug fix: install.sh shipped
+  casaos.conf.sample but systemd starts core with -c core.conf —
+  defaults were silently dropped. No end-user behavior change beyond
+  the bug fix.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:

@@ -80,6 +80,12 @@ guard against AutoMigrate silently dropping data. Do NOT skip.)
       new matrix.
 - [ ] ADRs for any architectural decisions made during the
       release cycle exist under `docs/decisions/`.
+- [ ] `release-manifest.yaml` summary updated for THIS release.
+      Run `./scripts/check-manifest-fresh.sh` — exit 0 means
+      the summary differs from the previously published release.
+      Exit 1 means **stop and edit** (the check was added after
+      the v0.5.4 mishap where the YAML still carried v0.5.0's
+      summary, see issue #156).
 
 ### 1.7 Issue / PR housekeeping
 
