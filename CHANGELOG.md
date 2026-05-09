@@ -13,6 +13,16 @@ see `CONTRIBUTING.md` for the rule.
 
 ### Internal
 
+- **Sprint 1 of CasaOS independence (#67) — Kill #2 gateway rebrand
+  (#73, part 1).** Module path renamed from
+  `github.com/IceWhaleTech/CasaOS-Gateway` to
+  `github.com/neochaotic/powerlab/backend/gateway`. 9 files updated
+  to the new internal path. Compile and existing tests green.
+  Same multi-PR strategy as the message-bus kill: this PR is the
+  rebrand only; logger swap, middleware wiring, and dead-code
+  cleanup land in follow-up PRs in the same kill series. The bug
+  #64 class (handler nil-deref → SIGSEGV) is structurally closed
+  once `pkg/lifecycle.RecoverMiddleware` is wired in part 2.
 - **Sprint 1 of CasaOS independence (#67) — Kill #1 message-bus rebrand
   (#72, part 1).** Module path renamed from
   `github.com/IceWhaleTech/CasaOS-MessageBus` to

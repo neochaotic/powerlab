@@ -13,7 +13,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/IceWhaleTech/CasaOS-Common/model"
-	"github.com/IceWhaleTech/CasaOS-Gateway/service"
+	"github.com/neochaotic/powerlab/backend/gateway/service"
 	"gotest.tools/v3/assert"
 )
 
