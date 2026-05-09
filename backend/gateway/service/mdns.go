@@ -59,22 +59,49 @@ func (m *MDNSService) Announce(port int) error {
 		m.server = nil
 	}
 
+	sysHostname, _ := os.Hostname()
+	avahiRunning := isAvahiRunning()
+
+	// Diagnostic: log the full mDNS state up front so a user reporting
+	// "powerlab.local doesn't resolve" gives us enough data to triage
+	// without round-trips. Issue #33 — what's happening here is that:
+	//
+	//   - avahi-daemon is the de-facto Linux mDNS responder. It only
+	//     publishes hostnames it owns (the system's own hostname).
+	//   - Adding `<host-name>powerlab.local</host-name>` to a service
+	//     file makes avahi reject the registration.
+	//   - For `powerlab.local` to resolve, the host's static hostname
+	//     must literally be `powerlab` (set via `hostnamectl set-hostname
+	//     powerlab`). install.sh's banner now prints the real
+	//     <hostname>.local URL instead of the misleading powerlab.local.
+	//   - Linux clients ALSO need `nss-mdns` package + nsswitch.conf
+	//     entry to resolve any *.local names.
+	logger.Info("mDNS announce — startup state",
+		zap.String("requested_hostname", m.hostname+".local"),
+		zap.String("system_hostname", sysHostname+".local"),
+		zap.Bool("avahi_running", avahiRunning),
+		zap.Bool("hostname_matches", sysHostname == m.hostname),
+		zap.Int("port", port),
+	)
+
 	// Path 1: drop an avahi service file (best-effort, Linux only).
-	// If the directory exists, avahi is running and will pick it up
-	// within a couple of seconds. If anything fails (file system
-	// readonly, permission denied, etc.) we log and continue — the
-	// grandcat path below is the fallback.
+	// avahi-daemon picks it up via inotify within a couple of seconds.
 	if err := writeAvahiServiceFile(m.hostname, port); err != nil {
 		logger.Info("avahi service file not written (will fall back to direct multicast)",
 			zap.Any("error", err),
+		)
+	} else if avahiRunning {
+		logger.Info("mDNS service announced via avahi service file",
+			zap.String("file", "/etc/avahi/services/powerlab.service"),
+			zap.String("resolves_at", sysHostname+".local"),
+			zap.String("note", "Linux clients need nss-mdns; macOS/iOS resolve out of the box"),
 		)
 	}
 
 	// Path 2: direct multicast via grandcat/zeroconf. Publishes the A
 	// records for our chosen hostname against every LAN IP we have.
 	// On hosts where avahi already owns the multicast socket, this
-	// will fail to bind — we log and accept that, because the avahi
-	// service file from path 1 is doing the actual announcement.
+	// will fail to bind — that's expected.
 	ips := lanIPs()
 	if len(ips) == 0 {
 		// Fallback to loopback so registration does not fail in
@@ -95,12 +122,12 @@ func (m *MDNSService) Announce(port int) error {
 	)
 	if err != nil {
 		// Don't return the error — the avahi path above may have
-		// succeeded even when the direct one fails. We log so the
-		// admin can see what's happening.
-		logger.Info("direct mDNS bind failed (likely avahi owns the socket — that is fine)",
+		// succeeded even when the direct one fails.
+		logger.Info("direct mDNS bind failed (avahi owns the socket — service file is the active path)",
 			zap.Any("error", err),
 			zap.String("hostname", m.hostname+".local"),
 			zap.Int("port", port),
+			zap.Bool("avahi_running", avahiRunning),
 		)
 		return nil
 	}
@@ -216,6 +243,20 @@ func isLANRange(ip net.IP) bool {
 // Standard across every distro that ships avahi.
 const avahiServicesDir = "/etc/avahi/services"
 const avahiServiceFile = "powerlab.service"
+
+// avahiSocketPath is the unix socket avahi-daemon binds when running.
+// Presence of the socket is a cheaper, daemon-state-aware probe than
+// shelling out to `systemctl is-active avahi-daemon`.
+const avahiSocketPath = "/var/run/avahi-daemon/socket"
+
+// isAvahiRunning returns true when avahi-daemon is reachable. Used for
+// diagnostic logging — we don't change behavior based on it (we still
+// drop the service file regardless), but the log line tells an admin
+// reporting "mDNS doesn't work" whether the daemon is even up.
+func isAvahiRunning() bool {
+	_, err := os.Stat(avahiSocketPath)
+	return err == nil
+}
 
 // writeAvahiServiceFile drops a per-PowerLab service definition into
 // /etc/avahi/services/. avahi-daemon picks it up automatically — no
