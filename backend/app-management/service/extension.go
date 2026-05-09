@@ -1,6 +1,6 @@
 package service
 
-import "github.com/IceWhaleTech/CasaOS-AppManagement/common"
+import "github.com/neochaotic/powerlab/backend/app-management/common"
 
 // extensionPriority is the order in which we look up the PowerLab/CasaOS
 // extension on a compose document. The first key that resolves to a non-nil

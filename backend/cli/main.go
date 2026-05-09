@@ -22,7 +22,7 @@ limitations under the License.
 package main
 
 import (
-	"github.com/IceWhaleTech/CasaOS-CLI/cmd"
+	"github.com/neochaotic/powerlab/backend/cli/cmd"
 )
 
 var (

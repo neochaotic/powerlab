@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/IceWhaleTech/CasaOS-Common/pkg/security"
+	"github.com/neochaotic/powerlab/backend/common/pkg/security"
 	"github.com/digitorus/pkcs7"
 	"github.com/google/uuid"
 )

@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/IceWhaleTech/CasaOS-Common/model"
+	"github.com/neochaotic/powerlab/backend/common/model"
 )
 
 const RoutesFile = "routes.json"

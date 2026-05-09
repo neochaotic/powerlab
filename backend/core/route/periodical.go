@@ -18,9 +18,9 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/IceWhaleTech/CasaOS/common"
-	"github.com/IceWhaleTech/CasaOS/model"
-	"github.com/IceWhaleTech/CasaOS/service"
+	"github.com/neochaotic/powerlab/backend/core/common"
+	"github.com/neochaotic/powerlab/backend/core/model"
+	"github.com/neochaotic/powerlab/backend/core/service"
 )
 
 func SendAllHardwareStatusBySocket() {

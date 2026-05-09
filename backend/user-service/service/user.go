@@ -7,8 +7,8 @@ import (
 	"mime/multipart"
 	"os"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/jwt"
-	"github.com/IceWhaleTech/CasaOS-UserService/service/model"
+	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
+	"github.com/neochaotic/powerlab/backend/user-service/service/model"
 	"gorm.io/gorm"
 )
 

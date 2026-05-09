@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/common"
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/model"
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/service"
+	"github.com/neochaotic/powerlab/backend/local-storage/common"
+	"github.com/neochaotic/powerlab/backend/local-storage/model"
+	"github.com/neochaotic/powerlab/backend/local-storage/service"
 	"github.com/pilebones/go-udev/netlink"
 )
 

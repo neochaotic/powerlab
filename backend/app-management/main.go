@@ -14,18 +14,18 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/common"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/pkg/config"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/route"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/service"
-	"github.com/IceWhaleTech/CasaOS-Common/model"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/file"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"github.com/neochaotic/powerlab/backend/app-management/common"
+	"github.com/neochaotic/powerlab/backend/app-management/pkg/config"
+	"github.com/neochaotic/powerlab/backend/app-management/route"
+	"github.com/neochaotic/powerlab/backend/app-management/service"
+	"github.com/neochaotic/powerlab/backend/common/model"
+	"github.com/neochaotic/powerlab/backend/common/utils/file"
+	"github.com/neochaotic/powerlab/backend/common/utils/logger"
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 
-	util_http "github.com/IceWhaleTech/CasaOS-Common/utils/http"
+	util_http "github.com/neochaotic/powerlab/backend/common/utils/http"
 )
 
 var (

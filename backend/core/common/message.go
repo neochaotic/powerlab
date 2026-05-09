@@ -1,7 +1,7 @@
 package common
 
 import (
-	"github.com/IceWhaleTech/CasaOS/codegen/message_bus"
+	"github.com/neochaotic/powerlab/backend/core/codegen/message_bus"
 )
 
 // Message-bus topic names. PowerLab uses the `powerlab:*` prefix for

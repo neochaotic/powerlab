@@ -1,15 +1,15 @@
-module github.com/IceWhaleTech/CasaOS-UserService
+module github.com/neochaotic/powerlab/backend/user-service
 
 go 1.25.7
 
 require (
-	github.com/IceWhaleTech/CasaOS-Common v0.4.8-alpha12
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
 	github.com/deepmap/oapi-codegen v1.12.4
 	github.com/getkin/kin-openapi v0.117.0
 	github.com/glebarez/sqlite v1.8.0
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/msteinert/pam v1.2.0
+	github.com/neochaotic/powerlab/backend/common v0.4.8-alpha12
 	github.com/neochaotic/powerlab/backend/pkg v0.0.0-00010101000000-000000000000
 	github.com/satori/go.uuid v1.2.0
 	github.com/stretchr/testify v1.11.1
@@ -19,7 +19,6 @@ require (
 	golang.org/x/time v0.5.0
 	gopkg.in/ini.v1 v1.67.0
 	gorm.io/gorm v1.25.0
-	modernc.org/sqlite v1.50.0
 )
 
 require (
@@ -69,8 +68,9 @@ require (
 	modernc.org/libc v1.72.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
+	modernc.org/sqlite v1.50.0 // indirect
 )
 
-replace github.com/IceWhaleTech/CasaOS-Common => ../common
+replace github.com/neochaotic/powerlab/backend/common => ../common
 
 replace github.com/neochaotic/powerlab/backend/pkg => ../pkg

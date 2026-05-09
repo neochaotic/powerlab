@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	exec2 "github.com/IceWhaleTech/CasaOS-Common/utils/exec"
+	exec2 "github.com/neochaotic/powerlab/backend/common/utils/exec"
 )
 
 // Deprecated: This method is not safe, sould have ensure input.

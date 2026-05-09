@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/model"
+	"github.com/neochaotic/powerlab/backend/local-storage/model"
 	"gotest.tools/v3/assert"
 )
 

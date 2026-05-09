@@ -4,8 +4,8 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/codegen"
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/pkg/fstab"
+	"github.com/neochaotic/powerlab/backend/local-storage/codegen"
+	"github.com/neochaotic/powerlab/backend/local-storage/pkg/fstab"
 )
 
 func (s *LocalStorageService) SaveToFStab(m codegen.Mount) error {

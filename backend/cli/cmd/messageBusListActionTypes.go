@@ -23,7 +23,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/IceWhaleTech/CasaOS-CLI/codegen/message_bus"
+	"github.com/neochaotic/powerlab/backend/cli/codegen/message_bus"
 	"github.com/spf13/cobra"
 )
 

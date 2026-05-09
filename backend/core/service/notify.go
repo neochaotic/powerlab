@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
-	"github.com/IceWhaleTech/CasaOS/common"
-	model2 "github.com/IceWhaleTech/CasaOS/model"
-	"github.com/IceWhaleTech/CasaOS/model/notify"
-	"github.com/IceWhaleTech/CasaOS/service/model"
-	"github.com/IceWhaleTech/CasaOS/types"
+	"github.com/neochaotic/powerlab/backend/common/utils/logger"
+	"github.com/neochaotic/powerlab/backend/core/common"
+	model2 "github.com/neochaotic/powerlab/backend/core/model"
+	"github.com/neochaotic/powerlab/backend/core/model/notify"
+	"github.com/neochaotic/powerlab/backend/core/service/model"
+	"github.com/neochaotic/powerlab/backend/core/types"
 	"go.uber.org/zap"
 	"golang.org/x/sync/syncmap"
 

@@ -19,8 +19,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/devmode"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"github.com/neochaotic/powerlab/backend/common/utils/devmode"
+	"github.com/neochaotic/powerlab/backend/common/utils/logger"
 	"go.uber.org/zap"
 )
 

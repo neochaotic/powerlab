@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/model"
+	"github.com/neochaotic/powerlab/backend/common/utils/constants"
+	"github.com/neochaotic/powerlab/backend/local-storage/model"
 	"gopkg.in/ini.v1"
 )
 

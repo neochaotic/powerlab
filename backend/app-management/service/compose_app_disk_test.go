@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/pkg/config"
+	"github.com/neochaotic/powerlab/backend/app-management/pkg/config"
 	"github.com/stretchr/testify/assert"
 )
 

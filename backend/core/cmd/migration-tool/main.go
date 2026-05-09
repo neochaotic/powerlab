@@ -15,12 +15,12 @@ import (
 	"fmt"
 	"os"
 
-	interfaces "github.com/IceWhaleTech/CasaOS-Common"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/systemctl"
-	"github.com/IceWhaleTech/CasaOS/common"
-	"github.com/IceWhaleTech/CasaOS/pkg/config"
-	"github.com/IceWhaleTech/CasaOS/pkg/sqlite"
-	"github.com/IceWhaleTech/CasaOS/service"
+	interfaces "github.com/neochaotic/powerlab/backend/common"
+	"github.com/neochaotic/powerlab/backend/common/utils/systemctl"
+	"github.com/neochaotic/powerlab/backend/core/common"
+	"github.com/neochaotic/powerlab/backend/core/pkg/config"
+	"github.com/neochaotic/powerlab/backend/core/pkg/sqlite"
+	"github.com/neochaotic/powerlab/backend/core/service"
 	"gorm.io/gorm"
 )
 

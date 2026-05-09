@@ -13,9 +13,9 @@ package service
 import (
 	"fmt"
 
-	"github.com/IceWhaleTech/CasaOS-Common/external"
-	"github.com/IceWhaleTech/CasaOS/codegen/message_bus"
-	"github.com/IceWhaleTech/CasaOS/pkg/config"
+	"github.com/neochaotic/powerlab/backend/common/external"
+	"github.com/neochaotic/powerlab/backend/core/codegen/message_bus"
+	"github.com/neochaotic/powerlab/backend/core/pkg/config"
 	"github.com/gorilla/websocket"
 	"github.com/patrickmn/go-cache"
 	"gorm.io/gorm"

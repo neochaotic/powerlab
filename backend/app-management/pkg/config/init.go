@@ -9,10 +9,10 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/common"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/model"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/devmode"
+	"github.com/neochaotic/powerlab/backend/app-management/common"
+	"github.com/neochaotic/powerlab/backend/app-management/model"
+	"github.com/neochaotic/powerlab/backend/common/utils/constants"
+	"github.com/neochaotic/powerlab/backend/common/utils/devmode"
 	"gopkg.in/ini.v1"
 )
 

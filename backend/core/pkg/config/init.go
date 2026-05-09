@@ -16,9 +16,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
-	"github.com/IceWhaleTech/CasaOS/common"
-	"github.com/IceWhaleTech/CasaOS/model"
+	"github.com/neochaotic/powerlab/backend/common/utils/constants"
+	"github.com/neochaotic/powerlab/backend/core/common"
+	"github.com/neochaotic/powerlab/backend/core/model"
 	"github.com/go-ini/ini"
 )
 

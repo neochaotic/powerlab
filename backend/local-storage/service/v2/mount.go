@@ -6,11 +6,11 @@ import (
 	"log/slog"
 	"strconv"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/file"
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/codegen"
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/pkg/mount"
+	"github.com/neochaotic/powerlab/backend/common/utils/file"
+	"github.com/neochaotic/powerlab/backend/local-storage/codegen"
+	"github.com/neochaotic/powerlab/backend/local-storage/pkg/mount"
 
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/service/v2/fs"
+	"github.com/neochaotic/powerlab/backend/local-storage/service/v2/fs"
 	"github.com/moby/sys/mountinfo"
 )
 

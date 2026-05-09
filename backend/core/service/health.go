@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/IceWhaleTech/CasaOS-Common/utils/port"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/systemctl"
+	"github.com/neochaotic/powerlab/backend/common/utils/port"
+	"github.com/neochaotic/powerlab/backend/common/utils/systemctl"
 )
 
 type HealthService interface {

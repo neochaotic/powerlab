@@ -15,7 +15,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	v1 "github.com/IceWhaleTech/CasaOS/route/v1"
+	v1 "github.com/neochaotic/powerlab/backend/core/route/v1"
 	"github.com/golang/mock/gomock"
 	"github.com/labstack/echo/v4"
 	"gotest.tools/assert"

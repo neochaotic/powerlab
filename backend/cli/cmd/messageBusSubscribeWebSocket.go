@@ -20,7 +20,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/IceWhaleTech/CasaOS-CLI/codegen/message_bus"
+	"github.com/neochaotic/powerlab/backend/cli/codegen/message_bus"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/websocket"
 )

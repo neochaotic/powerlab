@@ -3,7 +3,7 @@ package gredis
 import (
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS/model"
+	"github.com/neochaotic/powerlab/backend/core/model"
 	"github.com/gomodule/redigo/redis"
 )
 

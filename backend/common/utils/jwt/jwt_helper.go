@@ -11,8 +11,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/IceWhaleTech/CasaOS-Common/model"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
+	"github.com/neochaotic/powerlab/backend/common/model"
+	"github.com/neochaotic/powerlab/backend/common/utils/common_err"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	echo_middleware "github.com/labstack/echo/v4/middleware"

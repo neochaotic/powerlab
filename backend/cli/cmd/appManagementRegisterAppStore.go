@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/IceWhaleTech/CasaOS-CLI/codegen/app_management"
+	"github.com/neochaotic/powerlab/backend/cli/codegen/app_management"
 	"github.com/spf13/cobra"
 )
 

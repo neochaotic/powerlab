@@ -1,10 +1,9 @@
-module github.com/IceWhaleTech/CasaOS
+module github.com/neochaotic/powerlab/backend/core
 
 go 1.25.7
 
 require (
 	github.com/Curtis-Milo/nat-type-identifier-go v0.0.0-20220215191915-18d42168c63d
-	github.com/IceWhaleTech/CasaOS-Common v0.4.11-alpha4
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
 	github.com/creack/pty v1.1.24
 	github.com/deckarep/golang-set/v2 v2.3.0
@@ -29,6 +28,7 @@ require (
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/mileusna/useragent v1.2.1
 	github.com/moby/sys/mountinfo v0.6.2
+	github.com/neochaotic/powerlab/backend/common v0.4.11-alpha4
 	github.com/neochaotic/powerlab/backend/pkg v0.0.0-20260509194312-a9f601c6bd80
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
@@ -131,6 +131,6 @@ require (
 	mvdan.cc/sh/v3 v3.7.0 // indirect
 )
 
-replace github.com/IceWhaleTech/CasaOS-Common => ../common
+replace github.com/neochaotic/powerlab/backend/common => ../common
 
 replace github.com/neochaotic/powerlab/backend/pkg => ../pkg

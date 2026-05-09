@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/IceWhaleTech/CasaOS-Common/external"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/jwt"
+	"github.com/neochaotic/powerlab/backend/common/external"
+	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
 	"github.com/deepmap/oapi-codegen/pkg/middleware"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"

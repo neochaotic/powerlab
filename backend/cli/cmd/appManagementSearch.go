@@ -22,7 +22,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/IceWhaleTech/CasaOS-CLI/codegen/app_management"
+	"github.com/neochaotic/powerlab/backend/cli/codegen/app_management"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 )

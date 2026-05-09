@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/IceWhaleTech/CasaOS-Common/external"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/jwt"
-	"github.com/IceWhaleTech/CasaOS/common"
-	"github.com/IceWhaleTech/CasaOS/pkg/config"
-	v1 "github.com/IceWhaleTech/CasaOS/route/v1"
+	"github.com/neochaotic/powerlab/backend/common/external"
+	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
+	"github.com/neochaotic/powerlab/backend/core/common"
+	"github.com/neochaotic/powerlab/backend/core/pkg/config"
+	v1 "github.com/neochaotic/powerlab/backend/core/route/v1"
 	"github.com/labstack/echo/v4"
 	echo_middleware "github.com/labstack/echo/v4/middleware"
 )

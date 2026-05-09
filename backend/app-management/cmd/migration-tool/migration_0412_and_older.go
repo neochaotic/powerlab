@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	interfaces "github.com/IceWhaleTech/CasaOS-Common"
+	interfaces "github.com/neochaotic/powerlab/backend/common"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/pkg/config"
+	"github.com/neochaotic/powerlab/backend/app-management/pkg/config"
 )
 
 type migrationTool0412AndOlder struct{}

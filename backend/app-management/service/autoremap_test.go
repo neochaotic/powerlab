@@ -17,7 +17,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/codegen"
+	"github.com/neochaotic/powerlab/backend/app-management/codegen"
 	"github.com/compose-spec/compose-go/types"
 	"gotest.tools/v3/assert"
 )

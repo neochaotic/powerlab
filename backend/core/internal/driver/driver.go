@@ -3,7 +3,7 @@ package driver
 import (
 	"context"
 
-	"github.com/IceWhaleTech/CasaOS/model"
+	"github.com/neochaotic/powerlab/backend/core/model"
 )
 
 type Driver interface {

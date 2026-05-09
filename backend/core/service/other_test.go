@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"github.com/neochaotic/powerlab/backend/common/utils/logger"
 )
 
 func TestSearch(t *testing.T) {

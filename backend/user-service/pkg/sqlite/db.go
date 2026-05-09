@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-UserService/pkg/utils/file"
+	"github.com/neochaotic/powerlab/backend/user-service/pkg/utils/file"
 	"github.com/glebarez/sqlite"
 	pkgmigrations "github.com/neochaotic/powerlab/backend/pkg/migrations"
 	"gorm.io/gorm"

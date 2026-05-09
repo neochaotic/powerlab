@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/common"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/model"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/service"
+	"github.com/neochaotic/powerlab/backend/app-management/common"
+	"github.com/neochaotic/powerlab/backend/app-management/model"
+	"github.com/neochaotic/powerlab/backend/app-management/service"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )

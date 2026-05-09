@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/common"
+	"github.com/neochaotic/powerlab/backend/app-management/common"
 )
 
 // The translation layer is the only thing standing between us and a hard

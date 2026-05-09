@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/IceWhaleTech/CasaOS-AppManagement/codegen"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"github.com/neochaotic/powerlab/backend/app-management/codegen"
+	"github.com/neochaotic/powerlab/backend/common/utils/logger"
 	"github.com/compose-spec/compose-go/loader"
 	"github.com/compose-spec/compose-go/types"
 )

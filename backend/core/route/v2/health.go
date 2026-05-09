@@ -6,10 +6,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
-	"github.com/IceWhaleTech/CasaOS/codegen"
-	"github.com/IceWhaleTech/CasaOS/pkg/utils/file"
-	"github.com/IceWhaleTech/CasaOS/service"
+	"github.com/neochaotic/powerlab/backend/common/utils/constants"
+	"github.com/neochaotic/powerlab/backend/core/codegen"
+	"github.com/neochaotic/powerlab/backend/core/pkg/utils/file"
+	"github.com/neochaotic/powerlab/backend/core/service"
 	"github.com/labstack/echo/v4"
 	"github.com/mholt/archiver/v3"
 )

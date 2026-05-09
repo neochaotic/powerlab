@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/IceWhaleTech/CasaOS-Common/pkg/security"
+	"github.com/neochaotic/powerlab/backend/common/pkg/security"
 	"github.com/neochaotic/powerlab/backend/gateway/service"
 )
 
@@ -38,12 +38,12 @@ func rewriteRequestSourceIP(r *http.Request) {
 	ipList := []string{}
 
 	// when r.Header.Get("X-Forwarded-For") is "". the ipList should be empty.
-	// fix https://github.com/IceWhaleTech/CasaOS/issues/1247
+	// fix https://github.com/neochaotic/powerlab/backend/core/issues/1247
 	if r.Header.Get("X-Forwarded-For") != "" {
 		ipList = strings.Split(r.Header.Get("X-Forwarded-For"), ",")
 
 		// when r.Header.Get("X-Forwarded-For") is "". to clean the ipList.
-		// fix https://github.com/IceWhaleTech/CasaOS/issues/1247
+		// fix https://github.com/neochaotic/powerlab/backend/core/issues/1247
 		if len(ipList) == 1 && ipList[0] == "" {
 			ipList = []string{}
 		}
@@ -93,7 +93,7 @@ func (g *GatewayRoute) GetRoute() *http.ServeMux {
 			return
 		}
 
-		// to fix https://github.com/IceWhaleTech/CasaOS/security/advisories/GHSA-32h8-rgcj-2g3c#event-102885
+		// to fix https://github.com/neochaotic/powerlab/backend/core/security/advisories/GHSA-32h8-rgcj-2g3c#event-102885
 		// API V1 and V2 both read ip from request header. So the fix is effective for v1 and v2.
 		rewriteRequestSourceIP(r)
 

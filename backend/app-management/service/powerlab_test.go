@@ -3,8 +3,8 @@ package service_test
 import (
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/service"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"github.com/neochaotic/powerlab/backend/app-management/service"
+	"github.com/neochaotic/powerlab/backend/common/utils/logger"
 	"gotest.tools/v3/assert"
 )
 

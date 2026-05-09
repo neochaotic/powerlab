@@ -1,7 +1,7 @@
 package main
 
 import (
-	interfaces "github.com/IceWhaleTech/CasaOS-Common"
+	interfaces "github.com/neochaotic/powerlab/backend/common"
 )
 
 type migrationTool struct{}

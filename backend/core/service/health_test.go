@@ -4,7 +4,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS/service"
+	"github.com/neochaotic/powerlab/backend/core/service"
 	"github.com/stretchr/testify/assert"
 )
 

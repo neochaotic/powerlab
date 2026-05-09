@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS-Common/model"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"github.com/neochaotic/powerlab/backend/common/model"
+	"github.com/neochaotic/powerlab/backend/common/utils/logger"
 	"gotest.tools/assert"
 )
 
