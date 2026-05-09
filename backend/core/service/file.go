@@ -19,9 +19,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
-	"github.com/IceWhaleTech/CasaOS/model"
-	"github.com/IceWhaleTech/CasaOS/pkg/utils/file"
+	"github.com/neochaotic/powerlab/backend/common/utils/logger"
+	"github.com/neochaotic/powerlab/backend/core/model"
+	"github.com/neochaotic/powerlab/backend/core/pkg/utils/file"
 	"github.com/moby/sys/mountinfo"
 	"go.uber.org/zap"
 )

@@ -1,7 +1,7 @@
 package v2
 
 import (
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/service/v2/wrapper"
+	"github.com/neochaotic/powerlab/backend/local-storage/service/v2/wrapper"
 	"gorm.io/gorm"
 )
 

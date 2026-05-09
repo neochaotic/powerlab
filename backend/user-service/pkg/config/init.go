@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
-	"github.com/IceWhaleTech/CasaOS-UserService/model"
+	"github.com/neochaotic/powerlab/backend/common/utils/constants"
+	"github.com/neochaotic/powerlab/backend/user-service/model"
 	"gopkg.in/ini.v1"
 )
 

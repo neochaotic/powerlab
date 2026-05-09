@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
+	"github.com/neochaotic/powerlab/backend/common/utils/constants"
 )
 
 // TestCoreConfigFilePath_DerivedFromConstants — Sprint 3 Phase 3 rebrand.

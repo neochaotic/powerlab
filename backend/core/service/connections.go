@@ -13,8 +13,8 @@ package service
 import (
 	"fmt"
 
-	"github.com/IceWhaleTech/CasaOS/service/model"
-	model2 "github.com/IceWhaleTech/CasaOS/service/model"
+	"github.com/neochaotic/powerlab/backend/core/service/model"
+	model2 "github.com/neochaotic/powerlab/backend/core/service/model"
 	"gorm.io/gorm"
 )
 

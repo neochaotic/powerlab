@@ -22,7 +22,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/IceWhaleTech/CasaOS-CLI/codegen/app_management"
+	"github.com/neochaotic/powerlab/backend/cli/codegen/app_management"
 	"github.com/alecthomas/chroma/quick"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"

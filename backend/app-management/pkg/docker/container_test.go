@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/pkg/docker"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/random"
+	"github.com/neochaotic/powerlab/backend/app-management/pkg/docker"
+	"github.com/neochaotic/powerlab/backend/common/utils/random"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"

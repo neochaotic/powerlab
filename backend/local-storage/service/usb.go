@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/command"
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/pkg/config"
+	"github.com/neochaotic/powerlab/backend/common/utils/command"
+	"github.com/neochaotic/powerlab/backend/local-storage/pkg/config"
 	"github.com/shirou/gopsutil/host"
 )
 

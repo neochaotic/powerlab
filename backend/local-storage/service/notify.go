@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/common"
+	"github.com/neochaotic/powerlab/backend/local-storage/common"
 )
 
 type NotifyServer interface {

@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/codegen"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/common"
+	"github.com/neochaotic/powerlab/backend/app-management/codegen"
+	"github.com/neochaotic/powerlab/backend/app-management/common"
 	"github.com/compose-spec/compose-go/types"
 	"github.com/samber/lo"
 )

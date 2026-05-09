@@ -1,8 +1,8 @@
 package common
 
 import (
-	"github.com/IceWhaleTech/CasaOS-AppManagement/codegen/message_bus"
-	"github.com/IceWhaleTech/CasaOS-Common/utils"
+	"github.com/neochaotic/powerlab/backend/app-management/codegen/message_bus"
+	"github.com/neochaotic/powerlab/backend/common/utils"
 )
 
 // common properties

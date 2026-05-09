@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/service"
+	"github.com/neochaotic/powerlab/backend/app-management/service"
 	"github.com/labstack/echo/v4"
 )
 

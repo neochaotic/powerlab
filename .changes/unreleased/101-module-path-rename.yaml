@@ -1,0 +1,37 @@
+kind: Changed
+body: |
+  Renamed all Go module paths from legacy `github.com/IceWhaleTech/CasaOS-*`
+  to PowerLab-owned `github.com/neochaotic/powerlab/backend/*`. This is the
+  final structural rebrand step — every Go service in the tree now compiles
+  under a PowerLab module identity.
+
+  **Renamed modules (6):**
+
+  | Service          | Old module                                     | New module                                              |
+  |------------------|------------------------------------------------|---------------------------------------------------------|
+  | `app-management` | `github.com/IceWhaleTech/CasaOS-AppManagement` | `github.com/neochaotic/powerlab/backend/app-management` |
+  | `user-service`   | `github.com/IceWhaleTech/CasaOS-UserService`   | `github.com/neochaotic/powerlab/backend/user-service`   |
+  | `core`           | `github.com/IceWhaleTech/CasaOS`               | `github.com/neochaotic/powerlab/backend/core`           |
+  | `local-storage`  | `github.com/IceWhaleTech/CasaOS-LocalStorage`  | `github.com/neochaotic/powerlab/backend/local-storage`  |
+  | `common`         | `github.com/IceWhaleTech/CasaOS-Common`        | `github.com/neochaotic/powerlab/backend/common`         |
+  | `cli`            | `github.com/IceWhaleTech/CasaOS-CLI`           | `github.com/neochaotic/powerlab/backend/cli`            |
+
+  All `replace github.com/IceWhaleTech/CasaOS-Common => ../common` directives
+  across dependent services were updated to point at the new module path.
+  The `cli` service gained a new `replace` directive (it previously fetched
+  `CasaOS-Common` from the network).
+
+  **Intentionally NOT touched:**
+
+  - `go:generate bash -c "... https://raw.githubusercontent.com/IceWhaleTech/..."`
+    URLs in `main.go` files. These point at the upstream IceWhaleTech repos on
+    GitHub as external data sources for `oapi-codegen`. The generated package
+    names (e.g. `-package casaos`, `-package user_service`) are also untouched
+    — they are local Go package names, not import paths.
+  - License headers, `@Website`, and `@FilePath: /CasaOS/...` markers in file
+    headers. These are historical attribution per ADR-0019.
+  - Filesystem path constants in `cmd/migration-tool/main.go` (those are the
+    legacy CasaOS migration tools that intentionally read from upstream
+    `/etc/casaos/...` paths).
+custom:
+  Issue: "101"

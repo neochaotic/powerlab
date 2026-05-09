@@ -4,9 +4,9 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/codegen"
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/service"
-	v2 "github.com/IceWhaleTech/CasaOS-LocalStorage/service/v2"
+	"github.com/neochaotic/powerlab/backend/local-storage/codegen"
+	"github.com/neochaotic/powerlab/backend/local-storage/service"
+	v2 "github.com/neochaotic/powerlab/backend/local-storage/service/v2"
 
 	"github.com/labstack/echo/v4"
 )

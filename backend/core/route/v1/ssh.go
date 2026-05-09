@@ -7,16 +7,16 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
-	sshHelper "github.com/IceWhaleTech/CasaOS-Common/utils/ssh"
-	"github.com/IceWhaleTech/CasaOS/pkg/utils"
+	"github.com/neochaotic/powerlab/backend/common/utils/common_err"
+	"github.com/neochaotic/powerlab/backend/common/utils/logger"
+	sshHelper "github.com/neochaotic/powerlab/backend/common/utils/ssh"
+	"github.com/neochaotic/powerlab/backend/core/pkg/utils"
 	"github.com/labstack/echo/v4"
 
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 
-	modelCommon "github.com/IceWhaleTech/CasaOS-Common/model"
+	modelCommon "github.com/neochaotic/powerlab/backend/common/model"
 )
 
 var upgrader = websocket.Upgrader{

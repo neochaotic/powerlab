@@ -1,8 +1,8 @@
 package v2
 
 import (
-	"github.com/IceWhaleTech/CasaOS/codegen"
-	"github.com/IceWhaleTech/CasaOS/service"
+	"github.com/neochaotic/powerlab/backend/core/codegen"
+	"github.com/neochaotic/powerlab/backend/core/service"
 )
 
 type CasaOS struct {

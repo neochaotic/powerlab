@@ -11,7 +11,7 @@
 package service
 
 import (
-	model2 "github.com/IceWhaleTech/CasaOS/service/model"
+	model2 "github.com/neochaotic/powerlab/backend/core/service/model"
 	"gorm.io/gorm"
 )
 

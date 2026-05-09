@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-Common/model"
-	http2 "github.com/IceWhaleTech/CasaOS-Common/utils/http"
+	"github.com/neochaotic/powerlab/backend/common/model"
+	http2 "github.com/neochaotic/powerlab/backend/common/utils/http"
 )
 
 const (

@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/codegen"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/common"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/pkg/config"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/service"
-	"github.com/IceWhaleTech/CasaOS-Common/utils"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"github.com/neochaotic/powerlab/backend/app-management/codegen"
+	"github.com/neochaotic/powerlab/backend/app-management/common"
+	"github.com/neochaotic/powerlab/backend/app-management/pkg/config"
+	"github.com/neochaotic/powerlab/backend/app-management/service"
+	"github.com/neochaotic/powerlab/backend/common/utils"
+	"github.com/neochaotic/powerlab/backend/common/utils/logger"
 	"go.uber.org/zap"
 
 	"github.com/labstack/echo/v4"

@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
-	"github.com/IceWhaleTech/CasaOS/model"
+	"github.com/neochaotic/powerlab/backend/common/utils/logger"
+	"github.com/neochaotic/powerlab/backend/core/model"
 	"github.com/go-resty/resty/v2"
 	"github.com/tidwall/gjson"
 	"go.uber.org/zap"

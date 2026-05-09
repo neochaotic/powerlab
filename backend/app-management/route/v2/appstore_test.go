@@ -5,11 +5,11 @@ import (
 
 	"gotest.tools/v3/assert"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/codegen"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/common"
-	v2 "github.com/IceWhaleTech/CasaOS-AppManagement/route/v2"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/service"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"github.com/neochaotic/powerlab/backend/app-management/codegen"
+	"github.com/neochaotic/powerlab/backend/app-management/common"
+	v2 "github.com/neochaotic/powerlab/backend/app-management/route/v2"
+	"github.com/neochaotic/powerlab/backend/app-management/service"
+	"github.com/neochaotic/powerlab/backend/common/utils/logger"
 	"github.com/compose-spec/compose-go/types"
 )
 

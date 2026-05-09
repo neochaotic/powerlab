@@ -4,10 +4,10 @@ go 1.25.7
 
 require (
 	github.com/CorrectRoadH/go-socket.io v1.8.0-rc.5
-	github.com/IceWhaleTech/CasaOS-Common v0.4.4-alpha2
 	github.com/glebarez/sqlite v1.7.0
 	github.com/gobwas/ws v1.1.0
 	github.com/json-iterator/go v1.1.12
+	github.com/neochaotic/powerlab/backend/common v0.4.4-alpha2
 	github.com/neochaotic/powerlab/backend/pkg v0.0.0-00010101000000-000000000000
 	github.com/samber/lo v1.46.0
 	go.uber.org/goleak v1.2.1
@@ -17,7 +17,7 @@ require (
 
 replace github.com/neochaotic/powerlab/backend/pkg => ../pkg
 
-replace github.com/IceWhaleTech/CasaOS-Common => ../common
+replace github.com/neochaotic/powerlab/backend/common => ../common
 
 require (
 	github.com/andybalholm/brotli v1.2.1 // indirect

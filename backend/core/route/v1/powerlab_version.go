@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/IceWhaleTech/CasaOS/common"
+	"github.com/neochaotic/powerlab/backend/core/common"
 	"github.com/labstack/echo/v4"
 )
 

@@ -12,9 +12,9 @@ func TestMain(m *testing.M) {
 
 	goleak.VerifyTestMain(m, opt,
 		goleak.IgnoreTopFunction("go.opencensus.io/stats/view.(*worker).start"),
-		goleak.IgnoreTopFunction("github.com/IceWhaleTech/CasaOS-AppManagement/service_test.topFunc1"),
-		goleak.IgnoreTopFunction("github.com/IceWhaleTech/CasaOS-AppManagement/service_test.pollFunc1"),
-		goleak.IgnoreTopFunction("github.com/IceWhaleTech/CasaOS-AppManagement/service_test.httpFunc1"),
+		goleak.IgnoreTopFunction("github.com/neochaotic/powerlab/backend/app-management/service_test.topFunc1"),
+		goleak.IgnoreTopFunction("github.com/neochaotic/powerlab/backend/app-management/service_test.pollFunc1"),
+		goleak.IgnoreTopFunction("github.com/neochaotic/powerlab/backend/app-management/service_test.httpFunc1"),
 		goleak.IgnoreTopFunction("net/http.(*persistConn).readLoop"),
 		goleak.IgnoreTopFunction("net/http.(*persistConn).writeLoop"),
 		goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"),

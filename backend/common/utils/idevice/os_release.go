@@ -1,7 +1,7 @@
 package idevice
 
 import (
-	"github.com/IceWhaleTech/CasaOS-Common/utils/file"
+	"github.com/neochaotic/powerlab/backend/common/utils/file"
 )
 
 func GetOSRelease(name []string) (map[string]string, error) {

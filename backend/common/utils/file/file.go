@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"github.com/neochaotic/powerlab/backend/common/utils/logger"
 	"github.com/mholt/archiver/v3"
 	"go.uber.org/zap"
 )

@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-Common/external"
-	message_bus "github.com/IceWhaleTech/CasaOS-UserService/codegen/message_bus"
-	"github.com/IceWhaleTech/CasaOS-UserService/model"
-	"github.com/IceWhaleTech/CasaOS-UserService/pkg/config"
-	"github.com/IceWhaleTech/CasaOS-UserService/service"
+	"github.com/neochaotic/powerlab/backend/common/external"
+	message_bus "github.com/neochaotic/powerlab/backend/user-service/codegen/message_bus"
+	"github.com/neochaotic/powerlab/backend/user-service/model"
+	"github.com/neochaotic/powerlab/backend/user-service/pkg/config"
+	"github.com/neochaotic/powerlab/backend/user-service/service"
 	"golang.org/x/net/websocket"
 )
 

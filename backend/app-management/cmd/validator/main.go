@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/cmd/validator/pkg"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/file"
-	utils_logger "github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"github.com/neochaotic/powerlab/backend/app-management/cmd/validator/pkg"
+	"github.com/neochaotic/powerlab/backend/common/utils/file"
+	utils_logger "github.com/neochaotic/powerlab/backend/common/utils/logger"
 )
 
 var logger = NewLogger()

@@ -3,8 +3,8 @@ package pkg_test
 import (
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/cmd/validator/pkg"
-	utils_logger "github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"github.com/neochaotic/powerlab/backend/app-management/cmd/validator/pkg"
+	utils_logger "github.com/neochaotic/powerlab/backend/common/utils/logger"
 	"github.com/stretchr/testify/assert"
 )
 

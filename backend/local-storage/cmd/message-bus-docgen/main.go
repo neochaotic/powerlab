@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/IceWhaleTech/CasaOS-Common/external"
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/codegen/message_bus"
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/common"
+	"github.com/neochaotic/powerlab/backend/common/external"
+	"github.com/neochaotic/powerlab/backend/local-storage/codegen/message_bus"
+	"github.com/neochaotic/powerlab/backend/local-storage/common"
 	"github.com/samber/lo"
 )
 

@@ -9,7 +9,7 @@ const (
 
 // POWERLAB_VERSION is overridden at link time by the build pipeline:
 //
-//   go build -ldflags='-X github.com/IceWhaleTech/CasaOS/common.POWERLAB_VERSION=0.2.6'
+//   go build -ldflags='-X github.com/neochaotic/powerlab/backend/core/common.POWERLAB_VERSION=0.2.6'
 //
 // Dev builds (`go build` without ldflags, ./start.sh, etc.) keep the
 // "dev" sentinel so the UI shows "dev" in the version handshake rather

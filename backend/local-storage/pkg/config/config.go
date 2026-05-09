@@ -3,7 +3,7 @@ package config
 import (
 	"path/filepath"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
+	"github.com/neochaotic/powerlab/backend/common/utils/constants"
 )
 
 // LocalStorageConfigFilePath is the in-binary default config location used

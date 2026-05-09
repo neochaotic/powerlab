@@ -22,7 +22,7 @@ import (
 	"sort"
 	"text/tabwriter"
 
-	"github.com/IceWhaleTech/CasaOS-CLI/codegen/casaos"
+	"github.com/neochaotic/powerlab/backend/cli/codegen/casaos"
 	"github.com/spf13/cobra"
 )
 

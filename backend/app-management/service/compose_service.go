@@ -8,12 +8,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/common"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/pkg/config"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/file"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
-	portutil "github.com/IceWhaleTech/CasaOS-Common/utils/port"
-	timeutils "github.com/IceWhaleTech/CasaOS-Common/utils/time"
+	"github.com/neochaotic/powerlab/backend/app-management/common"
+	"github.com/neochaotic/powerlab/backend/app-management/pkg/config"
+	"github.com/neochaotic/powerlab/backend/common/utils/file"
+	"github.com/neochaotic/powerlab/backend/common/utils/logger"
+	portutil "github.com/neochaotic/powerlab/backend/common/utils/port"
+	timeutils "github.com/neochaotic/powerlab/backend/common/utils/time"
 	"gopkg.in/yaml.v3"
 
 	"github.com/docker/cli/cli/command"

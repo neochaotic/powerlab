@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/jwt"
-	v1 "github.com/IceWhaleTech/CasaOS-UserService/route/v1"
-	"github.com/IceWhaleTech/CasaOS-UserService/service"
+	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
+	v1 "github.com/neochaotic/powerlab/backend/user-service/route/v1"
+	"github.com/neochaotic/powerlab/backend/user-service/service"
 	"github.com/labstack/echo/v4"
 	echo_middleware "github.com/labstack/echo/v4/middleware"
 )

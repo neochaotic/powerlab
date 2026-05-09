@@ -3,7 +3,7 @@ package config
 import (
 	"path/filepath"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
+	"github.com/neochaotic/powerlab/backend/common/utils/constants"
 )
 
 func GetUserServiceConfigFilePath() string {

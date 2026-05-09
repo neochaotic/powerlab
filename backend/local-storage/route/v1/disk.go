@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/IceWhaleTech/CasaOS-Common/model"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/common"
-	model1 "github.com/IceWhaleTech/CasaOS-LocalStorage/model"
-	"github.com/IceWhaleTech/CasaOS-LocalStorage/service"
+	"github.com/neochaotic/powerlab/backend/common/model"
+	"github.com/neochaotic/powerlab/backend/common/utils/common_err"
+	"github.com/neochaotic/powerlab/backend/local-storage/common"
+	model1 "github.com/neochaotic/powerlab/backend/local-storage/model"
+	"github.com/neochaotic/powerlab/backend/local-storage/service"
 	"github.com/labstack/echo/v4"
 	"github.com/shirou/gopsutil/v3/disk"
 )

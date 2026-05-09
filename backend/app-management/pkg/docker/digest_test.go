@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/pkg/docker"
+	"github.com/neochaotic/powerlab/backend/app-management/pkg/docker"
 	"github.com/docker/distribution/manifest/manifestlist"
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/docker/api/types"

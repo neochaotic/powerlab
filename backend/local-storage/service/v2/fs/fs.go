@@ -1,6 +1,6 @@
 package fs
 
-import "github.com/IceWhaleTech/CasaOS-LocalStorage/codegen"
+import "github.com/neochaotic/powerlab/backend/local-storage/codegen"
 
 type Extension interface {
 	GetFSType() string

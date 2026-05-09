@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/IceWhaleTech/CasaOS-Common/pkg/security"
+	"github.com/neochaotic/powerlab/backend/common/pkg/security"
 )
 
 // These tests pin the HTTPS-gate behavior introduced in v0.5.2 (#130):

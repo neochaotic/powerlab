@@ -19,9 +19,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/constants"
-	http2 "github.com/IceWhaleTech/CasaOS-Common/utils/http"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/jwt"
+	"github.com/neochaotic/powerlab/backend/common/utils/constants"
+	http2 "github.com/neochaotic/powerlab/backend/common/utils/http"
+	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
 	"github.com/orca-zhang/ecache"
 )
 

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-AppManagement/common"
-	"github.com/IceWhaleTech/CasaOS-AppManagement/pkg/docker"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
+	"github.com/neochaotic/powerlab/backend/app-management/common"
+	"github.com/neochaotic/powerlab/backend/app-management/pkg/docker"
+	"github.com/neochaotic/powerlab/backend/common/utils/logger"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	client2 "github.com/docker/docker/client"

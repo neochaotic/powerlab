@@ -1,7 +1,7 @@
 package v2
 
 import (
-	"github.com/IceWhaleTech/CasaOS-AppManagement/codegen"
+	"github.com/neochaotic/powerlab/backend/app-management/codegen"
 	"github.com/labstack/echo/v4"
 )
 
