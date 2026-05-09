@@ -2,12 +2,10 @@ package mergerfs
 
 import (
 	"bytes"
+	"context"
 	"path/filepath"
 	"strings"
 	"syscall"
-
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
-	"go.uber.org/zap"
 )
 
 func ControlFile(fspath string) string {
@@ -61,9 +59,9 @@ func SetSource(fspath string, sources []string) error {
 	value := []byte(strings.Join(dedupedSources, ":"))
 	//str, err := command.ExecResultStr("setfattr -n " + key + " -v " + string(string(value)) + " " + ctrlfile)
 	err := syscall.Setxattr(ctrlfile, key, value, 0)
-	//logger.Error("SetSourceStr", zap.String("str", str))
+	//_log.Error(context.Background(), "SetSourceStr", nil, slog.String("str", str))
 	if err != nil {
-		logger.Error("SetSource", zap.Error(err))
+		_log.Error(context.Background(), "SetSource", err)
 		return err
 	}
 	return err

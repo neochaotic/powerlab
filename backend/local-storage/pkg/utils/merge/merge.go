@@ -1,11 +1,10 @@
 package merge
 
 import (
+	"context"
+	"log/slog"
 	"os"
 	"strings"
-
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
-	"go.uber.org/zap"
 )
 
 func IsMergerFSInstalled() bool {
@@ -15,11 +14,11 @@ func IsMergerFSInstalled() bool {
 	}
 	for _, path := range paths {
 		if _, err := os.Stat(path); err == nil {
-			logger.Info("mergerfs is installed", zap.String("path", path))
+			_log.Info(context.Background(), "mergerfs is installed", slog.String("path", path))
 			return true
 		}
 	}
 
-	logger.Error("mergerfs is not installed at any path", zap.String("paths", strings.Join(paths, ", ")))
+	_log.Error(context.Background(), "mergerfs is not installed at any path", nil, slog.String("paths", strings.Join(paths, ", ")))
 	return false
 }
