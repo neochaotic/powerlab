@@ -46,6 +46,21 @@ export async function installBaselineMocks(
 		})
 	);
 
+	// versionHandshake.check() reads {version} directly (no Result
+	// wrapper). Without this mock the catch-all returns the wrapped
+	// shape, version becomes undefined, and the layout shows the
+	// non-dismissible "UI cached, please reload" banner that
+	// intercepts pointer events and breaks click-driven tests.
+	// "dev" tells the handshake to treat this as a dev build and
+	// not warn (matches the runtime POWERLAB_VERSION sentinel).
+	await page.route('**/v1/powerlab/version', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({ version: 'dev' })
+		})
+	);
+
 	// Pretend the user is authenticated so the layout doesn't redirect to
 	// LoginScreen. The auth store reads `powerlab_token` + `powerlab_user`
 	// via localStorage before issuing /v1/users/info — set them here so

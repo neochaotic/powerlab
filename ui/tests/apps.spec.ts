@@ -25,16 +25,20 @@ test.describe('/apps page', () => {
 		await expect(h1).toBeVisible();
 	});
 
-	test('back-to-launchpad link is present', async ({ page }) => {
+	test('back-to-launchpad link navigates to /', async ({ page }) => {
 		await page.goto('/apps');
 
-		// The back arrow has aria-label = t('apps.backToLaunchpad').
-		// We only assert it's present + clickable; the navigation
-		// itself isn't asserted because the layout's sidebar also
-		// has Home links to / and the test was racing the wrong
-		// element. Presence is enough to catch a regression that
-		// removes the back affordance from the apps page.
-		const backLink = page.locator('a[aria-label]').filter({ has: page.locator('svg') }).first();
+		// Target the apps page's own back arrow specifically — NOT
+		// the layout sidebar's Home link (which is also `a[href="/"]`).
+		// The page-specific back arrow lives outside the layout
+		// `<aside>` and carries an aria-label. main > a[href='/']
+		// scopes to the page content area.
+		const backLink = page.locator('main a[href="/"]').first();
 		await expect(backLink).toBeVisible();
+
+		await backLink.click();
+		// SvelteKit client-side nav settles fast; 5s timeout
+		// is generous.
+		await expect(page).toHaveURL(/\/$/, { timeout: 5000 });
 	});
 });

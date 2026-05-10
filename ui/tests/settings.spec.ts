@@ -25,17 +25,24 @@ test.describe('/settings page', () => {
 	test('renders pane navigation buttons', async ({ page }) => {
 		await page.goto('/settings');
 
-		// The settings sidebar lists multiple section buttons. Don't pin
-		// to specific labels (those are about to be split per pane in
-		// PR 4). Page has multiple aside elements (layout sidebar +
-		// settings sidebar); count buttons across the whole page so
-		// the test doesn't break when the DOM structure shifts.
-		// > 5 buttons total catches "sections array became empty" or
-		// "render path broke" without false-positiving on small
-		// per-pane component swaps.
-		const buttons = page.locator('button');
-		const count = await buttons.count();
-		expect(count).toBeGreaterThan(5);
+		// Wait for the sidebar render to settle. count() does NOT
+		// auto-wait — it queries the DOM at call time. Without this,
+		// the test races the auth-resolve + initial render and gets 0
+		// buttons (caught locally on 2026-05-10 after the auth-key fix).
+		// Use the h2 as the readiness signal (proven stable by the
+		// 'renders settings sidebar' test above).
+		await expect(page.locator('h2').filter({ hasText: /settings/i }).first()).toBeVisible();
+
+		// The settings sidebar's <nav> renders one <button> per
+		// section in the hardcoded sections array (5 today: general,
+		// network, apps, security, about). Plus the layout sidebar's
+		// nav. > 1 catches a real regression (sections array empty,
+		// render path broken) without false-positiving on per-pane
+		// component swaps in the upcoming UI split (PR 4 of #227).
+		const navButtons = page.locator('aside nav button');
+		await expect(navButtons.first()).toBeVisible();
+		const count = await navButtons.count();
+		expect(count).toBeGreaterThan(1);
 	});
 
 	test('logout button is present at the bottom of the sidebar', async ({ page }) => {
