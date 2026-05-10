@@ -82,6 +82,16 @@ markdown_extensions:
 plugins:
   - search
 
+# Mermaid.js loader + initialiser. Material 9.5+ documents auto-loading
+# when the superfences custom_fence is present, but in practice (verified
+# on the live site) the script is NOT pulled — diagrams stay as <pre>
+# blocks instead of rendering. Loading explicitly + a small init that
+# re-runs on Material's `navigation.instant` page-swaps fixes both the
+# initial render AND the SPA-style navigation case.
+extra_javascript:
+  - https://unpkg.com/mermaid@10.9.1/dist/mermaid.min.js
+  - js/mermaid-init.js
+
 # Explicit nav so the surface is curated. Files NOT listed here still
 # get built and remain reachable by URL but don't appear in nav.
 nav:
