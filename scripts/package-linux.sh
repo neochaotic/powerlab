@@ -396,64 +396,37 @@ if ! command -v docker &>/dev/null; then
   exit 1
 fi
 
-# ── CasaOS coexistence check ────────────────────────────────────────────
-# PowerLab is a fork of CasaOS. On hosts where the upstream CasaOS is
-# already installed, the two can technically coexist (different ports,
-# different data dirs, different docker labels) but the experience is
-# confusing: users browse to port 80 (CasaOS), see a CasaOS UI, and
-# think PowerLab is broken. We detect this and:
-#   · default: warn loudly, list what we found, refuse to install
-#   · --allow-coexist: print the warning but proceed anyway. PowerLab
-#     comes up on its own port, with its own services. The user is
-#     responsible for knowing they have two products on one host.
+# ── CasaOS coexistence notice ──────────────────────────────────────────
+# PowerLab forked from CasaOS. Pre-ADR-0021 the two products shared
+# Docker label namespace and AppData paths, which made coexistence
+# fragile (each panel listed the other's containers; same-named apps
+# fought over the same /DATA/AppData/<app>/ tree). After ADR-0021
+# (issue #85) PowerLab uses io.powerlab.v1.* labels and a
+# /DATA/PowerLabAppData/ tree of its own — they are independent.
+#
+# This block used to hard-block by default and require --allow-coexist
+# to proceed. After ADR-0021 the technical reasons for blocking are
+# gone, so it is now a friendly notice and proceeds unconditionally.
+# The --allow-coexist flag is still accepted (silently) for backwards
+# compatibility with any operator runbooks or scripts that pass it.
 CASAOS_UNITS=$(systemctl list-unit-files --no-pager --no-legend 'casaos*.service' 2>/dev/null | awk '{print $1}' | grep -v '^$' || true)
-# If PowerLab is already installed AND CasaOS exists, the user clearly
-# already chose coexistence on a previous run — treat this run as
-# implicitly --allow-coexist so the in-UI updater (which calls
-# `install.sh --upgrade` without the flag) can still do its job.
-if [[ -n "$CASAOS_UNITS" ]] && [[ -f /etc/systemd/system/powerlab-gateway.service ]]; then
-  ALLOW_COEXIST=1
-fi
 if [[ -n "$CASAOS_UNITS" ]]; then
   echo ""
-  echo "═══════════════════════════════════════════════════════════════════"
-  echo "  ⚠  Existing CasaOS installation detected on this host."
-  echo "═══════════════════════════════════════════════════════════════════"
+  echo "  ⓘ  Existing CasaOS installation detected — proceeding."
   echo ""
-  echo "  Active CasaOS units:"
-  while IFS= read -r u; do echo "    · $u"; done <<< "$CASAOS_UNITS"
+  echo "     Active CasaOS units:"
+  while IFS= read -r u; do echo "       · $u"; done <<< "$CASAOS_UNITS"
   echo ""
-  echo "  Why this matters:"
-  echo "    PowerLab is a fork of CasaOS. They use different ports,"
-  echo "    different config dirs, and tag containers differently — so"
-  echo "    technically they coexist. But:"
-  echo "      · You'll have TWO web panels (CasaOS at :80, PowerLab at :8765)"
-  echo "      · Apps installed in CasaOS won't appear in PowerLab and"
-  echo "        vice-versa (different createdBy labels)"
-  echo "      · Both fight for the avahi multicast socket"
+  echo "     PowerLab and CasaOS coexist cleanly since ADR-0021 (#85):"
+  echo "       · Different ports — CasaOS on :80, PowerLab on :8765"
+  echo "       · Different Docker labels — io.powerlab.v1.* vs casaos"
+  echo "       · Newly installed apps use /DATA/PowerLabAppData/"
+  echo "         (apps already installed remain at /DATA/AppData/ —"
+  echo "          see ADR-0021 'existing-app migration deferred')"
   echo ""
-  echo "  Options:"
-  if (( ALLOW_COEXIST )); then
-    echo "    [ ✔ ] You passed --allow-coexist; proceeding."
-    echo "          PowerLab will install on a separate port. Browse to"
-    echo "          http://<this-host>:8765 to use it. CasaOS continues"
-    echo "          on http://<this-host>/ untouched."
-    echo ""
-  else
-    echo "    A) Remove CasaOS first (recommended):"
-    echo "         sudo systemctl disable --now casaos casaos-gateway \\"
-    echo "             casaos-app-management casaos-message-bus \\"
-    echo "             casaos-user-service casaos-local-storage"
-    echo "         sudo $(casaos_uninstall_hint | sed 's/^  //')"
-    echo "         (your /DATA volumes and Docker containers are preserved)"
-    echo ""
-    echo "    B) Keep both side by side: re-run with --allow-coexist:"
-    echo "         curl -fsSL .../install.sh | sudo bash -s -- --allow-coexist"
-    echo ""
-    echo "  Refusing to install. (No changes made.)"
-    echo "═══════════════════════════════════════════════════════════════════"
-    exit 1
-  fi
+  echo "     Each panel only sees its own apps. Browse http://<this-host>:8765"
+  echo "     for PowerLab; http://<this-host>/ continues to serve CasaOS."
+  echo ""
 fi
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
