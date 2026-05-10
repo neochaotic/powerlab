@@ -31,45 +31,37 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Critical hot-fix for v0.5.8 lock-out + UX upgrade polish.
+  Documentation site polish wave + repo housekeeping. Three
+  changes that all surface in the docs site at
+  https://neochaotic.github.io/powerlab/ — none touch service
+  behavior or user-facing functionality.
 
-  1. **v0.5.8 lock-out, fixed.** v0.5.8's split-brain detector
-     correctly refused to start when it found duplicate DB files,
-     but the v0.5.4 hot-fix had left a stale duplicate on many
-     hosts that the detector didn't know was safe to clean up.
-     Result: hosts that upgraded v0.5.7 → v0.5.8 with that
-     duplicate present saw user-service refuse to boot, login
-     broke. This release auto-moves the known-stale legacy
-     duplicate (`/var/lib/powerlab/db/user.db`,
-     `/var/lib/powerlab/db/local-storage.db`) aside as
-     `<file>.bak.<unix-ts>` before the strict check runs.
-     Non-destructive — the file is preserved as a backup, never
-     deleted. The strict refuse-to-start check stays as the
-     safety net for genuinely-ambiguous duplicates.
+  1. **Mermaid diagrams now render on the docs site.** v0.5.8
+     added the architecture diagrams as `mermaid` code blocks
+     but Material's documented auto-load of mermaid.js didn't
+     fire on the live site — diagrams stayed as styled text
+     instead of rendering. Fixed by loading mermaid.js
+     explicitly + a small initialiser that re-runs on every
+     SPA navigation. Auto-themes between light + dark mode.
 
-  2. **Update success feedback + auto-reload.** Pre-v0.5.9 the
-     in-app updater silently completed — the "Upgrading…" button
-     stayed put until the user manually refreshed, and the page
-     never reloaded so the new UI version wasn't picked up. v0.5.9
-     adds a visible success toast on completion and auto-reloads
-     the page after 2.5s so the new version is loaded
-     automatically. Failures show an error toast (no auto-reload
-     because the previous version is still running and reloading
-     would be confusing).
+  2. **Go API reference for `pkg/*` foundation packages.**
+     Auto-generated from godoc via `gomarkdoc`, regenerated on
+     every release so it never drifts from source. Six packages
+     live: logging, errors, lifecycle, tracing, foundation,
+     migrations. Per-service Go packages will be added once
+     each module's godoc coverage hits ≥70% (issue #196 has the
+     per-module raise plan).
 
-  3. **Real upgrade integration test** at
-     `scripts/test-upgrade-resolves-stale-legacy_test.sh`. Builds
-     the user-service binary and runs it against a sandbox
-     simulating the v0.5.4 mishap state — the test that should
-     have run before v0.5.8 shipped. Catches the lock-out
-     regression before any future release that would reintroduce
-     it.
+  3. **CasaOS rebrand sweep cleanup.** 8 inherited CasaOS
+     module READMEs deleted, 39 inherited Go files cleaned of
+     `@FilePath` / `@Author` / `@Website` license-header
+     markers pointing to icewhaletech.com. The repo's
+     stray-73MB `ui/ ` (trailing-space) blob from issue #174
+     also gone. Build + tests stay green; net diff is delete-
+     heavy.
 
-  Hosts already stuck on v0.5.8 with the lock-out can upgrade to
-  v0.5.9 directly — the auto-move runs at startup. No manual
-  recovery required.
-
-  No breaking changes.
+  No breaking changes. No service behavior changes. No required
+  operator action.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
