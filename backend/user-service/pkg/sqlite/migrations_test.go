@@ -52,7 +52,7 @@ func TestEmbeddedMigrations_Up_ProducesExpectedTables(t *testing.T) {
 		t.Fatalf("Up: %v", err)
 	}
 
-	for _, want := range []string{"o_users", "events"} {
+	for _, want := range []string{"o_users", "events", "jwt_keypair"} {
 		var name string
 		err := sqlDB.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`, want).Scan(&name)
 		if err != nil {
@@ -64,8 +64,10 @@ func TestEmbeddedMigrations_Up_ProducesExpectedTables(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Version: %v", err)
 	}
-	if v != 1 {
-		t.Errorf("version after Up: want 1, got %d", v)
+	// Bump expected version with each new migration. 0001 = initial
+	// schema, 0002 = jwt_keypair (ADR-0020 / #176).
+	if v != 2 {
+		t.Errorf("version after Up: want 2, got %d", v)
 	}
 }
 
@@ -89,7 +91,7 @@ func TestEmbeddedMigrations_Up_Idempotent(t *testing.T) {
 	}
 
 	v, _ := pkgmigrations.Version(ctx, sqlDB)
-	if v != 1 {
-		t.Errorf("version after double Up: want 1, got %d", v)
+	if v != 2 {
+		t.Errorf("version after double Up: want 2, got %d", v)
 	}
 }
