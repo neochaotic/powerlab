@@ -9,7 +9,9 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/neochaotic/powerlab/backend/common/model"
@@ -56,6 +58,16 @@ var (
 )
 
 func init() {
+	// Skip the entire init in test binaries. init() does heavy startup
+	// work (flag.Parse, config load, sqlite open, message-bus connect)
+	// that's not appropriate during `go test` — flag.Parse fails because
+	// it doesn't recognize -test.* flags. Production main() still runs
+	// the work via the normal startup path. Same pattern as
+	// gateway/main.go (issue #131 / #159 follow-up).
+	if strings.HasSuffix(os.Args[0], ".test") || strings.Contains(os.Args[0], "/_test/") {
+		return
+	}
+
 	flag.Parse()
 	if *versionFlag {
 		fmt.Println("v" + common.VERSION)
