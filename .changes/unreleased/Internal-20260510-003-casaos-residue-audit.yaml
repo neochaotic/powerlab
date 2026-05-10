@@ -1,0 +1,16 @@
+kind: Internal
+body: |
+  CasaOS residue audit at `docs/audits/casaos-residue-2026-05-10.md`.
+
+  Companion to `casaos-dependencies.md` — fresh "what is left, in
+  what order to kill" snapshot for Sprint 5. Confirms PR #151
+  finished the module-path rename (zero CasaOS refs in any go.mod
+  or go.sum). Catalogues 10 functional, ~30 cosmetic, and ~13
+  intentional-sentinel CasaOS strings still in the tree, plus 3
+  runtime URL dependencies and 1 unused stale config sample.
+  Recommends 10 separate PRs for Sprint 5 (~17h total) ordered by
+  leverage/risk ratio, with `get.casaos.io/update` curl-pipe-bash
+  fallback called out as the highest-priority kill (security
+  surface, not just rebrand).
+custom:
+  Issue: "62"
