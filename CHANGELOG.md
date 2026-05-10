@@ -13,6 +13,164 @@ Each PR adds a tiny YAML fragment under `.changes/unreleased/<id>.yaml`.
 At release time, `changie batch <version>` aggregates the fragments into
 a new section below this header. See `CONTRIBUTING.md` for the workflow.
 
+## [v0.5.8] — 2026-05-10
+### Added
+- Documentation site at https://neochaotic.github.io/powerlab/ —
+mkdocs-material foundation. The Sprint 4.5/pre-v1.0 docs Phase 3
+is brought forward into the active flow rather than waiting for a
+pre-tag bundle (per the v1.0-deferred decision).
+
+Initial nav covers:
+
+  - Home (landing + project status)
+  - Getting started: Install, First boot, Updating
+  - Architecture: 6 existing pages reused (topology, request
+    lifecycle, foundation interfaces, dependency graph, data
+    persistence, CasaOS strangler)
+  - Coexistence with CasaOS: new overview translating ADR-0021
+    for end users
+  - Operations: HTTPS setup, update manifest, release checklist,
+    troubleshooting (existing top-level docs)
+  - Audits: db-paths, casaos-dependencies, sprint retros, UI
+    feature map, endpoint usage, dead code
+  - Decisions (ADRs): index of all 21 records
+
+Build runs in CI on every PR (--strict mode catches broken links
++ missing pages). Deploys to GitHub Pages on push to main.
+
+Going forward, every PR that adds a feature or changes behavior
+should consider whether a docs page change is needed alongside.
+
+### Fixed
+- Sprint 4 / #179 — installer no longer leaves stale duplicate DB
+files. The v0.5.4 hot-fix migration copied `user.db` and
+`local-storage.db` to `/var/lib/powerlab/db/<file>.db`, but those
+services actually read from `/var/lib/powerlab/<file>.db` (no
+`/db/` subdir). Result was 30+ minutes of debug looking at the
+wrong file during a real prod incident. The migration now writes
+to the canonical paths, and a boot-time split-brain check in
+user-service refuses to start if both copies still exist with
+data — printing recovery instructions instead of silently picking
+one and risking persistent data drift.
+
+New centralised path helpers at `backend/common/utils/paths/db.go`
+expose the canonical destination for every service's persistent
+files; future migrations consume them so a path convention change
+happens in one place. `docs/audits/db-paths.md` is the new
+single-source-of-truth audit (per ADR-0019).
+
+Five layers of defense land in this PR:
+
+- L1 helpers centralised
+- L2 migration writes to correct destinations + has split-brain regression test
+- L3 boot-time refuse-to-start check
+- L4 18-assertion regression suite (8 Go + 10 bash)
+- L5 install.sh audit step that warns operator before the service crashes
+
+Existing installs are not auto-cleaned — the boot-time check
+surfaces split-brain with operator-actionable instructions
+rather than risking destructive automatic actions on data the
+operator might still need.
+
+- Sprint 4 / #85 PR-C — closes the CasaOS coexistence story for
+newly installed apps. PowerLab and CasaOS can now run on the
+same host without label collisions or AppData races for any new
+app installed after this PR. install.sh's hard-block relaxes to
+notice. #85 DoD met for new installs; existing-app migration
+deferred to a follow-up tool.
+
+Two pieces:
+
+1. **Compose volume-source rewrite at install time**
+   (`service/compose_service.go::rewriteAppDataPathsToCanonical`).
+   Runs after the existing `remapVolumePaths` pass. Substitutes
+   `<storagePath>/AppData/` → `<storagePath>/PowerLabAppData/` in
+   every bind-mount source. Newly installed apps bind into the
+   per-product canonical tree from day one.
+
+2. **install.sh CasaOS coexistence block relaxed**
+   (`scripts/package-linux.sh`). Was: hard refuse-to-install
+   unless `--allow-coexist`. Now: friendly notice describing
+   the now-clean coexistence (with explicit caveat that apps
+   already installed remain at `/DATA/AppData/`). The
+   `--allow-coexist` flag is preserved as a silently-accepted
+   no-op for any operator runbooks that pass it.
+
+4 new regression tests at `service/autoremap_test.go` lock the
+rewrite contract: rewrites legacy AppData prefix, honors custom
+storagePath (macOS dev installs), no-op when storagePath empty,
+ignores non-bind volumes.
+
+ADR-0021 amended in this PR ("Subsequent decision: existing-app
+migration deferred") explaining why the original on-boot
+mv-based migration was removed: it would have invalidated
+bind-mount sources in on-disk compose YAMLs, producing apparent
+data loss on next container start. Doing it correctly requires
+an atomic dir-move + YAML-rewrite which is sizeable enough to
+deserve its own PR + test suite.
+
+This completes the #85 sub-PR sequence:
+  - PR-A (#181): ADR-0021 + label/path helpers + 16 tests
+  - PR-B (#182): wire all label call sites; dual-write active
+  - PR-C (this one): compose volume rewrite + coexistence relax
+
+### Internal
+- Sprint 4 / #85 foundation — adds ADR-0021 + the
+`backend/app-management/common/labels.go` package that will be the
+single source of truth for every Docker container label PowerLab
+reads or writes. No service code changes yet; the next sub-PR
+rewrites the call sites in service/container.go and friends to
+consume `common.IsPowerLabApp` / `common.LabelValue` /
+`common.BuildLabels`.
+
+ADR-0021 records two coexistence decisions:
+
+- Container labels move from unnamespaced flat keys (`casaos`,
+  `origin`, `icon`, ...) to canonical `io.powerlab.v1.*`
+  reverse-DNS names. One release window of dual-write keeps
+  existing PowerLab containers visible.
+- AppData tree moves from `<StoragePath>/AppData/` (collides with
+  CasaOS) to `<StoragePath>/PowerLabAppData/` (per-product).
+
+16 regression test cases in `common/labels_test.go` +
+`common/appdata_test.go` lock the dual-read / dual-write contract,
+the AppData rename, and the legacy-key completeness invariant.
+
+This is the first of ~3 sub-PRs for #85. PR-B wires service code
+to the new helpers; PR-C does the AppData on-boot migration.
+
+- Sprint 4 / #85 PR-B — wires every container-label call site in
+app-management to consume the helpers landed in PR-A. Containers
+PowerLab creates from this point forward carry both the canonical
+`io.powerlab.v1.*` labels AND the legacy unnamespaced labels
+(per ADR-0021's one-release-window dual-write); the "is mine"
+filter accepts either, so containers PowerLab created before this
+PR stay visible in the panel without forcing a recreate.
+
+Sites rewritten:
+
+- `service/container.go` — list filter, value reads, write block
+  (12 inline label writes consolidated to one `BuildLabels` call)
+- `service/v1/app.go` — label reads in legacy V1 Custom App
+  inspect path
+- `route/v1/docker.go` — origin check during delete
+
+Orphan constant `ContainerLabelV1AppStoreID` removed from
+`common/constants.go` (its single string is now the
+`LegacyLabelAppStoreIDKey` helper constant; reads go through
+`LabelValue(LabelAppStoreIDKey)` which dual-reads both).
+
+No new tests — the dual-read / dual-write contract is exhaustively
+covered by the 12 cases in `common/labels_test.go` from PR-A.
+Direct map reads are now an anti-pattern that bypasses the
+contract; reviewer can grep for `Labels["origin"]` etc. to verify
+none remain.
+
+Next sub-PR (#85 PR-C): on-boot AppData migration + install.sh
+coexistence-block relax (per #85 DoD).
+
+
+
 ## [v0.5.7] — 2026-05-09
 ### Added
 - Sprint 3 retrospective at `docs/audits/sprint-3-retrospective.md`.

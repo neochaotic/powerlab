@@ -31,30 +31,43 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Sessions now survive PowerLab upgrades. Plus the formal Sprint 3
-  retrospective doc.
+  Database & coexistence hardening. Three big structural fixes ship
+  together — none change a feature you click on, all matter for
+  reliability and for running PowerLab next to CasaOS.
 
-  Pre-v0.5.7, every upgrade silently logged out every user — the
-  user-service generated a fresh JWT signing keypair on every
-  startup and never persisted it. This was inherited from CasaOS
-  and never deliberately chosen. ADR-0020 records the decision to
-  flip the default: the keypair now persists in user.db, so JWT
-  cookies survive upgrades, restarts, and crash recovery.
-  Operators in higher-threat environments can opt back into
-  ephemeral mode via POWERLAB_EPHEMERAL_JWT_KEY=true.
+  1. **Split-brain DB protection (#179)**. Every PowerLab service
+     now refuses to start if its persistent SQLite database exists
+     at two paths simultaneously, with operator-actionable recovery
+     instructions instead of silently picking one and risking
+     drift. The v0.5.4 hot-fix migration that copied user.db and
+     local-storage.db to a /db/ subdir those services don't read
+     is fixed; install.sh now writes to the canonical path and
+     warns at install time if a stale duplicate is found.
+     Five layers of defense, 18 regression tests.
 
-  Closes #176 with 5 regression tests including the THE #176
-  regression (TestLoadOrGenerate_StableAcrossCalls) which asserts
-  that two consecutive NewUserService calls return the same
-  keypair.
+  2. **Clean coexistence with CasaOS (#85, ADR-0021)**. PowerLab's
+     containers now use the canonical `io.powerlab.v1.*` Docker
+     label namespace and bind app data into
+     `/DATA/PowerLabAppData/<app>/` instead of the shared
+     `/DATA/AppData/<app>/`. CasaOS panel + PowerLab panel can run
+     on the same host without listing each other's containers or
+     overwriting each other's app data. install.sh's "CasaOS
+     detected" hard-block relaxes to a friendly notice. New apps
+     installed after this release use the new tree; existing apps
+     stay on /DATA/AppData/ until manually consolidated.
+     Container labels dual-write canonical + legacy for one
+     release window so existing PowerLab containers stay visible.
 
-  Also: docs/audits/sprint-3-retrospective.md formalizes the
-  v0.5.4-incident lessons and 6 follow-up improvement issues
-  (#169–#174) per ADR-0019's tech-debt tracking pattern.
+  3. **Documentation site (#71)** at
+     https://neochaotic.github.io/powerlab/. The repo's docs/
+     directory IS the source — every page is a markdown file, the
+     mkdocs build is a thin presentation layer. Brought forward
+     from "pre-v1.0" so docs grow incrementally with each future
+     PR rather than bolted on at the end. Initial nav covers
+     getting started, architecture, coexistence, operations,
+     audits, and all 21 ADRs.
 
-  No other behavior change. After upgrading to v0.5.7, the next
-  upgrade you do will preserve your session — no more refresh-
-  logs-you-out.
+  No breaking changes. No required operator action on upgrade.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
