@@ -19,6 +19,7 @@ import (
 	"github.com/neochaotic/powerlab/backend/common/model"
 	util_http "github.com/neochaotic/powerlab/backend/common/utils/http"
 	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
+	"github.com/neochaotic/powerlab/backend/common/utils/paths"
 	"github.com/neochaotic/powerlab/backend/user-service/codegen/message_bus"
 	"github.com/neochaotic/powerlab/backend/user-service/common"
 	"github.com/neochaotic/powerlab/backend/user-service/pkg/config"
@@ -88,6 +89,18 @@ func init() {
 
 	if len(*dbFlag) == 0 {
 		*dbFlag = config.AppInfo.DBPath
+	}
+
+	// Refuse to start if the user-service DB exists at BOTH the
+	// canonical path and the v0.5.4 hot-fix legacy path. Silently
+	// picking one would risk persistent data drift; see issue #179
+	// + docs/audits/db-paths.md for the recovery playbook.
+	if err := paths.AssertNoSplitBrain(context.Background(), nil, "user-service",
+		paths.UserServiceDBIn(*dbFlag),
+		paths.LegacyUserServiceDBIn(*dbFlag),
+	); err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
 	}
 
 	sqliteDB := sqlite.GetDb(*dbFlag)
