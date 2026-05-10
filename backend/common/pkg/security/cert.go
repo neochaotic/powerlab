@@ -64,6 +64,10 @@ const (
 	PublicBackupFile = "ca-public-backup.crt"
 )
 
+// CertManager owns the local PowerLab CA + leaf certificate
+// lifecycle: generation, rotation, renewal, IP-change detection,
+// and the HSTS gate file. One instance per process; the gateway
+// is the only service that creates one.
 type CertManager struct {
 	StoragePath string
 	mu          sync.Mutex
@@ -94,14 +98,20 @@ func NewCertManager(runtimePath string) *CertManager {
 	return &CertManager{StoragePath: storagePath}
 }
 
+// GetCAPaths returns the on-disk paths for the active CA cert + key.
 func (m *CertManager) GetCAPaths() (certPath, keyPath string) {
 	return filepath.Join(m.StoragePath, "ca.crt"), filepath.Join(m.StoragePath, "ca.key")
 }
 
+// GetServerPaths returns the on-disk paths for the active server
+// (leaf) cert + key.
 func (m *CertManager) GetServerPaths() (certPath, keyPath string) {
 	return filepath.Join(m.StoragePath, "server.crt"), filepath.Join(m.StoragePath, "server.key")
 }
 
+// GetHSTSPath returns the .hsts-armed marker file path. Presence of
+// this file is the gate the HSTS middleware uses to decide whether
+// to emit Strict-Transport-Security on responses.
 func (m *CertManager) GetHSTSPath() string {
 	return filepath.Join(m.StoragePath, HSTSGateFile)
 }
@@ -245,6 +255,9 @@ func hexNybble(n byte) byte {
 	return 'A' + (n - 10)
 }
 
+// CheckAndRotate rotates the server leaf when any of: cert missing,
+// expiring within 60 days, or the host's local IP set changed since
+// the last rotation. CA is left alone — only RotateCA touches that.
 func (m *CertManager) CheckAndRotate() error {
 	serverCertPath, _ := m.GetServerPaths()
 
@@ -285,6 +298,8 @@ func (m *CertManager) CheckAndRotate() error {
 	return nil
 }
 
+// StartTicker spawns a daily goroutine that calls CheckAndRotate.
+// Returns immediately. Stops cleanly when ctx_cancel is closed.
 func (m *CertManager) StartTicker(ctx_cancel chan struct{}) {
 	ticker := time.NewTicker(24 * time.Hour)
 	go func() {
@@ -304,6 +319,9 @@ func (m *CertManager) StartTicker(ctx_cancel chan struct{}) {
 	}()
 }
 
+// GenerateRootCA writes a fresh ECDSA P-256 self-signed root CA
+// (10y validity) to the configured storage path. Used only by Setup
+// (first-boot path) and RotateCA — call sites elsewhere are bugs.
 func (m *CertManager) GenerateRootCA() error {
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
@@ -358,6 +376,11 @@ func (m *CertManager) GenerateRootCA() error {
 	return nil
 }
 
+// GenerateServerCert writes a fresh server (leaf) cert signed by the
+// active CA. SAN includes powerlab.local, localhost, the system
+// hostname, all loopback IPs, every RFC1918/ULA local IP, plus the
+// Tailscale MagicDNS hostname when detected (#44). 1-year validity;
+// CheckAndRotate refreshes well before expiry.
 func (m *CertManager) GenerateServerCert() error {
 	caCertPath, caKeyPath := m.GetCAPaths()
 	caCertPEM, err := os.ReadFile(caCertPath)
@@ -560,6 +583,10 @@ func (m *CertManager) GetHSTSDisarmingPath() string {
 	return filepath.Join(m.StoragePath, HSTSDisarmingFile)
 }
 
+// ArmHSTS writes the .hsts-armed marker so the HSTS middleware
+// starts emitting Strict-Transport-Security on responses. Also
+// clears any pending disarming window because arming implies the
+// user just completed the trust dance.
 func (m *CertManager) ArmHSTS() error {
 	// Arming clears any pending disarming window — the user just
 	// completed a fresh trust dance, so we want full HSTS again.
@@ -586,6 +613,8 @@ func (m *CertManager) DisarmHSTS() error {
 	return nil
 }
 
+// IsHSTSArmed reports whether the .hsts-armed marker exists.
+// Used by the HSTS middleware to gate header emission.
 func (m *CertManager) IsHSTSArmed() bool {
 	_, err := os.Stat(m.GetHSTSPath())
 	return err == nil

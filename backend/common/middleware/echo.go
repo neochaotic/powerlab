@@ -1,3 +1,5 @@
+// Package middleware holds echo middleware shared across PowerLab
+// backend services.
 package middleware
 
 import (
@@ -5,6 +7,10 @@ import (
 	echo_middleware "github.com/labstack/echo/v4/middleware"
 )
 
+// Cors returns a permissive CORS middleware (any origin, every
+// standard method, all common headers) intended for the gateway-
+// fronted echo apps. The gateway's JWT middleware is the actual
+// auth gate; CORS here only needs to keep the browser happy.
 func Cors() echo.MiddlewareFunc {
 	return echo_middleware.CORSWithConfig(echo_middleware.CORSConfig{
 		AllowOrigins:     []string{"*"},

@@ -17,8 +17,15 @@ const (
 	APICasaOSNotify   = "/v1/notify"
 )
 
+// NotifyService is the legacy CasaOS notification API surface —
+// pre-message-bus. Still used by core for system-status pings and
+// by a handful of admin endpoints. New code should publish events
+// to the message-bus instead.
 type NotifyService interface {
+	// SendNotify POSTs message as JSON to /v1/notify/<path>.
 	SendNotify(path string, message interface{}) error
+	// SendSystemStatusNotify is a thin wrapper that targets the
+	// "system_status" channel.
 	SendSystemStatusNotify(message map[string]interface{}) error
 }
 type notifyService struct {
@@ -57,6 +64,9 @@ func (n *notifyService) SendSystemStatusNotify(message map[string]interface{}) e
 	return n.SendNotify("system_status", message)
 }
 
+// NewNotifyService returns a NotifyService bound to the casaos
+// service URL resolved from runtimePath. Address resolution is
+// lazy — happens on each SendNotify call, not at construction.
 func NewNotifyService(runtimePath string) NotifyService {
 	return &notifyService{
 		addressFile: filepath.Join(runtimePath, CasaOSURLFilename),

@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+// GPUInfo is one nvidia-smi --query-gpu row. Index is the local GPU
+// number (0-based); UUID is stable across reboots and is the safe
+// key for per-GPU config. PowerLab's GPU monitoring (the homepage
+// category differentiator vs. CasaOS) reads these to populate the
+// dashboard widget.
 type GPUInfo struct {
 	Index         int
 	UUID          string
@@ -14,6 +19,10 @@ type GPUInfo struct {
 	GPUSerial     string
 }
 
+// GPUInfoListWithSMI shells out to nvidia-smi and returns one
+// GPUInfo per detected GPU. Returns an error when nvidia-smi is
+// unavailable — callers should treat that as "no GPU" rather than
+// an outright failure.
 func GPUInfoListWithSMI() ([]GPUInfo, error) {
 	GPUInfos := []GPUInfo{}
 
@@ -41,6 +50,9 @@ func GPUInfoListWithSMI() ([]GPUInfo, error) {
 	return GPUInfos, nil
 }
 
+// GPUInfoList is the public entry point — currently a thin
+// wrapper over the SMI implementation. The indirection exists so
+// AMD/Intel detection can land here without changing call sites.
 func GPUInfoList() ([]GPUInfo, error) {
 	gpusInfo, err := GPUInfoListWithSMI()
 	if err != nil {
@@ -49,13 +61,19 @@ func GPUInfoList() ([]GPUInfo, error) {
 	return gpusInfo, nil
 }
 
-// Aliases for backward compatibility if needed
+// NvidiaGPUInfo is the legacy name for GPUInfo — kept as an alias
+// for code written before the multi-vendor rename.
 type NvidiaGPUInfo = GPUInfo
 
+// NvidiaGPUInfoList is the legacy name for GPUInfoList.
 func NvidiaGPUInfoList() ([]NvidiaGPUInfo, error) {
 	return GPUInfoList()
 }
 
+// GPUUtilization is the live performance snapshot used by the
+// dashboard widget. MemoryUsed is in bytes (the SMI/ioreg readers
+// normalise to bytes before populating). Temperature is unset on
+// macOS where IOAccelerator does not surface it.
 type GPUUtilization struct {
 	Percent     float64 `json:"percent"`
 	MemoryUsed  int64   `json:"memoryUsed"`
@@ -63,6 +81,12 @@ type GPUUtilization struct {
 	Temperature int     `json:"temperature"`
 }
 
+// GetGPUUtilization returns a single live snapshot of the
+// primary GPU's utilization. Tries macOS Apple Silicon first
+// (system_profiler + ioreg parsing), then falls back to
+// nvidia-smi on Linux. Returns nil when no supported GPU
+// readout is available — caller should treat as "no GPU stats"
+// rather than an error.
 func GetGPUUtilization() *GPUUtilization {
 	// macOS Apple Silicon (M1/M2/M3/M4/M5)
 	if out, err := exec.Command("uname").Output(); err == nil && strings.TrimSpace(string(out)) == "Darwin" {

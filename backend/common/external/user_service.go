@@ -52,6 +52,9 @@ const (
 	tokenCacheSentinelExpired
 )
 
+// ParsedToken is the user-service's verdict on a JWT — populated
+// from /v1/users/parse-token. Valid is the only field callers should
+// trust unconditionally; the rest are the claim payload echoed back.
 type ParsedToken struct {
 	Valid     bool   `json:"valid"`
 	ExpiresAt int64  `json:"expires_at"`
@@ -60,6 +63,14 @@ type ParsedToken struct {
 	UserID    int    `json:"user_id"`
 }
 
+// GetPublicKey returns the user-service's JWT-signing public key,
+// fetched from its JWKS endpoint and cached for 10 seconds. Used by
+// every other service to verify Authorization headers locally
+// without a round-trip to user-service.
+//
+// The keypair is persisted across restarts (ADR-0020) so the key
+// returned here remains stable as long as the user-service install
+// hasn't been wiped.
 func GetPublicKey(runtimePath string) (*ecdsa.PublicKey, error) {
 	if cachedPublicKey != nil && time.Since(lastUpdate) < 10*time.Second {
 		return cachedPublicKey, nil
@@ -123,6 +134,12 @@ func GetPublicKey(runtimePath string) (*ecdsa.PublicKey, error) {
 	return cachedPublicKey, nil
 }
 
+// ParseToken asks user-service to validate a JWT. Falls back to
+// the gateway's unix socket when the user-service.url file isn't
+// present (cli + early-boot callers). Two-tier in-memory LRU cache
+// short-circuits repeat lookups: valid tokens cached for 1 min,
+// invalid/expired sentinels cached so a flood of bogus auth
+// headers doesn't hammer the user-service.
 func ParseToken(token string) (*ParsedToken, error) {
 	normalizedToken := strings.TrimSpace(token)
 	if normalizedToken == "" {

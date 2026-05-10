@@ -15,7 +15,13 @@ const (
 	APICasaOSShare = "/v1/samba/shares"
 )
 
+// ShareService is the SMB-share admin API surface — used to
+// remove a share when the user deletes the underlying folder.
+// Only Delete is exposed today; create/list still go through the
+// CasaOS samba route directly.
 type ShareService interface {
+	// DeleteShare removes the SMB share with the given id from the
+	// CasaOS samba config.
 	DeleteShare(id string) error
 }
 type shareService struct {
@@ -43,6 +49,9 @@ func (n *shareService) DeleteShare(id string) error {
 	return nil
 }
 
+// NewShareService returns a ShareService bound to the casaos
+// service URL resolved from runtimePath. Address resolution is
+// lazy.
 func NewShareService(runtimePath string) ShareService {
 	return &shareService{
 		addressFile: filepath.Join(runtimePath, CasaOSURLFilename),

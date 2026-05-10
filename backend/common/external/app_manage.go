@@ -22,8 +22,18 @@ const (
 	APIComposeStatus     = "/v2/app_management/compose"
 )
 
+// AppManageService is the app-management API surface as seen by
+// peer services. Used by core + gateway to look up app metadata
+// and toggle running state without re-implementing the HTTP
+// client.
 type AppManageService interface {
+	// GetAppInfo returns the joined compose-app + store-info view
+	// for the given store id, or a zero-value struct + error.
 	GetAppInfo(storeId string) (model.ComposeAppWithStoreInfo, error)
+
+	// PutAppStatus sets an installed app's lifecycle status
+	// (e.g. "started", "stopped"). Returns true on 200; the bool
+	// is redundant with err == nil and kept for backwards-compat.
 	PutAppStatus(storeId string, status string) (bool, error)
 }
 
@@ -67,6 +77,10 @@ func (m *appManageService) PutAppStatus(storeId string, status string) (bool, er
 	return true, nil
 }
 
+// NewAppManageService resolves the app-management URL from
+// app-management.url under RuntimePath, retries up to ~10s for the
+// file to appear during co-startup, pings /ping for readiness,
+// and returns a ready-to-use AppManageService.
 func NewAppManageService(RuntimePath string) (AppManageService, error) {
 	managementAddressFile := filepath.Join(RuntimePath, AppManageURLFilename)
 

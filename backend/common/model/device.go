@@ -1,5 +1,9 @@
 package model
 
+// DeviceInfo is the public-facing device descriptor returned by the
+// gateway's discovery endpoint and surfaced on the login screen.
+// LanIpv4 holds the addresses the device is reachable on; Hash is
+// the device's stable per-install id.
 type DeviceInfo struct {
 	LanIpv4     []string            `json:"lan_ipv4"`
 	Port        int                 `json:"port"`
