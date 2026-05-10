@@ -1,0 +1,20 @@
+kind: Internal
+body: |
+  Two paired changes for the Sprint 5 obliterate-CasaOS work:
+
+  1. **ADR-0022** — formalises the policy that PowerLab takes no
+     new dependencies on upstream CasaOS infrastructure. Cites
+     the upstream's verified abandonment status: latest release
+     v0.4.15 (Dec 2024, 1.5 years stale), 795 open issues, no
+     coherent release cadence. Becomes the citable rule that
+     justifies Sprint 5's kill list and rejects future PRs that
+     would reintroduce CasaOS coupling.
+
+  2. **Kill #2 from audit #203** — deletes inherited
+     `backend/core/{CHANGELOG,CODE_OF_CONDUCT,SECURITY}.md` (all
+     CasaOS-flavored, pointing at wiki@casaos.io). Replaces
+     missing root `CODE_OF_CONDUCT.md` + `SECURITY.md` with
+     PowerLab versions that route reports correctly + explicitly
+     redirect anyone confused about the project lineage.
+custom:
+  Issue: "203"
