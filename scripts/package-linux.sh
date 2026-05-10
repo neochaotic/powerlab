@@ -549,6 +549,22 @@ for svc in "${SERVICES[@]}"; do
   systemctl stop "powerlab-$svc.service" 2>/dev/null || true
 done
 
+# ── Migrate /var/lib/casaos/* → /var/lib/powerlab/* (issue #158) ─────────
+# v0.5.4 flipped service paths from /var/lib/casaos to /var/lib/powerlab
+# (per PR #140), but install.sh did not migrate existing data. Result on
+# a v0.5.x → v0.5.4 upgrade: user-service started fresh against an empty
+# /var/lib/powerlab/db/, no users, login returns 400, UI completely
+# unusable. Hot-fixed on the affected host by manually copying the DBs.
+#
+# Logic is in scripts/migrate-casaos-data.sh and tested by
+# scripts/migrate-casaos-data_test.sh — kept in a standalone file so
+# the regression test can exercise it directly with PREFIX override.
+if [[ -f "$HERE/migrate-casaos-data.sh" ]]; then
+  # shellcheck disable=SC1091
+  source "$HERE/migrate-casaos-data.sh"
+  migrate_casaos_data
+fi
+
 # ── Pick the gateway port and write it into gateway.ini ─────────────────
 # Decision matrix:
 #   · Pre-existing gateway.ini → trust it. The user (or a previous
@@ -747,6 +763,14 @@ VERSION_NEXT=\"$VERSION\"
 " "$STAGE/install.sh"
 rm -f "$STAGE/install.sh.bak"
 chmod +x "$STAGE/install.sh"
+
+# Ship the standalone CasaOS-data migration script alongside install.sh
+# (issue #158). install.sh sources it via `$HERE/migrate-casaos-data.sh`.
+# The script is also unit-tested directly via
+# scripts/migrate-casaos-data_test.sh — keeping it standalone keeps the
+# test surface small.
+cp "$ROOT/scripts/migrate-casaos-data.sh" "$STAGE/migrate-casaos-data.sh"
+chmod +x "$STAGE/migrate-casaos-data.sh"
 
 # ─── 7. uninstall.sh ─────────────────────────────────────────────────────
 cat > "$STAGE/uninstall.sh" <<'UNINSTALL_EOF'
