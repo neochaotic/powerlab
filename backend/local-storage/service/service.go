@@ -10,10 +10,20 @@ import (
 	"gorm.io/gorm"
 )
 
+// Cache is the package-level in-memory cache shared by the disk +
+// USB services for ephemeral state (smartctl readings, mount-table
+// snapshots) that's expensive to recompute but doesn't need to
+// survive a restart.
 var Cache *cache.Cache
 
+// MyService is the package-level Services container set up by
+// NewService at process start. Route handlers reach into it
+// directly — there's no per-request injection layer.
 var MyService Services
 
+// Services is the dependency container exposed to the route layer.
+// Each method returns a long-lived collaborator constructed once at
+// startup. Test code can satisfy the interface with stubs.
 type Services interface {
 	Disk() DiskService
 	USB() USBService
@@ -25,6 +35,10 @@ type Services interface {
 	MessageBus() *message_bus.ClientWithResponses
 }
 
+// NewService wires the Services container. Panics on gateway-
+// management bring-up failure (without the gateway, this service
+// can't register routes — fail fast). Other dependencies are lazy-
+// initialised so a temporary upstream outage doesn't kill startup.
 func NewService(db *gorm.DB) Services {
 	gatewayManagement, err := external.NewManagementService(config.CommonInfo.RuntimePath)
 	if err != nil {
@@ -45,6 +59,8 @@ func NewService(db *gorm.DB) Services {
 	}
 }
 
+// store is the unexported Services implementation — fields are the
+// concrete collaborators wired by NewService.
 type store struct {
 	usb          USBService
 	disk         DiskService

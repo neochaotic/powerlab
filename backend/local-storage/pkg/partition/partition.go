@@ -1,3 +1,8 @@
+// Package partition wraps the system partitioning tools (lsblk,
+// partx, parted, partprobe, blkid) and exposes a typed Partition
+// type that joins the lsblk + partx properties for a single
+// partition. Used by the disk-management service to drive the
+// "Add new disk" UI flow.
 package partition
 
 import (
@@ -9,6 +14,9 @@ import (
 	"github.com/neochaotic/powerlab/backend/local-storage/pkg/utils/command"
 )
 
+// Partition holds the joined lsblk + partx output for a single
+// partition. Both maps use the upstream tool's lowercase property
+// names (e.g. "name", "size", "uuid", "label").
 type Partition struct {
 	LSBLKProperties map[string]string
 	PARTXProperties map[string]string
@@ -16,6 +24,8 @@ type Partition struct {
 
 var ErrNoPartitionFound = errors.New("no partition found after partition creation")
 
+// GetDevicePath resolves a filesystem UUID to a /dev/* path via
+// blkid. Returns "" + error when blkid can't find the UUID.
 func GetDevicePath(uuid string) (string, error) {
 	out, err := command.ExecuteCommand("blkid", "--uuid", uuid)
 	if err != nil {
@@ -25,7 +35,9 @@ func GetDevicePath(uuid string) (string, error) {
 	return string(bytes.TrimSpace(out)), nil
 }
 
-// path - device path, e.g. /dev/sda
+// GetPartitions returns every partition on the given block device
+// (path is e.g. /dev/sda) by running lsblk + partx and merging
+// their per-partition property maps.
 func GetPartitions(path string) ([]Partition, error) {
 	var partitions []Partition
 
@@ -57,7 +69,9 @@ func GetPartitions(path string) ([]Partition, error) {
 	return partitions, nil
 }
 
-// inform the operating system about partition table changes
+// ProbePartition tells the kernel to re-read the partition table
+// for device. Required after parted writes a new table — without
+// this the new partitions don't appear in /dev/* until reboot.
 func ProbePartition(device string) error {
 	if _, err := command.ExecuteCommand("partprobe", "-s", device); err != nil {
 		return err
@@ -66,7 +80,10 @@ func ProbePartition(device string) error {
 	return nil
 }
 
-// rootDevice - root device, e.g. /dev/sda
+// AddPartition partitions the given block device with a single
+// primary partition spanning the full disk. Polls for up to 5
+// seconds for the partition to appear, then returns it. Errors
+// with ErrNoPartitionFound if the partition never materialises.
 func AddPartition(rootDevice string) ([]Partition, error) {
 	// add partition
 	if _, err := command.ExecuteCommand("parted", "-s", rootDevice, "mkpart", "primary", "0", "100%"); err != nil {
@@ -101,6 +118,8 @@ func AddPartition(rootDevice string) ([]Partition, error) {
 	return partitions, nil
 }
 
+// CreatePartitionTable writes a fresh GPT partition label to
+// rootDevice. Destructive — wipes any existing partition table.
 func CreatePartitionTable(rootDevice string) error {
 	// create partition table
 	if _, err := command.ExecuteCommand("parted", "-s", rootDevice, "mklabel", "gpt"); err != nil {
