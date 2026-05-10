@@ -35,7 +35,6 @@ import (
 )
 
 type SystemService interface {
-	UpdateSystemVersion(version string)
 	GetSystemConfigDebug() []string
 	GetCasaOSLogs(lineNumber int) string
 	UpdateAssist()
@@ -382,24 +381,12 @@ func (c *systemService) GetNet(physics bool) []string {
 	}
 }
 
-func (s *systemService) UpdateSystemVersion(version string) {
-	keyName := "casa_version"
-	Cache.Delete(keyName)
-	if file.Exists(config.AppInfo.LogPath + "/upgrade.log") {
-		os.Remove(config.AppInfo.LogPath + "/upgrade.log")
-	}
-	file.CreateFile(config.AppInfo.LogPath + "/upgrade.log")
-	// go command2.OnlyExec("curl -fsSL https://raw.githubusercontent.com/LinkLeong/casaos-alpha/main/update.sh | bash")
-	if len(config.ServerInfo.UpdateUrl) > 0 {
-		go command.OnlyExec("curl -fsSL " + config.ServerInfo.UpdateUrl + " | bash")
-	} else {
-		osRelease, _ := file.ReadOSRelease()
-		go command.OnlyExec("curl -fsSL https://get.casaos.io/update?t=" + osRelease["MANUFACTURER"] + " | bash")
-	}
-
-	// s.log.Error(config.AppInfo.ProjectPath + "/shell/tool.sh -r " + version)
-	// s.log.Error(command2.ExecResultStr(config.AppInfo.ProjectPath + "/shell/tool.sh -r " + version))
-}
+// UpdateSystemVersion was the inherited CasaOS self-update path.
+// Removed in Sprint 5 #203 kill #1 — it `curl … | bash`'d from
+// get.casaos.io/update (a real curl-pipe-bash from upstream
+// CasaOS infra). PowerLab's in-app updater under
+// /v1/powerlab-update/ uses the manifest.json + signed-tarball
+// pipeline; the old path was dead AND dangerous.
 
 func (s *systemService) UpdateAssist() {
 	command.ExecResultStrArray("source " + config.AppInfo.ShellPath + "/assist.sh")

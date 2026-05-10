@@ -178,7 +178,10 @@ export const ENDPOINTS = {
 	// System (V1)
 	SYS_UTILIZATION: '/v1/sys/utilization',
 	SYS_HARDWARE: '/v1/sys/hardware',
-	SYS_VERSION: '/v1/sys/version/check',
+	// SYS_VERSION (was /v1/sys/version/check) removed in Sprint 5 #203
+	// kill #1 — backend route deleted with the rest of the upstream-
+	// CasaOS self-update path. PowerLab updater uses
+	// /v1/powerlab-update/* (see updater.ts).
 	SYS_PORT: '/v1/sys/port',
 	SYS_REBOOT: '/v1/sys/state/restart',
 	SYS_SHUTDOWN: '/v1/sys/state/off',
