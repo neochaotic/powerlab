@@ -7,9 +7,9 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/labstack/echo/v4"
 	"github.com/neochaotic/powerlab/backend/common/model"
 	"github.com/neochaotic/powerlab/backend/common/utils/common_err"
-	"github.com/labstack/echo/v4"
 
 	model1 "github.com/neochaotic/powerlab/backend/local-storage/model"
 	model2 "github.com/neochaotic/powerlab/backend/local-storage/service/model"
@@ -135,105 +135,109 @@ func GetStorageList(ctx echo.Context) error {
 	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: storages})
 }
 
+// PostAddStorage adds a storage device to the PowerLab pool.
+// Optionally re-formats the disk first (when ?format=true), then
+// mounts each child partition + persists the mount in the volume
+// table + emits an ADDED notification. Per-child mount errors are
+// collected and returned as a partial-success response.
+//
+// Sprint 7 #7 (per #227 §F): the original 146-LOC body was split
+// into three orthogonal helpers so the orchestration reads top-
+// down without scrolling.
 func PostAddStorage(ctx echo.Context) error {
-	js := make(map[string]interface{})
-	if err := ctx.Bind(&js); err != nil {
-		return ctx.JSON(http.StatusBadRequest, model.Result{Success: common_err.INVALID_PARAMS, Message: common_err.GetMsg(common_err.INVALID_PARAMS), Data: err.Error()})
-	}
-
-	path := js["path"].(string)
-	name := js["name"].(string)
-	format := js["format"].(bool)
-
-	if len(path) == 0 {
-		return ctx.JSON(common_err.CLIENT_ERROR, model.Result{Success: common_err.INVALID_PARAMS, Message: common_err.GetMsg(common_err.INVALID_PARAMS)})
-	}
-	if _, ok := diskMap[path]; ok {
-		return ctx.JSON(common_err.SERVICE_ERROR, model.Result{Success: common_err.DISK_BUSYING, Message: common_err.GetMsg(common_err.DISK_BUSYING)})
+	path, name, format, errResp := parseAndValidateAddStorageRequest(ctx)
+	if errResp != nil {
+		return errResp
 	}
 
 	diskMap[path] = "busying"
-
 	defer service.MyService.Disk().RemoveLSBLKCache()
 	defer delete(diskMap, path)
+
 	currentDisk := service.MyService.Disk().GetDiskInfo(path)
 	if format {
-
-		if err := service.MyService.Disk().UmountPointAndRemoveDir(currentDisk); err != nil {
-			_log.Error(ctx.Request().Context(), "error when trying to umount storage", err, slog.String("path", path))
-			return ctx.JSON(common_err.SERVICE_ERROR, model.Result{Success: common_err.REMOVE_MOUNT_POINT_ERROR, Message: err.Error()})
-		}
-
-		_log.Info(ctx.Request().Context(), "deleting storage...", slog.String("path", path))
-		if err := service.MyService.Disk().DeletePartition(path); err != nil {
-			_log.Error(ctx.Request().Context(), "error when trying to delete partition", err, slog.String("path", path))
-			return ctx.JSON(common_err.SERVICE_ERROR, model.Result{Success: common_err.SERVICE_ERROR, Message: err.Error()})
-		}
-
-		_log.Info(ctx.Request().Context(), "formatting storage...", slog.String("path", path))
-		if err := service.MyService.Disk().AddPartition(path); err != nil {
-			return ctx.JSON(http.StatusInternalServerError, model.Result{Success: common_err.SERVICE_ERROR, Message: err.Error()})
+		if errResp := optionallyFormatStorage(ctx, currentDisk, path); errResp != nil {
+			return errResp
 		}
 	}
+
 	currentDisk = service.MyService.Disk().GetDiskInfo(path)
 	if len(currentDisk.Children) == 0 && service.IsDiskSupported(currentDisk) {
 		currentDisk.Children = append(currentDisk.Children, currentDisk)
-		// mountPoint := currentDisk.GetMountPoint(name)
-
-		// // mount disk
-		// if output, err := service.MyService.Disk().MountDisk(currentDisk.Path, mountPoint); err != nil {
-		// 	logger.Error("err", zap.Error(err), zap.String("output", mountPoint))
-		// 	return ctx.JSON(http.StatusInternalServerError, model.Result{Success: common_err.SERVICE_ERROR, Message: output, Data: err.Error()})
-		// 	return
-		// }
-
-		// var b model1.LSBLKModel
-		// retry := 3 // ugly workaround for lsblk not returning UUID after creating partition on time - need a better solution
-		// for b.UUID == "" && retry > 0 {
-		// 	time.Sleep(1 * time.Second)
-		// 	b = service.MyService.Disk().GetDiskInfo(currentDisk.Path)
-		// 	retry--
-		// }
-
-		// m := model2.Volume{
-		// 	MountPoint: b.MountPoint,
-		// 	UUID:       b.UUID,
-		// 	CreatedAt:  time.Now().Unix(),
-		// }
-
-		// if err := service.MyService.Disk().SaveMountPointToDB(m); err != nil {
-		// 	return ctx.JSON(http.StatusInternalServerError, model.Result{Success: common_err.SERVICE_ERROR, Message: err.Error()})
-		// 	return
-		// }
-
-		// // send notify to client
-		// go func(blkChild model1.LSBLKModel) {
-		// 	message := map[string]interface{}{
-		// 		"data": StorageMessage{
-		// 			Action: "ADDED",
-		// 			Path:   blkChild.Path,
-		// 			Volume: "/mnt/",
-		// 			Size:   blkChild.Size,
-		// 			Type:   blkChild.Tran,
-		// 		},
-		// 	}
-
-		// 	if err := service.MyService.Notify().SendNotify(messagePathStorageStatus, message); err != nil {
-		// 		logger.Error("error when sending notification", zap.Error(err), zap.String("message path", messagePathStorageStatus), zap.Any("message", message))
-		// 	}
-		// }(currentDisk)
 	}
-	message := ""
-	for _, blkChild := range currentDisk.Children {
 
+	failedPaths := mountStorageChildren(ctx, currentDisk.Children, name)
+	if len(failedPaths) > 0 {
+		return ctx.JSON(http.StatusOK, model.Result{Success: common_err.SERVICE_ERROR, Message: failedPaths})
+	}
+	return ctx.JSON(http.StatusOK, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS)})
+}
+
+// parseAndValidateAddStorageRequest binds the request body, extracts
+// path/name/format, and runs the two early-out checks (empty path +
+// disk-already-busying). Returns either the parsed values or a
+// ready-to-return error response.
+func parseAndValidateAddStorageRequest(ctx echo.Context) (path, name string, format bool, errResp error) {
+	js := make(map[string]interface{})
+	if err := ctx.Bind(&js); err != nil {
+		return "", "", false, ctx.JSON(http.StatusBadRequest, model.Result{Success: common_err.INVALID_PARAMS, Message: common_err.GetMsg(common_err.INVALID_PARAMS), Data: err.Error()})
+	}
+
+	path, _ = js["path"].(string)
+	name, _ = js["name"].(string)
+	format, _ = js["format"].(bool)
+
+	if len(path) == 0 {
+		return "", "", false, ctx.JSON(common_err.CLIENT_ERROR, model.Result{Success: common_err.INVALID_PARAMS, Message: common_err.GetMsg(common_err.INVALID_PARAMS)})
+	}
+	if _, ok := diskMap[path]; ok {
+		return "", "", false, ctx.JSON(common_err.SERVICE_ERROR, model.Result{Success: common_err.DISK_BUSYING, Message: common_err.GetMsg(common_err.DISK_BUSYING)})
+	}
+
+	return path, name, format, nil
+}
+
+// optionallyFormatStorage runs the destructive format flow:
+// unmount the disk's existing mount + delete the partition table +
+// add a fresh single partition. Returns a ready-to-return error
+// response on any step failure (each step has its own error code
+// preserved from the pre-extract behaviour).
+func optionallyFormatStorage(ctx echo.Context, currentDisk model1.LSBLKModel, path string) error {
+	if err := service.MyService.Disk().UmountPointAndRemoveDir(currentDisk); err != nil {
+		_log.Error(ctx.Request().Context(), "error when trying to umount storage", err, slog.String("path", path))
+		return ctx.JSON(common_err.SERVICE_ERROR, model.Result{Success: common_err.REMOVE_MOUNT_POINT_ERROR, Message: err.Error()})
+	}
+
+	_log.Info(ctx.Request().Context(), "deleting storage...", slog.String("path", path))
+	if err := service.MyService.Disk().DeletePartition(path); err != nil {
+		_log.Error(ctx.Request().Context(), "error when trying to delete partition", err, slog.String("path", path))
+		return ctx.JSON(common_err.SERVICE_ERROR, model.Result{Success: common_err.SERVICE_ERROR, Message: err.Error()})
+	}
+
+	_log.Info(ctx.Request().Context(), "formatting storage...", slog.String("path", path))
+	if err := service.MyService.Disk().AddPartition(path); err != nil {
+		return ctx.JSON(http.StatusInternalServerError, model.Result{Success: common_err.SERVICE_ERROR, Message: err.Error()})
+	}
+	return nil
+}
+
+// mountStorageChildren mounts each child partition under
+// /media/<name>, persists the mount in the volume table, and
+// emits an ADDED notification. Per-child mount/persist failures
+// are collected into a newline-joined string of failed paths
+// rather than aborting the loop — matches pre-extract behaviour.
+//
+// The 3-second UUID-poll-retry workaround for lsblk is preserved.
+// On SaveMountPointToDB failure the just-mounted child is
+// unmounted to avoid leaking a half-registered mount.
+func mountStorageChildren(ctx echo.Context, children []model1.LSBLKModel, name string) string {
+	failedPaths := ""
+	for _, blkChild := range children {
 		mountPoint := blkChild.GetMountPoint(name)
-		// mount disk
 		if output, err := service.MyService.Disk().MountDisk(blkChild.Path, mountPoint); err != nil {
 			_log.Error(ctx.Request().Context(), "err", err, slog.String("mountPoint", mountPoint), slog.String("output", output))
-			message += blkChild.Path + "\n"
+			failedPaths += blkChild.Path + "\n"
 			continue
-			// return ctx.JSON(http.StatusInternalServerError, model.Result{Success: common_err.SERVICE_ERROR, Message: output, Data: err.Error()})
-			// return
 		}
 
 		var b model1.LSBLKModel
@@ -253,10 +257,8 @@ func PostAddStorage(ctx echo.Context) error {
 		if err := service.MyService.Disk().SaveMountPointToDB(m); err != nil {
 			blkChild.MountPoint = mountPoint
 			service.MyService.Disk().UmountPointAndRemoveDir(blkChild)
-			message += blkChild.Path + "\n"
+			failedPaths += blkChild.Path + "\n"
 			continue
-			// return ctx.JSON(http.StatusInternalServerError, model.Result{Success: common_err.SERVICE_ERROR, Message: err.Error()})
-			// return
 		}
 
 		// send notify to client
@@ -276,10 +278,7 @@ func PostAddStorage(ctx echo.Context) error {
 			}
 		}(blkChild)
 	}
-	if len(message) > 0 {
-		return ctx.JSON(http.StatusOK, model.Result{Success: common_err.SERVICE_ERROR, Message: message})
-	}
-	return ctx.JSON(http.StatusOK, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS)})
+	return failedPaths
 }
 
 // @Param  pwd formData string true "user password"
