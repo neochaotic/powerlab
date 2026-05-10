@@ -40,6 +40,8 @@ type SecurityRoute struct {
 	cm *security.CertManager
 }
 
+// NewSecurityRoute constructs the security route bundle backed by the
+// supplied CertManager (the source of CA + leaf cert lifecycle).
 func NewSecurityRoute(cm *security.CertManager) *SecurityRoute {
 	return &SecurityRoute{cm: cm}
 }

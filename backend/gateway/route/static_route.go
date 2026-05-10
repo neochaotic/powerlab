@@ -13,12 +13,19 @@ import (
 	"github.com/neochaotic/powerlab/backend/gateway/service"
 )
 
+// StaticRoute serves the embedded SvelteKit SPA bundle from the
+// gateway. Single-page-app routing falls back to index.html for any
+// path that doesn't match a real asset, so client-side router takes
+// over after first load.
 type StaticRoute struct {
 	state *service.State
 }
 
 var startTime = time.Now()
 
+// NewStaticRoute constructs the static-asset route bundle. State
+// carries the runtime-injected version stamp + asset manifest used
+// by the cache-busting logic.
 func NewStaticRoute(state *service.State) *StaticRoute {
 	return &StaticRoute{
 		state: state,

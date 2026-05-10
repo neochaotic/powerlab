@@ -8,6 +8,10 @@ import (
 	"github.com/neochaotic/powerlab/backend/gateway/service"
 )
 
+// GatewayRoute is the public-facing HTTP route bundle for the
+// gateway: SecurityRoute (CA download endpoints), DocsRoute (Scalar
+// API portal), and the catch-all reverse-proxy that delegates to
+// every backend service via the Management route table.
 type GatewayRoute struct {
 	management *service.Management
 	cm         *security.CertManager
@@ -15,6 +19,10 @@ type GatewayRoute struct {
 	docs       *DocsRoute
 }
 
+// NewGatewayRoute wires the public-facing route bundle. Caller
+// supplies the Management service (route table source-of-truth),
+// CertManager (TLS lifecycle), and gateway State (version stamp,
+// HTTP/HTTPS port choices).
 func NewGatewayRoute(management *service.Management, cm *security.CertManager, state *service.State) *GatewayRoute {
 	return &GatewayRoute{
 		management: management,

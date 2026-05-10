@@ -18,6 +18,16 @@ import (
 
 const RoutesFile = "routes.json"
 
+// Management is the gateway's in-memory route table backing the
+// reverse-proxy. Each backend service registers the URL prefixes it
+// owns (e.g. "/v1/users", "/v1/sys") + the local address it's
+// listening on; the gateway forwards matching requests to the
+// registered target.
+//
+// The table is persisted to <runtimePath>/routes.json so a restart
+// recovers the same routes without each service having to re-register
+// (race condition: a frontend page-load racing the boot ordering
+// would otherwise see 502s).
 type Management struct {
 	pathTargetMap       map[string]string
 	pathReverseProxyMap map[string]*httputil.ReverseProxy
@@ -25,6 +35,10 @@ type Management struct {
 	State *State
 }
 
+// NewManagementService constructs the route table, loading the
+// previous run's routes from <runtimePath>/routes.json if present.
+// Missing/corrupt file is treated as empty — services will re-register
+// when they boot.
 func NewManagementService(state *State) *Management {
 	routesFilepath := filepath.Join(state.GetRuntimePath(), RoutesFile)
 

@@ -14,10 +14,16 @@ import (
 	"github.com/neochaotic/powerlab/backend/gateway/service"
 )
 
+// ManagementRoute owns the management API surface — the routes other
+// PowerLab services call into the gateway with (e.g. registering a
+// proxied path, querying the live route table, changing the listening
+// port). NOT exposed to the public-facing HTTP listener.
 type ManagementRoute struct {
 	management *service.Management
 }
 
+// NewManagementRoute constructs the management route bundle wired to
+// the supplied Management service (the in-memory route table).
 func NewManagementRoute(management *service.Management) *ManagementRoute {
 	return &ManagementRoute{
 		management: management,

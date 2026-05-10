@@ -21,6 +21,10 @@ const (
 	GatewayConfigType = "ini"
 )
 
+// LoadConfig reads gateway.ini from the standard PowerLab config
+// search path (/etc/powerlab/gateway.ini in production, the dev
+// sandbox copy in dev). Falls back to defaults from constants.* when
+// keys are missing.
 func LoadConfig() (*viper.Viper, error) {
 	config := viper.New()
 
