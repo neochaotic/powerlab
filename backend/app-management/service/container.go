@@ -100,8 +100,8 @@ func getContainerStats() {
 				continue
 			}
 		}
-		if config.CasaOSGlobalVariables.AppChange {
-			config.CasaOSGlobalVariables.AppChange = false
+		if config.AppLifecycleFlags.AppChange {
+			config.AppLifecycleFlags.AppChange = false
 			dataStats.Range(func(key, value interface{}) bool {
 				dataStats.Delete(key)
 				return true

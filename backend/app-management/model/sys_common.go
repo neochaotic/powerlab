@@ -21,6 +21,15 @@ type GlobalModel struct {
 	OpenAIAPIKey string
 }
 
-type CasaOSGlobalVariables struct {
+// AppLifecycleFlags is process-global state used to invalidate
+// app-list caches when something changes. AppChange is set true by
+// install/uninstall handlers in route/v1/docker.go and consumed by
+// service/container.go's GetContainerAppList to know when to skip
+// the cache and re-enumerate.
+//
+// Sprint 4 PR2 rename (#85): was `CasaOSGlobalVariables`, an
+// unhelpful name that surfaced upstream branding without describing
+// the actual purpose. Same struct, same one field.
+type AppLifecycleFlags struct {
 	AppChange bool
 }
