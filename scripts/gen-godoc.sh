@@ -6,7 +6,7 @@
 # Currently scoped to backend/pkg/* — those packages have 100% godoc
 # coverage (Sprint 2 Phase 6) so the generated output is high signal.
 # Other modules will be added once they hit a similar coverage bar; see
-# docs/audits/godoc-coverage.md for the per-module scorecard.
+# issue #196 for the per-module scorecard.
 #
 # Usage:
 #   ./scripts/gen-godoc.sh           # generate
@@ -24,7 +24,7 @@ OUT_DIR="$REPO_ROOT/docs/api/pkg"
 # Modules currently surfaced. Add to this list ONLY when a module's
 # godoc coverage is high enough to be useful (target: ≥70% of exported
 # decls have a leading comment). See the audit at
-# docs/audits/godoc-coverage.md.
+# issue #196.
 MODULES=("pkg")
 
 # Locate gomarkdoc — `go install` puts it under $(go env GOPATH)/bin.
@@ -83,7 +83,7 @@ The pages below are auto-generated from the Go source via [gomarkdoc](https://gi
 
 ## Service packages
 
-Per-service Go packages (`backend/<svc>/`) are NOT in this site yet — godoc coverage there is below the 70% threshold for inclusion (see [docs/audits/godoc-coverage.md](../../audits/godoc-coverage.md)). They'll be surfaced once each service hits the bar.
+Per-service Go packages (`backend/<svc>/`) are NOT in this site yet — godoc coverage there is below the 70% threshold for inclusion (see [issue #196](../../audits/godoc-coverage.md)). They'll be surfaced once each service hits the bar.
 
 For now, browse them on GitHub:
 
