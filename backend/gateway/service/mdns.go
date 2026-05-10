@@ -39,6 +39,10 @@ type MDNSService struct {
 	mu       sync.Mutex
 }
 
+// NewMDNSService constructs an unstarted mDNS responder for the
+// given hostname. Empty hostname defaults to "powerlab" so a fresh
+// install discovers as `powerlab.local`. Caller must call Start()
+// to begin advertising.
 func NewMDNSService(hostname string) *MDNSService {
 	if hostname == "" {
 		hostname = "powerlab"

@@ -1,5 +1,10 @@
 package service
 
+// State is the gateway's in-memory runtime state. Holds the active
+// gateway port (the one the HTTP listener bound to), an observer
+// stack notified on port changes, and PowerLab-owned paths the
+// gateway needs to know about (runtime sockets dir, embedded SPA
+// www dir).
 type State struct {
 	gatewayPort         string
 	onGatewayPortChange []func(string) error
@@ -8,6 +13,8 @@ type State struct {
 	wwwPath     string
 }
 
+// NewState constructs a fresh runtime state with empty defaults.
+// Callers populate via Set* methods after config load.
 func NewState() *State {
 	return &State{
 		gatewayPort:         "",

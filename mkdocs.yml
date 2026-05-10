@@ -125,13 +125,19 @@ nav:
       - Troubleshooting: troubleshooting.md
       - REST API reference: operations/api-reference.md
   - Go API reference:
-      - Index: api/pkg/index.md
-      - logging: api/pkg/logging.md
-      - errors: api/pkg/errors.md
-      - lifecycle: api/pkg/lifecycle.md
-      - tracing: api/pkg/tracing.md
-      - foundation: api/pkg/foundation.md
-      - migrations: api/pkg/migrations.md
+      - pkg (foundation):
+          - Index: api/pkg/index.md
+          - logging: api/pkg/logging.md
+          - errors: api/pkg/errors.md
+          - lifecycle: api/pkg/lifecycle.md
+          - tracing: api/pkg/tracing.md
+          - foundation: api/pkg/foundation.md
+          - migrations: api/pkg/migrations.md
+      - gateway:
+          - Index: api/gateway/index.md
+          - common: api/gateway/common.md
+          - route: api/gateway/route.md
+          - service: api/gateway/service.md
   - Audits:
       - Database paths: audits/db-paths.md
       - CasaOS dependencies: audits/casaos-dependencies.md

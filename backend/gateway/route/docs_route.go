@@ -42,6 +42,9 @@ type DocsRoute struct {
 	tmplErr  error
 }
 
+// NewDocsRoute constructs the API-docs route bundle (Scalar viewer
+// served from the gateway at /docs, per ADR-0008). State carries the
+// runtime version stamp displayed in the docs portal header.
 func NewDocsRoute(state *service.State) *DocsRoute {
 	return &DocsRoute{state: state}
 }
