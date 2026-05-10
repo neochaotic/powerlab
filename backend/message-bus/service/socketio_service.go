@@ -13,10 +13,17 @@ import (
 	"github.com/neochaotic/powerlab/backend/message-bus/model"
 )
 
+// SocketIOService bridges the in-process event/action bus to legacy
+// CasaOS-shaped socketio clients (CasaOS UI + zimaos UI gen 1).
+// Keeps a single socketio.Server with two rooms ("event", "action")
+// and broadcasts model.Event / model.Action by Name.
 type SocketIOService struct {
 	server *socketio.Server
 }
 
+// Publish dispatches message to the matching socketio room. Accepts
+// model.Event (-> "event" room) and model.Action (-> "action" room);
+// any other type is logged at error level and dropped.
 func (s *SocketIOService) Publish(message interface{}) {
 	if event, ok := message.(model.Event); ok {
 		s.server.BroadcastToRoom("/", "event", event.Name, event)
@@ -31,16 +38,23 @@ func (s *SocketIOService) Publish(message interface{}) {
 	_log.Error(context.Background(), "unknown message type", nil, slog.Any("message", message))
 }
 
+// Start runs the underlying socketio server. Blocks until the
+// server errors out — invoke as a goroutine.
 func (s *SocketIOService) Start(ctx *context.Context) {
 	if err := s.server.Serve(); err != nil {
 		_log.Error(context.Background(), "error when serving socketio for events", err)
 	}
 }
 
+// Server returns the wrapped socketio server so the route layer
+// can mount it onto an http.Handler tree.
 func (s *SocketIOService) Server() *socketio.Server {
 	return s.server
 }
 
+// NewSocketIOService constructs a SocketIOService with the default
+// websocket + polling transports. CheckOrigin returns true on both
+// transports — see #219.
 func NewSocketIOService() *SocketIOService {
 	return &SocketIOService{
 		server: buildServer(),

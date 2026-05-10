@@ -18,6 +18,9 @@ import (
 	"github.com/neochaotic/powerlab/backend/message-bus/route/adapter/out"
 )
 
+// GetActionTypes returns every registered action type.
+//
+// Route: GET /v2/message_bus/action_type
 func (r *APIRoute) GetActionTypes(c echo.Context) error {
 	actionType, err := r.services.ActionTypeService.GetActionTypes()
 	if err != nil {
@@ -34,6 +37,10 @@ func (r *APIRoute) GetActionTypes(c echo.Context) error {
 	return c.JSON(http.StatusOK, results)
 }
 
+// RegisterActionTypes upserts each action type in the request body.
+// Idempotent.
+//
+// Route: POST /v2/message_bus/action_type
 func (r *APIRoute) RegisterActionTypes(c echo.Context) error {
 	var actionTypes []codegen.ActionType
 	if err := c.Bind(&actionTypes); err != nil {
@@ -52,6 +59,10 @@ func (r *APIRoute) RegisterActionTypes(c echo.Context) error {
 	return c.JSON(http.StatusOK, codegen.ResponseOK{})
 }
 
+// GetActionTypesBySourceID returns every action type registered by
+// the given publisher.
+//
+// Route: GET /v2/message_bus/action_type/{source_id}
 func (r *APIRoute) GetActionTypesBySourceID(c echo.Context, sourceID codegen.SourceID) error {
 	results, err := r.services.ActionTypeService.GetActionTypesBySourceID(sourceID)
 	if err != nil {
@@ -62,6 +73,10 @@ func (r *APIRoute) GetActionTypesBySourceID(c echo.Context, sourceID codegen.Sou
 	return c.JSON(http.StatusOK, results)
 }
 
+// GetActionType returns the action type identified by (sourceID, name)
+// or 404 if absent.
+//
+// Route: GET /v2/message_bus/action_type/{source_id}/{name}
 func (r *APIRoute) GetActionType(c echo.Context, sourceID codegen.SourceID, name codegen.EventName) error {
 	result, err := r.services.ActionTypeService.GetActionType(sourceID, name)
 	if err != nil {
@@ -76,6 +91,11 @@ func (r *APIRoute) GetActionType(c echo.Context, sourceID codegen.SourceID, name
 	return c.JSON(http.StatusOK, result)
 }
 
+// TriggerAction dispatches an action to socketio + WS subscribers.
+// Body is the Properties map. 404s if no matching action type is
+// registered.
+//
+// Route: POST /v2/message_bus/action/{source_id}/{name}
 func (r *APIRoute) TriggerAction(c echo.Context, sourceID codegen.SourceID, name codegen.EventName) error {
 	actionType, err := r.services.ActionTypeService.GetActionType(sourceID, name)
 	if err != nil {
@@ -106,6 +126,11 @@ func (r *APIRoute) TriggerAction(c echo.Context, sourceID codegen.SourceID, name
 	return c.JSON(http.StatusOK, out.ActionAdapter(action))
 }
 
+// SubscribeActionWS upgrades the request to a WebSocket and streams
+// matching actions to the caller. Symmetric with SubscribeEventWS;
+// payload frames are binary instead of text.
+//
+// Route: GET /v2/message_bus/action/{source_id} (Upgrade: websocket)
 func (r *APIRoute) SubscribeActionWS(c echo.Context, sourceID codegen.SourceID, params codegen.SubscribeActionWSParams) error {
 	var actionNames []string
 	if params.Names != nil {

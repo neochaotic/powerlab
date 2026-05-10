@@ -5,6 +5,14 @@ import (
 	"github.com/neochaotic/powerlab/backend/message-bus/pkg/ysk"
 )
 
+// Repository is the storage contract for message-bus state. Two
+// physical sqlite DBs back this interface: an event/action-type DB
+// (EventType / ActionType registrations) and a persist DB
+// (YSKCard pinned-card list + Settings k/v). The split lets the
+// event DB be wiped on schema change without losing UI state.
+//
+// Implementations: DatabaseRepository (sqlite, prod) +
+// NewDatabaseRepositoryInMemory (per-test isolation).
 type Repository interface {
 	GetEventTypes() ([]model.EventType, error)
 	RegisterEventType(eventType model.EventType) (*model.EventType, error)

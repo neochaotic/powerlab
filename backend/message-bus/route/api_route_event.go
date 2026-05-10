@@ -21,6 +21,9 @@ import (
 	"github.com/neochaotic/powerlab/backend/message-bus/route/adapter/out"
 )
 
+// GetEventTypes returns every registered event type.
+//
+// Route: GET /v2/message_bus/event_type
 func (r *APIRoute) GetEventTypes(ctx echo.Context) error {
 	eventTypes, err := r.services.EventTypeService.GetEventTypes()
 	if err != nil {
@@ -37,6 +40,10 @@ func (r *APIRoute) GetEventTypes(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, results)
 }
 
+// RegisterEventTypes upserts each event type in the request body.
+// Idempotent — publishers call on every startup.
+//
+// Route: POST /v2/message_bus/event_type
 func (r *APIRoute) RegisterEventTypes(ctx echo.Context) error {
 	var eventTypes []codegen.EventType
 	if err := ctx.Bind(&eventTypes); err != nil {
@@ -55,6 +62,10 @@ func (r *APIRoute) RegisterEventTypes(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, codegen.ResponseOK{})
 }
 
+// GetEventTypesBySourceID returns every event type registered by
+// the given publisher.
+//
+// Route: GET /v2/message_bus/event_type/{source_id}
 func (r *APIRoute) GetEventTypesBySourceID(ctx echo.Context, sourceID codegen.SourceID) error {
 	results, err := r.services.EventTypeService.GetEventTypesBySourceID(sourceID)
 	if err != nil {
@@ -65,6 +76,10 @@ func (r *APIRoute) GetEventTypesBySourceID(ctx echo.Context, sourceID codegen.So
 	return ctx.JSON(http.StatusOK, results)
 }
 
+// GetEventType returns the event type identified by (sourceID, name)
+// or 404 if absent.
+//
+// Route: GET /v2/message_bus/event_type/{source_id}/{name}
 func (r *APIRoute) GetEventType(ctx echo.Context, sourceID codegen.SourceID, name codegen.EventName) error {
 	result, err := r.services.EventTypeService.GetEventType(sourceID, name)
 	if err != nil {
@@ -79,6 +94,11 @@ func (r *APIRoute) GetEventType(ctx echo.Context, sourceID codegen.SourceID, nam
 	return ctx.JSON(http.StatusOK, result)
 }
 
+// PublishEvent fans an event out to socketio clients + WS
+// subscribers. Generates a UUID for de-dup. Body is the
+// Properties map.
+//
+// Route: POST /v2/message_bus/event/{source_id}/{name}
 func (r *APIRoute) PublishEvent(ctx echo.Context, sourceID codegen.SourceID, name codegen.EventName) error {
 	var properties map[string]string
 	body, err := ioutil.ReadAll(ctx.Request().Body)
@@ -108,6 +128,12 @@ func (r *APIRoute) PublishEvent(ctx echo.Context, sourceID codegen.SourceID, nam
 	return ctx.JSON(http.StatusOK, out.EventAdapter(event))
 }
 
+// SubscribeEventWS upgrades the request to a WebSocket and streams
+// matching events to the caller. Filters on sourceID + optional
+// names list (all event types for the publisher when nil). Sends
+// WS PING frames in place of the bus heartbeat.
+//
+// Route: GET /v2/message_bus/event/{source_id} (Upgrade: websocket)
 func (r *APIRoute) SubscribeEventWS(c echo.Context, sourceID codegen.SourceID, params codegen.SubscribeEventWSParams) error {
 	var eventNames []string
 	if params.Names != nil {
