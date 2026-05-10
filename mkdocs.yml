@@ -88,8 +88,15 @@ plugins:
 # blocks instead of rendering. Loading explicitly + a small init that
 # re-runs on Material's `navigation.instant` page-swaps fixes both the
 # initial render AND the SPA-style navigation case.
+#
+# mermaid.min.js is vendored at docs/js/ (not loaded from unpkg) so:
+#   - the docs site works fully offline (CI builds, self-hosted mirrors)
+#   - no SRI is needed (local file, no third-party trust)
+#   - version is pinned by file content, not URL
+# To update: download the version from
+# https://unpkg.com/mermaid@<X>/dist/mermaid.min.js + commit. ~3.3MB.
 extra_javascript:
-  - https://unpkg.com/mermaid@10.9.1/dist/mermaid.min.js
+  - js/mermaid.min.js
   - js/mermaid-init.js
 
 # Explicit nav so the surface is curated. Files NOT listed here still
