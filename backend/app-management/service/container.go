@@ -185,8 +185,8 @@ func (ds *dockerService) CheckContainerHealth(id string) (bool, error) {
 		return false, err
 	}
 
-	if webUIPort, ok := container.Labels["web"]; ok {
-		index := container.Labels["index"]
+	if webUIPort := common.LabelValue(container.Labels, common.LabelWebPortKey); webUIPort != "" {
+		index := common.LabelValue(container.Labels, common.LabelWebIndexKey)
 		url := fmt.Sprintf("http://%s:%s/%s", common.Localhost, webUIPort, strings.TrimLeft(index, "/"))
 
 		logger.Info("checking container health at the specified web port...", zap.Any("name", container.Names), zap.String("id", id), zap.Any("url", url))
@@ -288,15 +288,15 @@ func (ds *dockerService) GetContainerAppList(name, image, state *string) (*[]mod
 			}
 		}
 
-		if m.Labels["casaos"] == "casaos" {
+		if common.IsPowerLabApp(m.Labels) {
 
 			_, newVersion := NewVersionApp[m.ID]
 			name := strings.ReplaceAll(m.Names[0], "/", "")
-			icon := m.Labels["icon"]
-			if len(m.Labels["name"]) > 0 {
-				name = m.Labels["name"]
+			icon := common.LabelValue(m.Labels, common.LabelIconKey)
+			if customName := common.LabelValue(m.Labels, common.LabelNameKey); customName != "" {
+				name = customName
 			}
-			if m.Labels["origin"] == "system" {
+			if common.LabelValue(m.Labels, common.LabelOriginKey) == "system" {
 				name = strings.Split(m.Image, ":")[0]
 				if len(strings.Split(name, "/")) > 1 {
 					icon = "https://icon.casaos.io/main/all/" + strings.Split(name, "/")[1] + ".png"
@@ -307,14 +307,14 @@ func (ds *dockerService) GetContainerAppList(name, image, state *string) (*[]mod
 				Name:       name,
 				Icon:       icon,
 				State:      m.State,
-				CustomID:   m.Labels["custom_id"],
+				CustomID:   common.LabelValue(m.Labels, common.LabelCustomIDKey),
 				ID:         m.ID,
-				Port:       m.Labels["web"],
-				Index:      m.Labels["index"],
+				Port:       common.LabelValue(m.Labels, common.LabelWebPortKey),
+				Index:      common.LabelValue(m.Labels, common.LabelWebIndexKey),
 				Image:      m.Image,
 				Latest:     newVersion,
-				Host:       m.Labels["host"],
-				Protocol:   m.Labels["protocol"],
+				Host:       common.LabelValue(m.Labels, common.LabelHostKey),
+				Protocol:   common.LabelValue(m.Labels, common.LabelProtocolKey),
 				Created:    m.Created,
 				AppStoreID: getV1AppStoreID(&containers[i]),
 			}
@@ -507,7 +507,7 @@ func (ds *dockerService) CreateContainer(m model.CustomizationPostData, id strin
 		// info.NetworkSettings = &types.NetworkSettings{}
 		hostConfig = info.HostConfig
 		config = info.Config
-		if config.Labels["casaos"] == "casaos" {
+		if common.IsPowerLabApp(config.Labels) {
 			config.Cmd = m.Cmd
 			config.Image = m.Image
 			config.Env = envArr
@@ -522,18 +522,24 @@ func (ds *dockerService) CreateContainer(m model.CustomizationPostData, id strin
 		config.ExposedPorts = ports
 	}
 
-	config.Labels["origin"] = m.Origin
-	config.Labels["casaos"] = "casaos"
-	config.Labels["web"] = m.PortMap
-	config.Labels["icon"] = m.Icon
-	config.Labels["desc"] = m.Description
-	config.Labels["index"] = m.Index
-	config.Labels["custom_id"] = m.CustomID
-	config.Labels["show_env"] = strings.Join(showENV, ",")
-	config.Labels["protocol"] = m.Protocol
-	config.Labels["host"] = m.Host
-	config.Labels["name"] = m.Label
-	config.Labels[common.ContainerLabelV1AppStoreID] = strconv.Itoa((int)(m.AppStoreID))
+	// Per ADR-0021: dual-write canonical io.powerlab.v1.* + legacy
+	// unnamespaced labels for one release window. common.BuildLabels
+	// is the single source of truth — never write labels by hand here.
+	for k, v := range common.BuildLabels(common.AppLabels{
+		Origin:      m.Origin,
+		WebPort:     m.PortMap,
+		Icon:        m.Icon,
+		Description: m.Description,
+		WebIndex:    m.Index,
+		CustomID:    m.CustomID,
+		ShowEnv:     strings.Join(showENV, ","),
+		Protocol:    m.Protocol,
+		Host:        m.Host,
+		Name:        m.Label,
+		AppStoreID:  strconv.Itoa((int)(m.AppStoreID)),
+	}) {
+		config.Labels[k] = v
+	}
 	// container, err := cli.ContainerCreate(context.Background(), info.Config, info.HostConfig, &network.NetworkingConfig{info.NetworkSettings.Networks}, nil, info.Name)
 
 	hostConfig.Mounts = volumes
@@ -856,7 +862,7 @@ func NewDockerService() DockerService {
 }
 
 func getV1AppStoreID(m *types.Container) uint {
-	if appStoreIDString, ok := m.Labels[common.ContainerLabelV1AppStoreID]; ok {
+	if appStoreIDString := common.LabelValue(m.Labels, common.LabelAppStoreIDKey); appStoreIDString != "" {
 		appStoreID, err := strconv.Atoi(appStoreIDString)
 		if err != nil {
 			logger.Info("failed to convert v1 app store id", zap.Error(err), zap.String("appStoreIDString", appStoreIDString), zap.String("containerID", m.ID), zap.String("containerName", m.Names[0]))

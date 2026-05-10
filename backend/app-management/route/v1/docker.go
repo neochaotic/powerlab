@@ -736,7 +736,7 @@ func uninstall(ctx context.Context, container *types.ContainerJSON, isDelete boo
 		return err
 	}
 
-	if container.Config.Labels["origin"] != "custom" && isDelete {
+	if common.LabelValue(container.Config.Labels, common.LabelOriginKey) != "custom" && isDelete {
 		// step: 删除文件夹
 		for _, v := range container.Mounts {
 			if strings.Contains(v.Source, container.Name) {
