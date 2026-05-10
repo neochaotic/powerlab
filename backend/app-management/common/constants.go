@@ -30,8 +30,6 @@ const (
 
 	ComposeYAMLFileName = "docker-compose.yml"
 
-	ContainerLabelV1AppStoreID = "io.casaos.v1.app.store.id"
-
 	DefaultCategoryFont = "grid"
 	DefaultLanguage     = "en_us"
 	DefaultPassword     = "casaos"

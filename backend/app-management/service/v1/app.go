@@ -33,7 +33,7 @@ func GetCustomizationPostData(info types.ContainerJSON) model.CustomizationPostD
 
 	var envs model.EnvArray
 
-	showENV := info.Config.Labels["show_env"]
+	showENV := common.LabelValue(info.Config.Labels, common.LabelShowEnvKey)
 	showENVList := strings.Split(showENV, ",")
 	showENVMap := make(map[string]string)
 	if len(showENVList) > 0 && showENVList[0] != "" {
@@ -43,7 +43,7 @@ func GetCustomizationPostData(info types.ContainerJSON) model.CustomizationPostD
 	}
 	for _, v := range info.Config.Env {
 		env := strings.SplitN(v, "=", 2)
-		if len(showENVList) > 0 && info.Config.Labels["origin"] != "local" {
+		if len(showENVList) > 0 && common.LabelValue(info.Config.Labels, common.LabelOriginKey) != "local" {
 			if _, ok := showENVMap[env[0]]; ok {
 				temp := model.Env{Name: env[0], Value: env[1]}
 				envs = append(envs, temp)
@@ -79,7 +79,7 @@ func GetCustomizationPostData(info types.ContainerJSON) model.CustomizationPostD
 	}
 
 	var appStoreID uint
-	if appStoreIDStr, ok := info.Config.Labels[common.ContainerLabelV1AppStoreID]; ok {
+	if appStoreIDStr := common.LabelValue(info.Config.Labels, common.LabelAppStoreIDKey); appStoreIDStr != "" {
 		_appStoreID, err := strconv.Atoi(appStoreIDStr)
 		if err != nil {
 			logger.Error("error when converting appStoreID from string to int", zap.Error(err), zap.String("appStoreIDStr", appStoreIDStr))
@@ -96,25 +96,25 @@ func GetCustomizationPostData(info types.ContainerJSON) model.CustomizationPostD
 		Cmd:           info.Config.Cmd,
 		ContainerName: strings.ReplaceAll(info.Name, "/", ""),
 		CPUShares:     info.HostConfig.CPUShares,
-		CustomID:      info.Config.Labels["custom_id"],
-		Description:   info.Config.Labels["desc"],
+		CustomID:      common.LabelValue(info.Config.Labels, common.LabelCustomIDKey),
+		Description:   common.LabelValue(info.Config.Labels, common.LabelDescriptionKey),
 		Devices:       driver,
 		EnableUPNP:    false,
 		Envs:          envs,
-		Host:          info.Config.Labels["host"],
+		Host:          common.LabelValue(info.Config.Labels, common.LabelHostKey),
 		HostName:      info.Config.Hostname,
 		Icon:          AppIcon(&info),
 		Image:         info.Config.Image,
-		Index:         info.Config.Labels["index"],
+		Index:         common.LabelValue(info.Config.Labels, common.LabelWebIndexKey),
 		Label:         name,
 		Memory:        info.HostConfig.Memory >> 20,
 		NetworkModel:  string(info.HostConfig.NetworkMode),
-		Origin:        info.Config.Labels["origin"],
-		PortMap:       info.Config.Labels["web"],
+		Origin:        common.LabelValue(info.Config.Labels, common.LabelOriginKey),
+		PortMap:       common.LabelValue(info.Config.Labels, common.LabelWebPortKey),
 		Ports:         port,
 		Position:      false,
 		Privileged:    info.HostConfig.Privileged,
-		Protocol:      info.Config.Labels["protocol"],
+		Protocol:      common.LabelValue(info.Config.Labels, common.LabelProtocolKey),
 		Restart:       info.HostConfig.RestartPolicy.Name,
 		Volumes:       vol,
 	}
