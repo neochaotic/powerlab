@@ -31,32 +31,30 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  v0.5.4 incident retrospective release. Closes the long tail of
-  bugs surfaced when a real user upgraded v0.5.x → v0.5.4 + adds
-  defenses so the next release doesn't repeat the class.
+  Sessions now survive PowerLab upgrades. Plus the formal Sprint 3
+  retrospective doc.
 
-  user-service no longer crashes its event-listener goroutine when
-  message-bus disconnects or sends a malformed payload (#160). The
-  original code had three nil-deref paths that combined to panic
-  on every restart cycle; SafeGo recovered the panic but the
-  goroutine died on every cycle. 6 regression tests lock the
-  behavior, including a fuzz of 9 crash-prone inputs.
+  Pre-v0.5.7, every upgrade silently logged out every user — the
+  user-service generated a fresh JWT signing keypair on every
+  startup and never persisted it. This was inherited from CasaOS
+  and never deliberately chosen. ADR-0020 records the decision to
+  flip the default: the keypair now persists in user.db, so JWT
+  cookies survive upgrades, restarts, and crash recovery.
+  Operators in higher-threat environments can opt back into
+  ephemeral mode via POWERLAB_EPHEMERAL_JWT_KEY=true.
 
-  install.sh now prunes old upgrade snapshots — keeps the 3 newest
-  by default, rest pruned. Without this, every upgrade left ~100MB
-  of binaries + UI bundle behind in /var/lib/powerlab/backups/ →
-  disk fill over time. POWERLAB_BACKUP_KEEP env var lets ops
-  override (e.g. KEEP=0 for forensic mode). 14 regression tests
-  across 5 scenarios.
+  Closes #176 with 5 regression tests including the THE #176
+  regression (TestLoadOrGenerate_StableAcrossCalls) which asserts
+  that two consecutive NewUserService calls return the same
+  keypair.
 
-  Sprint 4 progress: dropped dead MyAppList handler + the legacy
-  casaos_apps JSON wire-format key (no UI consumer); renamed
-  ErrComposeExtensionNameXCasaOSNotFound to the more accurate
-  ErrComposeExtensionNotFound (now that the extension chain
-  accepts x-powerlab / x-web / x-casaos, the X-CasaOS specificity
-  was misleading).
+  Also: docs/audits/sprint-3-retrospective.md formalizes the
+  v0.5.4-incident lessons and 6 follow-up improvement issues
+  (#169–#174) per ADR-0019's tech-debt tracking pattern.
 
-  No end-user behavior change beyond the bug fixes.
+  No other behavior change. After upgrading to v0.5.7, the next
+  upgrade you do will preserve your session — no more refresh-
+  logs-you-out.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:

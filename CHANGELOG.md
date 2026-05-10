@@ -13,6 +13,90 @@ Each PR adds a tiny YAML fragment under `.changes/unreleased/<id>.yaml`.
 At release time, `changie batch <version>` aggregates the fragments into
 a new section below this header. See `CONTRIBUTING.md` for the workflow.
 
+## [v0.5.7] — 2026-05-09
+### Added
+- Sprint 3 retrospective at `docs/audits/sprint-3-retrospective.md`.
+
+Per ADR-0019 (tech-debt tracking pattern), retrospectives live as
+audits. This one captures the v0.5.4 prod incident + the long-tail
+bugs and process gaps surfaced during the rebrand wave, with each
+follow-up tracked as a labeled GitHub issue (#169–#174).
+
+Includes:
+  - What went well (4 items)
+  - What went wrong (7 items, each with the lesson + remediation
+    already in flight)
+  - 6 follow-up issues opened (#169 phase 1.5 test, #170 migration-
+    tool audit, #171 flag.Parse template, #172 branch protection,
+    #173 goleak convention, #174 ui/ cleanup)
+  - Sprint 4 fit recommendation per issue (which to add to Sprint
+    4 vs defer)
+  - Outcome scoreboard (4 releases, 12+ structural PRs, ~3500 LOC
+    removed, 80+ regression test assertions, 3 prod incidents
+    fixed + tested, 4 process improvements)
+
+### Changed
+- **Sessions now survive PowerLab upgrades.** The JWT signing
+keypair is persisted to `user.db` and reused across service
+restarts, instead of being regenerated fresh on every startup.
+
+Pre-v0.5.7, every restart of `user-service` (including every
+in-app upgrade) silently invalidated every outstanding JWT
+cookie — users got logged out on every upgrade. This was
+inherited from CasaOS; PowerLab kept the behavior unchanged
+and a misleading godoc comment described it as a "deliberate
+trade-off." It wasn't — see ADR-0020 for the full story and
+the threat-model discussion.
+
+Behavior change in this release:
+
+  - **Default**: keypair persists in `user.db` (new
+    `jwt_keypair` table, single-row, PEM-encoded). First boot
+    generates one; every subsequent restart reuses it.
+  - **Opt-out** for higher-threat environments: set
+    `POWERLAB_EPHEMERAL_JWT_KEY=true` to restore the
+    pre-v0.5.7 ephemeral behavior.
+
+Threat model trade-off documented in ADR-0020. Summary: the
+cost ("every upgrade logs everyone out") is recurring and
+certain; the benefit ("stolen disk image can't forge tokens")
+is contingent on an attacker who already has bcrypt password
+hashes + config secrets + the ability to install backdoors
+in the binary. Net positive for the home-server use case.
+
+Regression test at `backend/user-service/service/keypair_store_test.go`
+— 5 cases including the THE regression for #176
+(`TestLoadOrGenerate_StableAcrossCalls`) which asserts two
+consecutive `NewUserService`-equivalent calls return the same
+keypair.
+
+Closes #176.
+
+### Internal
+- Release v0.5.7 — JWT keypair persistence + Sprint 3 retrospective.
+
+Headline user-visible change:
+  - #176 / ADR-0020: sessions now survive PowerLab upgrades.
+    JWT signing keypair persists in user.db; opt back into
+    pre-v0.5.7 ephemeral behavior via POWERLAB_EPHEMERAL_JWT_KEY=true.
+    First time a real PowerLab-owned decision overrode an inherited
+    CasaOS one (rather than just rebranding the surface).
+
+Plus:
+  - docs/audits/sprint-3-retrospective.md: formal retro on the
+    v0.5.4 incident + Sprint 3 outcomes. 6 follow-up issues opened
+    (#169–#174) tracking remaining process improvements.
+
+Migration: 0002_jwt_keypair.sql adds a single-row table to user.db.
+Idempotent on re-run; CHECK (id = 1) prevents drift.
+
+Behavior on upgrade from v0.5.6: first restart after the upgrade
+generates + persists the keypair. Every subsequent restart reuses
+it. Net effect: ONE more "logged out on refresh" event during the
+v0.5.6 → v0.5.7 upgrade itself; zero from there on.
+
+
+
 ## [v0.5.6] — 2026-05-09
 ### Changed
 - Sprint 4 PR5 — rename `service.ErrComposeExtensionNameXCasaOSNotFound`
