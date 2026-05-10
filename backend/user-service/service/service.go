@@ -9,6 +9,10 @@ import (
 
 var MyService Repository
 
+// Repository bundles the user-service's live services + the thin
+// clients it needs to talk to other services. Stored as the
+// package-level singleton MyService so route handlers can reach
+// any subsystem via service.MyService.<sub>().
 type Repository interface {
 	Gateway() external.ManagementService
 	User() UserService
@@ -17,6 +21,11 @@ type Repository interface {
 	Event() EventService
 }
 
+// NewService constructs the user-service Repository wired to the
+// supplied gorm.DB (user.db, owned by this service) + the runtime
+// socket dir (where gateway/message-bus URL files live). Panics if
+// the gateway socket file isn't readable — user-service can't
+// register routes without it, so failing fast is correct.
 func NewService(db *gorm.DB, RuntimePath string) Repository {
 
 	gatewayManagement, err := external.NewManagementService(RuntimePath)

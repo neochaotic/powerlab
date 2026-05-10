@@ -15,6 +15,10 @@ import (
 	"gorm.io/gorm"
 )
 
+// UserService is the data-access + auth surface backing the
+// user-service routes. CRUD on the `o_users` table plus the JWT
+// signing keypair (loaded from / persisted to user.db per
+// ADR-0020 so sessions survive service restarts).
 type UserService interface {
 	UpLoadFile(file multipart.File, name string) error
 	CreateUser(m model.UserDBModel) model.UserDBModel

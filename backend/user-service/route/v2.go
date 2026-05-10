@@ -42,6 +42,9 @@ func init() {
 	V2DocPath = "/doc" + V2APIPath
 }
 
+// InitV2Router constructs the V2 HTTP router (oapi-codegen
+// generated handlers backed by v2.UserService). Mounted at
+// V2APIPath; uses the same middleware chain as InitRouter.
 func InitV2Router() http.Handler {
 	UserService := v2.NewUserService()
 
@@ -93,6 +96,9 @@ func InitV2Router() http.Handler {
 	return e
 }
 
+// InitV2DocRouter serves the embedded API docs portal (Scalar HTML
+// + OpenAPI YAML) at V2DocPath. Both pieces are baked into the
+// binary via go:embed so the docs page works offline.
 func InitV2DocRouter(docHTML string, docYAML string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == V2DocPath {

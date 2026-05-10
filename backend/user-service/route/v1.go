@@ -12,6 +12,9 @@ import (
 	echo_middleware "github.com/labstack/echo/v4/middleware"
 )
 
+// InitRouter constructs the user-service's V1 HTTP router with the
+// standard PowerLab middleware chain (CORS / gzip / logger / JWT
+// auth). Returns an http.Handler ready to mount under /v1/users.
 func InitRouter() http.Handler {
 	e := echo.New()
 
