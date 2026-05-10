@@ -59,6 +59,12 @@ func (s *ComposeService) Install(ctx context.Context, composeApp *ComposeApp) er
 	// so StoragePath is set to /tmp/powerlab-data which Docker Desktop shares by default.
 	remapVolumePaths(composeApp, config.AppInfo.StoragePath)
 
+	// Per ADR-0021: rewrite <storagePath>/AppData/ → <storagePath>/PowerLabAppData/
+	// so newly installed apps bind into the per-product canonical tree.
+	// Existing apps' compose files are not rewritten here; they migrate
+	// via service.MigrateAppData on the NEXT app-management startup.
+	rewriteAppDataPathsToCanonical(composeApp, config.AppInfo.StoragePath)
+
 	// Auto-resolve port conflicts: if any published port is already in use,
 	// pick the next available port on the host. The mapping (oldPort → newPort)
 	// is also applied to x-casaos.port_map so the "Open UI" button stays correct.
@@ -419,6 +425,41 @@ func remapVolumePaths(app *ComposeApp, storagePath string) {
 		for j, vol := range svc.Volumes {
 			if vol.Type == "bind" && strings.HasPrefix(vol.Source, "/DATA") {
 				svc.Volumes[j].Source = storagePath + vol.Source[5:]
+				changed = true
+			}
+		}
+		if changed {
+			app.Services[name] = svc
+		}
+	}
+}
+
+// rewriteAppDataPathsToCanonical rewrites every bind-mount source whose
+// path lies under <storagePath>/AppData/ to the canonical
+// <storagePath>/PowerLabAppData/ — per ADR-0021. Compose files come
+// from upstream stores authored against /DATA/AppData/$AppID/...; this
+// rewrite happens at install time so the on-disk compose files
+// PowerLab persists already point at the canonical location, and
+// `docker compose up` does not silently bind into the legacy tree.
+//
+// MUST run after remapVolumePaths so the storagePath prefix is already
+// substituted; this function works against the post-remap tree.
+//
+// No-op for paths that don't start with <storagePath>/AppData/ — apps
+// using volumes outside the per-app data tree (e.g. Trilium binding
+// straight to <storagePath>/$AppID) are not affected here. Future
+// migrations of those should be considered explicitly per-app.
+func rewriteAppDataPathsToCanonical(app *ComposeApp, storagePath string) {
+	if storagePath == "" {
+		return
+	}
+	legacyPrefix := storagePath + "/" + common.LegacyAppDataDirName + "/"
+	canonicalPrefix := storagePath + "/" + common.AppDataDirName + "/"
+	for name, svc := range app.Services {
+		changed := false
+		for j, vol := range svc.Volumes {
+			if vol.Type == "bind" && strings.HasPrefix(vol.Source, legacyPrefix) {
+				svc.Volumes[j].Source = canonicalPrefix + vol.Source[len(legacyPrefix):]
 				changed = true
 			}
 		}

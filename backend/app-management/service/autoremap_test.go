@@ -268,3 +268,80 @@ func TestRemapVolumePaths_IgnoresNonBindVolumes(t *testing.T) {
 
 // Sanity check: codegen alias ComposeApp == types.Project so we can construct one.
 var _ = codegen.ComposeApp{}
+
+// ─── rewriteAppDataPathsToCanonical tests (#85 PR-C, ADR-0021) ──────────
+
+func TestRewriteAppDataPathsToCanonical_RewritesAppDataPrefix(t *testing.T) {
+	app := &ComposeApp{
+		Services: types.Services{
+			types.ServiceConfig{
+				Name: "x",
+				Volumes: []types.ServiceVolumeConfig{
+					{Type: "bind", Source: "/DATA/AppData/syncthing/config", Target: "/config"},
+					{Type: "bind", Source: "/DATA/AppData/nextcloud/data", Target: "/var/www"},
+					{Type: "bind", Source: "/DATA/something-else", Target: "/se"}, // unrelated /DATA path
+					{Type: "bind", Source: "/etc/timezone", Target: "/etc/timezone"},
+				},
+			},
+		},
+	}
+	rewriteAppDataPathsToCanonical(app, "/DATA")
+
+	vols := app.Services[0].Volumes
+	assert.Equal(t, vols[0].Source, "/DATA/PowerLabAppData/syncthing/config")
+	assert.Equal(t, vols[1].Source, "/DATA/PowerLabAppData/nextcloud/data")
+	assert.Equal(t, vols[2].Source, "/DATA/something-else", "non-AppData /DATA paths must NOT be rewritten")
+	assert.Equal(t, vols[3].Source, "/etc/timezone", "unrelated paths must NOT be rewritten")
+}
+
+// TestRewriteAppDataPathsToCanonical_HonorsCustomStoragePath verifies
+// the rewrite uses the configured storagePath, not a hard-coded /DATA.
+// macOS dev installs depend on this.
+func TestRewriteAppDataPathsToCanonical_HonorsCustomStoragePath(t *testing.T) {
+	app := &ComposeApp{
+		Services: types.Services{
+			types.ServiceConfig{
+				Name: "x",
+				Volumes: []types.ServiceVolumeConfig{
+					{Type: "bind", Source: "/tmp/pl-data/AppData/syncthing/config", Target: "/config"},
+				},
+			},
+		},
+	}
+	rewriteAppDataPathsToCanonical(app, "/tmp/pl-data")
+	assert.Equal(t, app.Services[0].Volumes[0].Source, "/tmp/pl-data/PowerLabAppData/syncthing/config")
+}
+
+// TestRewriteAppDataPathsToCanonical_NoOpWhenStorageEmpty mirrors the
+// remapVolumePaths empty-string convention.
+func TestRewriteAppDataPathsToCanonical_NoOpWhenStorageEmpty(t *testing.T) {
+	app := &ComposeApp{
+		Services: types.Services{
+			types.ServiceConfig{
+				Name: "x",
+				Volumes: []types.ServiceVolumeConfig{
+					{Type: "bind", Source: "/DATA/AppData/x/y", Target: "/y"},
+				},
+			},
+		},
+	}
+	rewriteAppDataPathsToCanonical(app, "")
+	assert.Equal(t, app.Services[0].Volumes[0].Source, "/DATA/AppData/x/y", "empty storagePath = no-op")
+}
+
+// TestRewriteAppDataPathsToCanonical_IgnoresNonBindVolumes — symmetry
+// with remapVolumePaths_IgnoresNonBindVolumes.
+func TestRewriteAppDataPathsToCanonical_IgnoresNonBindVolumes(t *testing.T) {
+	app := &ComposeApp{
+		Services: types.Services{
+			types.ServiceConfig{
+				Name: "x",
+				Volumes: []types.ServiceVolumeConfig{
+					{Type: "volume", Source: "/DATA/AppData/named", Target: "/d"},
+				},
+			},
+		},
+	}
+	rewriteAppDataPathsToCanonical(app, "/DATA")
+	assert.Equal(t, app.Services[0].Volumes[0].Source, "/DATA/AppData/named", "non-bind not rewritten")
+}
