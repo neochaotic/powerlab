@@ -27,6 +27,12 @@ var (
 	ConfigFilePath string
 )
 
+// InitSetup loads message-bus.conf into the package-level Cfg / CommonInfo
+// / AppInfo singletons. If the file at config (or MessageBusConfigFilePath
+// when config is empty) does not exist, the embedded sample string is
+// written to disk first so a fresh install boots with sane defaults.
+//
+// Called once at process start before any other package reads config.
 func InitSetup(config string, sample string) {
 	ConfigFilePath = MessageBusConfigFilePath
 	if len(config) > 0 {

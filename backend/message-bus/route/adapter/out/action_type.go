@@ -5,6 +5,8 @@ import (
 	"github.com/neochaotic/powerlab/backend/message-bus/model"
 )
 
+// ActionTypeAdapter converts a model.ActionType into a
+// codegen.ActionType.
 func ActionTypeAdapter(actionType model.ActionType) codegen.ActionType {
 	propertyTypeList := make([]codegen.PropertyType, 0)
 	for _, propertyType := range actionType.PropertyTypeList {

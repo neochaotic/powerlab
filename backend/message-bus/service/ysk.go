@@ -13,6 +13,11 @@ import (
 	"github.com/neochaotic/powerlab/backend/message-bus/utils"
 )
 
+// YSKService backs the "Your Smart Knowledge" home-screen pinned-card
+// list. Cards arrive over the event bus (publishers emit
+// powerlab:message-bus:ysk_card_upsert / _delete events), get
+// persisted to the persist DB, and the REST endpoints in
+// route.api_route_ysk.go read them back for the UI.
 type YSKService struct {
 	repository       *repository.Repository
 	ws               *EventServiceWS
@@ -21,6 +26,8 @@ type YSKService struct {
 
 const YSKOnboardingFinishedKey = "ysk_onboarding_finished"
 
+// NewYSKService constructs a YSKService. Call Start once after the
+// EventServiceWS is running.
 func NewYSKService(
 	repository *repository.Repository,
 	ws *EventServiceWS,
@@ -33,6 +40,9 @@ func NewYSKService(
 	}
 }
 
+// YskCardList returns every persisted YSK card in display order.
+// Returns an empty slice (not nil) on repository error so callers
+// can iterate without nil-checks.
 func (s *YSKService) YskCardList(ctx context.Context) ([]ysk.YSKCard, error) {
 	cardList, err := (*s.repository).GetYSKCardList()
 	if err != nil {
@@ -41,6 +51,9 @@ func (s *YSKService) YskCardList(ctx context.Context) ([]ysk.YSKCard, error) {
 	return cardList, nil
 }
 
+// UpsertYSKCard persists yskCard, replacing any existing card with
+// the same id. Short-note cards (CardTypeShortNote) are ephemeral
+// toast-shaped and are silently dropped instead of stored.
 func (s *YSKService) UpsertYSKCard(ctx context.Context, yskCard ysk.YSKCard) error {
 	// don't store short notice cards
 	if yskCard.CardType == ysk.CardTypeShortNote {
@@ -50,10 +63,18 @@ func (s *YSKService) UpsertYSKCard(ctx context.Context, yskCard ysk.YSKCard) err
 	return err
 }
 
+// DeleteYSKCard removes every card whose id has the given prefix.
+// See repository.DatabaseRepository.DeleteYSKCard for the LIKE
+// semantics.
 func (s *YSKService) DeleteYSKCard(ctx context.Context, id string) error {
 	return (*s.repository).DeleteYSKCard(id)
 }
 
+// Start registers the YSK event types, seeds the onboarding cards
+// on first boot (when init is true), and spawns the goroutine that
+// translates inbound events into upsert/delete repository calls.
+// Idempotent across restarts thanks to the YSKOnboardingFinishedKey
+// settings flag.
 func (s *YSKService) Start(init bool) {
 	// 判断数据库
 	if init {

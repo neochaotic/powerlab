@@ -10,6 +10,11 @@ import (
 	"github.com/neochaotic/powerlab/backend/message-bus/model"
 )
 
+// EventServiceWS is the in-process pub/sub for events. Publishers
+// call Publish; subscribers call Subscribe with a (sourceID, names)
+// filter and receive a buffered channel of matching events plus a
+// 10s heartbeat. Drops events when no subscriber is ready (back-
+// pressure is on the producer, not the bus).
 type EventServiceWS struct {
 	typeService *EventTypeService
 
@@ -22,6 +27,10 @@ type EventServiceWS struct {
 
 var mutex = &sync.Mutex{}
 
+// Publish drops event onto the inbound channel for fan-out. Fills
+// in Timestamp from time.Now if the producer left it zero. Non-
+// blocking: if no listener is draining the inbound channel, the
+// event is silently dropped.
 func (s *EventServiceWS) Publish(event model.Event) {
 	if s.inboundChannel == nil {
 		_log.Error(context.Background(), "error when publishing event via websocket", ErrInboundChannelNotFound)
@@ -46,6 +55,11 @@ func (s *EventServiceWS) Publish(event model.Event) {
 	}
 }
 
+// Subscribe returns a buffered channel that will receive every
+// event whose (SourceID, Name) matches sourceID + one of names.
+// Empty names means "every registered event type for sourceID".
+// Returns ErrEventNameNotFound if any requested name is not yet
+// registered with the EventTypeService.
 func (s *EventServiceWS) Subscribe(sourceID string, names []string) (chan model.Event, error) {
 	if len(names) == 0 {
 		eventTypes, err := s.typeService.GetEventTypesBySourceID(sourceID)
@@ -95,6 +109,9 @@ func (s *EventServiceWS) Subscribe(sourceID string, names []string) (chan model.
 	return c, nil
 }
 
+// Unsubscribe removes channel c from the subscriber list for
+// (sourceID, name). Caller still owns c — Unsubscribe does NOT
+// close it.
 func (s *EventServiceWS) Unsubscribe(sourceID string, name string, c chan model.Event) error {
 	if s.subscriberChannels == nil {
 		return ErrSubscriberChannelsNotFound
@@ -126,6 +143,11 @@ func (s *EventServiceWS) Unsubscribe(sourceID string, name string, c chan model.
 	return nil
 }
 
+// Start runs the dispatcher loop until ctx is cancelled. Blocks —
+// invoke as a goroutine. Initializes inbound + subscriber maps,
+// fan-outs every Publish to matching subscribers, ticks a
+// heartbeat to all subscribers every 10s, and tears down all
+// channels on shutdown.
 func (s *EventServiceWS) Start(ctx *context.Context) {
 	func() {
 		mutex.Lock()
@@ -230,6 +252,9 @@ func (s *EventServiceWS) Start(ctx *context.Context) {
 	}
 }
 
+// NewEventServiceWS constructs an EventServiceWS bound to the given
+// EventTypeService for filter-validation. Channels are not allocated
+// until Start is called.
 func NewEventServiceWS(eventTypeService *EventTypeService) *EventServiceWS {
 	return &EventServiceWS{
 		typeService: eventTypeService,

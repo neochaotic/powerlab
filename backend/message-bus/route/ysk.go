@@ -9,6 +9,10 @@ import (
 	"github.com/samber/lo"
 )
 
+// DeleteYskCard removes every YSK card whose id has the given
+// prefix.
+//
+// Route: DELETE /v2/message_bus/ysk/cards/{id}
 func (r *APIRoute) DeleteYskCard(ctx echo.Context, id string) error {
 	err := r.services.YSKService.DeleteYSKCard(ctx.Request().Context(), id)
 	if err != nil {
@@ -21,6 +25,11 @@ func (r *APIRoute) DeleteYskCard(ctx echo.Context, id string) error {
 	})
 }
 
+// GetYskCard returns every persisted YSK pinned card in display
+// order. Each row is converted to the codegen response shape via
+// ysk.ToCodegenYSKCard.
+//
+// Route: GET /v2/message_bus/ysk/cards
 func (r *APIRoute) GetYskCard(ctx echo.Context) error {
 	cardList, err := r.services.YSKService.YskCardList(ctx.Request().Context())
 	if err != nil {

@@ -146,6 +146,19 @@ nav:
           - route: api/user-service/route.md
           - route v1: api/user-service/route/v1.md
           - route v2: api/user-service/route/v2.md
+      - message-bus:
+          - Index: api/message-bus/index.md
+          - model: api/message-bus/model.md
+          - repository: api/message-bus/repository.md
+          - service: api/message-bus/service.md
+          - route: api/message-bus/route.md
+          - route adapter in: api/message-bus/route/adapter/in.md
+          - route adapter out: api/message-bus/route/adapter/out.md
+          - config: api/message-bus/config.md
+          - common: api/message-bus/common.md
+          - utils: api/message-bus/utils.md
+          - codegen: api/message-bus/codegen.md
+          - pkg/ysk: api/message-bus/pkg/ysk.md
   - Audits:
       - Database paths: audits/db-paths.md
       - CasaOS dependencies: audits/casaos-dependencies.md

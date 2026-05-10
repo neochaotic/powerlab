@@ -19,6 +19,11 @@ import (
 	"github.com/neochaotic/powerlab/backend/message-bus/service"
 )
 
+// NewAPIRouter builds the echo HTTP handler for the message-bus
+// REST API. Wires CORS, gzip, recovery, request logger, JWT auth
+// (skipped for unix-socket + loopback + websocket-upgrade requests),
+// and the OpenAPI request validator before mounting the codegen
+// handlers under the API path declared in the loaded swagger spec.
 func NewAPIRouter(swagger *openapi3.T, services *service.Services) (http.Handler, error) {
 	apiRoute := NewAPIRoute(services)
 
@@ -83,6 +88,9 @@ func NewAPIRouter(swagger *openapi3.T, services *service.Services) (http.Handler
 	return e, nil
 }
 
+// NewDocRouter serves the embedded OpenAPI HTML viewer (Scalar) at
+// /doc<apiPath> and the raw OpenAPI YAML at /doc<apiPath>/openapi.yaml.
+// Mounted on the unauthenticated docs port — no JWT, no CORS guard.
 func NewDocRouter(swagger *openapi3.T, docHTML string, docYAML string) (http.Handler, error) {
 	apiPath, err := getAPIPath(getSwaggerURL(swagger))
 	if err != nil {

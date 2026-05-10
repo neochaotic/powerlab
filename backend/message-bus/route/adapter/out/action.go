@@ -8,6 +8,8 @@ import (
 	"github.com/neochaotic/powerlab/backend/message-bus/model"
 )
 
+// ActionAdapter converts a model.Action into a codegen.Action
+// for the response.
 func ActionAdapter(action model.Action) codegen.Action {
 	return codegen.Action{
 		SourceID:   action.SourceID,

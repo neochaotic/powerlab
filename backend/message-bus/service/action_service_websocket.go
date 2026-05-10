@@ -10,6 +10,10 @@ import (
 	"github.com/neochaotic/powerlab/backend/message-bus/model"
 )
 
+// ActionServiceWS is the in-process pub/sub for actions — the
+// request-shaped sibling of EventServiceWS. Same fan-out semantics:
+// callers Trigger, subscribers receive over a buffered channel,
+// 10s heartbeat, drop-on-no-listener.
 type ActionServiceWS struct {
 	typeService *ActionTypeService
 
@@ -21,6 +25,9 @@ type ActionServiceWS struct {
 	subscriberChannels map[string]map[string][]chan model.Action
 }
 
+// Trigger enqueues action for fan-out. Fills in Timestamp from
+// time.Now if zero. Non-blocking: silently dropped if no listener
+// is draining the inbound channel.
 func (s *ActionServiceWS) Trigger(action model.Action) {
 	if s.inboundChannel == nil {
 		_log.Error(context.Background(), "error when triggering action via websocket", ErrInboundChannelNotFound)
@@ -45,6 +52,10 @@ func (s *ActionServiceWS) Trigger(action model.Action) {
 	}
 }
 
+// Subscribe returns a buffered channel that will receive every
+// action whose (SourceID, Name) matches sourceID + one of names.
+// Empty names means "every registered action type for sourceID".
+// Returns ErrActionNameNotFound if a requested name is unknown.
 func (s *ActionServiceWS) Subscribe(sourceID string, names []string) (chan model.Action, error) {
 	if len(names) == 0 {
 		actionTypes, err := s.typeService.GetActionTypesBySourceID(sourceID)
@@ -88,6 +99,8 @@ func (s *ActionServiceWS) Subscribe(sourceID string, names []string) (chan model
 	return c, nil
 }
 
+// Unsubscribe removes channel c from the subscriber list for
+// (sourceID, name). Caller still owns c and must close it.
 func (s *ActionServiceWS) Unsubscribe(sourceID string, name string, c chan model.Action) error {
 	if s.subscriberChannels == nil {
 		return ErrSubscriberChannelsNotFound
@@ -118,6 +131,8 @@ func (s *ActionServiceWS) Unsubscribe(sourceID string, name string, c chan model
 	return nil
 }
 
+// Start runs the dispatcher loop until ctx is cancelled. Blocks —
+// invoke as a goroutine. Same shape as EventServiceWS.Start.
 func (s *ActionServiceWS) Start(ctx *context.Context) {
 	s.ctx = ctx
 	s.mutex = sync.Mutex{}
@@ -218,6 +233,9 @@ func (s *ActionServiceWS) Start(ctx *context.Context) {
 	}
 }
 
+// NewActionServiceWS constructs an ActionServiceWS bound to the
+// given ActionTypeService for filter-validation. Channels allocate
+// at Start.
 func NewActionServiceWS(actionTypeService *ActionTypeService) *ActionServiceWS {
 	return &ActionServiceWS{
 		typeService: actionTypeService,
