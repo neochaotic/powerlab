@@ -73,11 +73,19 @@ export async function installBaselineMocks(
 	}, userPayload);
 
 	// Catch-all: any other /v1/* call returns success with null data so
-	// the page render path doesn't 500-out on missing endpoints. Specific
-	// routes added before this one win.
+	// the page render path doesn't 500-out on missing endpoints.
+	//
+	// Playwright resolves routes "last-handler-wins" — this catch-all
+	// runs even when a specific route was registered earlier. Skip the
+	// specific routes explicitly so they fall through to their proper
+	// handlers. Locally Vite's dev server can mask this (the version
+	// request slips past the catch-all), but CI consistently hits it
+	// and the version-mismatch banner intercepts every click.
 	await page.route('**/v1/**', (route) => {
 		const url = route.request().url();
-		if (url.includes('/users/status') || url.includes('/users/info')) return;
+		if (url.includes('/users/status')) return;
+		if (url.includes('/users/info')) return;
+		if (url.includes('/powerlab/version')) return;
 		void route.fulfill({
 			status: 200,
 			contentType: 'application/json',
