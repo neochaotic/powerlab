@@ -1,0 +1,23 @@
+kind: Added
+body: |
+  Sprint 3 retrospective at `docs/audits/sprint-3-retrospective.md`.
+
+  Per ADR-0019 (tech-debt tracking pattern), retrospectives live as
+  audits. This one captures the v0.5.4 prod incident + the long-tail
+  bugs and process gaps surfaced during the rebrand wave, with each
+  follow-up tracked as a labeled GitHub issue (#169–#174).
+
+  Includes:
+    - What went well (4 items)
+    - What went wrong (7 items, each with the lesson + remediation
+      already in flight)
+    - 6 follow-up issues opened (#169 phase 1.5 test, #170 migration-
+      tool audit, #171 flag.Parse template, #172 branch protection,
+      #173 goleak convention, #174 ui/ cleanup)
+    - Sprint 4 fit recommendation per issue (which to add to Sprint
+      4 vs defer)
+    - Outcome scoreboard (4 releases, 12+ structural PRs, ~3500 LOC
+      removed, 80+ regression test assertions, 3 prod incidents
+      fixed + tested, 4 process improvements)
+custom:
+  Issue: "67"
