@@ -31,37 +31,49 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Documentation site polish wave + repo housekeeping. Three
-  changes that all surface in the docs site at
-  https://neochaotic.github.io/powerlab/ — none touch service
-  behavior or user-facing functionality.
+  Sprint 5 wave 1 — "obliterate CasaOS" begins. One security
+  fix, one governance ADR, four kill PRs from the residue
+  audit. **No service behavior changes for end users**; this
+  release closes attack surface + cleans inheritance debt.
 
-  1. **Mermaid diagrams now render on the docs site.** v0.5.8
-     added the architecture diagrams as `mermaid` code blocks
-     but Material's documented auto-load of mermaid.js didn't
-     fire on the live site — diagrams stayed as styled text
-     instead of rendering. Fixed by loading mermaid.js
-     explicitly + a small initialiser that re-runs on every
-     SPA navigation. Auto-themes between light + dark mode.
+  1. **Security: dead update path removed.** The inherited
+     CasaOS self-update endpoint `POST /v1/sys/update` did
+     `curl https://get.casaos.io/update | bash` from upstream
+     CasaOS DNS infrastructure. Real curl-pipe-bash supply-
+     chain risk; reachable via authenticated API call. The
+     UI never used it (PowerLab's in-app updater under
+     `/v1/powerlab-update/` uses signed manifest.json). Path
+     deleted entirely along with `ServerApi`/`UpdateUrl`
+     config + the upstream-CasaOS version polling.
 
-  2. **Go API reference for `pkg/*` foundation packages.**
-     Auto-generated from godoc via `gomarkdoc`, regenerated on
-     every release so it never drifts from source. Six packages
-     live: logging, errors, lifecycle, tracing, foundation,
-     migrations. Per-service Go packages will be added once
-     each module's godoc coverage hits ≥70% (issue #196 has the
-     per-module raise plan).
+  2. **ADR-0022 — CasaOS upstream is abandoned.** Documents the
+     verified state (latest CasaOS release v0.4.15 from Dec
+     2024, 1.5 years stale, 795 open issues) and formalises
+     the policy: PowerLab takes no new dependencies on
+     IceWhaleTech infrastructure. Becomes the citable rule
+     for rejecting future PRs that would reintroduce CasaOS
+     coupling.
 
-  3. **CasaOS rebrand sweep cleanup.** 8 inherited CasaOS
-     module READMEs deleted, 39 inherited Go files cleaned of
-     `@FilePath` / `@Author` / `@Website` license-header
-     markers pointing to icewhaletech.com. The repo's
-     stray-73MB `ui/ ` (trailing-space) blob from issue #174
-     also gone. Build + tests stay green; net diff is delete-
-     heavy.
+  3. **Repo cleanup**: 8 dead `casaos-*.service` files
+     deleted (PowerLab installs `powerlab-*.service` directly),
+     gateway sysroot tree rebranded `etc/casaos/` →
+     `etc/powerlab/`, inherited `backend/core/{CHANGELOG,
+     CODE_OF_CONDUCT,SECURITY}.md` deleted (replaced with
+     PowerLab versions at repo root), cosmetic strings
+     ("CasaOS main service is listening" → "PowerLab core")
+     updated, dead `CasaOSHeart` type deleted.
 
-  No breaking changes. No service behavior changes. No required
-  operator action.
+  4. **Codegen no longer pulls upstream**: 8 `//go:generate`
+     directives that fetched `raw.githubusercontent.com/IceWhaleTech/...`
+     openapi.yaml at codegen time now point at the local
+     copies. `go generate ./...` is offline-capable. Per
+     ADR-0022, build-time pulls from upstream are now policy
+     violations.
+
+  Net code direction: significant deletion. The kill list at
+  `docs/audits/casaos-residue-2026-05-10.md` has 4 of 10 PRs
+  remaining (CLI rebrand, JWT cluster, icon CDN, message-bus
+  topic prefix) for v0.5.12+.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
