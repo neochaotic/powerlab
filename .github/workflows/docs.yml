@@ -12,12 +12,16 @@ on:
       - 'mkdocs.yml'
       - 'mkdocs-requirements.txt'
       - '.github/workflows/docs.yml'
+      - 'scripts/gen-godoc.sh'
+      - 'backend/pkg/**/*.go'
   pull_request:
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
       - 'mkdocs-requirements.txt'
       - '.github/workflows/docs.yml'
+      - 'scripts/gen-godoc.sh'
+      - 'backend/pkg/**/*.go'
 
 # Single concurrent run per ref; in-flight runs are cancelled when a
 # new commit lands. Avoids deploying an older build over a newer one.
@@ -46,8 +50,23 @@ jobs:
           cache: 'pip'
           cache-dependency-path: mkdocs-requirements.txt
 
+      # gomarkdoc generates per-package markdown from Go godoc into
+      # docs/api/pkg/. The output files are .gitignored — committed
+      # source = Go files, generated artifact = lives only at build
+      # time. Avoids the "diff churn on every refactor of internal
+      # types" anti-pattern flagged in the day-1 self-review (#200).
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: backend/pkg/go.sum
+
       - name: Install mkdocs + theme
         run: pip install -r mkdocs-requirements.txt
+
+      - name: Generate godoc markdown for backend/pkg/*
+        # `gen-godoc.sh` installs gomarkdoc on first run if not present
+        # then writes docs/api/pkg/{logging,errors,...}.md. Idempotent.
+        run: ./scripts/gen-godoc.sh
 
       - name: Build site (strict — warnings fail the build)
         # --strict turns missing-link / missing-page warnings into errors,

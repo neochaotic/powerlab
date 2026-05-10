@@ -100,3 +100,12 @@ backend/gateway/gateway.ini
 
 # mkdocs build output
 docs-site/
+
+# Auto-generated godoc markdown — produced by scripts/gen-godoc.sh in CI
+# before mkdocs build. Committed index.md is the only stable file.
+docs/api/pkg/errors.md
+docs/api/pkg/foundation.md
+docs/api/pkg/lifecycle.md
+docs/api/pkg/logging.md
+docs/api/pkg/migrations.md
+docs/api/pkg/tracing.md
