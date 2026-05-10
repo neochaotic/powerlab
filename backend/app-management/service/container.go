@@ -298,9 +298,16 @@ func (ds *dockerService) GetContainerAppList(name, image, state *string) (*[]mod
 			}
 			if common.LabelValue(m.Labels, common.LabelOriginKey) == "system" {
 				name = strings.Split(m.Image, ":")[0]
-				if len(strings.Split(name, "/")) > 1 {
-					icon = "https://icon.casaos.io/main/all/" + strings.Split(name, "/")[1] + ".png"
-				}
+				// icon synthesis used to call
+				// https://icon.casaos.io/main/all/<image>.png for
+				// system-origin containers. Removed in Sprint 5 #203
+				// kill #9 — per ADR-0022, no runtime dependencies on
+				// CasaOS infra. System-origin containers now fall
+				// through to whatever icon the container itself
+				// supplies (or the UI's MyAppList fallback if
+				// nothing). When PowerLab ships its own icon CDN
+				// or embedded SVG library, this is the place to
+				// wire it in.
 			}
 
 			managedApp := model.MyAppList{
