@@ -1,0 +1,25 @@
+kind: Fixed
+body: |
+  install.sh now prunes old upgrade snapshots after each successful
+  install. Before this fix, every upgrade left ~100MB of binaries +
+  UI bundle behind in `/var/lib/powerlab/backups/pre-upgrade-<ts>/`
+  → disk filled up over time. v0.5.4 prod incident retrospective
+  surfaced this when the user accumulated 4 snapshots in a single
+  debugging session.
+
+  Default: keep the 3 newest snapshots. Override with
+  `POWERLAB_BACKUP_KEEP=N` env var:
+    - `POWERLAB_BACKUP_KEEP=5` → paranoid retention
+    - `POWERLAB_BACKUP_KEEP=0` → keep ALL (forensic mode for
+      post-mortems)
+
+  Only directories matching `pre-upgrade-*` are touched. Manual
+  exports, README files, or any other backups dir contents are
+  left alone.
+
+  Regression test at `scripts/check-backup-retention_test.sh` —
+  14 assertions across 5 scenarios (5→3 pruning order, no-op when
+  under threshold, empty dir, KEEP=0 disables, non-snapshot dirs
+  preserved).
+custom:
+  Issue: ""

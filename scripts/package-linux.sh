@@ -479,6 +479,30 @@ if (( UPGRADE_MODE )); then
   # disk is tight; copies are safer though)
   if [[ -d /usr/share/powerlab/www ]]; then cp -a /usr/share/powerlab/www "$SNAPSHOT_DIR/share/" 2>/dev/null || true; fi
   echo "[powerlab-install]   snapshot: $(du -sh "$SNAPSHOT_DIR" | awk '{print $1}')"
+
+  # Retention: keep the last N snapshots, prune older ones. Without
+  # this, every upgrade leaves behind ~100MB of binaries + UI bundle
+  # in /var/lib/powerlab/backups/ → disk fills up over time. A
+  # single user reported 4 snapshots accumulated in one debugging
+  # session — the v0.5.4 prod incident retrospective surfaced this.
+  #
+  # `ls -1t` sorts by mtime descending, head/tail let us keep the
+  # newest N. POWERLAB_BACKUP_KEEP env var lets ops override (set
+  # to a higher number for paranoid retention; set to 0 to keep
+  # ALL — useful for forensic post-mortems). Default keeps just
+  # enough for a 2-step rollback (current upgrade's snapshot +
+  # the previous one).
+  KEEP="${POWERLAB_BACKUP_KEEP:-3}"
+  if [[ "$KEEP" =~ ^[0-9]+$ ]] && (( KEEP > 0 )); then
+    pruned=0
+    while IFS= read -r old_snap; do
+      rm -rf "$old_snap"
+      pruned=$((pruned + 1))
+    done < <(ls -1dt /var/lib/powerlab/backups/pre-upgrade-* 2>/dev/null | tail -n +$((KEEP + 1)))
+    if (( pruned > 0 )); then
+      echo "[powerlab-install]   pruned $pruned old snapshot(s) (keeping $KEEP newest)"
+    fi
+  fi
 fi
 
 echo "[powerlab-install] Creating directories..."
