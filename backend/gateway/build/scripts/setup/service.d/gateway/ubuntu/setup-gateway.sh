@@ -1,1 +1,0 @@
-../debian/setup-gateway.sh
