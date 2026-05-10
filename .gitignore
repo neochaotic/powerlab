@@ -101,13 +101,14 @@ backend/gateway/gateway.ini
 # mkdocs build output
 docs-site/
 
-# Auto-generated godoc markdown — produced by scripts/gen-godoc.sh in CI
-# before mkdocs build. Only committed file in docs/api/<mod>/ is index.md.
+# Auto-generated godoc markdown — produced by scripts/gen-godoc.sh
+# in CI before mkdocs build. Only committed file in docs/api/<mod>/
+# is index.md. Everything else under docs/api/<mod>/ (top-level
+# .md and any subpackage subdir like route/, model/, service/,
+# cmd/, codegen/, pkg/) is regenerated on every CI build.
 docs/api/*/*.md
+docs/api/*/*/
 !docs/api/*/index.md
-# Subdirectories of generated module docs (e.g. gateway/cmd/, gateway/api/)
-docs/api/*/cmd/
-docs/api/*/api/
 
 # Local dev runtime log dirs that get accidentally committed
 backend/*/local_data/log/

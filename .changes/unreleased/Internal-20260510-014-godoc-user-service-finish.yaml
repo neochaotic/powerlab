@@ -1,0 +1,38 @@
+kind: Internal
+body: |
+  Sprint 6 #3 — user-service godoc raise complete (57% → 75%).
+  Third module surfaced on the docs site after pkg/* + gateway.
+
+  12 V1 route handlers in `route/v1/user.go` got proper godoc
+  (`// HandlerName ...` + Route line). The legacy
+  `/** @description: */` Swagger blocks (CasaOS-era) are
+  replaced — they were never parsed by the build pipeline anyway.
+
+  Handlers documented:
+    GetUserInfoByUsername, GetUserAllUsername,
+    GetUserCustomConf + PostUserCustomConf + DeleteUserCustomConf,
+    DeleteUser, PutUserImage + PostUserUploadImage +
+    GetUserImage + DeleteUserImage,
+    PostUserRefreshToken, DeleteUserAll
+
+  Infrastructure:
+    - scripts/gen-godoc.sh MODULES grew "user-service"
+    - mkdocs.yml nav adds "user-service" sub-section under
+      "Go API reference"
+    - docs/api/user-service/index.md committed as curated landing
+    - .gitignore generalised: docs/api/*/*/ now ignored too
+      (gomarkdoc generates subpackage subdirectories like
+      route/v1.md, model/system_model.md)
+
+  ## Per-service raise progress
+
+    ✅ pkg          100%
+    ✅ gateway       85% (PR #213)
+    ✅ user-service  75% (this PR — over the 70% bar)
+    ⏳ message-bus   17% (next, smallest absolute count)
+    ⏳ common        49%
+    ⏳ local-storage 27%
+    ⏳ app-management 35%
+    ⏳ core          39%
+custom:
+  Issue: "196"
