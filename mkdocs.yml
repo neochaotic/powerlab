@@ -138,6 +138,14 @@ nav:
           - common: api/gateway/common.md
           - route: api/gateway/route.md
           - service: api/gateway/service.md
+      - user-service:
+          - Index: api/user-service/index.md
+          - common: api/user-service/common.md
+          - model: api/user-service/model.md
+          - service: api/user-service/service.md
+          - route: api/user-service/route.md
+          - route v1: api/user-service/route/v1.md
+          - route v2: api/user-service/route/v2.md
   - Audits:
       - Database paths: audits/db-paths.md
       - CasaOS dependencies: audits/casaos-dependencies.md

@@ -24,7 +24,7 @@ OUT_BASE="$REPO_ROOT/docs/api"
 # Modules currently surfaced. Add to this list ONLY when a module's
 # godoc coverage is ≥70% (target). See issue #196 for the per-module
 # scorecard. Each module gets its own subdir under docs/api/.
-MODULES=("pkg" "gateway")
+MODULES=("pkg" "gateway" "user-service")
 
 # Locate gomarkdoc — `go install` puts it under $(go env GOPATH)/bin.
 GOMARKDOC="$(command -v gomarkdoc || true)"

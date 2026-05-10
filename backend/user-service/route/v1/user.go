@@ -465,14 +465,11 @@ func GetUserInfo(ctx echo.Context) error {
 		})
 }
 
-/**
- * @description:
- * @param {*gin.Context} c
- * @param {string} Username
- * @return {*}
- * @method:
- * @router:
- */
+// GetUserInfoByUsername returns the public profile (id, nickname,
+// avatar, role) for the user with the given `:username` path
+// param. Returns INVALID_PARAMS when username is empty.
+//
+// Route: GET /v1/user/info/:username
 func GetUserInfoByUsername(ctx echo.Context) error {
 	username := ctx.Param("username")
 	if len(username) == 0 {
@@ -491,11 +488,10 @@ func GetUserInfoByUsername(ctx echo.Context) error {
 		})
 }
 
-/**
- * @description: get all Usernames
- * @method:GET
- * @router:/user/all/name
- */
+// GetUserAllUsername returns the list of all usernames on this
+// host. Used by the UI's user-picker dropdowns.
+//
+// Route: GET /v1/user/all/name
 func GetUserAllUsername(ctx echo.Context) error {
 	users := service.MyService.User().GetAllUserName()
 	names := []string{}
@@ -510,12 +506,12 @@ func GetUserAllUsername(ctx echo.Context) error {
 		})
 }
 
-/**
- * @description:get custom file by user
- * @param {path} name string "file name"
- * @method: GET
- * @router: /user/custom/:key
- */
+// GetUserCustomConf reads a per-user JSON config blob keyed by
+// the `:key` path param. Custom config is opaque to user-service
+// — UI features (e.g. dashboard layout) use it to persist state
+// without requiring schema changes here.
+//
+// Route: GET /v1/user/custom/:key
 func GetUserCustomConf(ctx echo.Context) error {
 	name := ctx.Param("key")
 	if len(name) == 0 {
@@ -538,12 +534,11 @@ func GetUserCustomConf(ctx echo.Context) error {
 	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: json2.RawMessage(string(data))})
 }
 
-/**
- * @description:create or update custom conf by user
- * @param {path} name string "file name"
- * @method:POST
- * @router:/user/custom/:key
- */
+// PostUserCustomConf creates or replaces a per-user JSON config
+// blob keyed by the `:key` path param. Body is opaque JSON —
+// user-service stores it verbatim.
+//
+// Route: POST /v1/user/custom/:key
 func PostUserCustomConf(ctx echo.Context) error {
 	name := ctx.Param("key")
 	if len(name) == 0 {
@@ -586,12 +581,10 @@ func PostUserCustomConf(ctx echo.Context) error {
 	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: json2.RawMessage(string(data))})
 }
 
-/**
- * @description: delete user custom config
- * @param {path} key string
- * @method:delete
- * @router:/user/custom/:key
- */
+// DeleteUserCustomConf removes the per-user JSON config blob at
+// the given `:key`. No-op if the key doesn't exist.
+//
+// Route: DELETE /v1/user/custom/:key
 func DeleteUserCustomConf(ctx echo.Context) error {
 	name := ctx.Param("key")
 	if len(name) == 0 {
@@ -611,23 +604,22 @@ func DeleteUserCustomConf(ctx echo.Context) error {
 	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS)})
 }
 
-/**
- * @description:
- * @param {path} id string "user id"
- * @method:DELETE
- * @router:/user/delete/:id
- */
+// DeleteUser removes a user account by ID. Caller must be admin
+// (enforced by gateway middleware before reaching this handler).
+//
+// Route: DELETE /v1/user/delete/:id
 func DeleteUser(ctx echo.Context) error {
 	id := ctx.Param("id")
 	service.MyService.User().DeleteUserById(id)
 	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: id})
 }
 
-/**
- * @description:update user image
- * @method:POST
- * @router:/user/current/image/:key
- */
+// PutUserImage updates the current user's image (avatar or
+// background, distinguished by the `:key` path param). Body is the
+// JSON metadata; the image bytes live separately at the path
+// PostUserUploadImage uploaded to.
+//
+// Route: PUT /v1/user/current/image/:key
 func PutUserImage(ctx echo.Context) error {
 	id := ctx.Request().Header.Get("user_id")
 	json := make(map[string]string)
@@ -666,16 +658,12 @@ func PutUserImage(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: data})
 }
 
-/**
-* @description:
-* @param {*gin.Context} c
-* @param {file} file
-* @param {string} key
-* @param {string} type:avatar,background
-* @return {*}
-* @method:
-* @router:
- */
+// PostUserUploadImage receives a multipart-form upload of an
+// image (avatar or background, distinguished by the `type` form
+// field with values "avatar" or "background"). Saves to disk
+// under the user's data dir; PutUserImage updates the metadata.
+//
+// Route: POST /v1/user/current/upload/image/:key (multipart form)
 func PostUserUploadImage(ctx echo.Context) error {
 	id := ctx.Request().Header.Get("user_id")
 	f, err := ctx.FormFile("file")
@@ -712,11 +700,11 @@ func PostUserUploadImage(ctx echo.Context) error {
 	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: data})
 }
 
-/**
- * @description: get current user's image
- * @method:GET
- * @router:/user/image/:id
- */
+// GetUserImage streams a user's avatar/background file. Path is
+// resolved + path-traversal-checked before serving via
+// http.ServeFile semantics.
+//
+// Route: GET /v1/user/image/:id?path=<rel>
 func GetUserImage(ctx echo.Context) error {
 	filePath := ctx.QueryParam("path")
 	if len(filePath) == 0 {
@@ -749,6 +737,10 @@ func GetUserImage(ctx echo.Context) error {
 	return ctx.File(absFilePath)
 }
 
+// DeleteUserImage removes a user's avatar or background file from
+// disk. Path is path-traversal-checked before unlink.
+//
+// Route: DELETE /v1/user/current/image?path=<rel>
 func DeleteUserImage(ctx echo.Context) error {
 	id := ctx.Request().Header.Get("user_id")
 	path := ctx.QueryParam("path")
@@ -769,14 +761,11 @@ func DeleteUserImage(ctx echo.Context) error {
 	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS)})
 }
 
-/**
- * @description:
- * @param {*gin.Context} c
- * @param {string} refresh_token
- * @return {*}
- * @method:
- * @router:
- */
+// PostUserRefreshToken trades a valid refresh_token for a fresh
+// access_token + refresh_token pair. The new access token is
+// valid for 3 hours per ADR-0020.
+//
+// Route: POST /v1/user/refresh
 func PostUserRefreshToken(ctx echo.Context) error {
 	js := make(map[string]string)
 	ctx.Bind(&js)
@@ -816,6 +805,11 @@ func PostUserRefreshToken(ctx echo.Context) error {
 	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: verifyInfo})
 }
 
+// DeleteUserAll wipes ALL user accounts from user.db. Used by
+// the "factory reset" flow + by the SetupWizard's post-rebuild
+// path. Caller must already be admin.
+//
+// Route: DELETE /v1/user/all
 func DeleteUserAll(ctx echo.Context) error {
 	service.MyService.User().DeleteAllUser()
 	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS)})
