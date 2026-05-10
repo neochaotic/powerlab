@@ -1,1 +1,0 @@
-../setup-message-bus.sh

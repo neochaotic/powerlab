@@ -1,1 +1,0 @@
-../cleanup-message-bus.sh

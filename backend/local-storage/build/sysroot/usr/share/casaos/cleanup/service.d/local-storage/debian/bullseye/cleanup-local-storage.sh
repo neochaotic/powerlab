@@ -1,1 +1,0 @@
-../cleanup-local-storage.sh

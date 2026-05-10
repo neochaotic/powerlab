@@ -1243,7 +1243,7 @@
 								<ExternalLink class="h-3.5 w-3.5 text-zinc-600 transition-colors group-hover:text-zinc-300" />
 							</a>
 							<a
-								href="https://www.casaos.io"
+								href="https://github.com/neochaotic/powerlab"
 								target="_blank"
 								rel="noopener"
 								class="group flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 transition-all hover:border-white/10 hover:bg-white/[0.04]"
@@ -1253,8 +1253,8 @@
 										<Boxes class="h-4 w-4" />
 									</div>
 									<div>
-										<p class="text-sm font-medium text-white">Powered by CasaOS</p>
-										<p class="text-[11px] text-zinc-500">Open-source Docker engine</p>
+										<p class="text-sm font-medium text-white">PowerLab on GitHub</p>
+										<p class="text-[11px] text-zinc-500">Source, releases, issues</p>
 									</div>
 								</div>
 								<ExternalLink class="h-3.5 w-3.5 text-zinc-600 transition-colors group-hover:text-zinc-300" />
