@@ -9,11 +9,6 @@ edit_uri: edit/main/docs/
 docs_dir: docs
 site_dir: docs-site
 
-# PowerLab brand polish — minimal indigo+emerald override of Material's
-# defaults. See docs/stylesheets/brand.css for the full rationale.
-extra_css:
-  - stylesheets/brand.css
-
 theme:
   name: material
   favicon: img/favicon.png
