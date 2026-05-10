@@ -65,7 +65,6 @@ func ZerotierProxy(ctx echo.Context) error {
 	// Return the response to the client
 	w.WriteHeader(resp.StatusCode)
 	w.Write(respBody)
-	// TODO
 	return nil
 }
 

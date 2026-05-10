@@ -441,7 +441,10 @@ func (a *AppManagement) UpgradableAppList(ctx echo.Context) error {
 		}
 		tag, err := storeComposeApp.MainTag()
 		if err != nil {
-			// TODO
+			// MainTag failure on a single app must not break the
+			// whole list — skip this entry, log loud, let the rest
+			// render. The user sees a partial list rather than a
+			// broken page.
 			logger.Error("failed to get compose app main tag", zap.Error(err), zap.String("appStoreID", id))
 			continue
 		}

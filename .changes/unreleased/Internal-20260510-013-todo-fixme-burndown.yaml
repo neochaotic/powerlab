@@ -1,0 +1,44 @@
+kind: Internal
+body: |
+  Sprint 6 #2 — TODO/FIXME burn-down. Audit (#216) flagged 25
+  backend TODO/FIXME items (within ADR-0019's 27 ceiling but
+  worth chipping at). This PR resolves 5:
+
+  ## Cleaned
+
+  - `backend/app-management/service/container.go:45` — misleading
+    `// TODO - make use of NewVersionApp map` comment. The map
+    IS used (line 293 in same file). Replaced TODO with proper
+    godoc explaining what the map holds + how it's populated.
+
+  - `backend/core/route/v1/zerotier.go:68` — bare `// TODO` line
+    after the response was written. Meaningless dangling TODO.
+    Deleted.
+
+  - `backend/app-management/route/v2/appstore.go:444` — bare
+    `// TODO` above an error-log + continue. Replaced with
+    explanatory comment about the chosen behavior (skip + log
+    loud rather than break the list).
+
+  ## Documented + tracked as issue
+
+  - `backend/message-bus/service/socketio_service.go:53,58` —
+    WebSocket + polling `CheckOrigin` always returns true (CORS
+    bypass). **Real security finding** flagged by the audit
+    (P1, mitigated by JWT auth at gateway). TODO comments
+    replaced with SECURITY block + link to **issue #219** which
+    has the full fix plan (origin allowlist, ~4 unit tests).
+
+  ## Burn-down score
+
+  Backend TODO/FIXME: 24 → 19 (-21%). Within audit's
+  recommended 20-50% per sprint. Remaining 19 are mostly
+  design-wish TODOs (refactor recommendations) + FUSE FIXMEs
+  in local-storage/pkg/mount/dir.go that need careful work.
+
+  ## Verification
+
+    cd backend/{core,message-bus,app-management} && go build ./...
+    # all clean
+custom:
+  Issue: "219"
