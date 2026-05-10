@@ -1,0 +1,23 @@
+/* PowerLab brand polish for Material for MkDocs.
+ *
+ * Minimal override of Material's default palette — pulls indigo
+ * primary closer to the UI's actual indigo-600 and uses emerald
+ * as the accent (matches the in-app "live" status color).
+ *
+ * Keep this file small: every rule is a deliberate brand choice,
+ * not a layout fix. Layout/structural CSS belongs in mkdocs.yml
+ * theme.features or a separate stylesheet.
+ */
+
+:root {
+  --md-primary-fg-color:        #4f46e5;  /* indigo-600 */
+  --md-primary-fg-color--light: #6366f1;  /* indigo-500 */
+  --md-primary-fg-color--dark:  #4338ca;  /* indigo-700 */
+  --md-accent-fg-color:         #10b981;  /* emerald-500 — matches the UI's "live" accent */
+}
+
+/* Subtle PowerLab signature in the header */
+.md-header__title {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
