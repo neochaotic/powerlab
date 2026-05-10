@@ -31,25 +31,32 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  v0.5.4 incident hotfix release. Two real upgrade-path bugs that
-  bit a v0.5.x → v0.5.4 user — both fixed with regression tests.
+  v0.5.4 incident retrospective release. Closes the long tail of
+  bugs surfaced when a real user upgraded v0.5.x → v0.5.4 + adds
+  defenses so the next release doesn't repeat the class.
 
-  install.sh now auto-migrates /var/lib/casaos/* → /var/lib/powerlab/*
-  on upgrade (#158). Without this, v0.5.4 left existing user accounts
-  stranded in the old data dir → login returned 400 → UI unusable.
-  Five-scenario regression test locks the behavior.
+  user-service no longer crashes its event-listener goroutine when
+  message-bus disconnects or sends a malformed payload (#160). The
+  original code had three nil-deref paths that combined to panic
+  on every restart cycle; SafeGo recovered the panic but the
+  goroutine died on every cycle. 6 regression tests lock the
+  behavior, including a fuzz of 9 crash-prone inputs.
 
-  Release builds now correctly stamp version / commit / build-date
-  into the binary (#159). The old ldflag string targeted dead
-  variables silently — the v0.5.4 binary identified itself as
-  "dev", which made the in-UI updater prompt "Update available"
-  forever and trigger a no-op upgrade loop. Two layers of
-  regression tests catch any future bit-rot of the build pipeline.
+  install.sh now prunes old upgrade snapshots — keeps the 3 newest
+  by default, rest pruned. Without this, every upgrade left ~100MB
+  of binaries + UI bundle behind in /var/lib/powerlab/backups/ →
+  disk fill over time. POWERLAB_BACKUP_KEEP env var lets ops
+  override (e.g. KEEP=0 for forensic mode). 14 regression tests
+  across 5 scenarios.
 
-  Plus pre-tag check that the release-manifest.yaml summary was
-  refreshed (#156 — the very check that forced this paragraph to
-  exist). Sprint 4 PR1+PR2 cosmetic CasaOS literal renames in
-  app-management. Sprint 4 prep audit doc.
+  Sprint 4 progress: dropped dead MyAppList handler + the legacy
+  casaos_apps JSON wire-format key (no UI consumer); renamed
+  ErrComposeExtensionNameXCasaOSNotFound to the more accurate
+  ErrComposeExtensionNotFound (now that the extension chain
+  accepts x-powerlab / x-web / x-casaos, the X-CasaOS specificity
+  was misleading).
+
+  No end-user behavior change beyond the bug fixes.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:

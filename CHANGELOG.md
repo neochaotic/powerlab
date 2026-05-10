@@ -13,6 +13,149 @@ Each PR adds a tiny YAML fragment under `.changes/unreleased/<id>.yaml`.
 At release time, `changie batch <version>` aggregates the fragments into
 a new section below this header. See `CONTRIBUTING.md` for the workflow.
 
+## [v0.5.6] — 2026-05-09
+### Changed
+- Sprint 4 PR5 — rename `service.ErrComposeExtensionNameXCasaOSNotFound`
+→ `service.ErrComposeExtensionNotFound`. Per the audit's PR
+breakdown (`docs/audits/sprint-4-app-management-prep.md`).
+
+The `XCasaOS` specificity in the original name was misleading
+after PR #141 landed the extension-key priority chain
+(`service/extension.go::extensionPriority` accepts `x-powerlab`,
+`x-web`, OR `x-casaos`). The error is raised when NONE of the
+three keys are present — its name should describe that
+generically.
+
+6 sites mechanically renamed:
+  - `service/errs.go`            (declaration)
+  - `service/compose_app.go`     (3 returns / comparisons)
+  - `route/v2/compose_app.go`    (1 comparison)
+  - `cmd/validator/pkg/validate.go` (1 return)
+
+No wire format. No UI consumer. Pure-internal rename.
+
+### Removed
+- Sprint 4 PR3 — drops dead `MyAppList` handler + renames Go vars
+in active sites. Per the audit's PR breakdown
+(`docs/audits/sprint-4-app-management-prep.md`), this is the
+third smallest-first chunk after PR1 (cosmetic literals) and
+PR2 (CasaOSGlobalVariables rename).
+
+Removed:
+
+  backend/app-management/route/v1/docker.go::MyAppList
+      Dead code — its route registration in route/v1.go was
+      commented out for an unknown duration. Was the only
+      consumer of the legacy `casaos_apps` JSON wire-format
+      key. Active app-list flow lives in
+      route/v2/internal_web.go's WebAppGridItem* — untouched.
+
+  backend/app-management/route/v1.go (the commented-out reg)
+      Removed the `// v1ContainerGroup.GET("", v1.MyAppList)`
+      line for clarity.
+
+Renamed (Go vars only — no wire format change):
+
+  casaOSApps → managedApps   (4 sites in service/container.go,
+                              1 site in route/v2/internal_web.go)
+  casaOSApp  → managedApp    (1 site)
+
+No UI consumer (verified by grep), no remaining wire-format
+references to `casaos_apps`. PR4 (Docker label dual-write — the
+big one) and PR5 (ErrComposeExtensionNameXCasaOSNotFound rename)
+remain in the Sprint 4 backlog.
+
+### Fixed
+- user-service `EventListen` no longer crashes its goroutine when
+message-bus disconnects or sends a malformed event payload (#160).
+
+The original code had three nil-deref paths that combined to
+panic on every message-bus restart cycle:
+
+  1. `ws.Read` err → no continue, fell through to unmarshal of
+     zero bytes
+  2. `json.Unmarshal` err → no continue, fell through to
+     `*event.Uuid`
+  3. `event.Uuid == nil` even when unmarshal succeeded (no uuid
+     in payload) → panic at the assignment
+
+SafeGo (pkg/lifecycle) recovered the panic so the process kept
+running, but the goroutine died on every cycle. Visible in
+production logs every time the user clicked the Update button
+(which restarts message-bus mid-flight) — see #160 for context.
+
+Fix extracts payload parsing into `parseEventPayload()` returning
+`(*EventModel, error)` instead of mutating shared state inline.
+Each error path returns a useful message; caller skips that
+message and stays connected.
+
+Regression test at `event_listen_test.go` — 6 cases:
+  - empty payload returns error (the v0.5.4 disconnect shape)
+  - malformed JSON returns error
+  - missing uuid returns error (the actual line:77 crash shape)
+  - null uuid returns error
+  - valid payload returns full model
+  - fuzz: 9 crash-prone inputs, none panic
+
+Bonus fix: `ws.Read` error now `break`s the inner loop (was
+silent fall-through) so the outer reconnect loop fires
+immediately instead of cycling on dead websocket reads.
+
+Closes #160.
+
+- install.sh now prunes old upgrade snapshots after each successful
+install. Before this fix, every upgrade left ~100MB of binaries +
+UI bundle behind in `/var/lib/powerlab/backups/pre-upgrade-<ts>/`
+→ disk filled up over time. v0.5.4 prod incident retrospective
+surfaced this when the user accumulated 4 snapshots in a single
+debugging session.
+
+Default: keep the 3 newest snapshots. Override with
+`POWERLAB_BACKUP_KEEP=N` env var:
+  - `POWERLAB_BACKUP_KEEP=5` → paranoid retention
+  - `POWERLAB_BACKUP_KEEP=0` → keep ALL (forensic mode for
+    post-mortems)
+
+Only directories matching `pre-upgrade-*` are touched. Manual
+exports, README files, or any other backups dir contents are
+left alone.
+
+Regression test at `scripts/check-backup-retention_test.sh` —
+14 assertions across 5 scenarios (5→3 pruning order, no-op when
+under threshold, empty dir, KEEP=0 disables, non-snapshot dirs
+preserved).
+
+### Internal
+- Release v0.5.6 — v0.5.4 incident retrospective. Long tail of
+bugs surfaced during the user's prod upgrade debug, plus
+defenses so the class doesn't repeat.
+
+Bug fixes:
+  - #160: user-service event-listener no longer crashes on
+    message-bus disconnect or malformed payload (3 nil-deref
+    paths fixed). 6 regression tests including 9-input fuzz.
+
+Operational improvements:
+  - install.sh prunes old upgrade snapshots (keep last 3 by
+    default, POWERLAB_BACKUP_KEEP env var override). 14
+    regression tests.
+
+Sprint 4 cosmetic continuations:
+  - PR3 (#85): drop dead MyAppList handler + casaos_apps JSON
+    wire-format key + Go-side casaOSApps → managedApps rename.
+  - PR5 (#85): ErrComposeExtensionNameXCasaOSNotFound →
+    ErrComposeExtensionNotFound (the X-CasaOS specificity was
+    misleading after the x-powerlab/x-web/x-casaos extension
+    chain landed).
+
+Sprint 4 PR4 (Docker label dual-write — the big one) remains
+in backlog: needs design + integration testing for in-place
+container migration.
+
+No end-user behavior change beyond the bug fixes.
+
+
+
 ## [v0.5.5] — 2026-05-09
 ### Added
 - Sprint 4 prep audit: `docs/audits/sprint-4-app-management-prep.md`.
