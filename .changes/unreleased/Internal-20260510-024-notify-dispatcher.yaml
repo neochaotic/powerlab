@@ -1,0 +1,26 @@
+kind: Internal
+body: |
+  Sprint 7 #6 — extract publishFileOperateSnapshot helper from
+  SendFileOperateNotify per audit #216 §E.
+
+  Original was 157 LOC where the nowSend=true and nowSend=false
+  branches duplicated an 80-LOC build-snapshot-and-publish body.
+  Now SendFileOperateNotify is 12 LOC (just the once-vs-loop
+  dispatch) and calls publishFileOperateSnapshot which holds the
+  shared body.
+
+  Plus a third helper publishFileOperateMessage extracted from
+  the marshal+publish-and-log-on-error tail that appeared 3 times.
+
+  Result:
+    - SendFileOperateNotify: 157 → 12 LOC
+    - publishFileOperateSnapshot: ~80 LOC (the shared body, once)
+    - publishFileOperateMessage: ~14 LOC (the publish tail)
+    - notify.go overall: 391 → 331 LOC
+
+  No behaviour changes — the publish + queue-mutation + ExecOpFile
+  fan-out are identical to the pre-extract behaviour. Comments on
+  the helpers call out the side-effects on FileQueue + OpStrArr
+  so a reader doesn't have to walk the whole call chain to know.
+custom:
+  Issue: "216"

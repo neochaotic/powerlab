@@ -76,162 +76,127 @@ func (i *notifyServer) SendNotify(name string, message map[string]interface{}) {
 	// SocketServer.BroadcastToRoom("/", "public", path, message)
 }
 
-// Send periodic broadcast messages
+// SendFileOperateNotify publishes the in-flight file-operation
+// queue snapshot to the message-bus. nowSend=true publishes once
+// (and emits an empty-Data snapshot when the queue is empty —
+// drives the UI's "ops complete" toast). nowSend=false loops
+// every 3s until the queue drains, used as a goroutine on first
+// op enqueue.
+//
+// Sprint 7 #6 (per #227 §F): the build-snapshot-and-publish body
+// was duplicated between the two branches; extracted as
+// publishFileOperateSnapshot for shared use.
 func (i *notifyServer) SendFileOperateNotify(nowSend bool) {
 	if nowSend {
-		len := 0
-		FileQueue.Range(func(k, v interface{}) bool {
-			len++
-			return true
-		})
-
-		model := notify.NotifyModel{}
-		listMsg := make(map[string]interface{})
-		if len == 0 {
-			model.Data = []string{}
-			listMsg["file_operate"] = model
-			msg := make(map[string]string)
-			for k, v := range listMsg {
-				bt, _ := json.Marshal(v)
-				msg[k] = string(bt)
-			}
-			response, err := MyService.MessageBus().PublishEventWithResponse(context.Background(), common.SERVICENAME, common.EventFileOperate, msg)
-			if err != nil {
-				logger.Error("failed to publish event to message bus", zap.Error(err), zap.Any("event", msg))
-			}
-			if response.StatusCode() != http.StatusOK {
-				logger.Error("failed to publish event to message bus", zap.String("status", response.Status()), zap.Any("response", response))
-			}
+		publishFileOperateSnapshot(true)
+		return
+	}
+	for {
+		if !publishFileOperateSnapshot(false) {
 			return
 		}
+		time.Sleep(time.Second * 3)
+	}
+}
 
-		model.State = "NORMAL"
-		list := []notify.File{}
-		OpStrArrbak := OpStrArr
+// publishFileOperateSnapshot builds one notify.NotifyModel from
+// the FileQueue + OpStrArr state and publishes it to the
+// message-bus. emitWhenEmpty=true publishes an empty-Data
+// snapshot when the queue is empty (the once-and-done
+// "ops complete" path used by SendFileOperateNotify(true) and
+// the Delete handler); emitWhenEmpty=false short-circuits and
+// returns false (signal to the polling caller to stop looping).
+//
+// Returns true when the snapshot was non-empty + published;
+// false when the queue was empty + emitWhenEmpty was false.
+//
+// Side effects: mutates FileQueue + OpStrArr — finished tasks
+// are removed and ExecOpFile is fired for each (matches the
+// pre-extract behaviour exactly; see the original git history
+// for the per-line commentary).
+func publishFileOperateSnapshot(emitWhenEmpty bool) bool {
+	queueLen := 0
+	FileQueue.Range(func(k, v interface{}) bool {
+		queueLen++
+		return true
+	})
 
-		for _, v := range OpStrArrbak {
-			tempItem, ok := FileQueue.Load(v)
-			temp := tempItem.(model2.FileOperate)
-			if !ok {
-				continue
-			}
-			task := notify.File{}
-			task.Id = v
-			task.ProcessedSize = temp.ProcessedSize
-			task.TotalSize = temp.TotalSize
-			task.To = temp.To
-			task.Type = temp.Type
-			if task.ProcessedSize == 0 {
-				task.Status = "STARTING"
-			} else {
-				task.Status = "PROCESSING"
-			}
+	listMsg := make(map[string]interface{})
+	m := notify.NotifyModel{}
 
-			if temp.Finished || temp.ProcessedSize >= temp.TotalSize {
+	if queueLen == 0 {
+		if !emitWhenEmpty {
+			return false
+		}
+		m.Data = []string{}
+		listMsg["file_operate"] = m
+		publishFileOperateMessage(listMsg)
+		return true
+	}
 
-				task.Finished = true
-				task.Status = "FINISHED"
-				FileQueue.Delete(v)
-				OpStrArr = OpStrArr[1:]
-				go ExecOpFile()
-				list = append(list, task)
-				continue
-			}
-			for _, v := range temp.Item {
-				if v.Size != v.ProcessedSize {
-					task.ProcessingPath = v.From
-					break
-				}
-			}
+	m.State = "NORMAL"
+	list := []notify.File{}
+	OpStrArrbak := OpStrArr
 
+	for _, v := range OpStrArrbak {
+		tempItem, ok := FileQueue.Load(v)
+		if !ok {
+			continue
+		}
+		temp := tempItem.(model2.FileOperate)
+		task := notify.File{}
+		task.Id = v
+		task.ProcessedSize = temp.ProcessedSize
+		task.TotalSize = temp.TotalSize
+		task.To = temp.To
+		task.Type = temp.Type
+		if task.ProcessedSize == 0 {
+			task.Status = "STARTING"
+		} else {
+			task.Status = "PROCESSING"
+		}
+
+		if temp.Finished || temp.ProcessedSize >= temp.TotalSize {
+			task.Finished = true
+			task.Status = "FINISHED"
+			FileQueue.Delete(v)
+			OpStrArr = OpStrArr[1:]
+			go ExecOpFile()
 			list = append(list, task)
+			continue
 		}
-		model.Data = list
-
-		listMsg["file_operate"] = model
-		msg := make(map[string]string)
-		for k, v := range listMsg {
-			bt, _ := json.Marshal(v)
-			msg[k] = string(bt)
-		}
-		response, err := MyService.MessageBus().PublishEventWithResponse(context.Background(), common.SERVICENAME, common.EventFileOperate, msg)
-		if err != nil {
-			logger.Error("failed to publish event to message bus", zap.Error(err), zap.Any("event", msg))
-		}
-		if response.StatusCode() != http.StatusOK {
-			logger.Error("failed to publish event to message bus", zap.String("status", response.Status()), zap.Any("response", response))
+		for _, v := range temp.Item {
+			if v.Size != v.ProcessedSize {
+				task.ProcessingPath = v.From
+				break
+			}
 		}
 
-	} else {
-		for {
+		list = append(list, task)
+	}
+	m.Data = list
 
-			len := 0
-			FileQueue.Range(func(k, v interface{}) bool {
-				len++
-				return true
-			})
-			if len == 0 {
-				return
-			}
-			listMsg := make(map[string]interface{})
-			model := notify.NotifyModel{}
-			model.State = "NORMAL"
-			list := []notify.File{}
-			OpStrArrbak := OpStrArr
+	listMsg["file_operate"] = m
+	publishFileOperateMessage(listMsg)
+	return true
+}
 
-			for _, v := range OpStrArrbak {
-				tempItem, ok := FileQueue.Load(v)
-				temp := tempItem.(model2.FileOperate)
-				if !ok {
-					continue
-				}
-				task := notify.File{}
-				task.Id = v
-				task.ProcessedSize = temp.ProcessedSize
-				task.TotalSize = temp.TotalSize
-				task.To = temp.To
-				task.Type = temp.Type
-				if task.ProcessedSize == 0 {
-					task.Status = "STARTING"
-				} else {
-					task.Status = "PROCESSING"
-				}
-				if temp.Finished || temp.ProcessedSize >= temp.TotalSize {
-
-					task.Finished = true
-					task.Status = "FINISHED"
-					FileQueue.Delete(v)
-					OpStrArr = OpStrArr[1:]
-					go ExecOpFile()
-					list = append(list, task)
-					continue
-				}
-				for _, v := range temp.Item {
-					if v.Size != v.ProcessedSize {
-						task.ProcessingPath = v.From
-						break
-					}
-				}
-
-				list = append(list, task)
-			}
-			model.Data = list
-
-			listMsg["file_operate"] = model
-			msg := make(map[string]string)
-			for k, v := range listMsg {
-				bt, _ := json.Marshal(v)
-				msg[k] = string(bt)
-			}
-			response, err := MyService.MessageBus().PublishEventWithResponse(context.Background(), common.SERVICENAME, common.EventFileOperate, msg)
-			if err != nil {
-				logger.Error("failed to publish event to message bus", zap.Error(err), zap.Any("event", msg))
-			}
-			if response.StatusCode() != http.StatusOK {
-				logger.Error("failed to publish event to message bus", zap.String("status", response.Status()), zap.Any("response", response))
-			}
-			time.Sleep(time.Second * 3)
-		}
+// publishFileOperateMessage marshals + publishes the file-operate
+// envelope to the message-bus. Errors are logged but not returned —
+// the publish is best-effort.
+func publishFileOperateMessage(listMsg map[string]interface{}) {
+	msg := make(map[string]string)
+	for k, v := range listMsg {
+		bt, _ := json.Marshal(v)
+		msg[k] = string(bt)
+	}
+	response, err := MyService.MessageBus().PublishEventWithResponse(context.Background(), common.SERVICENAME, common.EventFileOperate, msg)
+	if err != nil {
+		logger.Error("failed to publish event to message bus", zap.Error(err), zap.Any("event", msg))
+		return
+	}
+	if response.StatusCode() != http.StatusOK {
+		logger.Error("failed to publish event to message bus", zap.String("status", response.Status()), zap.Any("response", response))
 	}
 }
 
