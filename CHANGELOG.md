@@ -13,6 +13,227 @@ Each PR adds a tiny YAML fragment under `.changes/unreleased/<id>.yaml`.
 At release time, `changie batch <version>` aggregates the fragments into
 a new section below this header. See `CONTRIBUTING.md` for the workflow.
 
+## [v0.5.5] — 2026-05-09
+### Added
+- Sprint 4 prep audit: `docs/audits/sprint-4-app-management-prep.md`.
+
+Read-only deep-dive on the CasaOS surface still inside
+app-management (the largest service, ~13,300 LOC, the only one
+without a dedicated kill series). Maps every legacy item into 5
+risk-categorized buckets:
+
+1. Compose extension `x-casaos` (ecosystem-coupled, dual-read
+   already in place via `service/extension.go::extensionPriority`)
+2. Docker label `"casaos"` discriminator (4 sites; needs
+   dual-write migration before legacy label can be dropped)
+3. CasaOS-team URLs (intentional data sources, kept)
+4. Code-internal literals (~10 files; mostly mechanical, pre-v1.0
+   wire-format renames allowed)
+5. License headers / @FilePath markers (intentional attribution,
+   kept)
+
+Includes a suggested Sprint 4 PR breakdown ordered smallest-to-
+largest. Companion deep-dive to `docs/audits/casaos-dependencies.md`.
+
+Per ADR-0019: read-only audit, refreshed when Sprint 4 lands or
+when the compose-extension contract changes.
+
+### Changed
+- Two cosmetic CasaOS literals in app-management renamed to
+PowerLab equivalents. First of 5 PRs proposed in the Sprint 4
+prep audit (`docs/audits/sprint-4-app-management-prep.md`),
+ordered smallest-first.
+
+Renames:
+
+  .casaos-appstore       →  .powerlab-appstore
+      Marker file written into each app store dir to identify
+      store provenance from disk. Regenerated on every store
+      sync — no migration needed.
+
+  casaos-compose-app-*   →  powerlab-compose-app-*
+      os.MkdirTemp prefix for the working directory used while
+      parsing a docker-compose.yml. Temporary by definition,
+      cleaned up in the same function via defer.
+
+Both are pure-internal: no UI consumer, no wire format, no
+on-disk state worth migrating. Cosmetic surface cleanup so
+logs / strace / process listings stop advertising upstream
+CasaOS branding from inside a PowerLab process.
+
+- Rename `CasaOSGlobalVariables` struct → `AppLifecycleFlags`.
+Sprint 4 PR2 from the prep audit
+(`docs/audits/sprint-4-app-management-prep.md`).
+
+Same struct, same single field (`AppChange bool`), better name.
+Used as process-global state to invalidate the app-list cache
+when an install/uninstall handler in `route/v1/docker.go` flips
+the flag, then `service/container.go::GetContainerAppList`
+consumes it.
+
+6 sites renamed across 4 files:
+  - `model/sys_common.go`     (the struct itself + new godoc)
+  - `pkg/config/init.go`      (the package-global init)
+  - `route/v1/docker.go`      (2 setters in install + uninstall)
+  - `service/container.go`    (1 reader + 1 reset)
+
+No wire format. No UI consumer. No on-disk state. Pure-internal
+rename so the type name describes what it does instead of where
+it came from.
+
+### Fixed
+- install.sh now migrates `/var/lib/casaos/*` → `/var/lib/powerlab/*`
+on upgrade. Closes the v0.5.4 prod incident (issue #158) where
+hosts upgrading from v0.5.x lost access to user accounts because
+PR #140 flipped data paths but install.sh didn't migrate the data.
+
+Symptom on the affected host: every API returned 401 Unauthorized,
+login returned 400 Bad Request — user-service was reading an empty
+`/var/lib/powerlab/db/user.db` while the actual user data sat in
+`/var/lib/casaos/db/user.db`. Hot-fixed manually by copying the DBs.
+
+Fix: extracted the migration logic into a standalone testable
+script, `scripts/migrate-casaos-data.sh`, which install.sh sources
+and invokes after stopping services + before starting them. The
+script:
+
+  - Copies subdirs `db apps appstore conf 1` from
+    `/var/lib/casaos/<sub>` to `/var/lib/powerlab/<sub>` only
+    when destination doesn't exist (never overwrites live data).
+  - Copies known DB files individually (db/user.db,
+    db/message-bus.db, db/casaOS.db, db/local-storage.db,
+    db/local-storage.json) for the case where the destination
+    dir EXISTS but specific files are missing — the actual v0.5.4
+    mishap shape (message-bus had created /var/lib/powerlab/db/
+    with just message-bus.db, no user.db).
+  - Idempotent — safe to run on every upgrade; no-op when the
+    destination is fully populated.
+  - Source preserved (`/var/lib/casaos/*` not deleted) — leaves
+    a manual rollback path.
+
+Test coverage at `scripts/migrate-casaos-data_test.sh`:
+  - Test 1: v0.5.4 mishap scenario (user.db missing) → migrated;
+    message-bus.db NOT overwritten.
+  - Test 2: fresh install (no /var/lib/casaos) → no-op.
+  - Test 3: full upgrade (no /var/lib/powerlab) → all subdirs copied.
+  - Test 4: idempotent re-run → user mutations preserved.
+  - Test 5: source preservation → casaos files untouched.
+
+10 assertions across 5 scenarios. PREFIX env var lets the test
+point at a sandbox dir so no real /var/lib paths are touched.
+
+Closes #158.
+
+- Release builds now correctly stamp `commit`, `date`, and PowerLab
+version into the binaries. Closes the v0.5.4 mishap where the
+in-UI updater showed `current="dev"` and prompted "Update
+available" forever even when the user was on the latest release
+(issue #159).
+
+Two bugs in one ldflag string in `scripts/package-linux.sh`:
+
+  1. `-X main.version=$VERSION` — wrong variable name. Each
+     service's `main.go` declares `commit` and `date`, never
+     `version`. Go's `-X` is fail-soft: if the target var doesn't
+     exist, the build still succeeds, the assignment is silently
+     dropped, and the binary keeps the default `"private build"`.
+
+  2. `-X github.com/IceWhaleTech/CasaOS/common.POWERLAB_VERSION=...`
+     — dead path after PR #151 renamed every Go module to
+     `github.com/neochaotic/powerlab/backend/*`. Same fail-soft
+     behavior: silently no-op, version constant stays "dev".
+
+Fix sets the four ldflags that actually exist in the codebase:
+
+  -X main.commit=<git short SHA>                     (every service)
+  -X main.date=<UTC ISO-8601 timestamp>              (every service)
+  -X github.com/neochaotic/powerlab/backend/core/common.POWERLAB_VERSION=$VERSION
+                                                     (core only —
+                                                     Go ignores the
+                                                     flag for other
+                                                     services)
+  -X github.com/neochaotic/powerlab/backend/core/route/v1.powerLabVersionAtCompileTime=$VERSION
+                                                     (read by the
+                                                     updater's
+                                                     currentPowerLab-
+                                                     Version() to
+                                                     compare against
+                                                     the manifest)
+
+Includes regression test at
+`scripts/check-package-linux-ldflags_test.sh` (8 assertions):
+  - All 4 expected ldflag target paths are present in package-
+    linux.sh
+  - The 2 deprecated targets (the v0.5.4 mishap shapes) are
+    absent
+  - The 2 target Go vars (POWERLAB_VERSION, powerLabVersion-
+    AtCompileTime) actually exist in the source — catches future
+    renames that would silently break the build pipeline.
+
+Closes #159.
+
+### Internal
+- Pre-tag check: `scripts/check-manifest-fresh.sh` refuses to
+proceed when `release-manifest.yaml` summary is identical to
+the previously published GitHub release's summary.
+
+Catches the failure mode that bit v0.5.4: maintainer forgot
+to update the YAML, so the manifest.json shipped with v0.5.0's
+summary text. Hot-fixed via `gh release upload manifest.json
+--clobber` after the fact (see issue #156).
+
+Wired into `docs/release-checklist.md` Phase 1.
+
+Includes regression tests at
+`scripts/check-manifest-fresh_test.sh` covering:
+  - Identical summary → exit 1 (the v0.5.4 case)
+  - Different summary → exit 0
+  - Empty summary in fixture → exit 0 (defensive)
+  - Nonexistent fixture path → exit 2
+
+Also refreshed `release-manifest.yaml` summary to match v0.5.4's
+hot-patched text — so v0.5.5 maintainer must edit the YAML
+before tagging, otherwise the new check blocks them.
+
+- Release v0.5.5 — v0.5.4 incident hotfix. Two real upgrade-path
+bugs fixed with regression tests:
+
+  - #158: install.sh now auto-migrates /var/lib/casaos/* →
+    /var/lib/powerlab/* on upgrade. Without this, v0.5.x → v0.5.4
+    hosts ended up with empty /var/lib/powerlab/db/ → user-service
+    couldn't find users → login returned 400 → UI unusable.
+    Hot-fixed manually on the affected host; this PR closes the
+    class permanently. 5-scenario regression test
+    (scripts/migrate-casaos-data_test.sh) locks the behavior.
+
+  - #159: release builds now correctly inject commit / build-date /
+    version into the binary. The v0.5.4 ldflag string was double-
+    broken — wrong variable name AND dead module path (after #151
+    module rename). Result: binary identified itself as "dev",
+    in-UI updater showed "Update available" forever even on the
+    latest release, triggered no-op upgrade loop that restarted
+    services + invalidated JWT. Two regression tests
+    (check-package-linux-ldflags_test.sh + main_version_stamp_test.go)
+    catch future bit-rot of the build pipeline.
+
+  - #156: pre-tag check that release-manifest.yaml summary was
+    refreshed for the new version. The check failed when this
+    paragraph was being drafted — exactly the case it was added
+    to catch. 4-assertion regression test
+    (check-manifest-fresh_test.sh).
+
+Plus Sprint 4 progress (still in flight):
+  - #85 PR1: rename .casaos-appstore + casaos-compose-app-* internal
+    literals.
+  - #85 PR2: CasaOSGlobalVariables struct → AppLifecycleFlags.
+  - Sprint 4 prep audit at
+    docs/audits/sprint-4-app-management-prep.md.
+
+No end-user behavior change beyond the bug fixes — same wire
+formats, same DB schema, same settings.
+
+
+
 ## [v0.5.4] — 2026-05-09
 ### Added
 - Sprint 3 closeout documentation.

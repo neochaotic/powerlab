@@ -31,13 +31,25 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Sprint 3 closeout — "kill CasaOS" rebrand wave. ~3500 LOC removed:
-  cloud drive backends gone (Dropbox/Google Drive/OneDrive), all Go
-  module paths renamed to PowerLab-owned, /etc/casaos → /etc/powerlab
-  paths migrated. Real prod bug fix: install.sh shipped
-  casaos.conf.sample but systemd starts core with -c core.conf —
-  defaults were silently dropped. No end-user behavior change beyond
-  the bug fix.
+  v0.5.4 incident hotfix release. Two real upgrade-path bugs that
+  bit a v0.5.x → v0.5.4 user — both fixed with regression tests.
+
+  install.sh now auto-migrates /var/lib/casaos/* → /var/lib/powerlab/*
+  on upgrade (#158). Without this, v0.5.4 left existing user accounts
+  stranded in the old data dir → login returned 400 → UI unusable.
+  Five-scenario regression test locks the behavior.
+
+  Release builds now correctly stamp version / commit / build-date
+  into the binary (#159). The old ldflag string targeted dead
+  variables silently — the v0.5.4 binary identified itself as
+  "dev", which made the in-UI updater prompt "Update available"
+  forever and trigger a no-op upgrade loop. Two layers of
+  regression tests catch any future bit-rot of the build pipeline.
+
+  Plus pre-tag check that the release-manifest.yaml summary was
+  refreshed (#156 — the very check that forced this paragraph to
+  exist). Sprint 4 PR1+PR2 cosmetic CasaOS literal renames in
+  app-management. Sprint 4 prep audit doc.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
