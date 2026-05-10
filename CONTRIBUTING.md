@@ -145,4 +145,4 @@ The script bails on the first failure and prints exactly what broke. It catches 
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the PolyForm Noncommercial License 1.0.0.
+By contributing, you agree that your contributions will be licensed under the GNU Affero General Public License v3.0 — see the project's `LICENSE` file at the repo root for the full text.

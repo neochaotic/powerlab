@@ -1,0 +1,23 @@
+kind: Fixed
+body: |
+  Sprint 5.5 quality wave — 3 quick-win fixes from the audit
+  at `docs/audits/quality-and-tech-debt-2026-05-10.md` (PR #216):
+
+  1. **CONTRIBUTING.md license bug** — declared "PolyForm
+     Noncommercial License 1.0.0" but the actual `LICENSE` file
+     is AGPL-3.0 (matched by README, SECURITY.md, mkdocs site).
+     Single-line legal contract bug; corrected to AGPL-3.0.
+
+  2. **README stale facts** — install command pinned `v0.1.5`
+     (current is v0.5.11); architecture diagram showed gateway
+     on `:80 / :443` (real ports `:8765 / :8443`).
+
+  3. **ADR index outdated** — `docs/decisions/README.md` listed
+     only ADRs 0001-0012; missing 11 newer ADRs (including the
+     governance-critical ADR-0019, ADR-0020 JWT keypair,
+     ADR-0021 coexistence, ADR-0022 CasaOS-abandoned). Added all
+     missing entries + a note explaining the duplicate 0011/0012
+     numbering (two files at each ID because they landed in
+     parallel branches).
+custom:
+  Issue: "216"
