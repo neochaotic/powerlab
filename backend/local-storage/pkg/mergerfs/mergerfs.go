@@ -1,3 +1,10 @@
+// Package mergerfs is a typed Go wrapper around the mergerfs control
+// file (the magic ".mergerfs" extended-attribute interface mergerfs
+// exposes inside every mounted union). All operations boil down to
+// listxattr/getxattr/setxattr on that file.
+//
+// Used by the disk-management service to add/remove branches from
+// the /DATA mergerfs union as disks are inserted + ejected.
 package mergerfs
 
 import (
@@ -8,10 +15,15 @@ import (
 	"syscall"
 )
 
+// ControlFile returns the path of the .mergerfs control file inside
+// the union mounted at fspath.
 func ControlFile(fspath string) string {
 	return filepath.Join(fspath, ".mergerfs")
 }
 
+// ListValues returns every user.mergerfs.* xattr key/value pair on
+// the union's control file. Used by the admin UI's "merge config"
+// inspector.
 func ListValues(fspath string) (map[string]string, error) {
 	ctrlfile := ControlFile(fspath)
 
@@ -41,6 +53,8 @@ func ListValues(fspath string) (map[string]string, error) {
 	return values, nil
 }
 
+// SetSource replaces the union's branch list with sources. Dedupes
+// to avoid bouncing the union when the same branch is passed twice.
 func SetSource(fspath string, sources []string) error {
 	ctrlfile := ControlFile(fspath)
 
@@ -67,6 +81,8 @@ func SetSource(fspath string, sources []string) error {
 	return err
 }
 
+// GetSource returns the union's current source branch list as
+// reported by the user.mergerfs.srcmounts xattr.
 func GetSource(fspath string) ([]string, error) {
 	values, err := ListValues(fspath)
 	if err != nil {
@@ -76,6 +92,8 @@ func GetSource(fspath string) ([]string, error) {
 	return strings.Split(values["user.mergerfs.srcmounts"], ":"), nil
 }
 
+// AddSource adds source to the union's branch list. Mergerfs's
+// "+source" syntax means "append, don't replace".
 func AddSource(fspath string, source string) error {
 	ctrlfile := ControlFile(fspath)
 
@@ -85,6 +103,8 @@ func AddSource(fspath string, source string) error {
 	return syscall.Setxattr(ctrlfile, key, value, 0)
 }
 
+// RemoveSource removes source from the union's branch list via
+// mergerfs's "-source" syntax.
 func RemoveSource(fspath string, source string) error {
 	ctrlfile := ControlFile(fspath)
 
@@ -94,11 +114,14 @@ func RemoveSource(fspath string, source string) error {
 	return syscall.Setxattr(ctrlfile, key, value, 0)
 }
 
+// AddPath is the legacy alias for AddSource — kept for callers
+// that import the older API name.
 func AddPath(fspath string, path string) error {
 	ctrlfile := ControlFile(fspath)
 	return AddSource(ctrlfile, path)
 }
 
+// RemovePath is the legacy alias for RemoveSource.
 func RemovePath(fspath string, path string) error {
 	ctrlfile := ControlFile(fspath)
 	return RemoveSource(ctrlfile, path)

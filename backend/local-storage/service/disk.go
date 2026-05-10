@@ -16,6 +16,8 @@ import (
 	"strings"
 	"time"
 
+	jsoniter "github.com/json-iterator/go"
+	"github.com/moby/sys/mountinfo"
 	command2 "github.com/neochaotic/powerlab/backend/common/utils/command"
 	"github.com/neochaotic/powerlab/backend/common/utils/constants"
 	"github.com/neochaotic/powerlab/backend/common/utils/exec"
@@ -31,32 +33,75 @@ import (
 	model2 "github.com/neochaotic/powerlab/backend/local-storage/service/model"
 	v2 "github.com/neochaotic/powerlab/backend/local-storage/service/v2"
 	"github.com/neochaotic/powerlab/backend/local-storage/service/v2/fs"
-	jsoniter "github.com/json-iterator/go"
-	"github.com/moby/sys/mountinfo"
 	"gorm.io/gorm"
 )
 
+// DiskService is the disk-management surface — block-device
+// inspection (lsblk + smartctl), partition + format ops, mount-on-
+// boot persistence, and the merge-pool seeding logic that wires
+// /DATA up on first boot.
 type DiskService interface {
+	// EnsureDefaultMergePoint creates the /DATA mergerfs mount on
+	// first boot and re-uses it on subsequent boots. Returns true
+	// when the mount point exists + is healthy.
 	EnsureDefaultMergePoint() bool
+	// AddPartition partitions the given block device with a single
+	// powerlab-formatted partition spanning the full disk.
 	AddPartition(path string) error
+	// DeletePartition removes the partition table from the given
+	// block device. Destructive.
 	DeletePartition(path string) error
+	// CheckSerialDiskMount re-validates every saved mount entry
+	// against the live block-device list and removes stale ones.
+	// Called at startup + on hot-plug.
 	CheckSerialDiskMount()
+	// FormatDisk re-formats the given block device with the
+	// powerlab default filesystem (ext4). Destructive.
 	FormatDisk(path string) error
+	// GetDiskInfo returns the lsblk row for the given block device,
+	// or a zero LSBLKModel if not found.
 	GetDiskInfo(path string) model.LSBLKModel
+	// GetPersistentTypeByUUID reports whether the volume identified
+	// by uuid is persisted via fstab, the powerlab DB, or not at
+	// all. Drives the "Auto-mount on boot" UI badge.
 	GetPersistentTypeByUUID(uuid string) string
+	// GetUSBDriveStatusList returns the USB drive lifecycle list
+	// (mount status + label) used by the USB widget.
 	GetUSBDriveStatusList() []model.USBDriveStatus
+	// LSBLK returns the system block-device list. isUseCache true
+	// returns the cached snapshot (cheap); false re-runs lsblk.
 	LSBLK(isUseCache bool) []model.LSBLKModel
+	// MountDisk mounts path at /mnt/<volume>, creating the dir if
+	// missing. Returns the actual mount point on success.
 	MountDisk(path, volume string) (string, error)
+	// RemoveLSBLKCache invalidates the LSBLK cache so the next
+	// LSBLK(true) re-shells out.
 	RemoveLSBLKCache()
+	// SmartCTL returns the smartctl readout for the given device,
+	// from cache when available.
 	SmartCTL(path string) model.SmartctlA
+	// UmountPointAndRemoveDir unmounts the given block device's
+	// mount point and removes the now-empty directory.
 	UmountPointAndRemoveDir(m model.LSBLKModel) error
+	// UmountUSB unmounts a USB device by path. Used by the eject
+	// button.
 	UmountUSB(path string) error
 
+	// UpdateMountPointInDB upserts a volume row.
 	UpdateMountPointInDB(m model2.Volume) error
+	// DeleteMountPointFromDB removes the volume row identified by
+	// (path, mountPoint).
 	DeleteMountPointFromDB(path, mountPoint string) error
+	// GetSerialAllFromDB returns every persisted volume row.
 	GetSerialAllFromDB() ([]model2.Volume, error)
+	// SaveMountPointToDB inserts a new volume row, returning
+	// ErrVolumeWithEmptyUUID if the volume has no UUID.
 	SaveMountPointToDB(m model2.Volume) error
+	// InitCheck runs at process start: validates the merge point,
+	// re-mounts persisted volumes, and warns on schema drift.
 	InitCheck()
+	// GetSystemDf returns df-style free-space stats for the root
+	// filesystem.
 	GetSystemDf() (model.DFDiskSpace, error)
 }
 
@@ -804,10 +849,14 @@ func (d *diskService) GetSystemDf() (model.DFDiskSpace, error) {
 	return model.DFDiskSpace{}, errors.New("not found")
 }
 
+// NewDiskService returns a DiskService backed by db.
 func NewDiskService(db *gorm.DB) DiskService {
 	return &diskService{db: db}
 }
 
+// IsDiskSupported reports whether the given block device is one
+// PowerLab is willing to manage. Filters out optical drives,
+// loop devices, and other non-storage types.
 func IsDiskSupported(d model.LSBLKModel) bool {
 	return d.Tran == "sata" ||
 		d.Tran == "nvme" ||
@@ -820,6 +869,9 @@ func IsDiskSupported(d model.LSBLKModel) bool {
 		strings.Contains(d.SubSystems, "block:scsi:pci") || d.Tran == "usb"
 }
 
+// IsFormatSupported reports whether the given block device's
+// current filesystem is one PowerLab can mount + manage (vs.
+// "unknown" / proprietary types we won't touch).
 func IsFormatSupported(d model.LSBLKModel) bool {
 	if d.FsType == "vfat" || d.FsType == "ext4" || d.FsType == "ext3" || d.FsType == "ext2" || d.FsType == "exfat" || d.FsType == "ntfs-3g" || d.FsType == "iso9660" {
 		return true
@@ -827,6 +879,9 @@ func IsFormatSupported(d model.LSBLKModel) bool {
 	return false
 }
 
+// WalkDisk does a depth-limited DFS over a block-device tree
+// (lsblk produces a tree because of partitions/LVM/dm). Returns
+// the first node where shouldStopAt(blk) returns true, or nil.
 func WalkDisk(rootBlk model.LSBLKModel, depth uint, shouldStopAt func(blk model.LSBLKModel) bool) *model.LSBLKModel {
 	if shouldStopAt(rootBlk) {
 		return &rootBlk
@@ -845,6 +900,8 @@ func WalkDisk(rootBlk model.LSBLKModel, depth uint, shouldStopAt func(blk model.
 	return nil
 }
 
+// ParseBlockDevices parses raw `lsblk -J` JSON output into the
+// LSBLKModel tree. Exported for use by the migration tool.
 func ParseBlockDevices(str []byte) ([]model.LSBLKModel, error) {
 	var blkList []model.LSBLKModel
 	if err := json2.Unmarshal([]byte(jsoniter.Get(str, "blockdevices").ToString()), &blkList); err != nil {

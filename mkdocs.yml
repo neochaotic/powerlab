@@ -167,6 +167,21 @@ nav:
           - utils/jwt: api/common/utils/jwt.md
           - pkg/security: api/common/pkg/security.md
           - utils: api/common/utils.md
+      - local-storage:
+          - Index: api/local-storage/index.md
+          - common: api/local-storage/common.md
+          - model: api/local-storage/model.md
+          - service: api/local-storage/service.md
+          - service/v2: api/local-storage/service/v2.md
+          - route v1: api/local-storage/route/v1.md
+          - route v2: api/local-storage/route/v2.md
+          - pkg/mount: api/local-storage/pkg/mount.md
+          - pkg/fstab: api/local-storage/pkg/fstab.md
+          - pkg/partition: api/local-storage/pkg/partition.md
+          - pkg/mergerfs: api/local-storage/pkg/mergerfs.md
+          - pkg/sign: api/local-storage/pkg/sign.md
+          - pkg/sqlite: api/local-storage/pkg/sqlite.md
+          - pkg/cache: api/local-storage/pkg/cache.md
   - Audits:
       - Database paths: audits/db-paths.md
       - CasaOS dependencies: audits/casaos-dependencies.md

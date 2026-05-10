@@ -1,3 +1,7 @@
+// Package fstab is a typed reader/writer for /etc/fstab. The
+// disk-management service uses it to persist mount-on-boot entries
+// and to clean them up on volume delete. Backed up to .casaos.bak
+// before every mutation.
 package fstab
 
 import (
@@ -9,6 +13,10 @@ import (
 	"strings"
 )
 
+// fsck Pass values — used in the 6th column of an fstab entry.
+// PassDoNotCheck disables boot-time fsck (recommended for non-root
+// filesystems); 1 + 2 enable it at root + non-root respectively.
+// DefaultPath is /etc/fstab — overridable for tests.
 const (
 	PassDoNotCheck      = 0
 	PassCheckDuringBoot = 1
@@ -24,6 +32,9 @@ var (
 	ErrDifferentFSTabEntryWithSameMountPoint = errors.New("a different fstab entry with the same mount point already exists")
 )
 
+// Entry is one row in /etc/fstab. Fields map directly to the 6 tab-
+// separated columns. FStab is the file-handle-shaped wrapper that
+// exposes Add/Remove/Get* operations.
 type (
 	Entry struct {
 		// The device name, label, UUID, or other means of specifying the partition or data source this entry refers to.
@@ -50,10 +61,17 @@ type (
 	}
 )
 
+// String renders the entry in the 6-column tab-separated format
+// /etc/fstab expects. No trailing newline.
 func (e *Entry) String() string {
 	return e.Source + "\t" + e.MountPoint + "\t" + e.FSType + "\t" + e.Options + "\t" + strconv.Itoa(e.Dump) + "\t" + strconv.Itoa(e.Pass)
 }
 
+// Add appends e to /etc/fstab, taking a backup at .casaos.bak first.
+// If a different entry already exists at the same MountPoint, returns
+// ErrDifferentFSTabEntryWithSameMountPoint unless replace is true
+// (in which case the old entry is removed before the new one is
+// added).
 func (f *FStab) Add(e Entry, replace bool) error {
 	entry, err := f.GetEntryByMountPoint(e.MountPoint)
 	if err != nil {
@@ -93,6 +111,9 @@ func (f *FStab) Add(e Entry, replace bool) error {
 	return err
 }
 
+// RemoveByMountPoint removes the entry whose MountPoint matches.
+// When comment is true the line is preserved with a leading "#"
+// instead of being deleted — useful for revertable changes.
 func (f *FStab) RemoveByMountPoint(mountpoint string, comment bool) error {
 	FStabPathNew := f.path + ".casaos.new"
 	FStabFileNew, err := os.OpenFile(FStabPathNew, os.O_CREATE|os.O_WRONLY, 0o644)
@@ -123,6 +144,9 @@ func (f *FStab) RemoveByMountPoint(mountpoint string, comment bool) error {
 	return os.Rename(FStabPathNew, f.path)
 }
 
+// GetEntries returns every parsed entry in /etc/fstab, skipping
+// comment lines + blank lines. Malformed rows return
+// ErrInvalidFSTabEntry.
 func (f *FStab) GetEntries() ([]*Entry, error) {
 	entries := []*Entry{}
 
@@ -142,6 +166,8 @@ func (f *FStab) GetEntries() ([]*Entry, error) {
 	return entries, nil
 }
 
+// GetEntryByMountPoint returns the entry whose MountPoint matches,
+// or (nil, nil) if none match.
 func (f *FStab) GetEntryByMountPoint(mountpoint string) (*Entry, error) {
 	entries, err := f.GetEntries()
 	if err != nil {
@@ -157,6 +183,8 @@ func (f *FStab) GetEntryByMountPoint(mountpoint string) (*Entry, error) {
 	return nil, nil
 }
 
+// GetEntryBySource returns the entry whose Source (device path /
+// UUID / label) matches, or (nil, nil) if none match.
 func (f *FStab) GetEntryBySource(source string) (*Entry, error) {
 	entries, err := f.GetEntries()
 	if err != nil {
@@ -172,6 +200,8 @@ func (f *FStab) GetEntryBySource(source string) (*Entry, error) {
 	return nil, nil
 }
 
+// Get returns the package-level FStab singleton bound to
+// DefaultPath (/etc/fstab). Lazy-initialised on first call.
 func Get() *FStab {
 	if _fstab == nil {
 		_fstab = &FStab{

@@ -1,3 +1,8 @@
+// Package sqlite wraps gorm + sqlite + the versioned migration
+// runner (ADR-0018) into the two constructors the local-storage
+// service needs at startup. The HookBefore/After* constants are
+// the GORM lifecycle hook names re-exported as strings so callers
+// can wire callbacks without re-importing GORM.
 package sqlite
 
 import (
@@ -5,12 +10,14 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/neochaotic/powerlab/backend/common/utils/file"
 	"github.com/glebarez/sqlite"
+	"github.com/neochaotic/powerlab/backend/common/utils/file"
 	pkgmigrations "github.com/neochaotic/powerlab/backend/pkg/migrations"
 	"gorm.io/gorm"
 )
 
+// ContextKey is the typed key wrapper used by the sqlite package's
+// context-based DB injection (avoids the "string in context" lint).
 type ContextKey string
 
 const (
@@ -108,6 +115,9 @@ func hookFunc(name string) func(d *gorm.DB) {
 	}
 }
 
+// GetDBByFile opens (or creates) the sqlite database at dbFile and
+// returns a configured *gorm.DB. Used by the migration tool which
+// needs to point at non-default paths.
 func GetDBByFile(dbFile string) *gorm.DB {
 	db, err := gorm.Open(sqlite.Open(dbFile), &gorm.Config{})
 	if err != nil {
@@ -138,6 +148,9 @@ func GetDBByFile(dbFile string) *gorm.DB {
 	return db.WithContext(ctx)
 }
 
+// GetGlobalDB opens the canonical local-storage sqlite database
+// under dbPath, creates the parent dir at 0o755 if missing, and
+// runs versioned migrations (ADR-0018) before returning.
 func GetGlobalDB(dbPath string) *gorm.DB {
 	if _gdb != nil {
 		return _gdb

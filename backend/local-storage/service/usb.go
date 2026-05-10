@@ -10,11 +10,22 @@ import (
 	"github.com/shirou/gopsutil/host"
 )
 
+// USBService manages the USB-auto-mount toggle (admin UI setting +
+// the underlying udev rule that implements it) and exposes a couple
+// of host-info helpers used by the device-tree-aware mount logic on
+// SBCs.
 type USBService interface {
+	// UpdateUSBAutoMount writes state ("True"/"False") to the
+	// [server] USBAutoMount config key and persists the conf file.
 	UpdateUSBAutoMount(state string)
+	// ExecUSBAutoMountShell runs the helper shell script that
+	// installs/removes the udev rule mirroring the in-memory state.
 	ExecUSBAutoMountShell(state string)
-
+	// GetSysInfo returns the current host info (gopsutil) — used to
+	// pick mount strategies on RPi vs x86.
 	GetSysInfo() host.InfoStat
+	// GetDeviceTree returns the contents of /proc/device-tree/model
+	// (Linux SBCs) or empty string on systems without it.
 	GetDeviceTree() (string, error)
 }
 
@@ -64,6 +75,8 @@ func (s *usbService) GetDeviceTree() (string, error) {
 	return string(deviceTree), nil
 }
 
+// NewUSBService returns a USBService with no startup work — the
+// underlying state lives in config and on the host (udev rules).
 func NewUSBService() USBService {
 	return &usbService{}
 }
