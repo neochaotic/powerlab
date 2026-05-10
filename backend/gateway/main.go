@@ -77,7 +77,7 @@ var (
 
 	ErrCheckURLNotOK = errors.New("check url did not return 200 OK")
 
-	//go:embed build/sysroot/etc/casaos/gateway.ini.sample
+	//go:embed build/sysroot/etc/powerlab/gateway.ini.sample
 	_confSample string
 )
 

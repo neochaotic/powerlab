@@ -1,0 +1,5 @@
+[common]
+runtimepath=/var/run/powerlab
+
+[gateway]
+port=
