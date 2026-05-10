@@ -1,0 +1,30 @@
+kind: Internal
+body: |
+  Sprint 6 retrospective doc — closure artifact for the Quality
+  Consolidation YOLO sprint.
+
+  Headline: 8-module godoc raise initiative (#196) closed —
+  every backend service is at ≥70% coverage with a curated
+  landing page on the public docs site (pkg, gateway,
+  user-service, message-bus, common, local-storage,
+  app-management, core). 6 godoc PRs (#221-#226) + the
+  obliterate wave from audit #203 + v0.5.10 + v0.5.11 + the
+  TODO/FIXME burndown all landed in this sprint window.
+
+  Retro covers: what went well (raise pattern generalized,
+  scoping survived the biggest module, YOLO discipline held,
+  bug-fix=regression-test held on the flaky kill, Sprint 7 prep
+  landed in Sprint 6), what went wrong (stray ui/ trailing-space
+  dir, stale wakeup callbacks, gofmt fights, the SystemService
+  meta-question), what surprised us (audit coverage numbers
+  inaccurate, common had highest leverage, UI files biggest in
+  the repo), what we shipped (releases, PR table, doc deltas),
+  process changes ratified (worktree-per-PR, intentional-non-
+  coverage sections, plan-only doc PRs as Sprint-N+1 prep), open
+  backlog (long-file refactor #216 → #227, integration coverage
+  #150, real-upgrade test #169, E2E #108), and what to do
+  differently in Sprint 7.
+
+  Per ADR-0019 retrospectives live in docs/audits/.
+custom:
+  Issue: "196"
