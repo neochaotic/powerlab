@@ -1,0 +1,27 @@
+kind: Internal
+body: |
+  Sprint 4 / #85 foundation — adds ADR-0021 + the
+  `backend/app-management/common/labels.go` package that will be the
+  single source of truth for every Docker container label PowerLab
+  reads or writes. No service code changes yet; the next sub-PR
+  rewrites the call sites in service/container.go and friends to
+  consume `common.IsPowerLabApp` / `common.LabelValue` /
+  `common.BuildLabels`.
+
+  ADR-0021 records two coexistence decisions:
+
+  - Container labels move from unnamespaced flat keys (`casaos`,
+    `origin`, `icon`, ...) to canonical `io.powerlab.v1.*`
+    reverse-DNS names. One release window of dual-write keeps
+    existing PowerLab containers visible.
+  - AppData tree moves from `<StoragePath>/AppData/` (collides with
+    CasaOS) to `<StoragePath>/PowerLabAppData/` (per-product).
+
+  16 regression test cases in `common/labels_test.go` +
+  `common/appdata_test.go` lock the dual-read / dual-write contract,
+  the AppData rename, and the legacy-key completeness invariant.
+
+  This is the first of ~3 sub-PRs for #85. PR-B wires service code
+  to the new helpers; PR-C does the AppData on-boot migration.
+custom:
+  Issue: "85"
