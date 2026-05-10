@@ -72,7 +72,7 @@ var appManagementListAppsCmd = &cobra.Command{
 
 				message := string(body)
 				if message == "" {
-					message = "is the casaos-app-management service running?"
+					message = "is the powerlab-app-management service running?"
 				}
 
 				return fmt.Errorf("%s - %s", response.Status, message)

@@ -109,3 +109,6 @@ docs/api/pkg/lifecycle.md
 docs/api/pkg/logging.md
 docs/api/pkg/migrations.md
 docs/api/pkg/tracing.md
+
+# Local dev runtime log dirs that get accidentally committed
+backend/*/local_data/log/
