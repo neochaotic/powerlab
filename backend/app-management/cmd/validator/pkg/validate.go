@@ -20,7 +20,7 @@ func VaildDockerCompose(yaml []byte) (err error) {
 	// x-casaos. See service/extension.go.
 	ex, _, ok := service.LookupAppExtension(docker.Extensions)
 	if !ok {
-		return service.ErrComposeExtensionNameXCasaOSNotFound
+		return service.ErrComposeExtensionNotFound
 	}
 
 	var storeInfo codegen.ComposeAppStoreInfo
