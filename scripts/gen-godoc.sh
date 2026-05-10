@@ -83,7 +83,7 @@ The pages below are auto-generated from the Go source via [gomarkdoc](https://gi
 
 ## Service packages
 
-Per-service Go packages (`backend/<svc>/`) are NOT in this site yet — godoc coverage there is below the 70% threshold for inclusion (see [issue #196](../../audits/godoc-coverage.md)). They'll be surfaced once each service hits the bar.
+Per-service Go packages (`backend/<svc>/`) are NOT in this site yet — godoc coverage there is below the 70% threshold for inclusion (tracked in [issue #196](https://github.com/neochaotic/powerlab/issues/196) with a per-module raise plan). They'll be surfaced once each service hits the bar.
 
 For now, browse them on GitHub:
 
