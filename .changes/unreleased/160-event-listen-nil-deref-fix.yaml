@@ -1,0 +1,40 @@
+kind: Fixed
+body: |
+  user-service `EventListen` no longer crashes its goroutine when
+  message-bus disconnects or sends a malformed event payload (#160).
+
+  The original code had three nil-deref paths that combined to
+  panic on every message-bus restart cycle:
+
+    1. `ws.Read` err → no continue, fell through to unmarshal of
+       zero bytes
+    2. `json.Unmarshal` err → no continue, fell through to
+       `*event.Uuid`
+    3. `event.Uuid == nil` even when unmarshal succeeded (no uuid
+       in payload) → panic at the assignment
+
+  SafeGo (pkg/lifecycle) recovered the panic so the process kept
+  running, but the goroutine died on every cycle. Visible in
+  production logs every time the user clicked the Update button
+  (which restarts message-bus mid-flight) — see #160 for context.
+
+  Fix extracts payload parsing into `parseEventPayload()` returning
+  `(*EventModel, error)` instead of mutating shared state inline.
+  Each error path returns a useful message; caller skips that
+  message and stays connected.
+
+  Regression test at `event_listen_test.go` — 6 cases:
+    - empty payload returns error (the v0.5.4 disconnect shape)
+    - malformed JSON returns error
+    - missing uuid returns error (the actual line:77 crash shape)
+    - null uuid returns error
+    - valid payload returns full model
+    - fuzz: 9 crash-prone inputs, none panic
+
+  Bonus fix: `ws.Read` error now `break`s the inner loop (was
+  silent fall-through) so the outer reconnect loop fires
+  immediately instead of cycling on dead websocket reads.
+
+  Closes #160.
+custom:
+  Issue: "160"
