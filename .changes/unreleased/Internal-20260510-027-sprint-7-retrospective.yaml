@@ -1,0 +1,30 @@
+kind: Internal
+body: |
+  Sprint 7 retrospective doc — closure artifact for the
+  Refactor track + E2E expansion sprint.
+
+  Headline: 6 PRs delivered (#229 #230 #231 #232 #233 #234) —
+  every Go-side god file/function from audit #216 §D + §E split,
+  the audit-flagged GetDownloadSingleFile panic converted to
+  proper error return, and E2E went from 1 baseline smoke to
+  10 tests across 6 specs.
+
+  Open Sprint 7 backlog: UI splits #3+#4 from #227 (await user
+  OK due to behaviour-sensitivity; now have E2E safety net via
+  #234), backend integration coverage #150 (needs Docker),
+  real-upgrade test finish #169.
+
+  Trust-dance UX redo (#118) explicitly removed from Sprint 7
+  scope per user mid-sprint.
+
+  Process changes ratified: run E2E locally before push (memory
+  feedback_e2e_run_local_first), never weaken tests just to
+  make them pass (memory feedback_no_apagar_test_para_passar),
+  plan-only doc PR during sprint-end CI waits (#227 was
+  drafted during Sprint 6 close), explicit Playwright route
+  precedence for overlapping mocks (CI-vs-local divergence on
+  the version-handshake mock burned 1 round of CI).
+
+  Per ADR-0019 retrospectives live in docs/audits/.
+custom:
+  Issue: "227"
