@@ -1,13 +1,3 @@
-/*
- * @Author: LinkLeong link@icewhale.com
- * @Date: 2022-05-13 18:15:46
- * @LastEditors: LinkLeong
- * @LastEditTime: 2022-09-05 11:58:02
- * @FilePath: /CasaOS/pkg/config/init.go
- * @Description:
- * @Website: https://www.casaos.io
- * Copyright (c) 2022 by icewhale, All Rights Reserved.
- */
 package config
 
 import (
