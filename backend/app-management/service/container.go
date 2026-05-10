@@ -382,6 +382,16 @@ func (ds *dockerService) CreateContainerShellSession(container, row, col string)
 // param mapPort 容器主端口映射到外部的端口
 // param tcp 容器其他tcp端口
 // param udp 容器其他udp端口
+// CreateContainer builds a docker container spec from the V1 install
+// form's CustomizationPostData and creates the container. Spec
+// building is delegated to the `build*` helpers in
+// container_helpers.go (Sprint 7 #5 extraction); this function is
+// the orchestration body.
+//
+// When id refers to an existing PowerLab-managed container, the
+// existing host config + non-app fields are reused (preserves
+// hand-tweaks on edit); the app-managed fields are always
+// overwritten from m.
 func (ds *dockerService) CreateContainer(m model.CustomizationPostData, id string) (containerID string, err error) {
 	if len(m.NetworkModel) == 0 {
 		m.NetworkModel = "bridge"
@@ -391,118 +401,21 @@ func (ds *dockerService) CreateContainer(m model.CustomizationPostData, id strin
 	if err != nil {
 		return "", err
 	}
-
 	defer cli.Close()
-	ports := make(nat.PortSet)
-	portMaps := make(nat.PortMap)
 
-	for _, portMap := range m.Ports {
-		protocol := strings.ToLower(portMap.Protocol)
-
-		if !lo.Contains([]string{"tcp", "udp", "both"}, protocol) {
-			message := "unknown protocol"
-			logger.Error(message, zap.String("protocol", protocol))
-			return "", errors.New(message)
-		}
-
-		protocols := strings.Replace(protocol, "both", "tcp,udp", -1)
-		for _, p := range strings.Split(protocols, ",") {
-			tContainer, _ := strconv.Atoi(portMap.ContainerPort)
-			if tContainer > 0 {
-				ports[nat.Port(portMap.ContainerPort+"/"+p)] = struct{}{}
-				if m.NetworkModel != "host" {
-					portMaps[nat.Port(portMap.ContainerPort+"/"+p)] = []nat.PortBinding{{HostPort: portMap.CommendPort}}
-				}
-			}
-		}
+	ports, portMaps, err := buildPortBindings(m.Ports, m.NetworkModel)
+	if err != nil {
+		return "", err
 	}
 
-	var envArr []string
-
-	showENV := []string{"casaos"}
-
-	for _, e := range m.Envs {
-		showENV = append(showENV, e.Name)
-		if strings.HasPrefix(e.Value, "$") {
-			systemTimeZoneName := timeutils.GetSystemTimeZoneName()
-			envArr = append(envArr, e.Name+"="+envHelper.ReplaceDefaultENV(e.Value, systemTimeZoneName))
-			continue
-		}
-		if len(e.Value) > 0 {
-			if e.Value == "port_map" {
-				envArr = append(envArr, e.Name+"="+m.PortMap)
-				continue
-			}
-			envArr = append(envArr, e.Name+"="+e.Value)
-		}
-	}
-
-	res := container.Resources{}
-	if m.CPUShares > 0 {
-		res.CPUShares = m.CPUShares
-	}
-	if m.Memory > 0 {
-		res.Memory = m.Memory << 20
-	}
-	for _, p := range m.Devices {
-		if len(p.Path) > 0 {
-			res.Devices = append(res.Devices, container.DeviceMapping{PathOnHost: p.Path, PathInContainer: p.ContainerPath, CgroupPermissions: "rwm"})
-		}
-	}
-	hostConfingBind := []string{}
-	// volumes bind
-	volumes := []mount.Mount{}
-	for _, v := range m.Volumes {
-		path := v.Path
-		if len(path) == 0 {
-			path = docker.GetDir(m.Label, v.Path)
-			if len(path) == 0 {
-				continue
-			}
-		}
-		path = strings.ReplaceAll(path, "$AppID", m.Label)
-		// reg1 := regexp.MustCompile(`([^<>/\\\|:""\*\?]+\.\w+$)`)
-		// result1 := reg1.FindAllStringSubmatch(path, -1)
-		// if len(result1) == 0 {
-		err = file.IsNotExistMkDir(path)
-		if err != nil {
-			logger.Error("Failed to create a folder", zap.Any("err", err))
-			continue
-		}
-		//}
-		//  else {
-		// 	err = file.IsNotExistCreateFile(path)
-		// 	if err != nil {
-		// 		ds.log.Error("mkdir error", err)
-		// 		continue
-		// 	}
-		// }
-
-		volumes = append(volumes, mount.Mount{
-			Type:   mount.TypeBind,
-			Source: path,
-			Target: v.ContainerPath,
-		})
-
-		hostConfingBind = append(hostConfingBind, v.Path+":"+v.ContainerPath)
-	}
+	envArr, showENV := buildEnvVars(m.Envs, m.PortMap)
+	res := buildContainerResources(m)
+	volumes, _ := buildVolumeMounts(m.Volumes, m.Label)
 
 	rp := container.RestartPolicy{}
-
 	if len(m.Restart) > 0 {
 		rp.Name = m.Restart
 	}
-	// healthTest := []string{}
-	// if len(port) > 0 {
-	// 	healthTest = []string{"CMD-SHELL", "curl -f http://localhost:" + port + m.Index + " || exit 1"}
-	// }
-
-	// health := &container.HealthConfig{
-	// 	Test:        healthTest,
-	// 	StartPeriod: 0,
-	// 	Retries:     1000,
-	// }
-	// fmt.Print(health)
 	if len(m.HostName) == 0 {
 		m.HostName = m.Label
 	}
@@ -512,9 +425,6 @@ func (ds *dockerService) CreateContainer(m model.CustomizationPostData, id strin
 	config := &container.Config{}
 	config.Labels = map[string]string{}
 	if err == nil {
-		// info.HostConfig = &container.HostConfig{}
-		// info.Config = &container.Config{}
-		// info.NetworkSettings = &types.NetworkSettings{}
 		hostConfig = info.HostConfig
 		config = info.Config
 		if common.IsPowerLabApp(config.Labels) {
@@ -550,7 +460,6 @@ func (ds *dockerService) CreateContainer(m model.CustomizationPostData, id strin
 	}) {
 		config.Labels[k] = v
 	}
-	// container, err := cli.ContainerCreate(context.Background(), info.Config, info.HostConfig, &network.NetworkingConfig{info.NetworkSettings.Networks}, nil, info.Name)
 
 	hostConfig.Mounts = volumes
 	hostConfig.Binds = []string{}
@@ -559,11 +468,8 @@ func (ds *dockerService) CreateContainer(m model.CustomizationPostData, id strin
 	hostConfig.NetworkMode = container.NetworkMode(m.NetworkModel)
 	hostConfig.RestartPolicy = rp
 	hostConfig.Resources = res
-	// hostConfig := &container.HostConfig{Resources: res, Mounts: volumes, RestartPolicy: rp, NetworkMode: , Privileged: m.Privileged, CapAdd: m.CapAdd}
-	// if net != "host" {
-
 	hostConfig.PortBindings = portMaps
-	//}
+
 	containerDb, err := cli.ContainerCreate(context.Background(),
 		config,
 		hostConfig,
@@ -576,6 +482,19 @@ func (ds *dockerService) CreateContainer(m model.CustomizationPostData, id strin
 	return containerDb.ID, err
 }
 
+// RecreateContainer is the in-place upgrade for a single container:
+// pull latest image (when pull=true), clone the running container
+// under a temp name, stop the old, start the new, remove the old,
+// rename the new to the old's name. On any failure mid-flight,
+// the old container is restarted to preserve uptime.
+//
+// force=false short-circuits when no image update was found —
+// callers use force=true to re-create with the same image (e.g.
+// after a config change).
+//
+// Each phase is wrapped via wrapContainerEvents (Sprint 7 #5
+// extraction) — eliminates the IIFE-with-events boilerplate that
+// repeated 6 times in the original.
 func (ds *dockerService) RecreateContainer(ctx context.Context, id string, pull bool, force bool) error {
 	containerInfo, err := docker.Container(ctx, id)
 	if err != nil {
@@ -598,175 +517,85 @@ func (ds *dockerService) RecreateContainer(ctx context.Context, id string, pull 
 		return nil
 	}
 
-	// Clone the old container
+	// Clone the old container under a temp name
 	var newID string
-	if err := func() error {
-		tempName := fmt.Sprintf("%s-%s", containerInfo.Name, random.RandomString(4, false))
-
-		go PublishEventWrapper(ctx, common.EventTypeContainerCreateBegin, map[string]string{
-			common.PropertyTypeContainerName.Name: tempName,
-		})
-
-		defer PublishEventWrapper(ctx, common.EventTypeContainerCreateEnd, map[string]string{
-			common.PropertyTypeContainerID.Name:   newID,
-			common.PropertyTypeContainerName.Name: tempName,
-		})
-
-		_newID, err := docker.CloneContainer(ctx, id, tempName)
-		if err != nil {
-			go PublishEventWrapper(ctx, common.EventTypeContainerCreateError, map[string]string{
-				common.PropertyTypeContainerName.Name: tempName,
-				common.PropertyTypeMessage.Name:       err.Error(),
-			})
-			return err
-		}
-		newID = _newID
-
-		return nil
-	}(); err != nil {
-		return err
-	}
-
-	// stop old container if it is running
-	if containerInfo.State.Running {
-		if err := func() error {
-			go PublishEventWrapper(ctx, common.EventTypeContainerStopBegin, map[string]string{
-				common.PropertyTypeContainerID.Name: id,
-			})
-
-			defer PublishEventWrapper(ctx, common.EventTypeContainerStopEnd, map[string]string{
-				common.PropertyTypeContainerID.Name: id,
-			})
-
-			if err := docker.StopContainer(ctx, id); err != nil {
-				go PublishEventWrapper(ctx, common.EventTypeContainerStopError, map[string]string{
-					common.PropertyTypeContainerID.Name: id,
-					common.PropertyTypeMessage.Name:     err.Error(),
-				})
+	tempName := fmt.Sprintf("%s-%s", containerInfo.Name, random.RandomString(4, false))
+	if err := wrapContainerEvents(ctx,
+		common.EventTypeContainerCreateBegin,
+		common.EventTypeContainerCreateEnd,
+		common.EventTypeContainerCreateError,
+		map[string]string{common.PropertyTypeContainerName.Name: tempName},
+		func() error {
+			_newID, err := docker.CloneContainer(ctx, id, tempName)
+			if err != nil {
 				return err
 			}
+			newID = _newID
 			return nil
-		}(); err != nil {
-			return err
-		}
-	}
-
-	// start new container
-	if err := func() error {
-		go PublishEventWrapper(ctx, common.EventTypeContainerStartBegin, map[string]string{
-			common.PropertyTypeContainerID.Name: newID,
-		})
-
-		defer PublishEventWrapper(ctx, common.EventTypeContainerStartEnd, map[string]string{
-			common.PropertyTypeContainerID.Name: newID,
-		})
-
-		if err := docker.StartContainer(ctx, newID); err != nil {
-			go PublishEventWrapper(ctx, common.EventTypeContainerStartError, map[string]string{
-				common.PropertyTypeContainerID.Name: newID,
-				common.PropertyTypeMessage.Name:     err.Error(),
-			})
-			return err
-		}
-		return nil
-	}(); err != nil {
-		// if failed to start new container and old container was running...
-		if containerInfo.State.Running {
-			// start the old container
-			if err := func() error {
-				go PublishEventWrapper(ctx, common.EventTypeContainerStartBegin, map[string]string{
-					common.PropertyTypeContainerID.Name: id,
-				})
-
-				defer PublishEventWrapper(ctx, common.EventTypeContainerStartEnd, map[string]string{
-					common.PropertyTypeContainerID.Name: id,
-				})
-
-				if err := docker.StartContainer(ctx, id); err != nil {
-					go PublishEventWrapper(ctx, common.EventTypeContainerStartError, map[string]string{
-						common.PropertyTypeContainerID.Name: id,
-						common.PropertyTypeMessage.Name:     err.Error(),
-					})
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-
-			// remove the new container
-			if err := func() error {
-				go PublishEventWrapper(ctx, common.EventTypeContainerRemoveBegin, map[string]string{
-					common.PropertyTypeContainerID.Name: newID,
-				})
-
-				defer PublishEventWrapper(ctx, common.EventTypeContainerRemoveEnd, map[string]string{
-					common.PropertyTypeContainerID.Name: newID,
-				})
-
-				if err := docker.RemoveContainer(ctx, newID); err != nil {
-					go PublishEventWrapper(ctx, common.EventTypeContainerRemoveError, map[string]string{
-						common.PropertyTypeContainerID.Name: newID,
-						common.PropertyTypeMessage.Name:     err.Error(),
-					})
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-	}
-
-	// remove the old container if new container started successfully
-	if err := func() error {
-		go PublishEventWrapper(ctx, common.EventTypeContainerRemoveBegin, map[string]string{
-			common.PropertyTypeContainerID.Name: containerInfo.ID,
-		})
-
-		defer PublishEventWrapper(ctx, common.EventTypeContainerRemoveEnd, map[string]string{
-			common.PropertyTypeContainerID.Name: containerInfo.ID,
-		})
-
-		if err := docker.RemoveContainer(ctx, containerInfo.ID); err != nil {
-			go PublishEventWrapper(ctx, common.EventTypeContainerRemoveError, map[string]string{
-				common.PropertyTypeContainerID.Name: containerInfo.ID,
-				common.PropertyTypeMessage.Name:     err.Error(),
-			})
-			return err
-		}
-		return nil
-	}(); err != nil {
+		}); err != nil {
 		return err
 	}
 
-	// rename the new container
-	if err := func() error {
-		go PublishEventWrapper(ctx, common.EventTypeContainerRenameBegin, map[string]string{
-			common.PropertyTypeContainerID.Name:   newID,
-			common.PropertyTypeContainerName.Name: containerInfo.Name,
-		})
-
-		defer PublishEventWrapper(ctx, common.EventTypeContainerRenameEnd, map[string]string{
-			common.PropertyTypeContainerID.Name:   newID,
-			common.PropertyTypeContainerName.Name: containerInfo.Name,
-		})
-
-		if err := docker.RenameContainer(ctx, newID, containerInfo.Name); err != nil {
-			go PublishEventWrapper(ctx, common.EventTypeContainerRenameError, map[string]string{
-				common.PropertyTypeContainerID.Name:   newID,
-				common.PropertyTypeContainerName.Name: containerInfo.Name,
-				common.PropertyTypeMessage.Name:       err.Error(),
-			})
-
+	// Stop old container if it is running
+	if containerInfo.State.Running {
+		if err := wrapContainerEvents(ctx,
+			common.EventTypeContainerStopBegin,
+			common.EventTypeContainerStopEnd,
+			common.EventTypeContainerStopError,
+			map[string]string{common.PropertyTypeContainerID.Name: id},
+			func() error { return docker.StopContainer(ctx, id) }); err != nil {
 			return err
 		}
-		return nil
-	}(); err != nil {
+	}
+
+	// Start new container
+	startErr := wrapContainerEvents(ctx,
+		common.EventTypeContainerStartBegin,
+		common.EventTypeContainerStartEnd,
+		common.EventTypeContainerStartError,
+		map[string]string{common.PropertyTypeContainerID.Name: newID},
+		func() error { return docker.StartContainer(ctx, newID) })
+
+	if startErr != nil && containerInfo.State.Running {
+		// Roll back: restart the old container, then remove the new one.
+		if err := wrapContainerEvents(ctx,
+			common.EventTypeContainerStartBegin,
+			common.EventTypeContainerStartEnd,
+			common.EventTypeContainerStartError,
+			map[string]string{common.PropertyTypeContainerID.Name: id},
+			func() error { return docker.StartContainer(ctx, id) }); err != nil {
+			return err
+		}
+		if err := wrapContainerEvents(ctx,
+			common.EventTypeContainerRemoveBegin,
+			common.EventTypeContainerRemoveEnd,
+			common.EventTypeContainerRemoveError,
+			map[string]string{common.PropertyTypeContainerID.Name: newID},
+			func() error { return docker.RemoveContainer(ctx, newID) }); err != nil {
+			return err
+		}
+	}
+
+	// Remove the old container (new one started successfully)
+	if err := wrapContainerEvents(ctx,
+		common.EventTypeContainerRemoveBegin,
+		common.EventTypeContainerRemoveEnd,
+		common.EventTypeContainerRemoveError,
+		map[string]string{common.PropertyTypeContainerID.Name: containerInfo.ID},
+		func() error { return docker.RemoveContainer(ctx, containerInfo.ID) }); err != nil {
 		return err
 	}
 
-	return nil
+	// Rename the new container to the old name
+	return wrapContainerEvents(ctx,
+		common.EventTypeContainerRenameBegin,
+		common.EventTypeContainerRenameEnd,
+		common.EventTypeContainerRenameError,
+		map[string]string{
+			common.PropertyTypeContainerID.Name:   newID,
+			common.PropertyTypeContainerName.Name: containerInfo.Name,
+		},
+		func() error { return docker.RenameContainer(ctx, newID, containerInfo.Name) })
 }
 
 // 删除容器
