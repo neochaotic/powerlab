@@ -31,43 +31,45 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Database & coexistence hardening. Three big structural fixes ship
-  together — none change a feature you click on, all matter for
-  reliability and for running PowerLab next to CasaOS.
+  Critical hot-fix for v0.5.8 lock-out + UX upgrade polish.
 
-  1. **Split-brain DB protection (#179)**. Every PowerLab service
-     now refuses to start if its persistent SQLite database exists
-     at two paths simultaneously, with operator-actionable recovery
-     instructions instead of silently picking one and risking
-     drift. The v0.5.4 hot-fix migration that copied user.db and
-     local-storage.db to a /db/ subdir those services don't read
-     is fixed; install.sh now writes to the canonical path and
-     warns at install time if a stale duplicate is found.
-     Five layers of defense, 18 regression tests.
+  1. **v0.5.8 lock-out, fixed.** v0.5.8's split-brain detector
+     correctly refused to start when it found duplicate DB files,
+     but the v0.5.4 hot-fix had left a stale duplicate on many
+     hosts that the detector didn't know was safe to clean up.
+     Result: hosts that upgraded v0.5.7 → v0.5.8 with that
+     duplicate present saw user-service refuse to boot, login
+     broke. This release auto-moves the known-stale legacy
+     duplicate (`/var/lib/powerlab/db/user.db`,
+     `/var/lib/powerlab/db/local-storage.db`) aside as
+     `<file>.bak.<unix-ts>` before the strict check runs.
+     Non-destructive — the file is preserved as a backup, never
+     deleted. The strict refuse-to-start check stays as the
+     safety net for genuinely-ambiguous duplicates.
 
-  2. **Clean coexistence with CasaOS (#85, ADR-0021)**. PowerLab's
-     containers now use the canonical `io.powerlab.v1.*` Docker
-     label namespace and bind app data into
-     `/DATA/PowerLabAppData/<app>/` instead of the shared
-     `/DATA/AppData/<app>/`. CasaOS panel + PowerLab panel can run
-     on the same host without listing each other's containers or
-     overwriting each other's app data. install.sh's "CasaOS
-     detected" hard-block relaxes to a friendly notice. New apps
-     installed after this release use the new tree; existing apps
-     stay on /DATA/AppData/ until manually consolidated.
-     Container labels dual-write canonical + legacy for one
-     release window so existing PowerLab containers stay visible.
+  2. **Update success feedback + auto-reload.** Pre-v0.5.9 the
+     in-app updater silently completed — the "Upgrading…" button
+     stayed put until the user manually refreshed, and the page
+     never reloaded so the new UI version wasn't picked up. v0.5.9
+     adds a visible success toast on completion and auto-reloads
+     the page after 2.5s so the new version is loaded
+     automatically. Failures show an error toast (no auto-reload
+     because the previous version is still running and reloading
+     would be confusing).
 
-  3. **Documentation site (#71)** at
-     https://neochaotic.github.io/powerlab/. The repo's docs/
-     directory IS the source — every page is a markdown file, the
-     mkdocs build is a thin presentation layer. Brought forward
-     from "pre-v1.0" so docs grow incrementally with each future
-     PR rather than bolted on at the end. Initial nav covers
-     getting started, architecture, coexistence, operations,
-     audits, and all 21 ADRs.
+  3. **Real upgrade integration test** at
+     `scripts/test-upgrade-resolves-stale-legacy_test.sh`. Builds
+     the user-service binary and runs it against a sandbox
+     simulating the v0.5.4 mishap state — the test that should
+     have run before v0.5.8 shipped. Catches the lock-out
+     regression before any future release that would reintroduce
+     it.
 
-  No breaking changes. No required operator action on upgrade.
+  Hosts already stuck on v0.5.8 with the lock-out can upgrade to
+  v0.5.9 directly — the auto-move runs at startup. No manual
+  recovery required.
+
+  No breaking changes.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
