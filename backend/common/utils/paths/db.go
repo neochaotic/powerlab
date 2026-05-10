@@ -115,13 +115,21 @@ func LegacyCasaOSCoreDB() string {
 // Already matches what local-storage's GetGlobalDB constructs in
 // production code, so no migration needed for this service.
 func CanonicalLocalStorageDB() string {
-	return filepath.Join(dataRoot(), "local-storage.db")
+	return LocalStorageDBIn(dataRoot())
 }
 
 // LegacyLocalStorageDB is the v0.5.4 hot-fix copy destination — never
 // actually read by the service.
 func LegacyLocalStorageDB() string {
-	return filepath.Join(dataRoot(), "db", "local-storage.db")
+	return LegacyLocalStorageDBIn(dataRoot())
+}
+
+// LocalStorageDBIn / LegacyLocalStorageDBIn — base-aware variants.
+func LocalStorageDBIn(base string) string {
+	return filepath.Join(base, FilenameLocalStorageDB)
+}
+func LegacyLocalStorageDBIn(base string) string {
+	return filepath.Join(base, "db", FilenameLocalStorageDB)
 }
 
 // CanonicalMessageBusDB returns the going-forward path for
@@ -131,12 +139,24 @@ func LegacyLocalStorageDB() string {
 // As of v0.5.7 the production code uses <DataPath>/db/message-bus.db
 // (with /db/ subdir); migration to canonical is tracked separately.
 func CanonicalMessageBusDB() string {
-	return filepath.Join(dataRoot(), "message-bus.db")
+	return MessageBusDBIn(dataRoot())
 }
 
 // LegacyMessageBusDB is the path message-bus currently writes to.
 func LegacyMessageBusDB() string {
-	return filepath.Join(dataRoot(), "db", "message-bus.db")
+	return LegacyMessageBusDBIn(dataRoot())
+}
+
+// MessageBusDBIn / LegacyMessageBusDBIn — base-aware variants. Note
+// that the "Legacy" name here is the path message-bus CURRENTLY uses
+// in production; it's the future-canonical that doesn't exist yet.
+// Naming kept consistent with the other services (Legacy = with /db/
+// subdir, Canonical = without).
+func MessageBusDBIn(base string) string {
+	return filepath.Join(base, FilenameMessageBusDB)
+}
+func LegacyMessageBusDBIn(base string) string {
+	return filepath.Join(base, "db", FilenameMessageBusDB)
 }
 
 // ErrSplitBrain signals that two paths the caller asked about both

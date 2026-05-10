@@ -607,7 +607,8 @@ audit_split_brain() {
       "local-storage|/var/lib/powerlab/local-storage.db|/var/lib/powerlab/db/local-storage.db" \
       "core|/var/lib/powerlab/db/casaOS.db|/var/lib/casaos/db/casaOS.db" \
       "core|/var/lib/powerlab/db/casaOS.db|/var/lib/powerlab/core.db" \
-      "core|/var/lib/casaos/db/casaOS.db|/var/lib/powerlab/core.db"; do
+      "core|/var/lib/casaos/db/casaOS.db|/var/lib/powerlab/core.db" \
+      "message-bus|/var/lib/powerlab/db/message-bus.db|/var/lib/powerlab/message-bus.db"; do
     svc="${entry%%|*}"
     a="${entry#*|}"; a="${a%%|*}"
     b="${entry##*|}"
