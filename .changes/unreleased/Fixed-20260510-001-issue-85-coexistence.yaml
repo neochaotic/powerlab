@@ -1,47 +1,45 @@
 kind: Fixed
 body: |
-  Sprint 4 / #85 PR-C — closes the CasaOS coexistence story
-  end-to-end. PowerLab and CasaOS can now run on the same host
-  without label collisions, AppData directory races, or the
-  install.sh hard-block. DoD for #85 met.
+  Sprint 4 / #85 PR-C — closes the CasaOS coexistence story for
+  newly installed apps. PowerLab and CasaOS can now run on the
+  same host without label collisions or AppData races for any new
+  app installed after this PR. install.sh's hard-block relaxes to
+  notice. #85 DoD met for new installs; existing-app migration
+  deferred to a follow-up tool.
 
-  Three pieces:
+  Two pieces:
 
-  1. **On-boot AppData migration.** app-management's startup runs
-     `service.MigrateAppData(storage, apps)` once per boot. For
-     every directory at `<StoragePath>/AppData/<X>` where a
-     PowerLab compose project exists at `<AppsPath>/<X>/`, the
-     directory is `mv`'d to the canonical
-     `<StoragePath>/PowerLabAppData/<X>`. Foreign directories
-     (CasaOS-only apps, abandoned tools, manual `mkdir`s) are
-     left alone. Idempotent: a second boot has nothing to do.
+  1. **Compose volume-source rewrite at install time**
+     (`service/compose_service.go::rewriteAppDataPathsToCanonical`).
+     Runs after the existing `remapVolumePaths` pass. Substitutes
+     `<storagePath>/AppData/` → `<storagePath>/PowerLabAppData/` in
+     every bind-mount source. Newly installed apps bind into the
+     per-product canonical tree from day one.
 
-  2. **Compose volume-source rewrite at install time.**
-     `rewriteAppDataPathsToCanonical` runs after the existing
-     `remapVolumePaths` pass. It substitutes the legacy
-     `<storagePath>/AppData/` prefix with
-     `<storagePath>/PowerLabAppData/` in every bind-mount source
-     so newly installed apps bind into the per-product canonical
-     tree from day one.
+  2. **install.sh CasaOS coexistence block relaxed**
+     (`scripts/package-linux.sh`). Was: hard refuse-to-install
+     unless `--allow-coexist`. Now: friendly notice describing
+     the now-clean coexistence (with explicit caveat that apps
+     already installed remain at `/DATA/AppData/`). The
+     `--allow-coexist` flag is preserved as a silently-accepted
+     no-op for any operator runbooks that pass it.
 
-  3. **install.sh CasaOS coexistence block relaxed.** Was: hard
-     refuse-to-install unless `--allow-coexist`. Now: friendly
-     notice that proceeds. The technical reason for blocking
-     (label + AppData collisions) is gone. `--allow-coexist`
-     remains a no-op accepted flag for any operator runbooks
-     that pass it.
+  4 new regression tests at `service/autoremap_test.go` lock the
+  rewrite contract: rewrites legacy AppData prefix, honors custom
+  storagePath (macOS dev installs), no-op when storagePath empty,
+  ignores non-bind volumes.
 
-  12 new regression test cases at
-  `backend/app-management/service/appdata_migrate_test.go` (8) and
-  `service/autoremap_test.go` (4) lock the migration scope, the
-  per-result actions ("migrated" / "skipped-no-project" /
-  "skipped-canonical-exists" / "error"), the source preservation
-  on canonical-exists conflict (`<legacy>.bak.<ts>` instead of
-  destructive overwrite), and the volume-rewrite contract.
+  ADR-0021 amended in this PR ("Subsequent decision: existing-app
+  migration deferred") explaining why the original on-boot
+  mv-based migration was removed: it would have invalidated
+  bind-mount sources in on-disk compose YAMLs, producing apparent
+  data loss on next container start. Doing it correctly requires
+  an atomic dir-move + YAML-rewrite which is sizeable enough to
+  deserve its own PR + test suite.
 
   This completes the #85 sub-PR sequence:
     - PR-A (#181): ADR-0021 + label/path helpers + 16 tests
     - PR-B (#182): wire all label call sites; dual-write active
-    - PR-C (this one): AppData migration + coexistence relax
+    - PR-C (this one): compose volume rewrite + coexistence relax
 custom:
   Issue: "85"

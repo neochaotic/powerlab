@@ -75,37 +75,6 @@ func main() {
 
 		service.MyService = service.NewService(config.CommonInfo.RuntimePath)
 
-		// Per ADR-0021: on-boot AppData migration. Move PowerLab-owned
-		// per-app dirs from <StoragePath>/AppData/<X> to the canonical
-		// <StoragePath>/PowerLabAppData/<X>. Conservative: only apps
-		// with a matching compose project at AppsPath are migrated;
-		// foreign dirs (e.g. CasaOS-only apps on a coexistence host)
-		// are left alone. See service/appdata_migrate.go for the
-		// per-result actions; we log every result so an operator can
-		// audit migration outcomes after the upgrade.
-		for _, r := range service.MigrateAppData(config.AppInfo.StoragePath, config.AppInfo.AppsPath) {
-			switch r.Action {
-			case "migrated":
-				logger.Info("appdata migrated to canonical path",
-					zap.String("app", r.AppName),
-					zap.String("from", r.Legacy), zap.String("to", r.Canonical))
-			case "skipped-canonical-exists":
-				// Logged at Info, not Error — operator already has a
-				// populated canonical; we just preserved the legacy as
-				// .bak for review. Not fatal, not even unusual on a
-				// host with manual operator intervention.
-				logger.Info("appdata canonical already populated; legacy preserved as backup",
-					zap.String("app", r.AppName),
-					zap.String("backup", r.Backup), zap.String("canonical", r.Canonical))
-			case "error":
-				logger.Error("appdata migration failed",
-					zap.String("app", r.AppName), zap.Error(r.Err))
-			default:
-				logger.Info("appdata migration: "+r.Action,
-					zap.String("app", r.AppName), zap.String("legacy", r.Legacy))
-			}
-		}
-
 		config.RemoveRuntimeIfNoNvidiaGPUFlag = *removeRuntimeIfNoNvidiaGPUFlag
 	}
 

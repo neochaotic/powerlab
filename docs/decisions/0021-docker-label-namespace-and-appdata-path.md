@@ -73,18 +73,58 @@ PowerLab's per-app data tree moves from
 `<StoragePath>` continues to default to `/DATA` on Linux (Docker
 Desktop-accessible path on macOS dev installs).
 
-Compose volume bind sources written by PowerLab's compose generator
-get the new prefix automatically. Existing PowerLab installs see a
-one-shot migration on first boot of the new app-management:
+**Newly installed apps** (post-PR) write to the canonical path
+automatically — `service.rewriteAppDataPathsToCanonical` rewrites
+the bind-mount sources at install time. **Existing apps** continue
+using their original `<StoragePath>/AppData/<X>` paths until manually
+migrated. See "Subsequent decision: existing-app migration deferred"
+below for the rationale.
 
-- For every directory at `<StoragePath>/AppData/<X>`, check whether
-  any PowerLab compose project named `<X>` exists.
-- If yes: `mv <StoragePath>/AppData/<X> <StoragePath>/PowerLabAppData/<X>`
-  (the user's data follows the app).
-- If no: leave it. It belongs to CasaOS or another product.
+A leftover `<StoragePath>/AppData/` is preserved on coexistence hosts
+(CasaOS may keep using it).
 
-A leftover empty `<StoragePath>/AppData/` is preserved (CasaOS may
-keep using it).
+### Subsequent decision: existing-app migration deferred
+
+**Date:** 2026-05-10 (added during PR-C review of #85)
+
+The original draft of this ADR specified a one-shot
+mv-based migration for existing apps. Code review surfaced a
+correctness bug: moving `<StoragePath>/AppData/<X>` invalidates the
+bind-mount source paths in the on-disk compose YAMLs at
+`<AppsPath>/<X>/docker-compose.yml`. On the next container start,
+Docker re-creates the bind directory at the legacy path (now empty),
+and the app comes up with no data — apparent data loss.
+
+A correct migration would have to do BOTH the directory move AND
+rewrite every YAML on disk in lockstep. That's a sizeable surface
+(per-app YAMLs are user-modifiable; a parse-and-rewrite has to
+preserve formatting, comments, custom YAML extensions like
+`x-powerlab`/`x-casaos`, etc.). The risk of an in-place YAML rewrite
+breaking user customizations exceeded the benefit of automatic
+migration.
+
+**Decision (Option A):** existing apps stay at the legacy path. Only
+newly installed apps use the canonical path. The compose
+volume-source rewrite at install time is unchanged. The on-boot
+migration is removed.
+
+**Consequence:** on coexistence hosts (PowerLab + CasaOS), apps
+installed in PowerLab BEFORE this PR will continue sharing the
+`<StoragePath>/AppData/<X>` tree with CasaOS — i.e. the data race
+risk persists for those legacy apps. New apps are clean. Operators
+who want to consolidate can manually:
+
+```bash
+sudo systemctl stop powerlab-app-management
+# Update app-management/<X>/docker-compose.yml to bind PowerLabAppData
+sudo mv /DATA/AppData/<X> /DATA/PowerLabAppData/<X>
+sudo systemctl start powerlab-app-management
+```
+
+**Follow-up tracked separately:** issue to be opened for a proper
+migration tool that does YAML rewrite + dir move atomically. Not
+blocking for #85 since the new-install path is correct and the
+legacy path is unchanged from pre-PR behavior.
 
 ### 3. Dual-write / dual-read window
 
