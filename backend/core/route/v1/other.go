@@ -17,7 +17,6 @@ func GetSearchResult(ctx echo.Context) error {
 	if url == "" {
 		return ctx.JSON(common_err.CLIENT_ERROR, model.Result{Success: common_err.INVALID_PARAMS, Message: common_err.GetMsg(common_err.INVALID_PARAMS), Data: "key is empty"})
 	}
-	// data, err := service.MyService.Other().Search(key)
 	data, err := service.MyService.Other().AgentSearch(url)
 	if err != nil {
 		fmt.Println(err)
