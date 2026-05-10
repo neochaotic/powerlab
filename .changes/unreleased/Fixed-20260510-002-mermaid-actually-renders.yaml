@@ -1,0 +1,17 @@
+kind: Fixed
+body: |
+  Documentation site Mermaid diagrams now actually render. PR #190
+  added the superfences custom_fence config but Material 9.5's
+  documented auto-load of mermaid.js didn't actually fire on the
+  live site — diagrams stayed as raw `<pre class="mermaid">` blocks
+  with no JS to convert them.
+
+  Fix: load mermaid.js explicitly via `extra_javascript` plus a
+  `docs/js/mermaid-init.js` initialiser that re-runs on Material's
+  `navigation.instant` page swaps (so diagrams render on every
+  architecture page, not just the first one the user landed on).
+
+  Also auto-themes between Material's light/slate schemes so
+  diagrams look right in both modes.
+custom:
+  Issue: "71"
