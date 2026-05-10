@@ -45,7 +45,7 @@ type ComposeApp codegen.ComposeApp
 func (a *ComposeApp) StoreInfo(includeApps bool) (*codegen.ComposeAppStoreInfo, error) {
 	ex, ok := a.getExtension()
 	if !ok {
-		return nil, ErrComposeExtensionNameXCasaOSNotFound
+		return nil, ErrComposeExtensionNotFound
 	}
 
 	var storeInfo codegen.ComposeAppStoreInfo
@@ -98,7 +98,7 @@ func (a *ComposeApp) StoreInfo(includeApps bool) (*codegen.ComposeAppStoreInfo, 
 		for _, app := range a.Apps() {
 			appStoreInfo, err := app.StoreInfo()
 			if err != nil {
-				if err == ErrComposeExtensionNameXCasaOSNotFound {
+				if err == ErrComposeExtensionNotFound {
 					logger.Info("App does not have x-casaos extension - skipping", zap.String("app", app.Name))
 					continue
 				}
@@ -1195,7 +1195,7 @@ func (a *ComposeApp) SetUncontrolled(uncontrolled bool) error {
 	extMap, ok := a.getExtensionMap()
 	if !ok {
 		logger.Error("failed to get extension map", zap.String("composeAppID", a.Name))
-		return ErrComposeExtensionNameXCasaOSNotFound
+		return ErrComposeExtensionNotFound
 	}
 
 	extMap[common.ComposeExtensionPropertyNameIsUncontrolled] = uncontrolled

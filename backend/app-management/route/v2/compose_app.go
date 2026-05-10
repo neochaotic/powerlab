@@ -343,7 +343,7 @@ func (a *AppManagement) InstallComposeApp(ctx echo.Context, params codegen.Insta
 		logger.Error("failed to start compose app installation", zap.Error(err))
 
 		message := err.Error()
-		if err == service.ErrComposeExtensionNameXCasaOSNotFound {
+		if err == service.ErrComposeExtensionNotFound {
 			return ctx.JSON(http.StatusBadRequest, codegen.ResponseBadRequest{Message: &message})
 		}
 
