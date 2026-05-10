@@ -1,0 +1,51 @@
+kind: Fixed
+body: |
+  Release builds now correctly stamp `commit`, `date`, and PowerLab
+  version into the binaries. Closes the v0.5.4 mishap where the
+  in-UI updater showed `current="dev"` and prompted "Update
+  available" forever even when the user was on the latest release
+  (issue #159).
+
+  Two bugs in one ldflag string in `scripts/package-linux.sh`:
+
+    1. `-X main.version=$VERSION` — wrong variable name. Each
+       service's `main.go` declares `commit` and `date`, never
+       `version`. Go's `-X` is fail-soft: if the target var doesn't
+       exist, the build still succeeds, the assignment is silently
+       dropped, and the binary keeps the default `"private build"`.
+
+    2. `-X github.com/IceWhaleTech/CasaOS/common.POWERLAB_VERSION=...`
+       — dead path after PR #151 renamed every Go module to
+       `github.com/neochaotic/powerlab/backend/*`. Same fail-soft
+       behavior: silently no-op, version constant stays "dev".
+
+  Fix sets the four ldflags that actually exist in the codebase:
+
+    -X main.commit=<git short SHA>                     (every service)
+    -X main.date=<UTC ISO-8601 timestamp>              (every service)
+    -X github.com/neochaotic/powerlab/backend/core/common.POWERLAB_VERSION=$VERSION
+                                                       (core only —
+                                                       Go ignores the
+                                                       flag for other
+                                                       services)
+    -X github.com/neochaotic/powerlab/backend/core/route/v1.powerLabVersionAtCompileTime=$VERSION
+                                                       (read by the
+                                                       updater's
+                                                       currentPowerLab-
+                                                       Version() to
+                                                       compare against
+                                                       the manifest)
+
+  Includes regression test at
+  `scripts/check-package-linux-ldflags_test.sh` (8 assertions):
+    - All 4 expected ldflag target paths are present in package-
+      linux.sh
+    - The 2 deprecated targets (the v0.5.4 mishap shapes) are
+      absent
+    - The 2 target Go vars (POWERLAB_VERSION, powerLabVersion-
+      AtCompileTime) actually exist in the source — catches future
+      renames that would silently break the build pipeline.
+
+  Closes #159.
+custom:
+  Issue: "159"
