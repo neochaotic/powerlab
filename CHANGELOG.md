@@ -13,6 +13,201 @@ Each PR adds a tiny YAML fragment under `.changes/unreleased/<id>.yaml`.
 At release time, `changie batch <version>` aggregates the fragments into
 a new section below this header. See `CONTRIBUTING.md` for the workflow.
 
+## [v0.5.11] — 2026-05-10
+### Security
+- Removed the inherited CasaOS self-update path that did
+`curl -fsSL https://get.casaos.io/update?t=… | bash` from
+upstream CasaOS infrastructure. Real curl-pipe-bash from
+third-party DNS was a supply-chain risk, not just a branding
+concern. The path was already dead in the UI (the legacy
+`/v1/sys/update` endpoint had zero frontend consumers); this
+PR removes the backend code so an attacker can't reach the
+curl-pipe-bash via direct API call either.
+
+PowerLab's own in-app updater under `/v1/powerlab-update/*`
+(manifest.json + signed-tarball pipeline) is unaffected and
+remains the only update path.
+
+Removed:
+  - `GET /v1/sys/version/check` route + handler
+  - `POST /v1/sys/update` route + handler
+  - `service.MyService.Casa()` accessor + `casaService` struct
+  - `systemService.UpdateSystemVersion()` method
+  - `version.IsNeedUpdate()` + the `model.Version` type that fed it
+  - `httper.OasisGet()` + the `ServerApi`/`UpdateUrl` config fields
+    it depended on
+  - Stale `backend/core/conf/casaos.conf` + `conf.conf.sample`
+    (still pointed at `api.casaos.io/casaos-api`)
+  - `SYS_VERSION` constant in `ui/src/lib/api/endpoints.ts`
+    (already had zero references)
+
+Audit reference: `docs/audits/casaos-residue-2026-05-10.md`
+kill #1 (highest priority).
+
+### Internal
+- Sprint 4 retrospective at `docs/audits/sprint-4-retrospective.md`.
+
+Per ADR-0019, sprint retrospectives live as audits. This one
+captures #85 sub-PR delivery (foundation + wire + compose
+rewrite), the parallel #179 DB paths split-brain work, the docs
+Phase 3 brought forward, and the v0.5.8 lock-out regression I
+shipped + had to hot-fix. 7 lessons named, 6 recommendations
+for Sprint 5.
+
+- CasaOS residue audit at `docs/audits/casaos-residue-2026-05-10.md`.
+
+Companion to `casaos-dependencies.md` — fresh "what is left, in
+what order to kill" snapshot for Sprint 5. Confirms PR #151
+finished the module-path rename (zero CasaOS refs in any go.mod
+or go.sum). Catalogues 10 functional, ~30 cosmetic, and ~13
+intentional-sentinel CasaOS strings still in the tree, plus 3
+runtime URL dependencies and 1 unused stale config sample.
+Recommends 10 separate PRs for Sprint 5 (~17h total) ordered by
+leverage/risk ratio, with `get.casaos.io/update` curl-pipe-bash
+fallback called out as the highest-priority kill (security
+surface, not just rebrand).
+
+- Self-review of the Sprint 4 closure day at
+`docs/audits/work-review-2026-05-10.md`.
+
+Companion to the Sprint 4 retrospective. Where retro covers
+process lessons, this doc rates the CODE that landed: 3 things
+to keep as-is, 5 things to fix soon (small tech debt I created
+today), 3 things to fix later (not urgent). Plus 3 risks to
+watch and a recommended Sprint 5 order weighted by leverage.
+
+Net assessment: 17 PRs / 3 releases / ~5,500 LOC churned in
+one day, with 80 new regression tests as the safety net. High
+velocity sustained without obvious quality regression — the
+one prod incident (v0.5.8 lock-out) was caught + permanently
+fixed in <30 min via the discipline that was working.
+
+- Two technical-debt items from the Sprint 4 self-review (#200)
+cleared:
+
+1. **Mermaid.js vendored** at `docs/js/mermaid.min.js` (3.3MB)
+   instead of loaded from the unpkg CDN. Docs site now works
+   fully offline (CI builds, self-hosted mirrors), no SRI
+   concerns, version pinned by file content.
+
+2. **Generated godoc files moved out of git** —
+   `docs/api/pkg/{errors,foundation,lifecycle,logging,migrations,tracing}.md`
+   are now `.gitignored` and produced by `scripts/gen-godoc.sh`
+   during the docs CI build. Eliminates the diff churn on every
+   refactor of internal types. Only `docs/api/pkg/index.md`
+   stays committed (it's the curated landing).
+
+Docs CI workflow grew a Go setup step + a gen-godoc step before
+mkdocs build. Trigger paths extended to also fire on
+`backend/pkg/**/*.go` changes (so godoc updates land on the
+site when the source changes).
+
+- Two paired changes for the Sprint 5 obliterate-CasaOS work:
+
+1. **ADR-0022** — formalises the policy that PowerLab takes no
+   new dependencies on upstream CasaOS infrastructure. Cites
+   the upstream's verified abandonment status: latest release
+   v0.4.15 (Dec 2024, 1.5 years stale), 795 open issues, no
+   coherent release cadence. Becomes the citable rule that
+   justifies Sprint 5's kill list and rejects future PRs that
+   would reintroduce CasaOS coupling.
+
+2. **Kill #2 from audit #203** — deletes inherited
+   `backend/core/{CHANGELOG,CODE_OF_CONDUCT,SECURITY}.md` (all
+   CasaOS-flavored, pointing at wiki@casaos.io). Replaces
+   missing root `CODE_OF_CONDUCT.md` + `SECURITY.md` with
+   PowerLab versions that route reports correctly + explicitly
+   redirect anyone confused about the project lineage.
+
+- Sprint 5 kill #4 (audit #203) — gateway sysroot tree rebrand:
+
+- `backend/gateway/build/sysroot/etc/casaos/gateway.ini.sample`
+  → `backend/gateway/build/sysroot/etc/powerlab/gateway.ini.sample`
+- sample's `runtimepath=/var/run/casaos` → `/var/run/powerlab`
+- `//go:embed` directive in `backend/gateway/main.go` updated
+
+Plus dead-CasaOS-artifact cleanup (the audit's adjacent items —
+none of these were referenced by `scripts/package-linux.sh`,
+PowerLab's actual install pipeline; pure inheritance debt):
+
+- `casaos-gateway.service` + `.buildroot` (PowerLab installs
+  `powerlab-gateway.service` per Sprint 3)
+- `build/scripts/setup/service.d/gateway/{arch,debian,ubuntu}/setup-gateway.sh`
+- `build/sysroot/usr/share/casaos/cleanup/**`
+
+13 files deleted, 1 renamed, 2 modified. Net diff -260 LOC.
+
+- Sprint 5 audit #203 kills #5 (cosmetic) + #8 (dead systemd
+units) bundled. All low-risk, no wire format changes.
+
+## Deleted (dead inheritance, none referenced by install pipeline)
+
+- `casaos-message-bus.service`
+- `casaos-app-management.service` + `.buildroot`
+- `casaos-local-storage.service` + `casaos-local-storage-first.service`
+- `casaos-user-service.service`
+- `backend/core/model/heart.go` (CasaOSHeart type, zero usages)
+
+install.sh installs `powerlab-*.service` directly per Sprint 3
+work; these were CasaOS-era artifacts that just shipped in the
+source tarball as cruft. Same pattern as PR #208's gateway
+cleanup.
+
+## Cosmetic rebrands
+
+- `backend/core/main.go:271` log message
+  "CasaOS main service is listening" → "PowerLab core service is listening"
+- `backend/cli/cmd/appManagementShowLocal.go:191` error hint
+  "is the casaos-app-management service running?" → "powerlab-..."
+- `backend/cli/cmd/appManagementListApps.go:75` same fix
+
+## Process
+
+Added `backend/*/local_data/log/` to `.gitignore` — a stale
+log file at `backend/core/local_data/log/casaos/log.log` had
+leaked into a previous commit. The path is dev-only runtime
+output; this prevents future accidents.
+
+## Deferred
+
+`SERVICENAME = "casaos"` in `backend/core/common/constants.go`
+— this is the message-bus topic prefix for events emitted by
+core (see `notify.go` callers). Changing it is wire-format
+breakage: every subscriber filtering on this would need to
+update simultaneously. Per ADR-0021's lesson learned, this
+needs a dual-write window. Tracked separately.
+
+- Sprint 5 audit #203 kill #10 — `//go:generate` directives no
+longer pull from `raw.githubusercontent.com/IceWhaleTech/...`
+for codegen. Per ADR-0022 (CasaOS upstream is abandoned), even
+build-time pulls from upstream infra are policy violations.
+
+All 8 cross-service codegen directives now reference the
+LOCAL openapi.yaml files (already present in each service's
+`api/<svc>/` dir) via relative paths:
+
+  backend/app-management/main.go  → ../message-bus/api/...
+  backend/core/main.go            → ../message-bus/api/...
+  backend/local-storage/main.go   → ../message-bus/api/...
+  backend/user-service/main.go    → ../message-bus/api/...
+  backend/cli/main.go             → ../{app-mgmt,core,...}/api/...
+                                    (5 directives, one per service)
+
+Confirmed via `go generate ./...` in each module — codegen
+produces identical output (the local copies already matched
+upstream).
+
+Side-effect: `go generate ./...` is now offline-capable (CI
+builds, isolated dev environments) and faster (no GitHub
+rate-limit risk).
+
+Also deleted: `backend/core/build/sysroot/usr/share/casaos/shell/update.sh`
+— a `curl … | bash` from `IceWhaleTech/get/main/update.sh`.
+Dead artifact, never referenced after PR #206 killed the
+upstream-update path.
+
+
+
 ## [v0.5.10] — 2026-05-10
 ### Added
 - Go API reference for `backend/pkg/*` foundation packages now lives
