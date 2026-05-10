@@ -1,0 +1,55 @@
+kind: Internal
+body: |
+  Sprint 7 #5 — split god functions in container.go per audit
+  #216 §E.
+
+  Original CreateContainer + RecreateContainer were 192 + 191 LOC
+  each. Both drop to ~95 LOC after extraction. No behaviour changes.
+
+  ## Extracted helpers (new container_helpers.go, 171 LOC)
+
+  - **wrapContainerEvents** — replaces the IIFE-with-events pattern
+    that repeated 6+ times in RecreateContainer. Wraps fn with
+    begin/end PublishEventWrapper calls; on fn error fires errType
+    with the error message merged into props. Preserves the
+    original `go PublishEventWrapper` async semantics.
+  - **buildPortBindings** — translates `[]model.PortMap` →
+    `(nat.PortSet, nat.PortMap, error)`. Protocol "both" expands
+    to ["tcp","udp"]. Host bindings skipped in network mode "host".
+  - **buildEnvVars** — renders `[]model.Env` → docker env-var slice
+    + show-env label list. Handles $-prefix system substitution +
+    "port_map" sentinel.
+  - **buildContainerResources** — translates CPU/memory/devices
+    from the form into `container.Resources`. Memory shifted left
+    20 (MiB → bytes).
+  - **buildVolumeMounts** — walks `[]model.PathMap` → docker bind
+    mounts + legacy host-config bind strings. Auto-creates missing
+    host dirs (`mkdir -p` semantics); per-volume errors logged +
+    skipped (matches pre-extract behaviour).
+
+  ## Function shrinks
+
+  - CreateContainer: 192 → ~95 LOC. Now reads as orchestration —
+    build helpers + inspect existing + assemble HostConfig +
+    ContainerCreate. The 5-line port-protocol switch and the
+    25-line volume-mount loop are gone from the body.
+  - RecreateContainer: 191 → ~95 LOC. Each phase (clone, stop
+    old, start new, rollback, remove old, rename) is now a 5-7
+    line wrapContainerEvents call. The original 6 IIFE blocks
+    each had identical begin/end/error PublishEventWrapper
+    boilerplate; now the boilerplate lives once, in the helper.
+
+  ## Test plan
+
+    - go build ./service/... clean (codegen-not-on-disk warning is
+      pre-existing local-only)
+    - gofmt -l clean on the touched files
+    - container.go drops from 890 → 719 LOC (171 LOC moved into
+      the helpers file)
+    - existing container_test.go covers the public surface
+
+  ## Position in the refactor track
+
+  PR 5 of 7 from #227. Closes the container.go arm of #216 §E.
+custom:
+  Issue: "216"
