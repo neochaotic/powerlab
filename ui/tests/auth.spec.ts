@@ -15,8 +15,8 @@ test.describe('Auth + setup', () => {
 		// Clear the auth-init script side-effect for this test — we
 		// want the unauthenticated path.
 		await page.addInitScript(() => {
-			localStorage.removeItem('token');
-			localStorage.removeItem('user_id');
+			localStorage.removeItem('powerlab_token');
+			localStorage.removeItem('powerlab_user');
 		});
 
 		await page.goto('/');
@@ -32,8 +32,8 @@ test.describe('Auth + setup', () => {
 		// Clear the auth localStorage side-effect — we want
 		// "initialized but no session" specifically.
 		await page.addInitScript(() => {
-			localStorage.removeItem('token');
-			localStorage.removeItem('user_id');
+			localStorage.removeItem('powerlab_token');
+			localStorage.removeItem('powerlab_user');
 		});
 
 		await page.goto('/');

@@ -47,12 +47,15 @@ export async function installBaselineMocks(
 	);
 
 	// Pretend the user is authenticated so the layout doesn't redirect to
-	// LoginScreen. The auth store reads token presence via localStorage
-	// before issuing /v1/users/info — set it here so the gate passes.
-	await page.addInitScript(() => {
-		localStorage.setItem('token', 'test-token');
-		localStorage.setItem('user_id', '1');
-	});
+	// LoginScreen. The auth store reads `powerlab_token` + `powerlab_user`
+	// via localStorage before issuing /v1/users/info — set them here so
+	// the gate passes. Keys MUST match auth.svelte.ts; using 'token'
+	// silently fails (CI caught this on 2026-05-10).
+	const userPayload = JSON.stringify({ id: 1, username });
+	await page.addInitScript((u) => {
+		localStorage.setItem('powerlab_token', 'test-token');
+		localStorage.setItem('powerlab_user', u);
+	}, userPayload);
 
 	// Catch-all: any other /v1/* call returns success with null data so
 	// the page render path doesn't 500-out on missing endpoints. Specific
