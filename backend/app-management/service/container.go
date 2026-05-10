@@ -42,7 +42,10 @@ var (
 	dataStats = &sync.Map{}
 	isFinish  bool
 
-	NewVersionApp map[string]string // TODO - make use of NewVersionApp map
+	// NewVersionApp is the in-memory map of "app ID → newer version
+	// available" populated by a background goroutine. Read by the
+	// container-list code path to set the `latest` flag per app.
+	NewVersionApp map[string]string
 )
 
 type DockerService interface {

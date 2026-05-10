@@ -48,14 +48,19 @@ func NewSocketIOService() *SocketIOService {
 }
 
 func buildServer() *socketio.Server {
+	// SECURITY: WebSocket + polling CheckOrigin currently accept ANY
+	// Origin. Mitigated by JWT auth on the gateway path (caller must
+	// present a valid token to reach the message-bus), but the
+	// bypass IS real. Tracked in #219 — do not extend the
+	// message-bus's exposed surface until the allowlist lands.
 	websocketTransport := websocket.Default
 	websocketTransport.CheckOrigin = func(r *http.Request) bool {
-		return true // TODO remove this debug setting
+		return true // accepts any origin; see #219
 	}
 
 	pollingTransport := polling.Default
 	pollingTransport.CheckOrigin = func(r *http.Request) bool {
-		return true // TODO remove this debug setting
+		return true // accepts any origin; see #219
 	}
 
 	server := socketio.NewServer(&engineio.Options{
