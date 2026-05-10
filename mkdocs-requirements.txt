@@ -4,3 +4,9 @@
 mkdocs==1.6.1
 mkdocs-material==9.5.42
 pymdown-extensions==10.11.2
+# Pygments pin: pymdown-extensions' highlight bridge calls
+# pygments.HtmlFormatter with filename=None when no filename is given,
+# which pygments < 2.18 then passes to html.escape() and crashes with
+# AttributeError: 'NoneType' object has no attribute 'replace'. 2.18+
+# normalises filename → ''. Locked to keep the docs CI green.
+pygments>=2.18.0
