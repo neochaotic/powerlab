@@ -1,0 +1,84 @@
+kind: Internal
+body: |
+  Sprint 5.5 quality wave kick-off — single comprehensive audit doc
+  at `docs/audits/quality-and-tech-debt-2026-05-10.md` covering five
+  dimensions (live docs site health, README/repo-root doc freshness,
+  per-module Go godoc coverage vs the 70 % bar, ADR + audit
+  inter-link integrity, TODO/FIXME + smell sweep).
+
+  Read-only audit — no code or product doc was modified. Findings
+  are file:line-cited and ranked by leverage in a 20-PR Sprint 5.5
+  punch-list at the end of the doc. Audited against `origin/main`
+  at commit d551123 (post-PR #213 gateway godoc raise).
+
+  ## Top-line findings
+
+  - **Docs site (live)**: 38 URLs probed, all 200; 6 architecture
+    pages render Mermaid + load `mermaid.min.js` (vendored setup
+    works). 9 published pages are reachable by URL but absent from
+    `mkdocs.yml` nav (concepts, migrating-from-casaos,
+    backup-restore, three new audits, the trust-onboarding pattern,
+    STORE-COVERAGE).
+
+  - **CRITICAL — `CONTRIBUTING.md:148`** declares the wrong license
+    ("PolyForm Noncommercial 1.0.0" — repo is AGPL-3.0 per
+    `LICENSE` file, README, mkdocs site, SECURITY.md). Single-line
+    PR.
+
+  - **Stale repo-root docs**: `CONTRIBUTING.md` ports `8089` (real:
+    `8765/8443`), Go 1.21 (real: 1.25), `start.sh` (real: `dev.sh`);
+    `README.md` pins `v0.1.5` example (current: v0.5.11) and shows
+    architecture box with ports `:80/:443`; `SUPPORT.md:17` says
+    "Out of scope for v0.1.x".
+
+  - **Per-module godoc coverage** (vs 70 % bar, analyzer numbers):
+    `pkg` 61.7 % (under-counted; real ~95 %+), `gateway` 42.5 %
+    (PR #213 reports 85 %), then `common` 28.9 %, `user-service`
+    25.0 %, `local-storage` 20.8 %, `core` 19.9 %, `app-management`
+    11.6 %, `message-bus` 2.6 %, `cli` 2.6 %. Punch-list of the top
+    5 highest-impact undocumented exports per module is in the doc.
+    `cli` (39 exports, mostly mechanical) is the cheapest next win
+    after the in-flight `user-service` raise.
+
+  - **ADR + audit health**: two pairs of duplicate-numbered ADRs
+    (0011 — both `-ca-mismatch-detection-and-recovery` and
+    `-backend-pkg-coexistence-with-casaos-common`; 0012 — both
+    `-ca-rotation-flow` and `-pkg-logging-built-on-stdlib-slog`).
+    ADR index in `decisions/README.md` stops at #0012; the other
+    10 ADRs are missing from the table. Six load-bearing framework
+    choices have no ADR (Uber fx, Echo, GORM, Svelte 5 runes lock,
+    oapi-codegen, mDNS strategy).
+
+  - **TODO/FIXME**: 25 backend (within ADR-0019's 27 ceiling), 0 UI,
+    0 scripts. Two security-tier smells: WebSocket `CheckOrigin`
+    bypassed in `message-bus/service/socketio_service.go:53/:58`;
+    four live-request-path `panic()` calls
+    (`local-storage/service/disk.go:90/114/147`,
+    `core/route/v1/file.go:243`).
+
+  - **Smells**: 4 files > 1000 lines (compose_app.go, file.go,
+    apps/+page.svelte, settings/+page.svelte); 25 functions > 100
+    lines, 8 over 130 lines (worst:
+    `core/route/v1.go:17 InitV1Router` at 223 lines).
+
+  ## Sprint 5.5 punch-list (head)
+
+  Top 10 PRs ordered by leverage (full list of 20 in the doc):
+
+  1. CONTRIBUTING license fix (CRITICAL)
+  2. CONTRIBUTING port + tooling sweep
+  3. README diagram + version pin
+  4. SUPPORT.md v0.1.x removal
+  5. Resolve duplicate ADR numbers (0011, 0012)
+  6. Refresh `decisions/README.md` index (cover ADR-0013–0022)
+  7. mkdocs.yml nav refresh — add the 9 orphaned pages
+  8. WebSocket origin check in message-bus (security)
+  9. Convert 4 live-path panics to error returns (reliability)
+  10. Implement-or-delete `TextEditor.test.ts:229` skipped test
+
+  Items 11–17 are per-module godoc raise PRs (one per module,
+  smallest-first: cli -> common -> local-storage -> core ->
+  app-management -> message-bus, with `user-service` already in
+  flight). Items 18–20 are slow-burn ADRs + file splits.
+custom:
+  Issue: ""
