@@ -1,0 +1,45 @@
+kind: Fixed
+body: |
+  install.sh now migrates `/var/lib/casaos/*` → `/var/lib/powerlab/*`
+  on upgrade. Closes the v0.5.4 prod incident (issue #158) where
+  hosts upgrading from v0.5.x lost access to user accounts because
+  PR #140 flipped data paths but install.sh didn't migrate the data.
+
+  Symptom on the affected host: every API returned 401 Unauthorized,
+  login returned 400 Bad Request — user-service was reading an empty
+  `/var/lib/powerlab/db/user.db` while the actual user data sat in
+  `/var/lib/casaos/db/user.db`. Hot-fixed manually by copying the DBs.
+
+  Fix: extracted the migration logic into a standalone testable
+  script, `scripts/migrate-casaos-data.sh`, which install.sh sources
+  and invokes after stopping services + before starting them. The
+  script:
+
+    - Copies subdirs `db apps appstore conf 1` from
+      `/var/lib/casaos/<sub>` to `/var/lib/powerlab/<sub>` only
+      when destination doesn't exist (never overwrites live data).
+    - Copies known DB files individually (db/user.db,
+      db/message-bus.db, db/casaOS.db, db/local-storage.db,
+      db/local-storage.json) for the case where the destination
+      dir EXISTS but specific files are missing — the actual v0.5.4
+      mishap shape (message-bus had created /var/lib/powerlab/db/
+      with just message-bus.db, no user.db).
+    - Idempotent — safe to run on every upgrade; no-op when the
+      destination is fully populated.
+    - Source preserved (`/var/lib/casaos/*` not deleted) — leaves
+      a manual rollback path.
+
+  Test coverage at `scripts/migrate-casaos-data_test.sh`:
+    - Test 1: v0.5.4 mishap scenario (user.db missing) → migrated;
+      message-bus.db NOT overwritten.
+    - Test 2: fresh install (no /var/lib/casaos) → no-op.
+    - Test 3: full upgrade (no /var/lib/powerlab) → all subdirs copied.
+    - Test 4: idempotent re-run → user mutations preserved.
+    - Test 5: source preservation → casaos files untouched.
+
+  10 assertions across 5 scenarios. PREFIX env var lets the test
+  point at a sandbox dir so no real /var/lib paths are touched.
+
+  Closes #158.
+custom:
+  Issue: "158"
