@@ -120,13 +120,22 @@ func init() {
 		*dbFlag = config.AppInfo.DBPath
 	}
 
-	// Refuse to start if local-storage.db exists at both the canonical
-	// path (<DataPath>/local-storage.db, what GetGlobalDB opens) and
-	// the v0.5.4 hot-fix legacy path (<DataPath>/db/local-storage.db).
-	// See docs/audits/db-paths.md + issue #179.
-	if err := paths.AssertNoSplitBrain(context.Background(), nil, "local-storage",
-		paths.LocalStorageDBIn(*dbFlag),
-		paths.LegacyLocalStorageDBIn(*dbFlag),
+	// Auto-resolve known-stale legacy duplicates BEFORE the strict
+	// split-brain check. local-storage NEVER reads from
+	// `<dbPath>/db/local-storage.db` — that path was only ever a
+	// v0.5.4 hot-fix copy left behind by a buggy install.sh migration
+	// (see #179). v0.5.9 (this PR) auto-cleans rather than locking
+	// the operator out as v0.5.8 did.
+	canonicalLSDB := paths.LocalStorageDBIn(*dbFlag)
+	legacyLSDB := paths.LegacyLocalStorageDBIn(*dbFlag)
+	bgCtx := context.Background()
+	for _, bak := range paths.AutoMoveLegacyAside(bgCtx, nil, "local-storage", canonicalLSDB, legacyLSDB) {
+		fmt.Fprintf(os.Stderr, "[local-storage] moved stale legacy DB aside: %s\n", bak)
+	}
+
+	if err := paths.AssertNoSplitBrain(bgCtx, nil, "local-storage",
+		canonicalLSDB,
+		legacyLSDB,
 	); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
