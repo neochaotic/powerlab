@@ -1,16 +1,22 @@
 package model
 
+// TCPPorts and UDPPorts are the legacy single-port descriptors used
+// by the V1 app-info JSON. Newer code uses PortMap which carries the
+// protocol inline.
 type TCPPorts struct {
 	Desc          string `json:"desc"`
 	ContainerPort int    `json:"container_port"`
 }
+
+// UDPPorts — legacy UDP equivalent of TCPPorts.
 type UDPPorts struct {
 	Desc          string `json:"desc"`
 	ContainerPort int    `json:"container_port"`
 }
 
-/*******************使用gorm支持json************************************/
-
+// PortMap is a single host:container port pair as configured in the
+// app-install form. CommendPort is the host-side port (the typo is
+// historical and load-bearing — wire format).
 type PortMap struct {
 	ContainerPort string `json:"container"`
 	CommendPort   string `json:"host"`
@@ -19,12 +25,10 @@ type PortMap struct {
 	Type          int    `json:"type"`
 }
 
+// PortArray is the gorm-JSON-stored list of PortMaps for an app.
 type PortArray []PortMap
 
-/************************************************************************/
-
-/*******************使用gorm支持json************************************/
-
+// Env is a single ENV-VAR mapping for the container's env block.
 type Env struct {
 	Name  string `json:"container"`
 	Value string `json:"host"`
@@ -32,12 +36,13 @@ type Env struct {
 	Type  int    `json:"type"`
 }
 
+// EnvArray is the gorm-JSON-stored env-var list for an app.
 type EnvArray []Env
 
-/************************************************************************/
-
-/*******************使用gorm支持json************************************/
-
+// PathMap is a single host:container bind-mount declared in an app
+// manifest. Path is the host path (resolved relative to APPModel
+// .StoragePath); ContainerPath is where it shows up inside the
+// container.
 type PathMap struct {
 	ContainerPath string `json:"container"`
 	Path          string `json:"host"`
@@ -45,6 +50,7 @@ type PathMap struct {
 	Desc          string `json:"desc"`
 }
 
+// PathArray is the gorm-JSON-stored bind-mount list for an app.
 type PathArray []PathMap
 
 /************************************************************************/
@@ -65,6 +71,12 @@ type PathArray []PathMap
 //	Position   bool      `json:"position"`
 //}
 
+// CustomizationPostData is the body of the V1 install-from-form
+// endpoint — every field a user can tweak from the "Install
+// custom container" UI before the compose file is generated.
+// Field types here must match what the codegen V2 install path
+// produces, since both flows feed the same docker-compose
+// renderer.
 type CustomizationPostData struct {
 	ContainerName string    `json:"container_name"`
 	CustomID      string    `json:"custom_id"`

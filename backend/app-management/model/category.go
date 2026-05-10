@@ -1,8 +1,14 @@
 package model
 
+// ServerCategoryList is the response envelope for the app-store
+// category index endpoint.
 type ServerCategoryList struct {
 	Item []Category `json:"item"`
 }
+
+// Category is one entry in the app-store category list — used by
+// the homepage tile filter. Count is the number of apps in this
+// category (dynamic, computed at index time).
 type Category struct {
 	ID uint `gorm:"column:id;primary_key" json:"id"`
 	//CreatedAt time.Time `json:"created_at"`

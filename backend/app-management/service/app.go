@@ -1,14 +1,22 @@
 package service
 
 import (
-	"github.com/neochaotic/powerlab/backend/app-management/codegen"
-	"github.com/neochaotic/powerlab/backend/common/utils/logger"
 	"github.com/compose-spec/compose-go/loader"
 	"github.com/compose-spec/compose-go/types"
+	"github.com/neochaotic/powerlab/backend/app-management/codegen"
+	"github.com/neochaotic/powerlab/backend/common/utils/logger"
 )
 
+// App is the in-process view of one service inside a compose file.
+// Type-aliased to compose-spec's ServiceConfig so PowerLab's
+// extension methods (StoreInfo + helpers) can hang off the same
+// value the compose loader produces.
 type App types.ServiceConfig
 
+// StoreInfo extracts the PowerLab/CasaOS x-extension block from
+// the service config — the catalog metadata (icon, description,
+// screenshots, port map) that the compose-author embeds via
+// `x-powerlab:` (or legacy `x-web` / `x-casaos`).
 func (a *App) StoreInfo() (codegen.AppStoreInfo, error) {
 	var storeInfo codegen.AppStoreInfo
 

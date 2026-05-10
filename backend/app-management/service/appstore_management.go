@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bluele/gcache"
+	"github.com/docker/docker/client"
 	"github.com/neochaotic/powerlab/backend/app-management/codegen"
 	"github.com/neochaotic/powerlab/backend/app-management/common"
 	"github.com/neochaotic/powerlab/backend/app-management/pkg/config"
@@ -14,14 +16,17 @@ import (
 	"github.com/neochaotic/powerlab/backend/common/utils"
 	"github.com/neochaotic/powerlab/backend/common/utils/file"
 	"github.com/neochaotic/powerlab/backend/common/utils/logger"
-	"github.com/bluele/gcache"
-	"github.com/docker/docker/client"
 	"github.com/samber/lo"
 	"go.uber.org/zap"
 )
 
 var ErrAppStoreSourceExists = fmt.Errorf("appstore source already exists")
 
+// AppStoreManagement is the multi-store front for the app catalog.
+// Owns the registered store list (admin-configurable via the
+// AppStoreList ini key), the per-app upgrade-availability cache,
+// and the in-flight upgrade tracking. Its CRUD methods drive the
+// admin "App stores" panel.
 type AppStoreManagement struct {
 	isAppUpgradable      gcache.Cache
 	defaultAppStore      AppStore
@@ -30,6 +35,9 @@ type AppStoreManagement struct {
 	onAppStoreUnregister []func(string) error
 }
 
+// AppStoreList returns the registered app-store list as render-
+// ready metadata for the admin UI. Stores that fail to load are
+// included with a marker so the UI can surface the error.
 func (a *AppStoreManagement) AppStoreList() []codegen.AppStoreMetadata {
 	return lo.Map(config.ServerInfo.AppStoreList, func(appStoreURL string, id int) codegen.AppStoreMetadata {
 		appStore, err := AppStoreByURL(appStoreURL)
@@ -58,14 +66,22 @@ func (a *AppStoreManagement) AppStoreList() []codegen.AppStoreMetadata {
 	})
 }
 
+// OnAppStoreRegister appends a callback fired after a successful
+// store registration. Used by code that needs to refresh derived
+// caches (e.g. the homepage tile list).
 func (a *AppStoreManagement) OnAppStoreRegister(fn func(string) error) {
 	a.onAppStoreRegister = append(a.onAppStoreRegister, fn)
 }
 
+// OnAppStoreUnregister appends a callback fired after a successful
+// store unregistration.
 func (a *AppStoreManagement) OnAppStoreUnregister(fn func(string) error) {
 	a.onAppStoreUnregister = append(a.onAppStoreUnregister, fn)
 }
 
+// ChangeGlobal sets a [global] config key to value and persists
+// the conf file. Used by the admin UI's secret-management panel
+// (OpenAI key, etc.).
 func (a *AppStoreManagement) ChangeGlobal(key string, value string) error {
 	config.Global[key] = value
 
@@ -79,6 +95,7 @@ func (a *AppStoreManagement) ChangeGlobal(key string, value string) error {
 	return nil
 }
 
+// DeleteGlobal removes a [global] config key from the conf file.
 func (a *AppStoreManagement) DeleteGlobal(key string) error {
 	for k := range config.Global {
 		if k == key {
@@ -96,6 +113,10 @@ func (a *AppStoreManagement) DeleteGlobal(key string) error {
 	return nil
 }
 
+// RegisterAppStore registers a new app-store URL — async variant
+// that fans the work out to a goroutine and notifies the caller
+// via callbacks. Use the Sync sibling for tests / setup scripts
+// that need to block.
 func (a *AppStoreManagement) RegisterAppStore(ctx context.Context, appstoreURL string, callbacks ...func(*codegen.AppStoreMetadata)) error {
 	// check if appstore already exists
 	for _, url := range config.ServerInfo.AppStoreList {
@@ -160,6 +181,9 @@ func (a *AppStoreManagement) RegisterAppStore(ctx context.Context, appstoreURL s
 }
 
 // TODO: refactor the function and above function
+// RegisterAppStoreSync is the synchronous variant — git-clones the
+// store, builds the catalog, persists the URL to AppStoreList,
+// and fires the OnAppStoreRegister callbacks before returning.
 func (a *AppStoreManagement) RegisterAppStoreSync(ctx context.Context, appstoreURL string, callbacks ...func(*codegen.AppStoreMetadata)) error {
 	// check if appstore already exists
 	for _, url := range config.ServerInfo.AppStoreList {
@@ -219,6 +243,10 @@ func (a *AppStoreManagement) RegisterAppStoreSync(ctx context.Context, appstoreU
 	return nil
 }
 
+// UnregisterAppStore removes an app-store entry by index in
+// AppStoreList, persists the conf, and fires the
+// OnAppStoreUnregister callbacks. Note this DOES NOT delete the
+// on-disk catalog — admin must clean it up manually.
 func (a *AppStoreManagement) UnregisterAppStore(appStoreID uint) error {
 	if appStoreID >= uint(len(config.ServerInfo.AppStoreList)) {
 		return fmt.Errorf("appstore id %d out of range", appStoreID)
@@ -262,6 +290,8 @@ func (a *AppStoreManagement) UnregisterAppStore(appStoreID uint) error {
 	return nil
 }
 
+// AppStoreMap returns every registered AppStore keyed by URL.
+// Lazy-resolves stores on first call.
 func (a *AppStoreManagement) AppStoreMap() (map[string]AppStore, error) {
 	appStoreMap := lo.SliceToMap(config.ServerInfo.AppStoreList, func(appStoreURL string) (string, AppStore) {
 		appStore, err := AppStoreByURL(appStoreURL)
@@ -277,6 +307,8 @@ func (a *AppStoreManagement) AppStoreMap() (map[string]AppStore, error) {
 }
 
 // AppStore interface
+// CategoryMap returns the merged category index across every
+// registered store. The default store wins on key collisions.
 func (a *AppStoreManagement) CategoryMap() (map[string]codegen.CategoryInfo, error) {
 	appStoreMap, err := a.AppStoreMap()
 	if err != nil {
@@ -338,6 +370,8 @@ func (a *AppStoreManagement) CategoryMap() (map[string]codegen.CategoryInfo, err
 	return categoryMap, nil
 }
 
+// Recommend returns the merged "Recommended" app-id list across
+// every registered store.
 func (a *AppStoreManagement) Recommend() ([]string, error) {
 	appStoreMap, err := a.AppStoreMap()
 	if err != nil {
@@ -379,6 +413,9 @@ func (a *AppStoreManagement) Recommend() ([]string, error) {
 	return recommend, nil
 }
 
+// Catalog returns the merged catalog across every registered
+// store, keyed by app id. App-id collisions are resolved by store
+// registration order — first store wins.
 func (a *AppStoreManagement) Catalog() (map[string]*ComposeApp, error) {
 	catalog := map[string]*ComposeApp{}
 	// Track which IDs have been added (case-insensitively) so the same app from
@@ -435,6 +472,10 @@ func (a *AppStoreManagement) Catalog() (map[string]*ComposeApp, error) {
 	return catalog, nil
 }
 
+// UpdateCatalog re-runs UpdateCatalog on every registered store
+// (typically after a `git pull` on the catalog repos). Errors
+// from individual stores are logged + swallowed so a single
+// store failure doesn't kill the refresh.
 func (a *AppStoreManagement) UpdateCatalog() error {
 	// reload config.
 	// the appstore may be change in runtime.
@@ -457,6 +498,8 @@ func (a *AppStoreManagement) UpdateCatalog() error {
 	return nil
 }
 
+// ComposeApp resolves a single ComposeApp by id across every
+// registered store — first hit wins.
 func (a *AppStoreManagement) ComposeApp(id string) (*ComposeApp, error) {
 	appStoreMap, err := a.AppStoreMap()
 	if err != nil {
@@ -492,10 +535,15 @@ func (a *AppStoreManagement) ComposeApp(id string) (*ComposeApp, error) {
 	return composeApp, nil
 }
 
+// WorkDir returns the on-disk root used to host catalog clones —
+// the configured AppInfo.AppStorePath, ensured to exist.
 func (a *AppStoreManagement) WorkDir() (string, error) {
 	panic("not implemented and will never be implemented - this is a virtual appstore")
 }
 
+// IsUpdateAvailable reports whether composeApp has a newer image
+// in any registered store. Cached for the upgrade-availability
+// TTL so the homepage doesn't hammer registries on every load.
 func (a *AppStoreManagement) IsUpdateAvailable(composeApp *ComposeApp) bool {
 	storeID := composeApp.Name
 	if value, err := a.isAppUpgradable.Get(storeID); err == nil {
@@ -556,6 +604,9 @@ var NoUpdateBlacklist = []string{
 	"johnguan/stable-diffusion-webui:latest",
 }
 
+// IsUpdateAvailableWith compares an installed composeApp against
+// a specific storeComposeApp — used by IsUpdateAvailable as the
+// inner check when iterating stores.
 func (a *AppStoreManagement) IsUpdateAvailableWith(composeApp *ComposeApp, storeComposeApp *ComposeApp) (bool, error) {
 	currentTag, err := composeApp.MainTag()
 	if err != nil {
@@ -600,20 +651,30 @@ func (a *AppStoreManagement) IsUpdateAvailableWith(composeApp *ComposeApp, store
 	return currentTag != storeTag, err
 }
 
+// IsUpdating reports whether an in-place upgrade is currently
+// running for appID. Used to gate the "Update" button + show
+// progress.
 func (a *AppStoreManagement) IsUpdating(appID string) bool {
 	_, ok := a.isAppUpgrading.Load(appID)
 	return ok
 }
 
+// StartUpgrade marks appID as upgrading. Pair with FinishUpgrade.
 func (a *AppStoreManagement) StartUpgrade(appID string) {
 	a.isAppUpgrading.Store(appID, struct{}{})
 }
 
+// FinishUpgrade clears the upgrading flag for appID + invalidates
+// the upgrade-availability cache entry so the new state is read
+// on next homepage load.
 func (a *AppStoreManagement) FinishUpgrade(appID string) {
 	a.isAppUpgrading.Delete(appID)
 	a.isAppUpgradable.Remove(appID)
 }
 
+// NewAppStoreManagement returns the process-wide AppStoreManagement
+// singleton. Bootstraps the upgrade-availability cache (LRU) and
+// the in-flight upgrade map.
 func NewAppStoreManagement() *AppStoreManagement {
 	defaultAppStore, err := NewDefaultAppStore()
 	if err != nil {

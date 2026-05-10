@@ -12,12 +12,16 @@ const (
 	keyInterpolationMap keyTypeInterpolationMap = iota
 )
 
-// Returns a new context with the given properties for events.
+// WithProperties returns a new context carrying properties — the
+// per-request property bag forwarded onto every message-bus event
+// emitted while handling the request (correlation IDs, user IDs,
+// etc.).
 func WithProperties(ctx context.Context, properties map[string]string) context.Context {
 	return withMap(ctx, keyProperties, properties)
 }
 
-// Returns the properties from the context for events
+// PropertiesFromContext returns the property bag previously set via
+// WithProperties, or nil if none was set.
 func PropertiesFromContext(ctx context.Context) map[string]string {
 	return mapFromContext(ctx, keyProperties)
 }

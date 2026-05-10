@@ -21,12 +21,30 @@ import (
 	"go.uber.org/zap"
 )
 
+// AppStore is one source of catalog data — typically a git
+// repository checked out under AppInfo.AppStorePath, but in
+// principle a non-git directory works too. Multiple stores are
+// queried by AppStoreManagement and merged into a single homepage
+// catalog.
 type AppStore interface {
+	// Catalog returns every ComposeApp in this store, keyed by
+	// app id (the directory name under the store root).
 	Catalog() (map[string]*ComposeApp, error)
+	// CategoryMap returns the store's category index — the icons
+	// and counts shown in the homepage filter chips.
 	CategoryMap() (map[string]codegen.CategoryInfo, error)
+	// ComposeApp returns the single ComposeApp identified by id,
+	// or an error if it isn't in this store.
 	ComposeApp(id string) (*ComposeApp, error)
+	// Recommend returns the editor-curated app id list shown as
+	// "Recommended" on the homepage tab.
 	Recommend() ([]string, error)
+	// UpdateCatalog re-reads the store directory from disk
+	// (typically after a git pull) and rebuilds the in-memory
+	// catalog. Idempotent.
 	UpdateCatalog() error
+	// WorkDir returns the on-disk root of the store's catalog —
+	// used by callers that want to mutate or inspect raw files.
 	WorkDir() (string, error)
 }
 
@@ -305,6 +323,9 @@ func (s *appStore) WorkDir() (string, error) {
 	return filepath.Join(config.AppInfo.AppStorePath, parsedURL.Host, hash), nil
 }
 
+// AppStoreByURL returns the cached AppStore for the given
+// appstoreURL, lazy-creating one if it doesn't exist yet. The URL
+// can be a git remote ("https://...git") or a local path.
 func AppStoreByURL(appstoreURL string) (AppStore, error) {
 	_, err := url.Parse(appstoreURL)
 	if err != nil {
@@ -325,6 +346,10 @@ func AppStoreByURL(appstoreURL string) (AppStore, error) {
 	return appStoreMap[appstoreKey], nil
 }
 
+// NewDefaultAppStore returns the AppStore for the configured
+// default catalog (the bundled "Awesome PowerLab Apps" remote).
+// Returns ErrDefaultAppStoreNotFound if the catalog hasn't been
+// cloned/checked out yet.
 func NewDefaultAppStore() (AppStore, error) {
 	storeRoot := filepath.Join(config.AppInfo.AppStorePath, "default")
 
@@ -349,6 +374,9 @@ func NewDefaultAppStore() (AppStore, error) {
 	}, nil
 }
 
+// LoadCategoryMap reads category.list.json under storeRoot and
+// returns the parsed category index. Empty map (not nil) on a
+// missing/malformed file so callers can iterate safely.
 func LoadCategoryMap(storeRoot string) map[string]codegen.CategoryInfo {
 	categoryListFile := filepath.Join(storeRoot, common.CategoryListFileName)
 
@@ -387,6 +415,9 @@ func LoadCategoryMap(storeRoot string) map[string]codegen.CategoryInfo {
 	})
 }
 
+// LoadRecommend reads recommend.list.json under storeRoot and
+// returns the editor-curated app id list shown on the Recommended
+// tab. Empty slice (not nil) on a missing/malformed file.
 func LoadRecommend(storeRoot string) []string {
 	recommendListFile := filepath.Join(storeRoot, common.RecommendListFileName)
 
@@ -421,6 +452,10 @@ func LoadRecommend(storeRoot string) []string {
 	return result
 }
 
+// BuildCatalog walks storeRoot/Apps/* and returns one ComposeApp
+// per directory whose docker-compose.yml loads cleanly. Apps with
+// load errors are logged and skipped — partial catalog is better
+// than no catalog.
 func BuildCatalog(storeRoot string) (map[string]*ComposeApp, error) {
 	catalog := map[string]*ComposeApp{}
 
@@ -464,6 +499,10 @@ func BuildCatalog(storeRoot string) (map[string]*ComposeApp, error) {
 	return catalog, nil
 }
 
+// StoreRoot resolves the catalog-root directory under workdir.
+// The bundled catalog uses the layout
+// <workdir>/Apps + category.list.json + recommend.list.json;
+// for other layouts callers can wrap their own AppStore.
 func StoreRoot(workdir string) (string, error) {
 	storeRoot := ""
 
