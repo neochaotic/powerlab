@@ -67,7 +67,15 @@ markdown_extensions:
   # foundation. Re-add via a follow-up PR once the upstream bug
   # resolves or an alternate highlight pipeline is configured.
   - pymdownx.snippets
-  - pymdownx.superfences
+  # superfences with mermaid custom_fence: lets ```mermaid blocks
+  # render via Mermaid.js (Material auto-loads mermaid for 9.0+
+  # when this fence is present) instead of being shown as raw code.
+  # Architecture pages are full of flowcharts and need this.
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
 
