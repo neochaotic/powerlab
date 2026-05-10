@@ -159,6 +159,14 @@ nav:
           - utils: api/message-bus/utils.md
           - codegen: api/message-bus/codegen.md
           - pkg/ysk: api/message-bus/pkg/ysk.md
+      - common:
+          - Index: api/common/index.md
+          - external: api/common/external.md
+          - model: api/common/model.md
+          - middleware: api/common/middleware.md
+          - utils/jwt: api/common/utils/jwt.md
+          - pkg/security: api/common/pkg/security.md
+          - utils: api/common/utils.md
   - Audits:
       - Database paths: audits/db-paths.md
       - CasaOS dependencies: audits/casaos-dependencies.md

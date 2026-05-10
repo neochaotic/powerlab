@@ -18,6 +18,8 @@ import (
 	echo_middleware "github.com/labstack/echo/v4/middleware"
 )
 
+// JWK is a single ECDSA P-256 public key in the standard JWK
+// envelope. PowerLab's JWKS only ever contains one key.
 type JWK struct {
 	Kty string `json:"kty"`
 	Crv string `json:"crv"`
@@ -25,12 +27,21 @@ type JWK struct {
 	Y   string `json:"y"`
 }
 
+// JWKS is the standard "keys" wrapper served at JWKSPath.
 type JWKS struct {
 	Keys []JWK `json:"keys"`
 }
 
+// JWKSPath is the URL path the user-service exposes its public key
+// on. Other services fetch this to verify JWTs locally.
 const JWKSPath = ".well-known/jwks.json"
 
+// JWT returns an echo middleware that verifies Authorization
+// headers (or ?token query param) against the publicKeyFunc-
+// provided key. Skips loopback (::1, 127.0.0.1) so on-host
+// admin tools don't need a token. Sets X-User-Id on the
+// inbound request from the verified claims so downstream
+// handlers can read it without re-parsing.
 func JWT(publicKeyFunc func() (*ecdsa.PublicKey, error)) echo.MiddlewareFunc {
 	return echojwt.WithConfig(
 		echojwt.Config{
@@ -60,6 +71,8 @@ func JWT(publicKeyFunc func() (*ecdsa.PublicKey, error)) echo.MiddlewareFunc {
 	)
 }
 
+// GenerateKeyPair returns a fresh ECDSA P-256 keypair. user-service
+// calls this on first boot to seed the persistent keypair (ADR-0020).
 func GenerateKeyPair() (*ecdsa.PrivateKey, *ecdsa.PublicKey, error) {
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
@@ -71,6 +84,8 @@ func GenerateKeyPair() (*ecdsa.PrivateKey, *ecdsa.PublicKey, error) {
 	return privateKey, publicKey, nil
 }
 
+// GenerateJwksJSON serialises publicKey as a JWKS document for the
+// .well-known endpoint. P-256 only.
 func GenerateJwksJSON(publicKey *ecdsa.PublicKey) ([]byte, error) {
 	jwk := JWK{
 		Kty: "EC",
@@ -86,6 +101,8 @@ func GenerateJwksJSON(publicKey *ecdsa.PublicKey) ([]byte, error) {
 	return json.Marshal(jwks)
 }
 
+// PublicKeyFromJwksJSON inverts GenerateJwksJSON — reads the first
+// key from a JWKS document into an ecdsa.PublicKey.
 func PublicKeyFromJwksJSON(jwksJSON []byte) (*ecdsa.PublicKey, error) {
 	var jwks JWKS
 	err := json.Unmarshal(jwksJSON, &jwks)
@@ -118,6 +135,9 @@ func PublicKeyFromJwksJSON(jwksJSON []byte) (*ecdsa.PublicKey, error) {
 	return publicKey, nil
 }
 
+// JWKSHandler serves jwksJSON at the JWKSPath endpoint. user-service
+// mounts this once at startup; the served bytes never change for the
+// lifetime of the process (rotating the keypair is a restart event).
 func JWKSHandler(jwksJSON []byte) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

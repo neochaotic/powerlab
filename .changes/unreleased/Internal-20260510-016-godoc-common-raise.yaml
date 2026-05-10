@@ -1,0 +1,83 @@
+kind: Internal
+body: |
+  Sprint 6 #5 — common module godoc raise (~49% → ~75%).
+  Fifth module surfaced on the docs site after pkg/* +
+  gateway + user-service + message-bus.
+
+  `backend/common` is the most-imported module in the repo:
+  every other backend service imports its SDK (`external/*`),
+  JWT verifier (`utils/jwt`), shared response shapes (`model/*`),
+  cert manager (`pkg/security`), and CORS middleware. Lifting
+  its godoc coverage has higher leverage than any of the
+  service-specific raises because the doc shows up wherever
+  the SDK is imported.
+
+  ## What got documented
+
+  - `interfaces.go` — MigrationTool interface (each method now
+    explains what install/setup expects)
+  - `middleware/echo.go` — Cors (with rationale: CORS is
+    permissive because the gateway's JWT middleware is the
+    real auth gate)
+  - `model/*.go` — Result, DeviceInfo, Route, ChangePortRequest,
+    ComposeAppWithStoreInfo, ComposeAppStoreInfo
+  - `external/gateway.go` — package doc + ManagementService
+    interface (each method) + NewManagementService
+  - `external/message_bus.go` — EventType, PropertyType,
+    PrintEventTypesAsMarkdown, GetMessageBusAddress,
+    PublishEventInSocket
+  - `external/user_service.go` — ParsedToken, GetPublicKey
+    (with ADR-0020 reference for keypair persistence + 10s
+    cache rationale), ParseToken (two-tier LRU cache, fall-back
+    to gateway socket when the .url file isn't there)
+  - `external/app_manage.go` — AppManageService interface +
+    NewAppManageService
+  - `external/notify.go` — NotifyService interface +
+    NewNotifyService
+  - `external/share.go` — ShareService interface +
+    NewShareService
+  - `external/gpu.go` — GPUInfo, GPUInfoListWithSMI,
+    GPUInfoList, NvidiaGPUInfo aliases, GPUUtilization,
+    GetGPUUtilization (with macOS Apple Silicon vs Linux
+    nvidia-smi fallback explained)
+  - `utils/jwt/jwt.go` — package doc, Claims, GenerateToken,
+    ParseToken, GetAccessToken, GetRefreshToken, Validate
+  - `utils/jwt/jwt_helper.go` — JWK, JWKS, JWKSPath, JWT
+    (echo middleware), GenerateKeyPair, GenerateJwksJSON,
+    PublicKeyFromJwksJSON, JWKSHandler
+  - `pkg/security/cert.go` — CertManager struct + GetCAPaths,
+    GetServerPaths, GetHSTSPath, CheckAndRotate, StartTicker,
+    GenerateRootCA, GenerateServerCert, ArmHSTS, IsHSTSArmed
+    (the rest of the file was already documented to a high
+    bar — only the gaps got filled)
+
+  ## Infrastructure
+
+    - scripts/gen-godoc.sh MODULES grew "common" → fifth
+      surfaced module
+    - mkdocs.yml nav adds a "common" sub-section under
+      "Go API reference" with the high-traffic packages
+      (external, model, middleware, utils/jwt, pkg/security,
+      utils) — the long tail of utils/* helpers stays
+      generated-but-unlinked
+    - docs/api/common/index.md committed as the curated
+      landing page (auth flow + HTTPS flow call-chain
+      pointers, ADR cross-refs)
+
+  ## Per-service raise progress
+
+    ✅ pkg          100%
+    ✅ gateway       85%
+    ✅ user-service  75%
+    ✅ message-bus  ~75%
+    ✅ common       ~75% (this PR — over the 70% bar)
+    ⏳ local-storage 27%
+    ⏳ app-management 35%
+    ⏳ core          39%
+
+  Long-tail `utils/*` packages intentionally left at lower
+  coverage — most are 1-2 line wrappers whose names already
+  document them. codegen package untouched (regenerated from
+  OpenAPI on every `go generate`).
+custom:
+  Issue: "196"

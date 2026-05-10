@@ -1,5 +1,9 @@
 package model
 
+// ComposeAppWithStoreInfo is the joined view of an installed app: its
+// docker-compose state (Status) plus the store metadata
+// (StoreInfo) used to render the app on the home screen.
+// UpdateAvailable flips when a newer image tag is published upstream.
 type ComposeAppWithStoreInfo struct {
 	// Compose See [Compose Specification](https://compose-spec.io) for the schema structure of `ComposeApp`.
 	Status          string              `json:"status,omitempty"`
@@ -7,6 +11,11 @@ type ComposeAppWithStoreInfo struct {
 	UpdateAvailable bool                `json:"update_available,omitempty" yaml:",omitempty"`
 }
 
+// ComposeAppStoreInfo is the store metadata block that ships with
+// each compose app — title/tagline/screenshots/category. PowerLab
+// reads these fields to render the app card and the app-detail
+// page; values are passed through verbatim from the upstream
+// app store source-of-truth.
 type ComposeAppStoreInfo struct {
 	Architectures  []string          `json:"architectures,omitempty" yaml:",omitempty"`
 	Author         string            `json:"author"`

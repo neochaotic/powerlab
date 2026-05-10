@@ -1,4 +1,9 @@
-// The commmon package provides structs and functions for external code to interact with this gateway service.
+// Package external is the cross-service SDK: each backend service
+// imports this package to talk to its peers (gateway, message-bus,
+// user-service, app-management) without having to duplicate URL
+// resolution, retry, or auth boilerplate. Address resolution always
+// goes through the runtime-path *.url files dropped by the gateway
+// at startup.
 package external
 
 import (
@@ -23,9 +28,22 @@ const (
 	APIGatewayPort        = "/v1/gateway/port"
 )
 
+// ManagementService is the gateway's management API as seen by
+// other backend services. Used at startup to register routes
+// (path → upstream) and read/change the listen port.
 type ManagementService interface {
+	// CreateRoute registers a path → target route on the gateway.
+	// Idempotent on the gateway side — backend services call this
+	// on every boot.
 	CreateRoute(route *model.Route) error
+
+	// ChangePort tells the gateway to rebind on a new port. Used by
+	// the admin UI's port-change flow.
 	ChangePort(request *model.ChangePortRequest) error
+
+	// GetPort returns the gateway's current listen port. Note the
+	// (error, string) return order is legacy — kept for
+	// backwards-compatibility with existing callers.
 	GetPort() (error, string)
 }
 
@@ -90,6 +108,11 @@ func (m *managementService) GetPort() (error, string) {
 	return nil, string(str)
 }
 
+// NewManagementService resolves the gateway management URL from
+// management.url under RuntimePath, retries up to ~10s for the file
+// to appear (gateway may still be writing it during co-startup),
+// pings /ping for readiness, and returns a ready-to-use
+// ManagementService.
 func NewManagementService(RuntimePath string) (ManagementService, error) {
 	managementAddressFile := filepath.Join(RuntimePath, ManagementURLFilename)
 
