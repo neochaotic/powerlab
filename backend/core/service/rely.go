@@ -5,6 +5,10 @@ import (
 	"gorm.io/gorm"
 )
 
+// RelyService is the per-app dependency tracker — used by the
+// install/upgrade gates to answer "can app X be installed?". Each
+// row records what an app needs (driver, port, system feature)
+// keyed on the app's CustomID.
 type RelyService interface {
 	Create(rely model2.RelyDBModel)
 	Delete(id string)
@@ -21,7 +25,7 @@ func (r *relyService) Create(rely model2.RelyDBModel) {
 
 }
 
-//获取我的应用列表
+// 获取我的应用列表
 func (r *relyService) GetInfo(id string) model2.RelyDBModel {
 	var m model2.RelyDBModel
 	r.db.Where("custom_id = ?", id).First(&m)
@@ -35,6 +39,7 @@ func (r *relyService) Delete(id string) {
 	r.db.Where("custom_id = ?", id).Delete(&c)
 }
 
+// NewRelyService returns a RelyService backed by db.
 func NewRelyService(db *gorm.DB) RelyService {
 	return &relyService{db: db}
 }

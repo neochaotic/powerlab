@@ -12,13 +12,20 @@ import (
 	"gorm.io/gorm"
 )
 
+// SharesService manages SMB share definitions — both the gorm DB
+// rows and the on-disk smb.conf snippets that tell smbd what to
+// expose. UpdateConfigFile + InitSambaConfig handle the smb.conf
+// regeneration; the rest is CRUD.
 type SharesService interface {
 	GetSharesList() (shares []model2.SharesDBModel)
 	GetSharesByPath(path string) (shares []model2.SharesDBModel)
 	GetSharesByName(name string) (shares []model2.SharesDBModel)
 	CreateShare(share model2.SharesDBModel)
 	DeleteShare(id string)
+	// UpdateConfigFile rewrites smb.conf from the current DB rows
+	// and reloads smbd.
 	UpdateConfigFile()
+	// InitSambaConfig writes the baseline smb.conf at first boot.
 	InitSambaConfig()
 	DeleteShareByPath(path string)
 }
@@ -146,6 +153,7 @@ func (s *sharesStruct) InitSambaConfig() {
 	}
 }
 
+// NewSharesService returns a SharesService backed by db.
 func NewSharesService(db *gorm.DB) SharesService {
 	return &sharesStruct{db: db}
 }

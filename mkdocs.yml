@@ -192,6 +192,25 @@ nav:
           - route v2: api/app-management/route/v2.md
           - pkg/docker: api/app-management/pkg/docker.md
           - pkg/config: api/app-management/pkg/config.md
+      - core:
+          - Index: api/core/index.md
+          - common: api/core/common.md
+          - model: api/core/model.md
+          - interfaces: api/core/interfaces.md
+          - service: api/core/service.md
+          - service/model: api/core/service/model.md
+          - route v1: api/core/route/v1.md
+          - route v2: api/core/route/v2.md
+          - internal/conf: api/core/internal/conf.md
+          - internal/op: api/core/internal/op.md
+          - internal/sign: api/core/internal/sign.md
+          - internal/driver: api/core/internal/driver.md
+          - pkg/cache: api/core/pkg/cache.md
+          - pkg/sign: api/core/pkg/sign.md
+          - pkg/sqlite: api/core/pkg/sqlite.md
+          - pkg/config: api/core/pkg/config.md
+          - pkg/utils: api/core/pkg/utils.md
+          - pkg/fs: api/core/pkg/fs.md
   - Audits:
       - Database paths: audits/db-paths.md
       - CasaOS dependencies: audits/casaos-dependencies.md

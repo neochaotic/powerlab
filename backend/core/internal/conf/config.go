@@ -1,5 +1,12 @@
+// Package conf holds the typed config shapes used by the
+// internal/op storage-driver runtime — separate from pkg/config
+// (which holds the core service's own config).
 package conf
 
+// Database describes a SQL backend the driver runtime can connect
+// to. PowerLab uses sqlite via DBFile in practice; the Type/Host/
+// Port/User/Password fields exist for compatibility with non-sqlite
+// drivers.
 type Database struct {
 	Type        string `json:"type" env:"DB_TYPE"`
 	Host        string `json:"host" env:"DB_HOST"`
@@ -12,12 +19,15 @@ type Database struct {
 	SSLMode     string `json:"ssl_mode" env:"DB_SSL_MODE"`
 }
 
+// Scheme describes the HTTP/HTTPS listen config for this driver
+// runtime instance.
 type Scheme struct {
 	Https    bool   `json:"https" env:"HTTPS"`
 	CertFile string `json:"cert_file" env:"CERT_FILE"`
 	KeyFile  string `json:"key_file" env:"KEY_FILE"`
 }
 
+// LogConfig is the structured log rotation policy.
 type LogConfig struct {
 	Enable     bool   `json:"enable" env:"LOG_ENABLE"`
 	Name       string `json:"name" env:"LOG_NAME"`
@@ -27,6 +37,9 @@ type LogConfig struct {
 	Compress   bool   `json:"compress" env:"COMPRESS"`
 }
 
+// Config is the top-level driver-runtime config — composed of the
+// other typed sections plus standalone fields. Loaded via env vars
+// (env tags) or a JSON config file.
 type Config struct {
 	Force          bool      `json:"force" env:"FORCE"`
 	Address        string    `json:"address" env:"ADDR"`

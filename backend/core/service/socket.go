@@ -5,10 +5,13 @@ import (
 	"strconv"
 	"strings"
 
-	model2 "github.com/neochaotic/powerlab/backend/core/service/model"
 	"github.com/mileusna/useragent"
+	model2 "github.com/neochaotic/powerlab/backend/core/service/model"
 )
 
+// Name is the parsed user-agent + device descriptor surfaced on
+// the legacy WebSocket peer-connect handshake — drives the "Other
+// devices" peer list display.
 type Name struct {
 	Model       string `json:"model"`
 	OS          string `json:"os"`
@@ -17,6 +20,8 @@ type Name struct {
 	DisplayName string `json:"displayName"`
 }
 
+// GetPeerId returns the persisted peerid cookie if set, otherwise
+// the fallback id (typically a freshly-generated UUID).
 func GetPeerId(request *http.Request, id string) string {
 	cookiePree, err := request.Cookie("peerid")
 	if err != nil {
@@ -28,6 +33,9 @@ func GetPeerId(request *http.Request, id string) string {
 	return id
 }
 
+// GetIP returns the request's client IP, preferring the
+// X-Forwarded-For first hop when set. ::1 / IPv6-mapped loopback
+// is normalised to 127.0.0.1 so peer dedupe works.
 func GetIP(request *http.Request) string {
 	ip := ""
 	if len(request.Header.Get("x-forwarded-for")) > 0 {
@@ -42,6 +50,8 @@ func GetIP(request *http.Request) string {
 	return ip
 }
 
+// GetName parses the user-agent header into a Name suitable for
+// display in the peer list.
 func GetName(request *http.Request) Name {
 	us := useragent.Parse(request.Header.Get("user-agent"))
 	device := ""
@@ -85,6 +95,9 @@ func GetName(request *http.Request) Name {
 	}
 }
 
+// GetNameByDB rebuilds a Name from a persisted peer row — used
+// when a known peer reconnects and we want to keep the previously
+// displayed name.
 func GetNameByDB(m model2.PeerDriveDBModel) Name {
 	device := ""
 	if len(m.DeviceName) > 0 {
