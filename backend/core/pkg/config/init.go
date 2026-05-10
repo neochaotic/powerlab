@@ -6,10 +6,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/go-ini/ini"
 	"github.com/neochaotic/powerlab/backend/common/utils/constants"
 	"github.com/neochaotic/powerlab/backend/core/common"
 	"github.com/neochaotic/powerlab/backend/core/model"
-	"github.com/go-ini/ini"
 )
 
 var (
@@ -33,7 +33,12 @@ var (
 	ConfigFilePath string
 )
 
-// 初始化设置，获取系统的部分信息。
+// InitSetup loads core.conf into the package-level singletons
+// (Cfg, AppInfo, ServerInfo, etc.). If the file at config (or the
+// CoreConfigFilePath default when config is empty) does not exist,
+// the embedded sample string is written to disk first so a fresh
+// install boots with sane defaults. Called once at process start
+// before any other package reads config.
 func InitSetup(config string, sample string) {
 	ConfigFilePath = CoreConfigFilePath
 	if len(config) > 0 {

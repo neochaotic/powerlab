@@ -22,6 +22,10 @@ import (
 	"gorm.io/gorm"
 )
 
+// NotifyServer brokers system notifications: persists per-app
+// notification log rows + emits live events via the message-bus.
+// SystemTempMap holds in-memory aggregated metric snapshots
+// (CPU/memory/disk) used by the homepage dashboard widgets.
 type NotifyServer interface {
 	GetLog(id string) model.AppNotify
 	AddLog(log model.AppNotify)
@@ -30,13 +34,16 @@ type NotifyServer interface {
 	DelLog(id string)
 	GetList(c int) (list []model.AppNotify)
 	MarkRead(id string, state int)
-	//	SendText(m model.AppNotify)
-	//	SendUninstallAppBySocket(app notifyCommon.Application)
 
+	// SendFileOperateNotify publishes the buffered file-operation
+	// events on the message-bus. nowSend bypasses the throttle.
 	SendFileOperateNotify(nowSend bool)
-	//SendInstallAppBySocket(app notifyCommon.Application)
+	// SendNotify publishes a custom event on the message-bus.
 	SendNotify(name string, message map[string]interface{})
+	// SettingSystemTempData merges keys into the in-memory metric
+	// snapshot map.
 	SettingSystemTempData(message map[string]interface{})
+	// GetSystemTempMap returns the live metric snapshot map.
 	GetSystemTempMap() *syncmap.Map
 }
 
@@ -280,6 +287,9 @@ func (i *notifyServer) DelLog(id string) {
 	i.db.Where("custom_id = ?", id).Delete(&log)
 }
 
+// SendMeg (typo preserved as it's the live function name) is the
+// legacy WebSocket broadcaster — fans every queued message out to
+// every active connection.
 func SendMeg() {
 	// for {
 	// 	mt, message, err := ws.ReadMessage()
@@ -350,6 +360,7 @@ func (i *notifyServer) GetSystemTempMap() *syncmap.Map {
 	return &i.SystemTempMap
 }
 
+// NewNotifyService returns a NotifyServer backed by db.
 func NewNotifyService(db *gorm.DB) NotifyServer {
 	return &notifyServer{db: db, SystemTempMap: syncmap.Map{}}
 }

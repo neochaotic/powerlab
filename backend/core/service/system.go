@@ -34,6 +34,17 @@ import (
 	"github.com/shirou/gopsutil/v3/net"
 )
 
+// SystemService is the largest service in core — owns
+// system-info aggregation (CPU, memory, disk, network, sensors)
+// for the homepage stats widgets, file/directory traversal, the
+// reboot/shutdown actions, timezone management, and the legacy
+// CasaOS log + system-entry endpoints.
+//
+// Method count is large (35+); per-method docs would add little
+// signal here since the names are self-describing wrappers around
+// gopsutil + os calls. The interface serves as the contract surface
+// the route layer binds to — implementations live in systemService
+// below.
 type SystemService interface {
 	GetSystemConfigDebug() []string
 	GetCasaOSLogs(lineNumber int) string
@@ -500,6 +511,8 @@ func (s *systemService) GetCasaOSLogs(lineNumber int) string {
 	return string(buf)
 }
 
+// GetDeviceAllIP returns every routable IPv4 address bound to the
+// host's physical interfaces — used by the discovery beacon.
 func GetDeviceAllIP() []string {
 	var address []string
 	addrs, err := net2.InterfaceAddrs()
@@ -520,6 +533,10 @@ func GetDeviceAllIP() []string {
 // assertions:
 //   - thermal_zone "type" and "temp" are required fields
 //     (https://www.kernel.org/doc/Documentation/ABI/testing/sysfs-class-thermal)
+//
+// GetCPUThermalZone reads /sys/class/thermal/thermal_zone* and
+// returns the first zone whose type matches the CPU. Linux-only;
+// returns "" on macOS dev installs.
 func GetCPUThermalZone() string {
 	keyName := "cpu_thermal_zone"
 
@@ -696,6 +713,7 @@ func (s *systemService) GetSystemUsers() []model.SystemUser {
 	return result
 }
 
+// NewSystemService returns a stateless SystemService.
 func NewSystemService() SystemService {
 	return &systemService{}
 }

@@ -10,11 +10,17 @@ import (
 	"github.com/pkg/errors"
 )
 
+// New is a constructor function for a storage driver. Drivers
+// register themselves at init() time via RegisterDriver.
 type New func() driver.Driver
 
-var driverNewMap = map[string]New{}
-var driverInfoMap = map[string][]driver.Item{} //driver.Info{}
+var (
+	driverNewMap  = map[string]New{}
+	driverInfoMap = map[string][]driver.Item{} // driver.Info{}
+)
 
+// RegisterDriver adds a driver constructor to the registry +
+// captures its config schema for the admin UI's "Add storage" form.
 func RegisterDriver(driver New) {
 	// log.Infof("register driver: [%s]", config.Name)
 	tempDriver := driver()
@@ -23,6 +29,8 @@ func RegisterDriver(driver New) {
 	driverNewMap[tempConfig.Name] = driver
 }
 
+// GetDriverNew returns the constructor for the named driver, or
+// an error if no driver with that name has been registered.
 func GetDriverNew(name string) (New, error) {
 	n, ok := driverNewMap[name]
 	if !ok {
@@ -31,6 +39,8 @@ func GetDriverNew(name string) (New, error) {
 	return n, nil
 }
 
+// GetDriverNames returns the registered driver names — feeds the
+// "Add storage" UI's driver picker.
 func GetDriverNames() []string {
 	var driverNames []string
 	for k := range driverInfoMap {
@@ -39,9 +49,9 @@ func GetDriverNames() []string {
 	return driverNames
 }
 
-//	func GetDriverInfoMap() map[string]driver.Info {
-//		return driverInfoMap
-//	}
+// GetDriverInfoMap returns the per-driver config-schema list keyed
+// by driver name — drives the "Add storage" form's per-driver
+// field rendering.
 func GetDriverInfoMap() map[string][]driver.Item {
 	return driverInfoMap
 }

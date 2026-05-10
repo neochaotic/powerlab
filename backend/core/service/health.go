@@ -5,8 +5,15 @@ import (
 	"github.com/neochaotic/powerlab/backend/common/utils/systemctl"
 )
 
+// HealthService surfaces process + port liveness state for the
+// admin diagnostic page. Used by the readiness probe + the "Why
+// is X not working?" troubleshoot widget.
 type HealthService interface {
+	// Services returns systemctl-managed casaos* services keyed by
+	// running-flag (true → []running, false → []not-running).
 	Services() (map[bool]*[]string, error)
+	// Ports returns the (tcp, udp) port lists currently in use on
+	// the host. Used to flag conflicts before app install.
 	Ports() ([]int, []int, error)
 }
 
@@ -40,6 +47,7 @@ func (s *service) Ports() ([]int, []int, error) {
 	return port.ListPortsInUse()
 }
 
+// NewHealthService returns a stateless HealthService.
 func NewHealthService() HealthService {
 	return &service{}
 }

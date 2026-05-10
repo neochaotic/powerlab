@@ -6,6 +6,10 @@ import (
 	"gorm.io/gorm"
 )
 
+// PeerService manages the local-network device-pairing registry —
+// the rows shown on the "Other devices" panel of the home screen.
+// Identity is keyed on user-agent (for browsers) or display name
+// (for native peers).
 type PeerService interface {
 	GetPeerByUserAgent(ua string) (m model2.PeerDriveDBModel)
 	GetPeerByID(id string) (m model2.PeerDriveDBModel)
@@ -44,6 +48,7 @@ func (s *peerStruct) DeletePeer(id string) {
 	s.db.Where("id= ?", id).Delete(&model.PeerDriveDBModel{})
 }
 
+// NewPeerService returns a PeerService backed by db.
 func NewPeerService(db *gorm.DB) PeerService {
 	return &peerStruct{db: db}
 }

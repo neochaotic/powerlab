@@ -8,6 +8,10 @@ import (
 	"gorm.io/gorm"
 )
 
+// ConnectionsService manages the registry of remote SMB shares the
+// user has connected to via the V1 file-explorer's "Network" panel.
+// CRUD + the mount/unmount glue that wraps the system mount.cifs
+// command.
 type ConnectionsService interface {
 	GetConnectionsList() (connections []model2.ConnectionsDBModel)
 	GetConnectionByHost(host string) (connections []model2.ConnectionsDBModel)
@@ -15,6 +19,8 @@ type ConnectionsService interface {
 	CreateConnection(connection *model2.ConnectionsDBModel)
 	DeleteConnection(id string)
 	UpdateConnection(connection *model2.ConnectionsDBModel)
+	// MountSmaba (the typo is wire-format) mounts an SMB share
+	// at mountPoint with the given credentials.
 	MountSmaba(username, host, directory, port, mountPoint, password string) error
 	UnmountSmaba(mountPoint string) error
 }
@@ -60,6 +66,7 @@ func (s *connectionsStruct) UnmountSmaba(mountPoint string) error {
 	return fmt.Errorf("SMB unmounting is not supported on macOS local testing")
 }
 
+// NewConnectionsService returns a ConnectionsService backed by db.
 func NewConnectionsService(db *gorm.DB) ConnectionsService {
 	return &connectionsStruct{db: db}
 }
