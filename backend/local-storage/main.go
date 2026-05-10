@@ -19,6 +19,7 @@ import (
 	"github.com/neochaotic/powerlab/backend/common/model"
 	"github.com/neochaotic/powerlab/backend/common/utils/file"
 	util_http "github.com/neochaotic/powerlab/backend/common/utils/http"
+	"github.com/neochaotic/powerlab/backend/common/utils/paths"
 	"github.com/neochaotic/powerlab/backend/local-storage/codegen/message_bus"
 	"github.com/neochaotic/powerlab/backend/local-storage/common"
 	"github.com/neochaotic/powerlab/backend/local-storage/pkg/cache"
@@ -117,6 +118,18 @@ func init() {
 
 	if len(*dbFlag) == 0 {
 		*dbFlag = config.AppInfo.DBPath
+	}
+
+	// Refuse to start if local-storage.db exists at both the canonical
+	// path (<DataPath>/local-storage.db, what GetGlobalDB opens) and
+	// the v0.5.4 hot-fix legacy path (<DataPath>/db/local-storage.db).
+	// See docs/audits/db-paths.md + issue #179.
+	if err := paths.AssertNoSplitBrain(context.Background(), nil, "local-storage",
+		paths.LocalStorageDBIn(*dbFlag),
+		paths.LegacyLocalStorageDBIn(*dbFlag),
+	); err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
 	}
 
 	sqliteDB := sqlite.GetGlobalDB(*dbFlag)

@@ -20,6 +20,7 @@ import (
 	"github.com/neochaotic/powerlab/backend/common/model"
 	"github.com/neochaotic/powerlab/backend/common/utils/file"
 	util_http "github.com/neochaotic/powerlab/backend/common/utils/http"
+	"github.com/neochaotic/powerlab/backend/common/utils/paths"
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/neochaotic/powerlab/backend/message-bus/codegen"
 	"github.com/neochaotic/powerlab/backend/message-bus/common"
@@ -115,7 +116,22 @@ func main() {
 	}
 
 	databaseFilePath := filepath.Join(config.CommonInfo.RuntimePath, "message-bus.db")
-	persistDatabaseFilePath := filepath.Join(config.AppInfo.DBPath, "db", "message-bus.db")
+	persistDatabaseFilePath := paths.LegacyMessageBusDBIn(config.AppInfo.DBPath)
+
+	// Refuse to start if message-bus's persistent DB exists at both
+	// the in-use legacy path (<DataPath>/db/message-bus.db) and the
+	// future-canonical path (<DataPath>/message-bus.db, no /db/).
+	// As of v0.5.7 the canonical path isn't written by any code, but
+	// surfacing it here means manual operator activity can't quietly
+	// produce a divergence. See docs/audits/db-paths.md + #179.
+	if err := paths.AssertNoSplitBrain(context.Background(), nil, "message-bus",
+		persistDatabaseFilePath,
+		paths.MessageBusDBIn(config.AppInfo.DBPath),
+	); err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
+	}
+
 	repository, err := repository.NewDatabaseRepository(databaseFilePath, persistDatabaseFilePath)
 	if err != nil {
 		panic(err)

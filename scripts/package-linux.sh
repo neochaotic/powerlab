@@ -589,6 +589,45 @@ if [[ -f "$HERE/migrate-casaos-data.sh" ]]; then
   migrate_casaos_data
 fi
 
+# ── L5 split-brain audit — warn if any service has 2 DB copies ─────────
+# The boot-time check in each service main.go (paths.AssertNoSplitBrain)
+# will refuse to start. This audit fires earlier so the operator sees
+# the problem during install.sh output rather than discovering it via
+# a service that won't start. Same checks, friendlier surface.
+# See docs/audits/db-paths.md for the full layered strategy.
+audit_split_brain() {
+  local entry svc a b
+  local issues=0
+  # Pairs to check: <svc>|<path-a>|<path-b>. If both are non-empty
+  # files, the service will refuse to start. core has THREE candidate
+  # paths (in-use, casaos-conf-preserve, future-canonical) so emits
+  # multiple pair entries.
+  for entry in \
+      "user-service|/var/lib/powerlab/user.db|/var/lib/powerlab/db/user.db" \
+      "local-storage|/var/lib/powerlab/local-storage.db|/var/lib/powerlab/db/local-storage.db" \
+      "core|/var/lib/powerlab/db/casaOS.db|/var/lib/casaos/db/casaOS.db" \
+      "core|/var/lib/powerlab/db/casaOS.db|/var/lib/powerlab/core.db" \
+      "core|/var/lib/casaos/db/casaOS.db|/var/lib/powerlab/core.db" \
+      "message-bus|/var/lib/powerlab/db/message-bus.db|/var/lib/powerlab/message-bus.db"; do
+    svc="${entry%%|*}"
+    a="${entry#*|}"; a="${a%%|*}"
+    b="${entry##*|}"
+    if [[ -s "$a" ]] && [[ -s "$b" ]]; then
+      echo "[powerlab-install] WARN: $svc has split-brain — both" >&2
+      echo "[powerlab-install]   $a" >&2
+      echo "[powerlab-install]   $b" >&2
+      echo "[powerlab-install]   exist with data. The service will refuse to start." >&2
+      echo "[powerlab-install]   Pick the authoritative copy (likely the most-recent), then" >&2
+      echo "[powerlab-install]   move the other to <file>.bak.\$(date +%s) before starting." >&2
+      issues=$((issues + 1))
+    fi
+  done
+  if [[ "$issues" == "0" ]]; then
+    echo "[powerlab-install] split-brain audit: OK"
+  fi
+}
+audit_split_brain
+
 # ── Pick the gateway port and write it into gateway.ini ─────────────────
 # Decision matrix:
 #   · Pre-existing gateway.ini → trust it. The user (or a previous
