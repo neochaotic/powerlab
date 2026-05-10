@@ -1,0 +1,43 @@
+kind: Internal
+body: |
+  Sprint 5 audit #203 kills #5 (cosmetic) + #8 (dead systemd
+  units) bundled. All low-risk, no wire format changes.
+
+  ## Deleted (dead inheritance, none referenced by install pipeline)
+
+  - `casaos-message-bus.service`
+  - `casaos-app-management.service` + `.buildroot`
+  - `casaos-local-storage.service` + `casaos-local-storage-first.service`
+  - `casaos-user-service.service`
+  - `backend/core/model/heart.go` (CasaOSHeart type, zero usages)
+
+  install.sh installs `powerlab-*.service` directly per Sprint 3
+  work; these were CasaOS-era artifacts that just shipped in the
+  source tarball as cruft. Same pattern as PR #208's gateway
+  cleanup.
+
+  ## Cosmetic rebrands
+
+  - `backend/core/main.go:271` log message
+    "CasaOS main service is listening" → "PowerLab core service is listening"
+  - `backend/cli/cmd/appManagementShowLocal.go:191` error hint
+    "is the casaos-app-management service running?" → "powerlab-..."
+  - `backend/cli/cmd/appManagementListApps.go:75` same fix
+
+  ## Process
+
+  Added `backend/*/local_data/log/` to `.gitignore` — a stale
+  log file at `backend/core/local_data/log/casaos/log.log` had
+  leaked into a previous commit. The path is dev-only runtime
+  output; this prevents future accidents.
+
+  ## Deferred
+
+  `SERVICENAME = "casaos"` in `backend/core/common/constants.go`
+  — this is the message-bus topic prefix for events emitted by
+  core (see `notify.go` callers). Changing it is wire-format
+  breakage: every subscriber filtering on this would need to
+  update simultaneously. Per ADR-0021's lesson learned, this
+  needs a dual-write window. Tracked separately.
+custom:
+  Issue: "203"
