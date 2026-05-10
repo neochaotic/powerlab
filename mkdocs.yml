@@ -55,11 +55,17 @@ markdown_extensions:
   - toc:
       permalink: true
   - pymdownx.details
-  - pymdownx.highlight:
-      anchor_linenums: true
-      line_spans: __span
-      pygments_lang_class: true
-  - pymdownx.inlinehilite
+  # pymdownx.highlight + pymdownx.inlinehilite removed for now —
+  # they trigger an AttributeError("'NoneType' object has no
+  # attribute 'replace'") in pygments' html_formatter when
+  # pymdown's highlight bridge passes filename=None for blocks
+  # without a filename annotation. Reproduces with mkdocs 1.6.1
+  # + mkdocs-material 9.5.42 + pymdown-extensions 10.11.2 +
+  # pygments 2.20.0 on the architecture/casaos-strangler.md page.
+  # mkdocs-material's superfences alone provides syntax-highlighted
+  # code blocks (just without anchor lines); good enough for the
+  # foundation. Re-add via a follow-up PR once the upstream bug
+  # resolves or an alternate highlight pipeline is configured.
   - pymdownx.snippets
   - pymdownx.superfences
   - pymdownx.tabbed:
