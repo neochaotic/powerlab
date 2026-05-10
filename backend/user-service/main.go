@@ -91,13 +91,27 @@ func init() {
 		*dbFlag = config.AppInfo.DBPath
 	}
 
-	// Refuse to start if the user-service DB exists at BOTH the
-	// canonical path and the v0.5.4 hot-fix legacy path. Silently
-	// picking one would risk persistent data drift; see issue #179
-	// + docs/audits/db-paths.md for the recovery playbook.
-	if err := paths.AssertNoSplitBrain(context.Background(), nil, "user-service",
-		paths.UserServiceDBIn(*dbFlag),
-		paths.LegacyUserServiceDBIn(*dbFlag),
+	// Auto-resolve known-stale legacy duplicates BEFORE the strict
+	// split-brain check. user-service NEVER reads from
+	// `<dbPath>/db/user.db` — that path was only ever a v0.5.4 hot-fix
+	// copy left behind by a buggy install.sh migration (see #179).
+	// Any file there is provably stale junk. v0.5.8 shipped the strict
+	// check without this auto-clean and locked out hosts that still
+	// had the duplicate; v0.5.9 (this PR) fixes that.
+	canonicalDB := paths.UserServiceDBIn(*dbFlag)
+	legacyDB := paths.LegacyUserServiceDBIn(*dbFlag)
+	bgCtx := context.Background()
+	for _, bak := range paths.AutoMoveLegacyAside(bgCtx, nil, "user-service", canonicalDB, legacyDB) {
+		fmt.Fprintf(os.Stderr, "[user-service] moved stale legacy DB aside: %s\n", bak)
+	}
+
+	// Strict split-brain check as the safety net. After AutoMoveLegacyAside
+	// above, the only way this fires is if a path we DON'T know is
+	// safe-to-clean (e.g. operator override) has a duplicate. Refuse to
+	// start with operator-actionable instructions.
+	if err := paths.AssertNoSplitBrain(bgCtx, nil, "user-service",
+		canonicalDB,
+		legacyDB,
 	); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)

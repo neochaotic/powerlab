@@ -166,6 +166,80 @@ func LegacyMessageBusDBIn(base string) string {
 // drift.
 var ErrSplitBrain = errors.New("database split-brain detected")
 
+// nowUnix is a seam for tests; defaults to real time.Now().Unix(). The
+// production binary always uses the real clock; tests stub this for
+// deterministic .bak.<ts> filenames.
+var nowUnix = func() int64 { return realNowUnix() }
+
+// AutoMoveLegacyAside renames each existing legacy path to
+// `<path>.bak.<unix-ts>` when the canonical path also exists with
+// data. Returns the list of paths that were moved (empty when nothing
+// needed migrating). Always returns nil error — failures are logged
+// and the caller proceeds with the canonical path.
+//
+// USE THIS ONLY FOR LEGACY PATHS THE SERVICE NEVER READS FROM. If the
+// legacy path is genuinely possibly-authoritative (e.g. core's
+// /var/lib/casaos/db/casaOS.db when conf was preserved), call
+// AssertNoSplitBrain instead so the operator chooses.
+//
+// The user.db at <DataPath>/db/user.db is a textbook safe-to-move-aside
+// case: user-service's GetDb in pkg/sqlite/db.go reads only from
+// <dbPath>/user.db (canonical), so any file at <dbPath>/db/user.db is
+// always stale junk left over from the v0.5.4 hot-fix migration that
+// targeted the wrong destination. Same for local-storage.db.
+//
+// Move-aside is non-destructive: data is preserved at the .bak path
+// indefinitely. Operator can review or delete at leisure.
+//
+// Typical usage at service startup, BEFORE AssertNoSplitBrain:
+//
+//	moved := paths.AutoMoveLegacyAside(ctx, _log, "user-service",
+//	    paths.UserServiceDBIn(*dbFlag),         // canonical
+//	    paths.LegacyUserServiceDBIn(*dbFlag))   // safe-to-move
+//	for _, p := range moved {
+//	    _log.Warn(ctx, "moved stale legacy DB aside", slog.String("path", p))
+//	}
+func AutoMoveLegacyAside(ctx context.Context, log Logger, serviceName string, canonical string, legacyPaths ...string) []string {
+	if canonical == "" {
+		return nil
+	}
+	canonicalSt, err := os.Stat(canonical)
+	if err != nil || canonicalSt.Size() == 0 {
+		// Canonical doesn't exist or is empty — legacy might be the
+		// only copy with data. DON'T touch it; let AssertNoSplitBrain
+		// (or the natural fresh-install path) handle it.
+		return nil
+	}
+
+	var moved []string
+	for _, legacy := range legacyPaths {
+		if legacy == "" || legacy == canonical {
+			continue
+		}
+		st, err := os.Stat(legacy)
+		if err != nil || st.Size() == 0 {
+			continue
+		}
+		bak := fmt.Sprintf("%s.bak.%d", legacy, nowUnix())
+		if err := os.Rename(legacy, bak); err != nil {
+			if log != nil {
+				log.Error(ctx,
+					fmt.Sprintf("%s: failed to move stale legacy DB aside (split-brain may follow)", serviceName),
+					err)
+			}
+			continue
+		}
+		if log != nil {
+			log.Error(ctx,
+				fmt.Sprintf("%s: moved stale legacy DB %s aside to %s; canonical %s is authoritative",
+					serviceName, legacy, bak, canonical),
+				nil)
+		}
+		moved = append(moved, bak)
+	}
+	return moved
+}
+
 // AssertNoSplitBrain returns ErrSplitBrain (and logs full context) if
 // MORE THAN ONE of the supplied paths exists on disk with non-zero
 // size. Returns nil if zero or one paths exist.

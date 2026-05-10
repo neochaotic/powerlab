@@ -1,0 +1,51 @@
+kind: Fixed
+body: |
+  v0.5.9 hot-fix — closes the v0.5.8 lock-out regression.
+
+  v0.5.8 shipped the split-brain DB detector (refuse-to-start when a
+  service finds its DB at multiple paths) but did NOT auto-clean the
+  v0.5.4 hot-fix sobras. Result: hosts that had the v0.5.4 mishap state
+  upgraded to v0.5.8, the strict check fired, user-service refused to
+  boot, login broke. Symptom looked identical to the v0.5.7 JWT-keypair
+  bug but was a completely different cause introduced by my own fix.
+
+  Three pieces:
+
+  1. **Backend: `paths.AutoMoveLegacyAside`** — for known-stale legacy
+     paths (user.db, local-storage.db: paths the service NEVER reads
+     from), automatically move the duplicate to `<path>.bak.<unix-ts>`
+     before the strict split-brain check runs. Non-destructive: the
+     file is preserved as a backup, not deleted. user-service and
+     local-storage main.go now call this BEFORE `AssertNoSplitBrain`.
+
+     For genuinely-ambiguous duplicates (core's casaOS.db at multiple
+     paths where either could be authoritative), `AssertNoSplitBrain`
+     remains as the safety net — operator picks.
+
+  2. **UI: success toast + auto-reload** — the updater store now shows
+     a visible success toast when an upgrade completes successfully
+     and auto-reloads the page after 2.5s so the user doesn't have to
+     refresh manually. Pre-v0.5.9 the upgrade silently completed and
+     the user was left staring at "Upgrading…" until they refreshed
+     by hand. Failures show an error toast (no auto-reload, the
+     previous version is still running and reloading would be
+     confusing).
+
+  3. **Integration test** at `scripts/test-upgrade-resolves-stale-legacy_test.sh`
+     — builds the user-service binary and runs it against a sandbox
+     simulating the v0.5.4 mishap state (both canonical and legacy
+     paths exist). Asserts: legacy moved aside, canonical untouched,
+     stderr mentions the move, .bak content preserved. This is the
+     test that SHOULD have run before v0.5.8 shipped — closes
+     #169 in spirit (Phase 1.5 release-checklist as automated test).
+
+  7 new Go test cases at backend/common/utils/paths/db_test.go cover
+  the AutoMoveLegacyAside contract: moves stale duplicate, no-op when
+  canonical missing/empty, no-op when legacy missing, multiple legacy
+  paths, idempotent re-run, and integration with AssertNoSplitBrain.
+
+  4 new UI test cases at ui/src/lib/stores/updater.test.ts lock the
+  success toast + reload timing + failure toast + diagnostic
+  surfacing.
+custom:
+  Issue: "179"

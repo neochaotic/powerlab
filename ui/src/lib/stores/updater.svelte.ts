@@ -17,6 +17,7 @@ import {
 	getUpgradeStatus
 } from '$lib/api/updater';
 import type { CheckResult, PreflightResult, LastUpgrade } from '$lib/api/updater';
+import { toast } from '$lib/stores/toast.svelte';
 
 const POLL_INTERVAL_MS = 60 * 60 * 1000; // 1 h
 
@@ -135,6 +136,33 @@ class UpdaterStore {
 				// Re-check so the version banner updates if the
 				// upgrade succeeded.
 				this.refresh();
+
+				// v0.5.9 fix: surface a visible success/failure toast
+				// AND auto-reload after a short delay so the user
+				// doesn't have to refresh manually + sees the new UI
+				// version. Pre-v0.5.9 the upgrade silently completed
+				// and the user was left staring at "Upgrading…" until
+				// they refreshed by hand.
+				const succeeded = !!this.lastUpgrade?.succeeded_at;
+				if (succeeded) {
+					toast.success(
+						'PowerLab updated successfully — reloading…',
+						3000
+					);
+					// Window check guards against SSR / test
+					// environments where window is undefined.
+					if (typeof window !== 'undefined') {
+						setTimeout(() => window.location.reload(), 2500);
+					}
+				} else {
+					const failMsg =
+						this.lastUpgrade?.diagnostic ||
+						'Upgrade failed — see Settings → System for details.';
+					// Long-lived (8s) so the user can read it; no
+					// auto-reload, the previous version is still
+					// running and reloading would be confusing.
+					toast.error(failMsg, 8000);
+				}
 			}
 		}, 2000);
 	}
