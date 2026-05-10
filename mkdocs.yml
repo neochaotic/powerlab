@@ -182,6 +182,16 @@ nav:
           - pkg/sign: api/local-storage/pkg/sign.md
           - pkg/sqlite: api/local-storage/pkg/sqlite.md
           - pkg/cache: api/local-storage/pkg/cache.md
+      - app-management:
+          - Index: api/app-management/index.md
+          - common: api/app-management/common.md
+          - model: api/app-management/model.md
+          - service: api/app-management/service.md
+          - service/v1: api/app-management/service/v1.md
+          - route v1: api/app-management/route/v1.md
+          - route v2: api/app-management/route/v2.md
+          - pkg/docker: api/app-management/pkg/docker.md
+          - pkg/config: api/app-management/pkg/config.md
   - Audits:
       - Database paths: audits/db-paths.md
       - CasaOS dependencies: audits/casaos-dependencies.md

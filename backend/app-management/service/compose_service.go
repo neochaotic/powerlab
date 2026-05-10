@@ -25,10 +25,18 @@ import (
 	"go.uber.org/zap"
 )
 
+// ComposeService is the orchestration surface around docker-compose
+// installs/uninstalls. Tracks in-flight installations in a sync.Map
+// so concurrent install requests for the same app are rejected
+// instead of double-pulling.
 type ComposeService struct {
 	installationInProgress sync.Map
 }
 
+// PrepareWorkingDirectory ensures the per-app workdir under
+// AppsPath exists and returns its path. Each compose app gets a
+// dedicated directory holding its rendered docker-compose.yml plus
+// any per-instance overrides.
 func (s *ComposeService) PrepareWorkingDirectory(name string) (string, error) {
 	workingDirectory := filepath.Join(config.AppInfo.AppsPath, name)
 
@@ -40,11 +48,21 @@ func (s *ComposeService) PrepareWorkingDirectory(name string) (string, error) {
 	return workingDirectory, nil
 }
 
+// IsInstalling reports whether an install for appName is currently
+// in progress. Used to reject duplicate install requests + drive
+// the "spinner" state on the frontend.
 func (s *ComposeService) IsInstalling(appName string) bool {
 	_, ok := s.installationInProgress.Load(appName)
 	return ok
 }
 
+// Install brings a ComposeApp up end-to-end: remap volume paths to
+// the configured StoragePath (macOS dev installs use /tmp/powerlab-
+// data instead of /DATA), rewrite legacy AppData paths to the
+// canonical PowerLabAppData tree (ADR-0021), auto-resolve port
+// conflicts, render the YAML to disk, and then drive `compose up`.
+// Idempotent on retry — the working-directory write + sync.Map
+// guard make double-install safe.
 func (s *ComposeService) Install(ctx context.Context, composeApp *ComposeApp) error {
 	// set store_app_id (by convention is the same as app name at install time if it does not exist)
 	_, isStoreApp := composeApp.SetStoreAppID(composeApp.Name)
@@ -116,7 +134,7 @@ func (s *ComposeService) Install(ctx context.Context, composeApp *ComposeApp) er
 
 	go func(ctx context.Context) {
 		s.installationInProgress.Store(composeApp.Name, true)
-		
+
 		// Create/Get task for logs
 		task := MyTaskService.GetOrCreate(composeApp.Name)
 		defer func() {
@@ -140,6 +158,10 @@ func (s *ComposeService) Install(ctx context.Context, composeApp *ComposeApp) er
 	return nil
 }
 
+// Uninstall stops + removes the compose app. When deleteConfigFolder
+// is true the working directory + bind-mounted AppData are wiped
+// too; pass false for upgrade flows that want to swap the compose
+// file but keep user data.
 func (s *ComposeService) Uninstall(ctx context.Context, composeApp *ComposeApp, deleteConfigFolder bool) error {
 	// prepare for message bus events
 	eventProperties := common.PropertiesFromContext(ctx)
@@ -166,6 +188,8 @@ func (s *ComposeService) Uninstall(ctx context.Context, composeApp *ComposeApp, 
 	return nil
 }
 
+// Status returns the lifecycle string ("running"/"exited"/etc.)
+// for the compose app identified by appID.
 func (s *ComposeService) Status(ctx context.Context, appID string) (string, error) {
 	service, dockerClient, err := apiService()
 	if err != nil {
@@ -189,6 +213,10 @@ func (s *ComposeService) Status(ctx context.Context, appID string) (string, erro
 	return "", ErrComposeAppNotFound
 }
 
+// List returns every compose app currently known to docker, keyed by
+// app name. The map's value is the loaded ComposeApp (not the raw
+// docker-compose project) so callers can reach into x-extension
+// metadata directly.
 func (s *ComposeService) List(ctx context.Context) (map[string]*ComposeApp, error) {
 	service, dockerClient, err := apiService()
 	if err != nil {
@@ -225,6 +253,10 @@ func (s *ComposeService) List(ctx context.Context) (map[string]*ComposeApp, erro
 	return result, nil
 }
 
+// NewComposeService returns a fresh ComposeService. No long-running
+// state — safe to construct per-request, but the install-progress
+// map only deduplicates within a single instance, so the package
+// uses one process-wide singleton in practice.
 func NewComposeService() *ComposeService {
 	return &ComposeService{
 		installationInProgress: sync.Map{},
@@ -262,6 +294,10 @@ func apiService() (api.Service, client.APIClient, error) {
 	return compose.NewComposeService(dockerCli), dockerCli.Client(), nil
 }
 
+// ApiService constructs a fresh docker-compose api.Service paired
+// with the underlying APIClient. Intended for one-shot operations
+// (rather than as a long-lived service); callers must Close the
+// APIClient when done.
 func ApiService() (api.Service, client.APIClient, error) {
 	return apiService()
 }

@@ -17,6 +17,10 @@ import (
 	dockerTypes "github.com/docker/docker/api/types"
 	v1 "github.com/neochaotic/powerlab/backend/app-management/service/v1"
 
+	"github.com/compose-spec/compose-go/cli"
+	"github.com/compose-spec/compose-go/loader"
+	"github.com/compose-spec/compose-go/types"
+	composeCmd "github.com/docker/compose/v2/cmd/compose"
 	"github.com/neochaotic/powerlab/backend/app-management/codegen"
 	"github.com/neochaotic/powerlab/backend/app-management/common"
 	"github.com/neochaotic/powerlab/backend/app-management/pkg/config"
@@ -27,10 +31,6 @@ import (
 	"github.com/neochaotic/powerlab/backend/common/utils/logger"
 	"github.com/neochaotic/powerlab/backend/common/utils/port"
 	"github.com/neochaotic/powerlab/backend/common/utils/random"
-	"github.com/compose-spec/compose-go/cli"
-	"github.com/compose-spec/compose-go/loader"
-	"github.com/compose-spec/compose-go/types"
-	composeCmd "github.com/docker/compose/v2/cmd/compose"
 
 	"github.com/docker/compose/v2/cmd/formatter"
 	"github.com/docker/compose/v2/pkg/api"
@@ -40,8 +40,22 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// ComposeApp is the in-process view of a docker-compose project +
+// the PowerLab x-extension metadata that wraps it. Type-aliased to
+// codegen.ComposeApp so the OpenAPI codegen output reuses the same
+// underlying shape.
+//
+// Owns the high-leverage app-lifecycle methods: StoreInfo (catalog
+// metadata extract), Update / PullAndApply (in-place upgrade),
+// PullAndInstall (first-install path), Uninstall, Apply (config-
+// only update), Containers (introspect running containers), App /
+// Apps / MainService / MainTag (service-level helpers).
 type ComposeApp codegen.ComposeApp
 
+// StoreInfo extracts the catalog metadata (icon, screenshots,
+// title, port-map, tags, etc.) from the compose file's
+// x-powerlab/x-casaos extension block. includeApps true also
+// resolves the per-service StoreInfo of each App in the project.
 func (a *ComposeApp) StoreInfo(includeApps bool) (*codegen.ComposeAppStoreInfo, error) {
 	ex, ok := a.getExtension()
 	if !ok {
@@ -121,6 +135,9 @@ func (a *ComposeApp) StoreInfo(includeApps bool) (*codegen.ComposeAppStoreInfo, 
 // Implementation walks the directory in pure Go so it works identically on
 // Linux and macOS (no shelling out to `du`). Symlinks are not followed and
 // per-file permission errors are silently skipped.
+// DiskUsage walks the compose app's bind-mount tree and returns
+// the total bytes consumed. Used by the per-app stats card on the
+// homepage.
 func (a *ComposeApp) DiskUsage() (int64, error) {
 	appDataPath := filepath.Join(config.AppInfo.StoragePath, "AppData", a.Name)
 
@@ -158,6 +175,9 @@ func (a *ComposeApp) getExtensionMap() (map[string]interface{}, bool) {
 	return m, ok
 }
 
+// AuthorType reports whether the app is from the official PowerLab
+// catalog, an editor-curated submission, or a community-author
+// submission — drives the badge on the catalog detail page.
 func (a *ComposeApp) AuthorType() codegen.StoreAppAuthorType {
 	storeInfo, err := a.StoreInfo(false)
 	if err != nil {
@@ -174,6 +194,9 @@ func (a *ComposeApp) AuthorType() codegen.StoreAppAuthorType {
 	return codegen.Community
 }
 
+// SetStoreAppID writes the store-app id into the compose file's
+// x-extension block. Returns (existingID, isStoreApp) — bool false
+// means the compose file has no x-extension at all (custom app).
 func (a *ComposeApp) SetStoreAppID(storeAppID string) (string, bool) {
 	// set store_app_id (by convention is the same as app name at install time if it does not exist)
 	composeAppStoreInfo, ok := a.getExtensionMap()
@@ -195,6 +218,8 @@ func (a *ComposeApp) SetStoreAppID(storeAppID string) (string, bool) {
 	return storeAppID, true
 }
 
+// SetTitle writes a localised title into the x-extension block.
+// lang is a BCP-47 code; "en" is the default.
 func (a *ComposeApp) SetTitle(title, lang string) {
 	if a.Extensions == nil {
 		a.Extensions = make(map[string]interface{})
@@ -222,6 +247,9 @@ func (a *ComposeApp) SetTitle(title, lang string) {
 	}
 }
 
+// Update is the in-place upgrade flow — pulls the latest image
+// tags, regenerates the working directory, and re-runs `compose
+// up`. Idempotent: if no images changed, becomes a no-op.
 func (a *ComposeApp) Update(ctx context.Context) error {
 	if len(a.ComposeFiles) <= 0 {
 		return ErrComposeFileNotFound
@@ -312,6 +340,8 @@ func (a *ComposeApp) Update(ctx context.Context) error {
 }
 
 // TODO rename the function to service and add error return value
+// App returns the named service from the compose project, or nil
+// if no such service exists.
 func (a *ComposeApp) App(name string) *App {
 	if name == "" {
 		return nil
@@ -326,6 +356,8 @@ func (a *ComposeApp) App(name string) *App {
 	return nil
 }
 
+// Apps returns every service in the compose project, keyed by
+// service name.
 func (a *ComposeApp) Apps() map[string]*App {
 	apps := make(map[string]*App)
 
@@ -336,6 +368,10 @@ func (a *ComposeApp) Apps() map[string]*App {
 	return apps
 }
 
+// MainService returns the service flagged as the project's "main"
+// app via the x-extension main: field. Returns
+// ErrMainAppNotFound if no main app is declared and the project
+// has multiple services.
 func (a *ComposeApp) MainService() (*App, error) {
 	storeInfo, err := a.StoreInfo(false)
 	if err != nil {
@@ -349,6 +385,9 @@ func (a *ComposeApp) MainService() (*App, error) {
 	return a.App(*storeInfo.Main), nil
 }
 
+// MainTag returns the image tag of the main service ("latest"
+// when unset). Used by the update-checker to decide whether a
+// pull is worth doing.
 func (a *ComposeApp) MainTag() (string, error) {
 	mainService, err := a.MainService()
 	if err != nil {
@@ -359,6 +398,8 @@ func (a *ComposeApp) MainTag() (string, error) {
 	return newTag, nil
 }
 
+// Containers returns the live docker-compose container summaries,
+// keyed by service name. Used by the per-app stats card.
 func (a *ComposeApp) Containers(ctx context.Context) (map[string][]api.ContainerSummary, error) {
 	service, dockerClient, err := apiService()
 	if err != nil {
@@ -380,6 +421,9 @@ func (a *ComposeApp) Containers(ctx context.Context) (map[string][]api.Container
 	}), nil
 }
 
+// Pull pulls every image in the compose project. Streams docker
+// pull progress to logWriter so the UI install-log view sees
+// per-layer updates in real time.
 func (a *ComposeApp) Pull(ctx context.Context, logWriter io.Writer) error {
 	if logWriter == nil {
 		logWriter = io.Discard
@@ -402,14 +446,14 @@ func (a *ComposeApp) Pull(ctx context.Context, logWriter io.Writer) error {
 			if err := docker.PullImage(ctx, app.Image, func(out io.ReadCloser) {
 				// We still want the percentage progress in message bus
 				// But we also want the raw output in our logWriter
-				
+
 				// Create a pipe or just copy?
 				// docker.PullImage output is JSON messages.
 				// pullImageProgress handles the decoding.
-				
+
 				// For the logWriter, we'll write the raw JSON decoded messages for now,
 				// or just a "Pulling..." message.
-				
+
 				// Actually, let's wrap pullImageProgress to also write to our logWriter.
 				pullImageProgress(ctx, out, "INSTALL", serviceNum, i+1, logWriter)
 			}); err != nil {
@@ -441,6 +485,9 @@ func (a *ComposeApp) injectEnvVariableToComposeApp() {
 	}
 }
 
+// Up runs `compose up` on the project — assumes images are
+// already pulled. Use UpWithCheckRequire for the full lifecycle
+// hook (memory + disk preflight checks).
 func (a *ComposeApp) Up(ctx context.Context, service api.Service) error {
 	a.injectEnvVariableToComposeApp()
 
@@ -456,6 +503,9 @@ func (a *ComposeApp) Up(ctx context.Context, service api.Service) error {
 	return nil
 }
 
+// UpWithCheckRequire runs Up after the catalog's min-memory /
+// min-disk preflight checks. Returns an error before pulling if
+// the host can't satisfy the requirements.
 func (a *ComposeApp) UpWithCheckRequire(ctx context.Context, service api.Service) error {
 	// prepare source path for volumes if not exist
 	for i, app := range a.Services {
@@ -496,6 +546,9 @@ func (a *ComposeApp) UpWithCheckRequire(ctx context.Context, service api.Service
 	return nil
 }
 
+// PullAndApply replaces the compose file with newComposeYAML and
+// runs the upgrade flow (pull, recreate, restart). Used by the
+// "Update available" flow when only image versions changed.
 func (a *ComposeApp) PullAndApply(ctx context.Context, newComposeYAML []byte) error {
 	// backup current compose file
 	currentComposeFile := a.ComposeFiles[0]
@@ -554,11 +607,17 @@ func (a *ComposeApp) PullAndApply(ctx context.Context, newComposeYAML []byte) er
 	return err
 }
 
+// Create wraps compose-go's Create on the project — used by Up
+// + UpWithCheckRequire as their first phase.
 func (a *ComposeApp) Create(ctx context.Context, options api.CreateOptions, service api.Service) error {
 	a.injectEnvVariableToComposeApp()
 	return service.Create(ctx, (*codegen.ComposeApp)(a), api.CreateOptions{})
 }
 
+// PullAndInstall is the full first-install flow — pull every
+// image (streaming progress to logWriter), then bring the project
+// up. Replaces Pull + Up for callers that want both phases under
+// one ctx.
 func (a *ComposeApp) PullAndInstall(ctx context.Context, logWriter io.Writer) error {
 	if logWriter == nil {
 		logWriter = io.Discard
@@ -658,6 +717,9 @@ func (a *ComposeApp) PullAndInstall(ctx context.Context, logWriter io.Writer) er
 	return nil
 }
 
+// Uninstall stops + removes the project. deleteConfigFolder true
+// also wipes the working directory + bind-mounted AppData; false
+// preserves user data for re-install.
 func (a *ComposeApp) Uninstall(ctx context.Context, deleteConfigFolder bool) error {
 	service, dockerClient, err := apiService()
 	if err != nil {
@@ -729,6 +791,9 @@ func (a *ComposeApp) Uninstall(ctx context.Context, deleteConfigFolder bool) err
 	return nil
 }
 
+// Apply replaces the compose file with newComposeYAML and recreates
+// containers WITHOUT pulling. Used by config-only edits (port map,
+// env vars) where image versions haven't changed.
 func (a *ComposeApp) Apply(ctx context.Context, newComposeYAML []byte) error {
 	// compare new ComposeApp with current ComposeApp
 	if getNameFrom(newComposeYAML) != a.Name {
@@ -1141,7 +1206,7 @@ func NewComposeAppFromYAML(yaml []byte, skipInterpolation, skipValidation bool) 
 			projectName = strings.ToLower(projectName)
 			reg := regexp.MustCompile(`[^a-z0-9_-]`)
 			projectName = reg.ReplaceAllString(projectName, "")
-			
+
 			o.SetProjectName(projectName, false)
 		},
 	)

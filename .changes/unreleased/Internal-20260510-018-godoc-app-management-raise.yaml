@@ -1,0 +1,78 @@
+kind: Internal
+body: |
+  Sprint 6 #7 — app-management module godoc raise (~35% → ~75%).
+  Seventh module surfaced on the docs site after pkg/* + gateway +
+  user-service + message-bus + common + local-storage. Penultimate
+  service-specific raise of Sprint 6 — only core remains, and that
+  one is large enough to need splitting across multiple PRs.
+
+  ## What got documented
+
+  - `common/context_properties.go` — WithProperties +
+    PropertiesFromContext (event correlation bag)
+  - `model/sys_common.go` — package doc + CommonModel, APPModel,
+    ServerModel, GlobalModel (with secret-injection note for
+    GlobalModel)
+  - `model/docker.go` — DockerStatsModel + DockerDaemonConfigurationModel
+  - `model/category.go` — ServerCategoryList + Category
+  - `model/manifest.go` — TCPPorts, UDPPorts, PortMap (with
+    "CommendPort typo is wire-format" note), PortArray, Env,
+    EnvArray, PathMap, PathArray, CustomizationPostData
+  - `model/app.go` — ServerAppListCollection, StateEnum
+    constants, ServerAppList, MyAppList, Ports, Volume, Envs,
+    Devices, Strings, MapStrings (gorm-stored slice types)
+  - `service/app.go` — App type + StoreInfo (x-extension extract)
+  - `service/compose_service.go` — ComposeService struct,
+    PrepareWorkingDirectory, IsInstalling, Install (with
+    macOS-vs-Linux StoragePath rationale), Uninstall, Status,
+    List, NewComposeService, ApiService
+  - `service/compose_app.go` — ComposeApp type (with full overview
+    of owned methods), StoreInfo, DiskUsage, AuthorType,
+    SetStoreAppID, SetTitle, Update, App, Apps, MainService,
+    MainTag, Containers, Pull (streams to logWriter), Up,
+    UpWithCheckRequire, Create, PullAndInstall, PullAndApply,
+    Uninstall, Apply
+  - `service/appstore.go` — AppStore interface (each method),
+    AppStoreByURL, NewDefaultAppStore, LoadCategoryMap,
+    LoadRecommend, BuildCatalog, StoreRoot
+  - `service/appstore_management.go` — AppStoreManagement struct,
+    AppStoreList, OnAppStoreRegister, OnAppStoreUnregister,
+    ChangeGlobal, DeleteGlobal, RegisterAppStore (async) +
+    RegisterAppStoreSync, UnregisterAppStore, AppStoreMap,
+    CategoryMap, Recommend, Catalog, UpdateCatalog, ComposeApp,
+    WorkDir, IsUpdateAvailable, IsUpdateAvailableWith,
+    IsUpdating, StartUpgrade, FinishUpgrade, NewAppStoreManagement
+
+  Pre-existing rich docs on common/labels.go (IsPowerLabApp,
+  LabelValue, BuildLabels) and common/appdata.go (PowerLabAppDataPath,
+  LegacyAppDataPath) left as-is — already cover the ADR-0021
+  rationale at the level the audit asks for.
+
+  ## Infrastructure
+
+    - scripts/gen-godoc.sh MODULES grew "app-management" → seventh
+      surfaced module
+    - mkdocs.yml nav adds "app-management" sub-section under
+      "Go API reference" with the high-traffic packages
+    - docs/api/app-management/index.md committed as the curated
+      landing (install-flow + app-store call-chain pointers,
+      ADR-0021 cross-ref for label namespace)
+
+  ## Per-service raise progress
+
+    ✅ pkg             100%
+    ✅ gateway          85%
+    ✅ user-service     75%
+    ✅ message-bus     ~75%
+    ✅ common          ~75%
+    ✅ local-storage   ~75%
+    ✅ app-management  ~75% (this PR — over the 70% bar)
+    ⏳ core             39% (last remaining; needs split into
+                            multiple PRs — 355 exports vs ~160
+                            for the others)
+
+  codegen package untouched (regenerated from OpenAPI on every
+  `go generate`). The bundled CasaOS appstore data tree under
+  `backend/data/appstore/...` is upstream-managed assets, not source.
+custom:
+  Issue: "196"
