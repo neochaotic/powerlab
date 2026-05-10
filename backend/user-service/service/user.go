@@ -3,7 +3,10 @@ package service
 import (
 	"context"
 	"crypto/ecdsa"
+	"errors"
+	"fmt"
 	"io"
+	"log/slog"
 	"mime/multipart"
 	"os"
 
@@ -102,19 +105,31 @@ func (u *userService) GetKeyPair() (*ecdsa.PrivateKey, *ecdsa.PublicKey) {
 }
 
 // NewUserService constructs a UserService backed by the supplied
-// gorm.DB. It generates a fresh in-memory JWT signing keypair on
-// every call — the private key is intentionally NEVER persisted, so
-// every restart of the service issues tokens under a new key and
-// invalidates outstanding sessions. This is a deliberate trade-off:
-// session continuity across restarts is sacrificed for a stronger
-// guarantee that a stolen disk image cannot forge tokens.
+// gorm.DB. The JWT signing keypair is loaded from the user.db
+// `jwt_keypair` table; on first boot (or after a manual wipe of the
+// row) a fresh keypair is generated AND persisted. Restart, in-app
+// upgrade, and crash recovery all preserve the keypair → existing
+// JWT cookies stay valid across service lifecycles.
 //
-// Returns nil if keypair generation fails. Callers MUST check the
+// Pre-v0.5.7 behavior was to generate a fresh in-memory keypair on
+// every call and never persist it (a comment described this as a
+// "deliberate trade-off" against stolen-disk-image attackers
+// forging tokens). Per ADR-0020 we revisited that — the threat model
+// doesn't justify the UX cost for a self-hosted home server, where
+// disk-physical-access already implies bigger problems than JWT
+// forge.
+//
+// Operators in higher-threat environments can opt back into the
+// ephemeral behavior by setting POWERLAB_EPHEMERAL_JWT_KEY=true
+// (see EnvEphemeralJWTKey constant in keypair_store.go).
+//
+// Returns nil if keypair load/generate fails. Callers MUST check the
 // return value before dereferencing.
 func NewUserService(db *gorm.DB) UserService {
-	privateKey, publicKey, err := jwt.GenerateKeyPair()
+	ctx := context.Background()
+	privateKey, publicKey, err := loadOrGenerateKeypair(ctx, db)
 	if err != nil {
-		_log.Error(context.Background(), "failed to generate key pair for JWT", err)
+		_log.Error(ctx, "failed to load/generate key pair for JWT", err)
 		return nil
 	}
 
@@ -123,4 +138,46 @@ func NewUserService(db *gorm.DB) UserService {
 		publicKey:  publicKey,
 		db:         db,
 	}
+}
+
+// loadOrGenerateKeypair encapsulates the env-var + DB-load + generate
+// fallback flow so it can be unit-tested without spinning up a full
+// userService. Behavior:
+//
+//  1. POWERLAB_EPHEMERAL_JWT_KEY=true → always generate fresh, never
+//     persist. Pre-v0.5.7 behavior preserved as opt-in.
+//  2. Else load from DB. If found, return.
+//  3. Else (first boot / wiped row) generate fresh, persist, return.
+//     A persist failure is downgraded to a warning — we still return
+//     the generated keypair so the service starts; the next restart
+//     will retry the persist. This avoids brick-on-disk-full.
+func loadOrGenerateKeypair(ctx context.Context, db *gorm.DB) (*ecdsa.PrivateKey, *ecdsa.PublicKey, error) {
+	if os.Getenv(EnvEphemeralJWTKey) == "true" {
+		_log.Info(ctx, "POWERLAB_EPHEMERAL_JWT_KEY=true — keypair will not be persisted (sessions reset every restart)")
+		return jwt.GenerateKeyPair()
+	}
+
+	priv, pub, err := loadKeypair(db)
+	if err == nil {
+		return priv, pub, nil
+	}
+	if !errors.Is(err, ErrKeypairNotFound) {
+		// Corrupt persisted row — bail rather than silently overwrite
+		// what might be the real key with a generated one (which would
+		// invalidate every existing JWT and mask the underlying error).
+		return nil, nil, fmt.Errorf("load persisted keypair: %w", err)
+	}
+
+	priv, pub, err = jwt.GenerateKeyPair()
+	if err != nil {
+		return nil, nil, fmt.Errorf("generate fresh keypair: %w", err)
+	}
+	if err := saveKeypair(db, priv); err != nil {
+		// Don't fail startup over persist failure (disk full, locked
+		// DB, etc.) — service still works with the in-memory key, the
+		// next restart retries the persist.
+		_log.Warn(ctx, "generated fresh JWT keypair but failed to persist — sessions will reset on next restart",
+			slog.String("error", err.Error()))
+	}
+	return priv, pub, nil
 }
