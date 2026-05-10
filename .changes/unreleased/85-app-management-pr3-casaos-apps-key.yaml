@@ -1,0 +1,33 @@
+kind: Removed
+body: |
+  Sprint 4 PR3 — drops dead `MyAppList` handler + renames Go vars
+  in active sites. Per the audit's PR breakdown
+  (`docs/audits/sprint-4-app-management-prep.md`), this is the
+  third smallest-first chunk after PR1 (cosmetic literals) and
+  PR2 (CasaOSGlobalVariables rename).
+
+  Removed:
+
+    backend/app-management/route/v1/docker.go::MyAppList
+        Dead code — its route registration in route/v1.go was
+        commented out for an unknown duration. Was the only
+        consumer of the legacy `casaos_apps` JSON wire-format
+        key. Active app-list flow lives in
+        route/v2/internal_web.go's WebAppGridItem* — untouched.
+
+    backend/app-management/route/v1.go (the commented-out reg)
+        Removed the `// v1ContainerGroup.GET("", v1.MyAppList)`
+        line for clarity.
+
+  Renamed (Go vars only — no wire format change):
+
+    casaOSApps → managedApps   (4 sites in service/container.go,
+                                1 site in route/v2/internal_web.go)
+    casaOSApp  → managedApp    (1 site)
+
+  No UI consumer (verified by grep), no remaining wire-format
+  references to `casaos_apps`. PR4 (Docker label dual-write — the
+  big one) and PR5 (ErrComposeExtensionNameXCasaOSNotFound rename)
+  remain in the Sprint 4 backlog.
+custom:
+  Issue: "85"

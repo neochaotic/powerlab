@@ -266,7 +266,7 @@ func (ds *dockerService) GetContainerAppList(name, image, state *string) (*[]mod
 
 	localApps := []model.MyAppList{}
 
-	casaOSApps := []model.MyAppList{}
+	managedApps := []model.MyAppList{}
 
 	for i, m := range containers {
 
@@ -303,7 +303,7 @@ func (ds *dockerService) GetContainerAppList(name, image, state *string) (*[]mod
 				}
 			}
 
-			casaOSApp := model.MyAppList{
+			managedApp := model.MyAppList{
 				Name:       name,
 				Icon:       icon,
 				State:      m.State,
@@ -319,7 +319,7 @@ func (ds *dockerService) GetContainerAppList(name, image, state *string) (*[]mod
 				AppStoreID: getV1AppStoreID(&containers[i]),
 			}
 
-			casaOSApps = append(casaOSApps, casaOSApp)
+			managedApps = append(managedApps, managedApp)
 		} else {
 			localApp := model.MyAppList{
 				Name:     strings.ReplaceAll(m.Names[0], "/", ""),
@@ -339,7 +339,7 @@ func (ds *dockerService) GetContainerAppList(name, image, state *string) (*[]mod
 		}
 	}
 
-	return &casaOSApps, &localApps
+	return &managedApps, &localApps
 }
 
 func (ds *dockerService) CreateContainerShellSession(container, row, col string) (types.HijackedResponse, error) {

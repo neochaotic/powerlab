@@ -477,28 +477,14 @@ func ContainerUpdateInfo(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, modelCommon.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: m})
 }
 
-// @Summary 我的应用列表
-// @Produce  application/json
-// @Accept application/json
-// @Tags app
-// @Security ApiKeyAuth
-// @Param  index query int false "index"
-// @Param  size query int false "size"
-// @Param  position query bool false "是否是首页应用"
-// @Success 200 {string} string "ok"
-// @Router /app/my/list [get]
-func MyAppList(ctx echo.Context) error {
-	name := ctx.QueryParam("name")
-	image := ctx.QueryParam("image")
-	state := ctx.QueryParam("state")
-
-	casaOSApps, localApps := service.MyService.Docker().GetContainerAppList(&name, &image, &state)
-	data := make(map[string]interface{}, 2)
-	data["casaos_apps"] = casaOSApps
-	data["local_apps"] = localApps
-
-	return ctx.JSON(common_err.SUCCESS, &modelCommon.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: data})
-}
+// MyAppList handler removed in Sprint 4 PR3 (#85). It was the last
+// consumer of the legacy `casaos_apps` JSON wire-format key. Its route
+// registration `v1ContainerGroup.GET("", v1.MyAppList) ///my/list` in
+// `route/v1.go` had been commented out for an unknown duration —
+// effectively unreachable dead code. The underlying
+// service.Docker().GetContainerAppList() is still used by
+// route/v2/internal_web.go (PowerLab's actual app-list flow), so only
+// the dead handler + the dead registration line are removed.
 
 // NOTE: the API is a temporary and internal API. It will be deleted in the future.
 // the API is for archive v1 app for rebuilt v2 app.

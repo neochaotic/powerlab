@@ -62,8 +62,10 @@ func InitV1Router() http.Handler {
 		v1ContainerGroup := v1Group.Group("/container")
 		v1ContainerGroup.Use()
 		{
-
-			// v1ContainerGroup.GET("", v1.MyAppList) ///my/list
+			// `/v1/container` (MyAppList) was the only consumer of the
+			// legacy `casaos_apps` JSON key — removed in Sprint 4 PR3
+			// (#85) along with the handler. Active app-list flow is
+			// /v2/internal_web (WebAppGridItem* in route/v2/).
 			v1ContainerGroup.GET("/usage", v1.AppUsageList)
 			v1ContainerGroup.GET("/:id", v1.ContainerUpdateInfo)   ///update/:id/info
 			v1ContainerGroup.GET("/:id/compose", v1.ToComposeYAML) // /app/setting/:id
