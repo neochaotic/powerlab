@@ -1,0 +1,110 @@
+site_name: PowerLab
+site_description: One pane of glass for everything you self-host. Apps, files, AI — your home server, finally beautiful.
+site_url: https://neochaotic.github.io/powerlab/
+repo_url: https://github.com/neochaotic/powerlab
+repo_name: neochaotic/powerlab
+edit_uri: edit/main/docs/
+
+# `docs/` is the source dir; site_dir is .gitignored output.
+docs_dir: docs
+site_dir: docs-site
+
+theme:
+  name: material
+  favicon: img/favicon.png
+  logo: img/login.png
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.action.edit
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  # pymdownx.highlight + pymdownx.inlinehilite removed for now —
+  # they trigger an AttributeError("'NoneType' object has no
+  # attribute 'replace'") in pygments' html_formatter when
+  # pymdown's highlight bridge passes filename=None for blocks
+  # without a filename annotation. Reproduces with mkdocs 1.6.1
+  # + mkdocs-material 9.5.42 + pymdown-extensions 10.11.2 +
+  # pygments 2.20.0 on the architecture/casaos-strangler.md page.
+  # mkdocs-material's superfences alone provides syntax-highlighted
+  # code blocks (just without anchor lines); good enough for the
+  # foundation. Re-add via a follow-up PR once the upstream bug
+  # resolves or an alternate highlight pipeline is configured.
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search
+
+# Explicit nav so the surface is curated. Files NOT listed here still
+# get built and remain reachable by URL but don't appear in nav.
+nav:
+  - Home: index.md
+  - Getting started:
+      - Install: getting-started/install.md
+      - First boot: getting-started/first-boot.md
+      - Updating: getting-started/updating.md
+  - Architecture:
+      - Overview: architecture/README.md
+      - Service topology: architecture/topology.md
+      - Request lifecycle: architecture/request-lifecycle.md
+      - Foundation interfaces: architecture/foundation-interfaces.md
+      - Dependency graph: architecture/dependency-graph.md
+      - Data persistence: architecture/data-persistence.md
+      - CasaOS strangler pattern: architecture/casaos-strangler.md
+  - Coexistence with CasaOS:
+      - Overview: coexistence/README.md
+      - Decision (ADR-0021): decisions/0021-docker-label-namespace-and-appdata-path.md
+  - Operations:
+      - HTTPS setup: HTTPS.md
+      - Update manifest: UPDATE_MANIFEST.md
+      - Release checklist: release-checklist.md
+      - Troubleshooting: troubleshooting.md
+  - Audits:
+      - Database paths: audits/db-paths.md
+      - CasaOS dependencies: audits/casaos-dependencies.md
+      - Sprint 3 retrospective: audits/sprint-3-retrospective.md
+      - Sprint 4 prep — app-management: audits/sprint-4-app-management-prep.md
+      - UI feature map: audits/ui-feature-map.md
+      - Endpoint usage: audits/endpoint-usage.md
+      - Dead code: audits/dead-code.md
+  - Decisions (ADRs):
+      - Index: decisions/README.md

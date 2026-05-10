@@ -97,3 +97,6 @@ backend/core/snapshot*.jpg
 
 # Per-machine dev runtime config — regenerated from embedded sample on first boot
 backend/gateway/gateway.ini
+
+# mkdocs build output
+docs-site/
