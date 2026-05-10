@@ -1,5 +1,9 @@
 package model
 
+// EventModel is the DB row for a user-scoped event (login,
+// password reset, etc.) recorded by user-service in user.db's
+// `events` table. Properties is a serialised JSON map; SourceID
+// names the originating service.
 type EventModel struct {
 	UUID       string `gorm:"primaryKey" json:"uuid"`
 	SourceID   string `gorm:"index" json:"source_id"`
