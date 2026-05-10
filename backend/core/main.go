@@ -18,6 +18,7 @@ import (
 	"github.com/neochaotic/powerlab/backend/common/utils/command"
 	"github.com/neochaotic/powerlab/backend/common/utils/constants"
 	"github.com/neochaotic/powerlab/backend/common/utils/logger"
+	"github.com/neochaotic/powerlab/backend/common/utils/paths"
 
 	util_http "github.com/neochaotic/powerlab/backend/common/utils/http"
 
@@ -82,6 +83,32 @@ func init() {
 	logger.LogInit(config.AppInfo.LogPath, config.AppInfo.LogSaveName, config.AppInfo.LogFileExt)
 	if len(*dbFlag) == 0 {
 		*dbFlag = config.AppInfo.DBPath + "/db"
+	}
+
+	// Refuse to start if core's casaOS.db exists at multiple paths.
+	// Three candidates we know about (see docs/audits/db-paths.md):
+	//   1. <dbFlag>/casaOS.db    — the path core is about to open
+	//   2. /var/lib/casaos/db/casaOS.db — when /etc/powerlab/core.conf
+	//      still has the pre-rebrand DBPath = /var/lib/casaos because
+	//      install.sh's skip-if-exists preserved the old conf value
+	//   3. <DataPath>/core.db    — the future canonical path (no /db/,
+	//      no inherited casaOS naming). Not yet written by any code,
+	//      but if an operator placed one manually it must surface.
+	// Empty / duplicate paths are skipped silently inside the helper.
+	inUseCorePath := filepath.Join(*dbFlag, "casaOS.db")
+	legacyCasaos := paths.LegacyCasaOSCoreDB()
+	if inUseCorePath == legacyCasaos {
+		legacyCasaos = ""
+	}
+	canonicalCore := paths.CanonicalCoreDB()
+	if inUseCorePath == canonicalCore {
+		canonicalCore = ""
+	}
+	if err := paths.AssertNoSplitBrain(context.Background(), nil, "core",
+		inUseCorePath, legacyCasaos, canonicalCore,
+	); err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
 	}
 
 	sqliteDB = sqlite.GetDb(*dbFlag)

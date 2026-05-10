@@ -596,18 +596,25 @@ fi
 # a service that won't start. Same checks, friendlier surface.
 # See docs/audits/db-paths.md for the full layered strategy.
 audit_split_brain() {
-  local entry svc canonical legacy
+  local entry svc a b
   local issues=0
+  # Pairs to check: <svc>|<path-a>|<path-b>. If both are non-empty
+  # files, the service will refuse to start. core has THREE candidate
+  # paths (in-use, casaos-conf-preserve, future-canonical) so emits
+  # multiple pair entries.
   for entry in \
       "user-service|/var/lib/powerlab/user.db|/var/lib/powerlab/db/user.db" \
-      "local-storage|/var/lib/powerlab/local-storage.db|/var/lib/powerlab/db/local-storage.db"; do
+      "local-storage|/var/lib/powerlab/local-storage.db|/var/lib/powerlab/db/local-storage.db" \
+      "core|/var/lib/powerlab/db/casaOS.db|/var/lib/casaos/db/casaOS.db" \
+      "core|/var/lib/powerlab/db/casaOS.db|/var/lib/powerlab/core.db" \
+      "core|/var/lib/casaos/db/casaOS.db|/var/lib/powerlab/core.db"; do
     svc="${entry%%|*}"
-    canonical="${entry#*|}"; canonical="${canonical%%|*}"
-    legacy="${entry##*|}"
-    if [[ -s "$canonical" ]] && [[ -s "$legacy" ]]; then
+    a="${entry#*|}"; a="${a%%|*}"
+    b="${entry##*|}"
+    if [[ -s "$a" ]] && [[ -s "$b" ]]; then
       echo "[powerlab-install] WARN: $svc has split-brain — both" >&2
-      echo "[powerlab-install]   $canonical (canonical)" >&2
-      echo "[powerlab-install]   $legacy (legacy)" >&2
+      echo "[powerlab-install]   $a" >&2
+      echo "[powerlab-install]   $b" >&2
       echo "[powerlab-install]   exist with data. The service will refuse to start." >&2
       echo "[powerlab-install]   Pick the authoritative copy (likely the most-recent), then" >&2
       echo "[powerlab-install]   move the other to <file>.bak.\$(date +%s) before starting." >&2
