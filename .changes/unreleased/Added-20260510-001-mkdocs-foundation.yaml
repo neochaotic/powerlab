@@ -1,0 +1,29 @@
+kind: Added
+body: |
+  Documentation site at https://neochaotic.github.io/powerlab/ —
+  mkdocs-material foundation. The Sprint 4.5/pre-v1.0 docs Phase 3
+  is brought forward into the active flow rather than waiting for a
+  pre-tag bundle (per the v1.0-deferred decision).
+
+  Initial nav covers:
+
+    - Home (landing + project status)
+    - Getting started: Install, First boot, Updating
+    - Architecture: 6 existing pages reused (topology, request
+      lifecycle, foundation interfaces, dependency graph, data
+      persistence, CasaOS strangler)
+    - Coexistence with CasaOS: new overview translating ADR-0021
+      for end users
+    - Operations: HTTPS setup, update manifest, release checklist,
+      troubleshooting (existing top-level docs)
+    - Audits: db-paths, casaos-dependencies, sprint retros, UI
+      feature map, endpoint usage, dead code
+    - Decisions (ADRs): index of all 21 records
+
+  Build runs in CI on every PR (--strict mode catches broken links
+  + missing pages). Deploys to GitHub Pages on push to main.
+
+  Going forward, every PR that adds a feature or changes behavior
+  should consider whether a docs page change is needed alongside.
+custom:
+  Issue: "71"
