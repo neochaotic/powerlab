@@ -195,7 +195,7 @@ Auto-detects amd64 / arm64, downloads the matching tarball, runs the bundled ins
 Pin a specific version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/neochaotic/powerlab/main/install.sh | sudo bash -s -- --version v0.1.5
+curl -fsSL https://raw.githubusercontent.com/neochaotic/powerlab/main/install.sh | sudo bash -s -- --version v0.5.11
 ```
 
 </details>
@@ -328,7 +328,7 @@ CI runs all of the above on every push to `main` (`.github/workflows/ci.yml`).
                             │  HTTPS / WSS
                             ▼
 ┌────────────────────────────────────────────────────────────┐
-│  Gateway   :80 / :443                                       │
+│  Gateway   :8765 (HTTP) / :8443 (HTTPS opt-in)              │
 │  · JWT auth · static UI · WebSocket bridge                  │
 │  · mDNS announcer (powerlab.local)                          │
 └──┬──────────┬──────────┬──────────┬──────────┬──────────┬──┘
