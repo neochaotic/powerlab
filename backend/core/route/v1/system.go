@@ -23,54 +23,18 @@ import (
 	"github.com/neochaotic/powerlab/backend/core/pkg/config"
 	"github.com/neochaotic/powerlab/backend/core/pkg/utils"
 	"github.com/neochaotic/powerlab/backend/common/external"
-	"github.com/neochaotic/powerlab/backend/core/pkg/utils/version"
 	"github.com/neochaotic/powerlab/backend/core/service"
-	model2 "github.com/neochaotic/powerlab/backend/core/service/model"
-	"github.com/neochaotic/powerlab/backend/core/types"
 	"github.com/labstack/echo/v4"
 	"github.com/tidwall/gjson"
 )
 
-// @Summary check version
-// @Produce  application/json
-// @Accept application/json
-// @Tags sys
-// @Security ApiKeyAuth
-// @Success 200 {string} string "ok"
-// @Router /sys/version/check [get]
-func GetSystemCheckVersion(ctx echo.Context) error {
-	need, version := version.IsNeedUpdate(service.MyService.Casa().GetCasaosVersion())
-	if need {
-		installLog := model2.AppNotify{}
-		installLog.State = 0
-		installLog.Message = "New version " + version.Version + " is ready, ready to upgrade"
-		installLog.Type = types.NOTIFY_TYPE_NEED_CONFIRM
-		installLog.CreatedAt = strconv.FormatInt(time.Now().Unix(), 10)
-		installLog.UpdatedAt = strconv.FormatInt(time.Now().Unix(), 10)
-		installLog.Name = "CasaOS System"
-		service.MyService.Notify().AddLog(installLog)
-	}
-	data := make(map[string]interface{}, 3)
-	data["need_update"] = need
-	data["version"] = version
-	data["current_version"] = common.VERSION
-	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: data})
-}
-
-// @Summary 系统信息
-// @Produce  application/json
-// @Accept application/json
-// @Tags sys
-// @Security ApiKeyAuth
-// @Success 200 {string} string "ok"
-// @Router /sys/update [post]
-func SystemUpdate(ctx echo.Context) error {
-	need, version := version.IsNeedUpdate(service.MyService.Casa().GetCasaosVersion())
-	if need {
-		service.MyService.System().UpdateSystemVersion(version.Version)
-	}
-	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS)})
-}
+// GetSystemCheckVersion + SystemUpdate (the inherited CasaOS
+// self-update path) removed in Sprint 5 #203 kill #1. Both polled
+// api.casaos.io for a "new version" string and the latter then
+// `curl … | bash`'d the get.casaos.io/update installer — a real
+// curl-pipe-bash from upstream infra. PowerLab's in-app updater
+// lives under /v1/powerlab-update/ and uses the manifest.json
+// pipeline; nothing should be calling these old routes.
 
 // @Summary  get logs
 // @Produce  application/json
@@ -84,24 +48,26 @@ func GetCasaOSErrorLogs(ctx echo.Context) error {
 	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: service.MyService.System().GetCasaOSLogs(line)})
 }
 
-// 系统配置
+// GetSystemConfigDebug returns a formatted bug-report string the
+// UI can pre-fill into a "report a bug" dialog. Used to also
+// include a "Remote Version" line fetched from api.casaos.io but
+// that endpoint died with the rest of the upstream-CasaOS coupling
+// (Sprint 5 kill #1). The local Version is enough — the "is there
+// an update" check now goes through the manifest.json pipeline
+// surfaced by the in-app updater under /v1/powerlab-update/.
 func GetSystemConfigDebug(ctx echo.Context) error {
 	array := service.MyService.System().GetSystemConfigDebug()
 	disk := service.MyService.System().GetDiskInfo()
 	sys := service.MyService.System().GetSysInfo()
-	version := service.MyService.Casa().GetCasaosVersion()
 	var bugContent string = fmt.Sprintf(`
 	 - OS: %s
-	 - CasaOS Version: %s
-	 - Disk Total: %v 
-	 - Disk Used: %v 
+	 - PowerLab Version: %s
+	 - Disk Total: %v
+	 - Disk Used: %v
 	 - System Info: %s
-	 - Remote Version: %s
-	 - Browser: $Browser$ 
+	 - Browser: $Browser$
 	 - Version: $Version$
-`, sys.OS, common.VERSION, disk.Total>>20, disk.Used>>20, array, version.Version)
-
-	//	array = append(array, fmt.Sprintf("disk,total:%v,used:%v,UsedPercent:%v", disk.Total>>20, disk.Used>>20, disk.UsedPercent))
+`, sys.OS, common.VERSION, disk.Total>>20, disk.Used>>20, array)
 
 	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: bugContent})
 }

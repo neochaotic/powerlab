@@ -7,9 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"time"
-
-	"github.com/neochaotic/powerlab/backend/core/pkg/config"
-	"github.com/tidwall/gjson"
 )
 
 // 发送GET请求
@@ -136,20 +133,8 @@ func ZeroTierGet(url string, head map[string]string) (content string, code int) 
 	return
 }
 
-// 发送GET请求
-// url:请求地址
-// response:请求返回的内容
-func OasisGet(url string) (response string) {
-	head := make(map[string]string)
-
-	t := make(chan string)
-
-	go func() {
-		str := Get(config.ServerInfo.ServerApi+"/token", nil)
-
-		t <- gjson.Get(str, "data").String()
-	}()
-	head["Authorization"] = <-t
-
-	return Get(url, head)
-}
+// OasisGet was a wrapper that fetched a Bearer token from
+// `config.ServerInfo.ServerApi + "/token"` (an api.casaos.io
+// endpoint) before issuing GET. Removed in Sprint 5 #203 kill #1
+// along with the rest of the upstream-CasaOS coupling. Nothing
+// in PowerLab-owned code depended on it.

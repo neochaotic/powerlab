@@ -31,7 +31,13 @@ func InitV1Router() http.Handler {
 
 	e.GET("/v1/sys/debug", v1.GetSystemConfigDebug) // //debug
 
-	e.GET("/v1/sys/version/check", v1.GetSystemCheckVersion)
+	// /v1/sys/version/check + /v1/sys/update were the inherited
+	// CasaOS self-update path. They polled api.casaos.io for a "new
+	// version" string then `curl … | bash`'d the get.casaos.io/update
+	// installer. Removed for security (curl-pipe-bash from upstream
+	// infra) + because PowerLab has its own in-app updater via
+	// manifest.json + /v1/powerlab-update/install. See audit
+	// docs/audits/casaos-residue-2026-05-10.md kill #1.
 	e.GET("/v1/sys/version/current", func(ctx echo.Context) error {
 		return ctx.String(200, common.VERSION)
 	})
@@ -81,9 +87,9 @@ func InitV1Router() http.Handler {
 		v1SysGroup := v1Group.Group("/sys")
 		v1SysGroup.Use()
 		{
-			v1SysGroup.GET("/version", v1.GetSystemCheckVersion) // version/check
-
-			v1SysGroup.POST("/update", v1.SystemUpdate)
+			// /sys/version + /sys/update were the inherited CasaOS
+			// self-update path; gone with the get.casaos.io kill.
+			// PowerLab in-app updater lives under /v1/powerlab-update/.
 
 			v1SysGroup.GET("/hardware", v1.GetSystemHardwareInfo) // hardware/info
 
