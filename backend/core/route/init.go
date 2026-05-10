@@ -1,13 +1,3 @@
-/*
- * @Author: LinkLeong link@icewhale.org
- * @Date: 2022-11-15 15:51:44
- * @LastEditors: LinkLeong
- * @LastEditTime: 2022-11-15 15:55:16
- * @FilePath: /CasaOS/route/init.go
- * @Description:
- * @Website: https://www.casaos.io
- * Copyright (c) 2022 by icewhale, All Rights Reserved.
- */
 package route
 
 import (
