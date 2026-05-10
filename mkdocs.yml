@@ -106,6 +106,15 @@ nav:
       - Update manifest: UPDATE_MANIFEST.md
       - Release checklist: release-checklist.md
       - Troubleshooting: troubleshooting.md
+      - REST API reference: operations/api-reference.md
+  - Go API reference:
+      - Index: api/pkg/index.md
+      - logging: api/pkg/logging.md
+      - errors: api/pkg/errors.md
+      - lifecycle: api/pkg/lifecycle.md
+      - tracing: api/pkg/tracing.md
+      - foundation: api/pkg/foundation.md
+      - migrations: api/pkg/migrations.md
   - Audits:
       - Database paths: audits/db-paths.md
       - CasaOS dependencies: audits/casaos-dependencies.md
