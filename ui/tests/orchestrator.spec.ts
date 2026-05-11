@@ -123,4 +123,46 @@ test.describe('/apps/new orchestrator', () => {
 		await expect.poll(() => putHit, { timeout: 5000 }).toBe(true);
 		expect(postHits).toBe(0);
 	});
+
+	// Regression for #278 — Custom App tile click did nothing because
+	// the orchestrator only wrote `x-powerlab.port_map` when the user
+	// filled the dedicated "Web UI Port" field. Typical case (user
+	// configures ports: ["8080:80"], skips the dedicated field) shipped
+	// a YAML without port_map → store_info.port_map empty → Launchpad
+	// openApp() returned early → click felt broken.
+	//
+	// Fix in syncFormToYaml: fall back to ports[0].host when web_port
+	// is empty. This spec locks the behaviour by reading the YAML
+	// editor's textarea after the form change and asserting port_map
+	// is present.
+	test('Custom App with only ports[] writes port_map for tile click (#278)', async ({ page }) => {
+		await page.goto('/apps/new');
+
+		// Hide the HTTP-mode banner that intercepts the form area.
+		await page.addStyleTag({ content: '.fixed.top-3.right-3 { display: none !important; }' });
+
+		const yamlTextarea = page.locator('textarea').first();
+		await expect(yamlTextarea).toBeVisible();
+
+		// Trigger a form change to fire syncFormToYaml. Editing the
+		// name field is the lightest touch — it just renames the
+		// services key and re-emits YAML. The fallback we're testing
+		// fires inside syncFormToYaml, regardless of which field
+		// changed.
+		const nameInput = page.locator('#service-name');
+		await nameInput.fill('custom-app');
+
+		// Wait for the YAML editor to reflect the syncFormToYaml
+		// output. The fix writes port_map derived from ports[0].host
+		// (default seed value is '80').
+		await expect.poll(async () => (await yamlTextarea.inputValue()).includes('port_map'), {
+			timeout: 5000
+		}).toBe(true);
+
+		const yaml = await yamlTextarea.inputValue();
+		// The fallback writes the first host port — for the default
+		// seed that's '80'. Substring match accommodates whichever
+		// x-* alias the writer used.
+		expect(yaml).toMatch(/port_map['"]?\s*:\s*['"]?80['"]?/);
+	});
 });
