@@ -296,6 +296,59 @@
 							{/each}
 						</div>
 					{/if}
+
+					<!-- Drive Health (#255) — SMART + temperature per physical disk.
+					     Backend populates `temperature` from smartctl; values of 0
+					     mean smartctl is unavailable (macOS dev, no smartctl
+					     installed, container without /dev passthrough) so we hide
+					     the badge gracefully. -->
+					{#if store.storageDevices.length > 0}
+						<div class="mt-6 border-t border-white/[0.04] pt-5" data-testid="drive-health-section">
+							<div class="mb-3 flex items-center gap-2">
+								<span class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('dashboard.driveHealth')}</span>
+							</div>
+							<div class="space-y-3">
+								{#each store.storageDevices as dev (dev.path)}
+									{@const smartOk = dev.health === 'true'}
+									<div class="flex items-center justify-between gap-3 rounded-xl bg-white/[0.02] px-3 py-2">
+										<div class="min-w-0 flex-1">
+											<div class="flex items-center gap-2">
+												<span class="truncate text-xs font-medium text-zinc-300">{dev.model || dev.path}</span>
+												<span class="rounded bg-white/[0.05] px-1.5 py-0.5 text-[9px] font-bold uppercase text-zinc-500">{dev.disk_type}</span>
+											</div>
+											<div class="mt-0.5 truncate font-mono text-[10px] text-zinc-600">{dev.path}</div>
+										</div>
+										{#if dev.temperature > 0}
+											<span
+												class={cn(
+													'rounded-md px-2 py-0.5 text-[10px] font-bold',
+													dev.temperature >= 60 ? 'bg-red-500/15 text-red-300' :
+													dev.temperature >= 50 ? 'bg-amber-500/15 text-amber-300' :
+													'bg-emerald-500/15 text-emerald-300'
+												)}
+												title={t('dashboard.diskTemperatureTooltip')}
+												data-testid="drive-temp-badge"
+											>
+												{dev.temperature}°C
+											</span>
+										{/if}
+										{#if dev.health !== ''}
+											<span
+												class={cn(
+													'rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
+													smartOk ? 'bg-emerald-500/15 text-emerald-300' : 'bg-red-500/15 text-red-300'
+												)}
+												title={t('dashboard.smartStatusTooltip')}
+												data-testid="drive-smart-badge"
+											>
+												{smartOk ? 'SMART OK' : 'SMART FAIL'}
+											</span>
+										{/if}
+									</div>
+								{/each}
+							</div>
+						</div>
+					{/if}
 				</div>
 
 				<!-- OS Info Card -->
