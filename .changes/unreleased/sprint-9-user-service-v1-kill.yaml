@@ -1,0 +1,5 @@
+kind: Removed
+body: 'Drop 10 dead `/v1/users/*` endpoints in user-service that no UI route + no `backend/common/external` caller ever invoked: `/users/{name, refresh, image, avatar}`, `/users/current/{custom/:key, image/:key}`, `/users/{:id DELETE, :username GET, "" DELETE}`. Single-user PowerLab does not exercise multi-user CRUD, avatars, or custom-conf storage. Keeps the 5 endpoints UI actually uses: `register`, `login`, `status`, `current GET`/`current PUT`, `current/password`. Net: 527 LOC removed (route/v1.go: 27 LOC trimmed; route/v1/user.go: 520 LOC of handlers + now-unused imports). Sprint 9 PR K (split-out from Sprint 8 PR Q scope).'
+time: 2026-05-11T06:30:00Z
+custom:
+  Issue: ""
