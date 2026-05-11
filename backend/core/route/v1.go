@@ -93,9 +93,7 @@ func InitV1Router() http.Handler {
 
 			v1SysGroup.GET("/hardware", v1.GetSystemHardwareInfo) // hardware/info
 
-			v1SysGroup.GET("/wsssh", v1.WsSsh)
 			v1SysGroup.GET("/wsshell", v1.WsShell) // local pty (no SSH, no creds)
-			v1SysGroup.POST("/ssh-login", v1.PostSshLogin)
 			// v1SysGroup.GET("/config", v1.GetSystemConfig) //delete
 			// v1SysGroup.POST("/config", v1.PostSetSystemConfig)
 			v1SysGroup.GET("/logs", v1.GetCasaOSErrorLogs) // error/logs
@@ -166,8 +164,6 @@ func InitV1Router() http.Handler {
 			v1FileGroup.POST("/upload", v1.PostFileUpload)
 			v1FileGroup.GET("/upload", v1.GetFileUpload)
 			// v1FileGroup.GET("/download", v1.UserFileDownloadCommonService)
-			v1FileGroup.GET("/ws", v1.ConnectWebSocket)
-			v1FileGroup.GET("/peers", v1.GetPeers)
 		}
 		// /v1/cloud and /v1/driver groups (cloud storage backends + driver
 		// listing) removed in Sprint 3 Phase 3 (#101). See route header
@@ -208,11 +204,6 @@ func InitV1Router() http.Handler {
 		v1OtherGroup.Use()
 		{
 			v1OtherGroup.GET("/search", v1.GetSearchResult)
-		}
-		v1ZerotierGroup := v1Group.Group("/zt")
-		v1ZerotierGroup.Use()
-		{
-			v1ZerotierGroup.Any("/*url", v1.ZerotierProxy)
 		}
 	}
 
