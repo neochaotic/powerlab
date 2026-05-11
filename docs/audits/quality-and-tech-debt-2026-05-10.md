@@ -30,7 +30,7 @@ Companion to:
 | README freshness               | 7 / 10                | Reflects v0.5.11 product. **2 stale facts**: pinned-version example uses `v0.1.5` (line 198) and the architecture diagram shows ports `:80 / :443` (line 332) instead of the real `:8765 / :8443`. |
 | Repo-root docs freshness       | 4 / 10                | **CONTRIBUTING.md:148 declares the wrong license** (PolyForm Noncommercial — repo is AGPL-3.0). Also: Go version mismatch (1.21+ doc'd vs 1.25.7 actual), gateway port `8089` (real: `8765`), Sprint-4 v0.5.x not reflected in SUPPORT.md ("Out of scope for v0.1.x"). |
 | Go godoc coverage              | per-module table below | **`pkg` + `gateway` are now published** (post-#213 `gen-godoc.sh:27 MODULES=("pkg" "gateway")`); 6 of 7 remaining service modules sit between **2.6 % and 28.9 %**, far below the 70 % bar. |
-| ADR + audit cross-link health  | 5 / 10                | **Two pairs of duplicate ADR numbers** (0011, 0012) — never resolved with `superseded by`. **ADR index in `decisions/README.md` stops at #0012** — 10 newer ADRs (0013–0022) are missing from the index table. **Two audits don't cite ADRs** (`dead-code.md`, `ui-feature-map.md`). **Three load-bearing framework choices have no ADR** (Uber fx, Echo, GORM). |
+| ADR + audit cross-link health  | 5 / 10                | ~~Two pairs of duplicate ADR numbers (0011, 0012)~~ resolved 2026-05-11 (renumbered to 0025 + 0026). **ADR index in `decisions/README.md`** also brought current in the same PR. **Two audits don't cite ADRs** (`dead-code.md`, `ui-feature-map.md`). **Three load-bearing framework choices have no ADR** (Uber fx, Echo, GORM). |
 | TODO / FIXME debt              | 25 backend, 0 UI, 0 scripts | Inside ADR-0019's "27 ceiling." Mostly inherited CasaOS code (message-bus, local-storage). Two are real product-shaped tech-debt (HTTP polling instead of WS in `app-management/service/container.go:80`; "TODO: Remove containersWorkaround" in `app-management/route/v2/compose_app.go:629`). |
 | `panic()` discipline           | 113 calls / **3 hot-path** | Most are startup paths (`main.go`, `migration-tool/`, `route/v2.go` codegen-spec load) — acceptable. **3 live request-path panics** (`backend/local-storage/service/disk.go:90/114/147`, `backend/core/route/v1/file.go:243`) — should return errors, not crash the service. |
 | Tests skipped                  | **1 UI**, 8 Go        | UI: `ui/src/lib/components/files/TextEditor.test.ts:229` `it.skip(...)` — TODO test that should either be implemented or deleted. Go skips are all environmental (Windows path, network, Docker daemon, port collision) — fine. |
@@ -289,26 +289,25 @@ module crosses the bar. Don't try to do all modules in one mega-PR
 | Check                                                                                | Status     | Notes                                                                                       |
 |--------------------------------------------------------------------------------------|------------|---------------------------------------------------------------------------------------------|
 | ADR-0021 references ADR-0019                                                         | OK         | `0021-docker-label-namespace-and-appdata-path.md:232`                                       |
-| ADR-0022 references ADR-0011 (strangler) + ADR-0021                                  | OK         | `0022-...:19, 104, 169, 193, 194`                                                            |
+| ADR-0022 references ADR-0025 (strangler, renumbered from 0011) + ADR-0021             | OK         | `0022-...:19, 104, 169, 193, 194`                                                            |
 | All ADRs have `Status: accepted`                                                     | OK         | None in `proposed` limbo. None marked `superseded by`.                                       |
 | 7 of 9 audits cite at least one ADR                                                  | partial    | `audits/dead-code.md` and `audits/ui-feature-map.md` cite zero ADRs.                        |
-| ADR index (`decisions/README.md`) lists every ADR                                    | **broken** | Index table stops at ADR-0012. **Ten ADRs (0013–0022) are missing from the index.**         |
-| ADR file numbers are unique                                                          | **broken** | **Two duplicate-numbered pairs** (see below).                                                |
+| ADR index (`decisions/README.md`) lists every ADR                                    | **resolved 2026-05-11** | ~~Index table stops at ADR-0012. Ten ADRs (0013–0022) are missing from the index.~~ Index now lists 0011–0023 + 0025 + 0026 (updated in the same renumber PR).  |
+| ADR file numbers are unique                                                          | **resolved 2026-05-11** | Foundation pair renumbered to 0025 + 0026 (see below).                                       |
 | All load-bearing framework choices have an ADR                                       | partial    | **No ADR for Uber fx, Echo, GORM** (see below).                                              |
 
-### Critical: duplicate ADR numbers
+### ~~Critical: duplicate ADR numbers~~ — resolved 2026-05-11
 
-Two pairs of ADR files share a number, with no reconciliation:
+Two pairs of ADR files originally shared a number. The CA series (0010–0012) was filed on 2026-05-07; the foundation `backend/pkg/` series was filed on 2026-05-08 in a parallel branch and accidentally re-used 0011 + 0012.
 
-| Number | File A                                                                    | File B                                                                                | Resolution needed                                              |
-|--------|---------------------------------------------------------------------------|---------------------------------------------------------------------------------------|----------------------------------------------------------------|
-| 0011   | `decisions/0011-ca-mismatch-detection-and-recovery.md`                    | `decisions/0011-backend-pkg-coexistence-with-casaos-common.md`                        | Renumber one (probably the foundation ADR -> next free number). |
-| 0012   | `decisions/0012-ca-rotation-flow.md`                                      | `decisions/0012-pkg-logging-built-on-stdlib-slog.md`                                  | Same. ADR-0022 references "ADR-0011" — verify which one it means. |
+**Resolution (Sprint 11):** the foundation pair was renumbered:
 
-The risk is real: ADR-0022:19 reads `the "strangler" pattern in
-ADR-0011 and the kill PRs of …`. There are two ADR-0011s and only
-one is the strangler ADR. A reader following the link is going to
-find it confusing.
+| Old | New | File |
+|-----|-----|------|
+| 0011 | **0025** | `decisions/0025-backend-pkg-coexistence-with-casaos-common.md` |
+| 0012 | **0026** | `decisions/0026-pkg-logging-built-on-stdlib-slog.md` |
+
+ADR-0011 + ADR-0012 are now unambiguously the CA-mismatch + CA-rotation ADRs. Cross-references in `backend/`, `docs/`, `CHANGELOG.md` were updated; each renumbered ADR carries a "Renumber history" note at the top so historical references still resolve.
 
 ### Critical: missing ADR index entries
 
@@ -349,7 +348,7 @@ own rules these should land:
 | **Svelte 5 Runes lock-in (no Svelte 4 stores anywhere in the UI)**                         | `ui/src/**/*.svelte` + the `index.svelte.ts` i18n trick                | "0026 — Svelte 5 Runes; no stores; never rename `index.svelte.ts`"     |
 | **`oapi-codegen` as the OpenAPI -> Go binding generator**                                  | Per-service `openapi.yaml` + `.gitignored` `codegen/` dirs             | "0027 — `oapi-codegen` for OpenAPI -> Go; codegen output is gitignored" |
 | **mDNS via Avahi (Linux) with a direct-multicast fallback**                                | `backend/gateway/service/mdns.go` + Avahi service file at install      | "0028 — mDNS strategy: Avahi preferred, direct-multicast fallback"     |
-| **`backend/pkg/` is a separate go.mod; never imports from `common`**                       | `backend/pkg/go.mod` is standalone; documented in ADR-0011-coexist     | Already covered by ADR-0011-coexist (the duplicate-numbered one).      |
+| **`backend/pkg/` is a separate go.mod; never imports from `common`**                       | `backend/pkg/go.mod` is standalone; documented in ADR-0025             | Already covered by ADR-0025 (renumbered from the duplicate ADR-0011-coexist).      |
 
 The first six are real backlog items. Items beyond can wait until
 v1.0 prep without harm — they're decisions but not ones a reader is
@@ -473,7 +472,7 @@ Ordered by **leverage / risk** — each item is a single PR.
 2. **CONTRIBUTING.md port + tooling sweep** *(line 90 Go 1.21 -> 1.25; line 91 Node 18 -> 20; line 99 `start.sh` -> `dev.sh`; line 101 ports 80/8089 -> 8765/8443)*. Aligns onboarding with reality.
 3. **README architecture diagram + version pin** *(line 198 v0.1.5; line 332 :80/:443; line 41 Go 1.21+ badge; line 167-176 "Coming soon")*.
 4. **SUPPORT.md v0.1.x -> drop version qualifier** *(line 17)*.
-5. **Resolve duplicate ADR numbers (0011, 0012)**. Renumber the foundation pair (`-pkg-logging`, `-backend-pkg-coexistence`) to the next free numbers (0023+) and update every cross-reference (`grep -rn "ADR-0011\|ADR-0012" docs/ backend/`). Update `decisions/README.md` index in the same PR.
+5. ~~**Resolve duplicate ADR numbers (0011, 0012)**~~. **Done 2026-05-11.** Renumbered the foundation pair to 0025 (`backend-pkg-coexistence-with-casaos-common`) + 0026 (`pkg-logging-built-on-stdlib-slog`); cross-references in `backend/`, `docs/`, `CHANGELOG.md` updated; `decisions/README.md` index now lists 0011–0023 + 0025 + 0026 (with the renumber note in the footer).
 6. **Update `decisions/README.md` index table to cover ADR-0013 through ADR-0022**. Same PR as #5 if cohesive.
 7. **mkdocs.yml nav refresh** — add the 9 orphaned pages (concepts, migrating-from-casaos, backup-restore, three audits, the trust-onboarding pattern, STORE-COVERAGE). Possibly create a "Reference" tab.
 8. **WebSocket origin check in message-bus** *(`socketio_service.go:53`/`:58`)*. Security-tier fix.

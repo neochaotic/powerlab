@@ -14,5 +14,5 @@
 //	}
 //	logger.Info(ctx, "service started", slog.String("addr", addr))
 //
-// See ADR-0012 for the rationale behind slog over zap.
+// See ADR-0026 for the rationale behind slog over zap.
 package logging

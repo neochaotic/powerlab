@@ -44,7 +44,7 @@ flowchart TD
 
 After Sprint 1: 3 modules PowerLab-owned, 5 modules pending. The new
 `backend/pkg/` foundation coexists with `backend/common/` (strangler
-pattern, ADR-0011); each subsequent kill removes one importer of
+pattern, ADR-0025); each subsequent kill removes one importer of
 `common` and adds one consumer of `pkg`.
 
 ## Foundation packages — internal dependency

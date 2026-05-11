@@ -16,7 +16,7 @@ tags: casaos-strip, governance, sprint-5
 PowerLab forked from [IceWhaleTech/CasaOS](https://github.com/IceWhaleTech/CasaOS)
 in early 2025. From the start the strategy was to gradually rename
 modules and replace per-component CasaOS code with PowerLab-owned
-equivalents (the "strangler" pattern in ADR-0011 and the kill PRs of
+equivalents (the "strangler" pattern in ADR-0025 and the kill PRs of
 Sprints 1-3). Sprint 5's residue audit (`docs/audits/casaos-residue-2026-05-10.md`)
 shows zero remaining `go.mod` dependencies on CasaOS — but multiple
 runtime references to CasaOS-hosted infrastructure (`get.casaos.io`,
@@ -166,7 +166,7 @@ to a Svelte component, the reviewer needs a citable rule, not
    PowerLab can't be resolved by "wait for upstream fix."
 
 2. **Hard fork: rewrite from scratch in PowerLab repo** — discarded
-   as too aggressive. The strangler pattern (per ADR-0011) is
+   as too aggressive. The strangler pattern (per ADR-0025) is
    working. Most code in PowerLab has been touched + rebranded
    organically; a from-scratch rewrite would discard tested logic
    for cosmetic gain.
@@ -190,7 +190,7 @@ to a Svelte component, the reviewer needs a citable rule, not
 
 ## Reference
 
-- ADR-0011 — strangler pattern justification
+- ADR-0025 — strangler pattern justification
 - ADR-0021 — Docker label namespace + AppData path (the
   coexistence work this ADR formalises the position behind)
 - Issue #67 — original 4-sprint roadmap to v1.0

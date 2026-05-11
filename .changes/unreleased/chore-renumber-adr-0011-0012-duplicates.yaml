@@ -1,0 +1,9 @@
+kind: maintenance
+body: 'ADR renumber chore — the duplicate ADR-0011 and ADR-0012 numbers (CA series
+  filed 2026-05-07 in one branch, foundation `backend/pkg/` series filed 2026-05-08
+  in another) are resolved by renumbering the foundation pair to ADR-0025 (`backend-pkg-coexistence-with-casaos-common`)
+  and ADR-0026 (`pkg-logging-built-on-stdlib-slog`). ADR-0011/0012 are now unambiguously
+  the CA-mismatch + CA-rotation ADRs. Cross-references updated across `backend/`,
+  `docs/`, `CHANGELOG.md`, and `.changes/`. Each renumbered ADR carries a "Renumber
+  history" note for traceability. `decisions/README.md` index brought current (0023
+  + 0025 + 0026 now listed). Closes the action item flagged in `docs/audits/quality-and-tech-debt-2026-05-10.md`.'

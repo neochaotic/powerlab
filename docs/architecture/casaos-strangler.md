@@ -89,4 +89,4 @@ flowchart LR
 
 - Roadmap umbrella: #67
 - Audit: `docs/audits/`
-- ADR-0011 — strangler pattern justification
+- ADR-0025 — strangler pattern justification

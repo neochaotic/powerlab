@@ -245,7 +245,7 @@ documents the contract.
 | `https://cdn.jsdelivr.net/gh/IceWhaleTech/CasaOS-AppStore@gh-pages/store/main.zip` | `scripts/package-linux.sh:177`, `start.sh:183`, `backend/app-management/build/sysroot/etc/powerlab/app-management.conf.sample:12` | **YES — default appstore in shipped conf** | None (we'd need to host our own mirror) | **Decision required.** Options: (a) keep as-is — community appstore is a feature; (b) mirror the IceWhaleTech repo to a `powerlab/AppStore` org and pin version; (c) host on our own CDN. Per `casaos-dependencies.md` Sprint 3 closeout this was deliberately kept. **Recommend keeping for Sprint 5 + revisiting pre-v1.0.** |
 | `https://github.com/bigbeartechworld/big-bear-casaos/...` | `scripts/package-linux.sh`, `start.sh:184`, `backend/app-management/build/sysroot/etc/powerlab/app-management.conf.sample:13`, UI `settings/+page.svelte:790` | YES — default secondary appstore | Community-maintained catalog. Repo name predates PowerLab. | Keep — this is a third-party data source whose name happens to contain "casaos". Already documented as intentional in `casaos-dependencies.md`. |
 | `https://api.casaos.io/casaos-api`, `https://socket.casaos.io` | `backend/core/conf/conf.conf.sample:17,18` | NO — sample is unused | n/a | **Delete the unused sample file** (see #4). |
-| `https://www.casaos.io` (link) | `ui/src/routes/settings/+page.svelte:1246` (the "Powered by CasaOS" attribution link) | UI link, AGPL attribution | n/a | Keep — required AGPL attribution to the upstream project (see Sprint 1 baseline + ADR-0011). |
+| `https://www.casaos.io` (link) | `ui/src/routes/settings/+page.svelte:1246` (the "Powered by CasaOS" attribution link) | UI link, AGPL attribution | n/a | Keep — required AGPL attribution to the upstream project (see Sprint 1 baseline + ADR-0025). |
 | `https://raw.githubusercontent.com/IceWhaleTech/CasaOS-MessageBus/...openapi.yaml` | `//go:generate` directives in 5 services' `main.go` | Codegen-time only | n/a | Either commit our own copy of the MessageBus OpenAPI spec under `backend/common/api/` and point `//go:generate` at the local file, OR mirror the spec and rewrite. **Medium priority** — every fresh codegen run today reaches out to upstream IceWhaleTech. |
 | `https://github.com/IceWhaleTech/CasaOS-AppManagement/...` (in `.goreleaser.yaml` cmd-build instructions) | `backend/app-management/.goreleaser.yaml`, `.goreleaser.debug.yaml` | Build-time, fetches `appfile2compose` source | n/a | These goreleaser files are not used by `package-linux.sh` (the actual build path) — they're inherited from upstream. Delete or rewrite to point at our copy of `appfile2compose`. |
 | `wiki@casaos.io` (security contact) | `backend/core/SECURITY.md:9`, `backend/core/CODE_OF_CONDUCT.md:63` | Doc | We have our own SECURITY.md at root + CODE_OF_CONDUCT.md | **Delete** the inherited copies under `backend/core/`. |
@@ -396,7 +396,7 @@ audit should not flag them:
 - **`/etc/casaos` in `devProductionMarkers`** — production-host
   detection.
 - **The `Powered by CasaOS` link in the SvelteKit settings page** —
-  AGPL attribution to the upstream project (per ADR-0011 / Sprint
+  AGPL attribution to the upstream project (per ADR-0025 / Sprint
   1 baseline).
 - **`backend/<svc>/cmd/migration-tool/...`** — explicitly
   CasaOS-shaped because their job is to read CasaOS-era state and
@@ -413,7 +413,7 @@ audit should not flag them:
 
 - Companion: `docs/audits/casaos-dependencies.md` (rolling history)
 - Sprint 4 retro: `docs/audits/sprint-4-retrospective.md`
-- ADR-0011: `backend/pkg` coexistence with `backend/common`
+- ADR-0025: `backend/pkg` coexistence with `backend/common`
 - ADR-0019: Tech debt tracked in audits + ADRs + issues
 - ADR-0021: Docker label namespace + AppData path migration
 - PR #151: Module path rename (the surface this audit can now

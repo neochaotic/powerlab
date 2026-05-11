@@ -6,7 +6,7 @@ import (
 
 // _log is the package-level logger used by every helper in this
 // package. Same pattern as user-service/route/v1/logger.go.
-// ADR-0011.
+// ADR-0025.
 var _log pkglogging.Logger = mustDefaultLogger()
 
 // SetLogger overrides the package-level logger. Call from main()

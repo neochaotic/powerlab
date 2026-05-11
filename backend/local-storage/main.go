@@ -67,7 +67,7 @@ func mustDefaultLogger() pkglogging.Logger {
 //     via pkg/errors.WriteHTTP.
 //
 // Apply to local-storage's single http.Server.Handler. Same pattern
-// as gateway and message-bus (ADR-0011 strangler — see those services'
+// as gateway and message-bus (ADR-0025 strangler — see those services'
 // part 2 PRs for the precedent). This is the structural close for
 // the bug-#64 SIGSEGV class within the local-storage process: even
 // if a handler dereferences a nil pointer or panics for any other
@@ -236,7 +236,7 @@ func main() {
 
 	// Wire the same instance into every package that owns a _log,
 	// so all log lines in this process flow through one logger.
-	// Mirrors the user-service main() pattern (ADR-0011).
+	// Mirrors the user-service main() pattern (ADR-0025).
 	service.SetLogger(_log)
 	v2service.SetLogger(_log)
 	v1route.SetLogger(_log)
