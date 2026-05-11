@@ -828,7 +828,7 @@
 											<div class="space-y-4" in:fade>
 												<h4 class="text-lg font-semibold text-white">iOS Installation</h4>
 												<ol class="space-y-3 list-decimal list-inside text-sm text-zinc-400">
-													<li>Download the <a href="/v1/sys/ca-certificate.mobileconfig" class="text-emerald-400 hover:underline">Security Profile</a>.</li>
+													<li>Download the <button type="button" onclick={() => downloadCA('mobileconfig')} class="text-emerald-400 hover:underline cursor-pointer bg-transparent p-0 border-0">Security Profile</button>.</li>
 													<li>Go to <strong>Settings → Profile Downloaded</strong> and click <strong>Install</strong>.</li>
 													<li>Go to <strong>Settings → General → About → Certificate Trust Settings</strong>.</li>
 													<li>Enable full trust for <strong>PowerLab Root CA</strong>.</li>
@@ -842,9 +842,9 @@
 											<div class="space-y-4" in:fade>
 												<h4 class="text-lg font-semibold text-white">macOS Installation</h4>
 												<ol class="space-y-3 list-decimal list-inside text-sm text-zinc-400">
-													<li>Download the <a href="/v1/sys/ca-certificate.mobileconfig" class="text-emerald-400 hover:underline">Security Profile</a>.</li>
+													<li>Download the <button type="button" onclick={() => downloadCA('mobileconfig')} class="text-emerald-400 hover:underline cursor-pointer bg-transparent p-0 border-0">Security Profile</button>.</li>
 													<li>Open the profile and click <strong>Install</strong> in System Settings.</li>
-													<li>Alternatively, use the <a href="/v1/sys/ca-certificate.crt" class="text-emerald-400 hover:underline">CRT file</a> and set trust in Keychain Access.</li>
+													<li>Alternatively, use the <button type="button" onclick={() => downloadCA('crt')} class="text-emerald-400 hover:underline cursor-pointer bg-transparent p-0 border-0">CRT file</button> and set trust in Keychain Access.</li>
 												</ol>
 												<div class="flex gap-2">
 													<Button variant="secondary" class="flex-1 font-bold" onclick={() => downloadCA('mobileconfig')}>.mobileconfig</Button>
@@ -855,7 +855,7 @@
 											<div class="space-y-4" in:fade>
 												<h4 class="text-lg font-semibold text-white">Android Installation</h4>
 												<ol class="space-y-3 list-decimal list-inside text-sm text-zinc-400">
-													<li>Download the <a href="/v1/sys/ca-certificate.crt" class="text-emerald-400 hover:underline">CA Certificate</a>.</li>
+													<li>Download the <button type="button" onclick={() => downloadCA('crt')} class="text-emerald-400 hover:underline cursor-pointer bg-transparent p-0 border-0">CA Certificate</button>.</li>
 													<li>Settings → Security → Encryption → Install from storage.</li>
 													<li>Select <strong>CA certificate</strong> and pick the file.</li>
 												</ol>
@@ -868,7 +868,7 @@
 											<div class="space-y-4" in:fade>
 												<h4 class="text-lg font-semibold text-white">Windows / Linux</h4>
 												<ol class="space-y-3 list-decimal list-inside text-sm text-zinc-400">
-													<li>Download the <a href="/v1/sys/ca-certificate.crt" class="text-emerald-400 hover:underline">CA Certificate</a>.</li>
+													<li>Download the <button type="button" onclick={() => downloadCA('crt')} class="text-emerald-400 hover:underline cursor-pointer bg-transparent p-0 border-0">CA Certificate</button>.</li>
 													<li>Right-click → Install → Local Machine.</li>
 													<li>Place in <strong>Trusted Root Certification Authorities</strong>.</li>
 													<li>On Linux: Copy to <code>/usr/local/share/ca-certificates/</code> and run <code>update-ca-certificates</code>.</li>

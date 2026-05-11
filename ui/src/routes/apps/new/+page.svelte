@@ -629,7 +629,7 @@ services:
 			{#if activeView === 'split' || activeView === 'form'}
 				<div class={cn("h-full overflow-y-auto border-r border-white/5 custom-scrollbar transition-all duration-500", activeView === 'split' ? "w-1/2" : "w-full")}>
 					<div class="mx-auto max-w-2xl p-8">
-						<ComposeForm bind:model={formModel} onchange={handleFormChange} />
+						<ComposeForm bind:model={formModel} onchange={handleFormChange} nameError={nameValidationError} />
 					</div>
 				</div>
 			{/if}
