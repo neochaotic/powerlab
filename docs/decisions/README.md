@@ -74,9 +74,7 @@ comment the code.
 | [0009](./0009-https-trust-onboarding-pattern.md) | Name the v0.2.7 trust-dance: "HTTPS Trust Onboarding Pattern" | accepted |
 | [0010](./0010-ca-storage-decoupled-from-runtime.md) | CA storage decoupled from the runtime data dir | accepted |
 | [0011](./0011-ca-mismatch-detection-and-recovery.md) | CA-mismatch detection + browser-side HSTS recovery | accepted |
-| [0011-coexist](./0011-backend-pkg-coexistence-with-casaos-common.md) | `backend/pkg` coexists with `backend/common` during the strangler kill series | accepted |
 | [0012](./0012-ca-rotation-flow.md) | CA rotation: separate destructive action from "Reset trust" | accepted |
-| [0012-logging](./0012-pkg-logging-built-on-stdlib-slog.md) | `pkg/logging` built on `log/slog` (not zap, not zerolog) | accepted |
 | [0013](./0013-pkg-errors-typed-error-with-code-i18n-status.md) | `pkg/errors` — typed error with code, i18n key, HTTP status | accepted |
 | [0014](./0014-pkg-lifecycle-graceful-shutdown-and-panic-recovery.md) | `pkg/lifecycle` — graceful shutdown + panic recovery | accepted |
 | [0015](./0015-pkg-tracing-correlation-id-via-x-request-id-header.md) | `pkg/tracing` — correlation ID via `X-Request-Id` header | accepted |
@@ -87,5 +85,8 @@ comment the code.
 | [0020](./0020-jwt-keypair-persisted-by-default.md) | JWT keypair persisted by default (sessions survive restart) | accepted |
 | [0021](./0021-docker-label-namespace-and-appdata-path.md) | Docker label namespace `io.powerlab.v1.*` + AppData path `PowerLabAppData/` | accepted |
 | [0022](./0022-casaos-upstream-is-abandoned-no-new-dependencies.md) | CasaOS upstream is abandoned; PowerLab takes no new dependencies | accepted |
+| [0023](./0023-socketio-origin-allowlist.md) | SocketIO CheckOrigin allowlist (close #219 CORS bypass) | accepted |
+| [0025](./0025-backend-pkg-coexistence-with-casaos-common.md) | `backend/pkg` coexists with `backend/common` during the strangler kill series (renumbered from 0011) | accepted |
+| [0026](./0026-pkg-logging-built-on-stdlib-slog.md) | `pkg/logging` built on `log/slog` (not zap, not zerolog; renumbered from 0012) | accepted |
 
-> **Note:** ADR-0011 and ADR-0012 each have **two** files because they were both created in parallel branches that landed back-to-back. The maintainer chose to keep both numbers rather than renumber + churn references. See the audit at `docs/audits/quality-and-tech-debt-2026-05-10.md` for the historical context.
+> **Renumber resolved 2026-05-11.** ADR-0011 and ADR-0012 originally each had **two** files because the CA series (0010–0012) and the foundation `backend/pkg/` series (originally 0011–0015) were filed in parallel branches on 2026-05-07 and 2026-05-08. The foundation pair was renumbered to **0025** (`backend-pkg-coexistence`) and **0026** (`pkg-logging`) to break the ambiguity. Historical refs to "ADR-0011 (strangler)" / "ADR-0011 (pkg coexistence)" now point at 0025; refs to "ADR-0012 (logging)" / "ADR-0012 (slog)" point at 0026. CA-context refs to 0011/0012 are unchanged. Each renumbered file carries a `Renumber history` note at the top.

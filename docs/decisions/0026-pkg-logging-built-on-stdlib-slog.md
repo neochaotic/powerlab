@@ -1,8 +1,10 @@
-# 0012 — `pkg/logging` is built on `log/slog` (stdlib)
+# 0026 — `pkg/logging` is built on `log/slog` (stdlib)
 
 **Status:** accepted
-**Date:** 2026-05-08
+**Date:** 2026-05-08 (renumbered 2026-05-11)
 **Tags:** observability, foundation, v0.4.0
+
+> **Renumber history:** filed as ADR-0012 on 2026-05-08 in PR #68. Collided with `0012-ca-rotation-flow.md` (filed one day earlier, 2026-05-07, also as ADR-0012 in a parallel branch). Renumbered to 0026 on 2026-05-11 to break the ambiguity. All historical references to "ADR-0012 (logging)" / "ADR-0012 (slog)" / "ADR-0012 (pkg/logging)" mean **this** ADR. References to ADR-0012 in CA / cert / rotation context mean `0012-ca-rotation-flow.md`.
 
 ## Context
 
@@ -15,7 +17,7 @@ SIGSEGV) was hard to triage because the panic logged in one service
 could not be correlated to the originating request in another.
 
 For the CasaOS strip (umbrella #67), we are creating PowerLab-owned
-foundation packages under `backend/pkg/` (per ADR-0011). Logging is
+foundation packages under `backend/pkg/` (per ADR-0025). Logging is
 the first foundation package because `pkg/errors`, `pkg/lifecycle`,
 and `pkg/tracing` all depend on it.
 

@@ -12,7 +12,7 @@
 // chain incorrectly. With foundation.Wrap, there is a single source
 // of truth, tested against the bug-#64 SIGSEGV behavior contract.
 //
-// See ADR-0011 (strangler — pkg/* foundation) and ADR-0016 (modular
+// See ADR-0025 (strangler — pkg/* foundation) and ADR-0016 (modular
 // kill scope).
 package foundation
 

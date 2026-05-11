@@ -1,8 +1,10 @@
-# 0011 — `backend/pkg/` coexists with `backend/common/` during CasaOS strip
+# 0025 — `backend/pkg/` coexists with `backend/common/` during CasaOS strip
 
 **Status:** accepted
-**Date:** 2026-05-08
+**Date:** 2026-05-08 (renumbered 2026-05-11)
 **Tags:** architecture, casaos-strip, v0.4.0
+
+> **Renumber history:** filed as ADR-0011 on 2026-05-08 in PR #68. Collided with `0011-ca-mismatch-detection-and-recovery.md` (filed one day earlier, 2026-05-07, also as ADR-0011 in a parallel branch). Renumbered to 0025 on 2026-05-11 to break the ambiguity. All historical references to "ADR-0011 (strangler)" / "ADR-0011 (pkg coexistence)" / "ADR-0011 (foundation)" mean **this** ADR. References to ADR-0011 in CA / cert / HSTS / trust context mean `0011-ca-mismatch-detection-and-recovery.md`.
 
 ## Context
 

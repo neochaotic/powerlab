@@ -75,7 +75,7 @@ infrastructure dependency added.
 | `user-service`   | `github.com/IceWhaleTech/CasaOS-UserService`       | Sprint 2 + #144 done; module rename pending          |
 | `local-storage`  | `github.com/IceWhaleTech/CasaOS-LocalStorage`      | Sprint 2 + 7 PRs of Sprint 3 done; module rename pending |
 | `app-management` | `github.com/IceWhaleTech/CasaOS-AppManagement`     | Sprint 4 (planned). Currently has #148 path fixes only. |
-| `common`         | `github.com/IceWhaleTech/CasaOS-Common` (shared)   | Local fork at `backend/common/` used by all 6 (per ADR-0011) |
+| `common`         | `github.com/IceWhaleTech/CasaOS-Common` (shared)   | Local fork at `backend/common/` used by all 6 (per ADR-0025) |
 | `pkg`            | `github.com/neochaotic/powerlab/backend/pkg`       | PowerLab-owned, ~600 LOC, foundation contracts |
 
 The `go.mod` paths are unchanged — that's the **single largest
@@ -201,7 +201,7 @@ For each service, the kill PR (Sprint 1-4) does three things:
    (PowerLab-owned).
 
 When the last service is killed, `backend/common/` is unreferenced
-and is deleted in the same PR (per ADR-0011 strangler pattern).
+and is deleted in the same PR (per ADR-0025 strangler pattern).
 
 ## Sprint order — recap from #67
 
@@ -232,7 +232,7 @@ and is deleted in the same PR (per ADR-0011 strangler pattern).
 
 ## Reference
 
-- Strangler pattern rationale: ADR-0011
+- Strangler pattern rationale: ADR-0025
 - Issue: #62 (this audit)
 - Roadmap: #67
 - Dead-code findings: see `dead-code.md` (companion document)

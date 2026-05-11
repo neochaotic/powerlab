@@ -116,7 +116,7 @@ its modular kill of `app-management`. Stage B:
 - **Full kill per service in its sprint.** Rejected — pushes timeline
   out 4-8 weeks, defeats per-sprint cadence, kills review quality.
 - **Big-bang Sprint 1: replace `backend/common/` entirely up front.**
-  Rejected in ADR-0011 (strangler pattern) for risk reasons; this ADR
+  Rejected in ADR-0025 (strangler pattern) for risk reasons; this ADR
   reaffirms.
 - **No "kill" boundary at all — just incrementally remove imports
   PR by PR.** Rejected — sprints need a tag-able milestone, and
@@ -126,7 +126,7 @@ its modular kill of `app-management`. Stage B:
 ## Reference
 
 - Umbrella roadmap: #67
-- Strangler pattern: ADR-0011
+- Strangler pattern: ADR-0025
 - Foundation packages: ADRs 0012-0015
 - Strip progress tracker: `docs/architecture/casaos-strangler.md`
   (updated each kill PR with which CasaOS-Common imports remain)

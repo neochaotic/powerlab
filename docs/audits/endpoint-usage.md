@@ -56,7 +56,7 @@ shim and is unused.
 
 **Action for kill PR (#72):**
 - Replicate the WebSocket and UDS interface in the new in-memory
-  eventbus (per ADR-0011 strangler).
+  eventbus (per ADR-0025 strangler).
 - Delete `pkg/ysk/` outright — see `dead-code.md`.
 - API parity test: every existing topic produces and consumes
   correctly through the new implementation.

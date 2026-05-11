@@ -45,9 +45,9 @@ The condition where the same logical database file appears at two distinct on-di
 See the [database paths audit](../audits/db-paths.md) for the full path list and the recovery flow.
 
 ### Foundation packages (`pkg/*`)
-Four PowerLab-owned Go packages every service composes onto: `pkg/logging`, `pkg/errors`, `pkg/lifecycle`, `pkg/tracing`. They form the spine that replaces the inherited CasaOS-Common utilities. Each is documented in its own ADR (0012–0015) and the relationship view lives in [foundation interfaces](../architecture/foundation-interfaces.md).
+Four PowerLab-owned Go packages every service composes onto: `pkg/logging`, `pkg/errors`, `pkg/lifecycle`, `pkg/tracing`. They form the spine that replaces the inherited CasaOS-Common utilities. Each is documented in its own ADR (0013–0015 + 0026 for pkg/logging — renumbered from 0012 to break a collision with the CA series) and the relationship view lives in [foundation interfaces](../architecture/foundation-interfaces.md).
 
-The motivation for owning these — rather than continuing to import CasaOS-Common — is captured in [ADR-0011 (backend/pkg coexistence)](../decisions/0011-backend-pkg-coexistence-with-casaos-common.md) and [ADR-0016 (modular kill scope)](../decisions/0016-modular-kill-scope-vs-full-extraction.md).
+The motivation for owning these — rather than continuing to import CasaOS-Common — is captured in [ADR-0025 (backend/pkg coexistence)](../decisions/0025-backend-pkg-coexistence-with-casaos-common.md) and [ADR-0016 (modular kill scope)](../decisions/0016-modular-kill-scope-vs-full-extraction.md).
 
 ### Strangler pattern
 The migration strategy applied across the CasaOS-strip roadmap: stand up the PowerLab-owned replacement next to the inherited code, route new work through the replacement, and remove the original once it has no callers. Each "kill" PR is one slice of the strangler. The live tracker is [`architecture/casaos-strangler.md`](../architecture/casaos-strangler.md).

@@ -2282,7 +2282,7 @@ break the install.
 `logger.X(msg, zap.X(...))` helpers and onto PowerLab's own
 `pkg/logging` Logger interface (built on `log/slog`). Same
 pattern user-service, gateway, message-bus, and core were
-migrated to in earlier sprints (ADR-0011).
+migrated to in earlier sprints (ADR-0025).
 
 Per-package work:
 

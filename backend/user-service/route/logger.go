@@ -10,7 +10,7 @@ import (
 // SetLogger after constructing the foundation logger so all log
 // lines flow through the same instance.
 //
-// Same pattern as gateway/route/logger.go. ADR-0011 (strangler).
+// Same pattern as gateway/route/logger.go. ADR-0025 (strangler).
 var _log pkglogging.Logger = mustDefaultLogger()
 
 // SetLogger overrides the package-level logger. Call from main() after

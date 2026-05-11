@@ -152,5 +152,5 @@ Per service (one PR each):
 
 - Issue: #100
 - goose repo: https://github.com/pressly/goose
-- ADR-0011 (strangler — pkg/* foundation)
+- ADR-0025 (strangler — pkg/* foundation)
 - ADR-0017 (changie — companion DX investment)
