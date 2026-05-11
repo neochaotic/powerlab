@@ -1,0 +1,7 @@
+kind: quality
+body: 'Backend integration coverage Phase 1+2 (#150) — wires `go test -coverprofile`
+  per service in CI with 14-day artifact upload, lands HTTP-surface regression locks
+  asserting `/v1/cloud/*`, `/v1/driver/*`, `/v1/recover/*`, `/v1/sys/version/check`
+  and `/v1/sys/update` return 404 on both core and local-storage. Baseline: core 6.1%,
+  app-management 15.5% (local-storage measured by CI Linux runner). Phases 3 (testcontainers)
+  and 4 (fuse build-tag) deferred to Sprint 12+.'

@@ -189,9 +189,28 @@ jobs:
         working-directory: backend/${{ matrix.service }}
         run: go generate ./...
 
-      - name: Test
+      - name: Test (with coverage)
         working-directory: backend/${{ matrix.service }}
-        run: go test -race ./...
+        # -race + -coverprofile requires -covermode=atomic. Atomic
+        # is slightly slower than the default `set` mode but the
+        # race detector overhead dwarfs it anyway. Issue #150 wires
+        # this measurement; the actual gate (if any) lands after
+        # we have a 2-data-point trend per the Sprint 11 retro.
+        run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Coverage summary
+        working-directory: backend/${{ matrix.service }}
+        run: |
+          echo "=== ${{ matrix.service }} coverage ==="
+          go tool cover -func=coverage.out | tail -1
+
+      - name: Upload coverage profile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage-${{ matrix.service }}-${{ github.run_id }}
+          path: backend/${{ matrix.service }}/coverage.out
+          retention-days: 14
 
   # ─────────────────────────────────────────────────────────────────────
   # Smoke build for the production tarballs the release pipeline will
