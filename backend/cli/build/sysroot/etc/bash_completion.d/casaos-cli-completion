@@ -1,6 +1,0 @@
-#!/usr/bin/bash
-
-if [[ -e /usr/bin/casaos-cli ]]; then
-    # shellcheck source=/dev/null
-    source <(/usr/bin/casaos-cli completion bash)
-fi
