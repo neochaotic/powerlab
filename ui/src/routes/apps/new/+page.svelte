@@ -308,10 +308,22 @@ services:
 
 			if (formModel.icon) root['x-icon'] = formModel.icon;
 
-			if (formModel.web_port) {
+			// port_map fallback (#278): the Launchpad tile-click handler
+			// only opens an app if `store_info.port_map` is set. The
+			// backend derives port_map from the compose extension's
+			// `port_map`/`web`/`port` key. If the user didn't fill the
+			// "Web UI Port" field explicitly but DID configure at least
+			// one host port, default port_map to the first host port —
+			// this makes Custom Apps "just open" on tile click without
+			// the user having to fill two fields for the same value.
+			// Explicit web_port still wins.
+			const effectivePort = formModel.web_port
+				|| (formModel.ports.find((p) => p.host)?.host ?? '');
+
+			if (effectivePort) {
 				// New docs author x-powerlab. The translation helper
 				// preserves the original key when editing existing YAMLs.
-				writePowerLabExt(root, { port_map: formModel.web_port });
+				writePowerLabExt(root, { port_map: effectivePort });
 			}
 
 			yamlText = yaml.dump(root, { indent: 2, lineWidth: -1 });
