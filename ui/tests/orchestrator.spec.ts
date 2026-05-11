@@ -31,4 +31,33 @@ test.describe('/apps/new orchestrator', () => {
 		// any non-empty body as a smoke pass.
 		await expect(page.locator('body')).toBeVisible();
 	});
+
+	// Regression for #48: name field rejected keystrokes / silently
+	// fell back to "web" without surfacing the validation reason on
+	// the input itself. Backend already rejects 400; the gap was that
+	// the form only showed the error via toast on submit + tooltip on
+	// the disabled button. Users typing freely never saw why their
+	// input was wrong. Inline error must render under the field as
+	// soon as the value is invalid.
+	test('shows inline error under name field on invalid input (#48)', async ({ page }) => {
+		await page.goto('/apps/new');
+
+		const nameInput = page.locator('#service-name');
+		await expect(nameInput).toBeVisible();
+
+		// Default seed value is "web" — clear it to trigger required-error.
+		await nameInput.fill('');
+		await expect(page.getByTestId('service-name-error')).toBeVisible();
+		await expect(nameInput).toHaveAttribute('aria-invalid', 'true');
+
+		// Invalid character (uppercase + space).
+		await nameInput.fill('My App');
+		await expect(page.getByTestId('service-name-error')).toBeVisible();
+		await expect(nameInput).toHaveAttribute('aria-invalid', 'true');
+
+		// Valid name clears the error and aria-invalid flips back.
+		await nameInput.fill('valid-name');
+		await expect(page.getByTestId('service-name-error')).toHaveCount(0);
+		await expect(nameInput).toHaveAttribute('aria-invalid', 'false');
+	});
 });
