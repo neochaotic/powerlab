@@ -1,0 +1,28 @@
+kind: Fixed
+body: |
+  Sprint 8 PR C — fix #50: CA download "Security Profile" /
+  "CRT file" / "CA Certificate" links inside the Settings →
+  Security walkthrough lists were `<a href="/v1/sys/ca-
+  certificate.X">` anchors that bypassed the JS-driven
+  `downloadCA()` helper.
+
+  When the handler returned an error (CA not yet generated, or
+  storage path unreadable), the browser navigated to the URL +
+  rendered the plain-text error in place of the SPA — same
+  class of "stranded outside the app" UX as the v0.2.7 trust-
+  dance test bug.
+
+  Fix: replaced the 5 inline anchors with `<button>` elements
+  that call `downloadCA(format)` (which already had the
+  fetch-based pre-flight + toast.error on failure + no-page-
+  navigation behavior, in use by the bottom CTAs since #118
+  prep).
+
+  Per memory `feedback_no_text_cert.md`, the cert remains a
+  binary artifact (.crt / .mobileconfig / .cer) — no copy-to-
+  clipboard PEM, no .txt rename. Only the trigger surface
+  changed.
+
+  Verified: 10/10 E2E pass locally (3.7s).
+custom:
+  Issue: "50"

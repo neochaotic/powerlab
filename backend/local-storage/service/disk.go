@@ -132,7 +132,14 @@ func (d *diskService) EnsureDefaultMergePoint() bool {
 
 	existingMerges, err := MyService.LocalStorage().GetMergeAllFromDB(&mountPoint)
 	if err != nil {
-		panic(err)
+		// Audit #216 §C item 2 follow-up: was panic(err) — converted
+		// to a logged error + return false so callers (main.go +
+		// route/v2/merge.go) get the "mergerfs disabled" path they
+		// already handle, instead of relying on the recover middleware
+		// to dress up a process crash as a 500. Same pattern as
+		// PR #230 (GetDownloadSingleFile fix).
+		_log.Error(context.Background(), "failed to read existing merges from DB", err, slog.String("mount point", mountPoint))
+		return false
 	}
 
 	// check if /DATA is already a merge point
@@ -156,7 +163,9 @@ func (d *diskService) EnsureDefaultMergePoint() bool {
 			_log.Error(context.Background(), "Mount point "+mountPoint+" is not empty", nil, slog.String("mount point", mountPoint))
 			return false
 		} else {
-			panic(err)
+			// Audit #216 §C item 2 follow-up: was panic(err).
+			_log.Error(context.Background(), "failed to create merge", err, slog.String("mount point", mountPoint))
+			return false
 		}
 	}
 
@@ -189,7 +198,9 @@ func (d *diskService) EnsureDefaultMergePoint() bool {
 	// }
 
 	if err := MyService.LocalStorage().CreateMergeInDB(merge); err != nil {
-		panic(err)
+		// Audit #216 §C item 2 follow-up: was panic(err).
+		_log.Error(context.Background(), "failed to persist merge to DB", err, slog.String("mount point", mountPoint))
+		return false
 	}
 	config.ServerInfo.EnableMergerFS = "true"
 	return true
