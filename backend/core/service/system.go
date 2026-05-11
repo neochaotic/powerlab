@@ -1,7 +1,6 @@
 package service
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	net2 "net"
@@ -18,13 +17,10 @@ import (
 
 	"github.com/neochaotic/powerlab/backend/common/utils/file"
 	"github.com/neochaotic/powerlab/backend/common/utils/logger"
-	"github.com/neochaotic/powerlab/backend/core/common"
 	"github.com/neochaotic/powerlab/backend/core/model"
 	"github.com/neochaotic/powerlab/backend/core/pkg/config"
 	"github.com/neochaotic/powerlab/backend/core/pkg/utils/common_err"
-	"github.com/neochaotic/powerlab/backend/core/pkg/utils/httper"
 	"github.com/neochaotic/powerlab/backend/core/pkg/utils/ip_helper"
-	"github.com/tidwall/gjson"
 	"go.uber.org/zap"
 
 	"github.com/shirou/gopsutil/v3/cpu"
@@ -66,7 +62,6 @@ type SystemService interface {
 	GetDiskInfo() *disk.UsageStat
 	GetSysInfo() host.InfoStat
 	GetDeviceTree() string
-	GetDeviceInfo() model.DeviceInfo
 	CreateFile(path string) (int, error)
 	RenameFile(oldF, newF string) (int, error)
 	MkdirAll(path string) (int, error)
@@ -81,58 +76,6 @@ type SystemService interface {
 	GetSystemUsers() []model.SystemUser
 }
 type systemService struct{}
-
-func (c *systemService) GetDeviceInfo() model.DeviceInfo {
-	m := model.DeviceInfo{}
-	m.OS_Version = common.VERSION
-	err, portStr := MyService.Gateway().GetPort()
-	if err != nil {
-		m.Port = 80
-	} else {
-		port := gjson.Get(portStr, "data")
-		if len(port.Raw) == 0 {
-			m.Port = 80
-		} else {
-			p, err := strconv.Atoi(port.Raw)
-			if err != nil {
-				m.Port = 80
-			} else {
-				m.Port = p
-			}
-		}
-	}
-	allIpv4 := ip_helper.GetDeviceAllIPv4()
-	ip := []string{}
-	nets := MyService.System().GetNet(true)
-	for _, n := range nets {
-		if v, ok := allIpv4[n]; ok {
-			{
-				ip = append(ip, v)
-			}
-		}
-	}
-
-	m.LanIpv4 = ip
-	h, err := host.Info() /*  */
-	if err == nil {
-		m.DeviceName = h.Hostname
-	}
-	mb := model.BaseInfo{}
-
-	err = json.Unmarshal(file.ReadFullFile(config.AppInfo.DBPath+"/baseinfo.conf"), &mb)
-	if err == nil {
-		m.Hash = mb.Hash
-	}
-
-	osRelease, _ := file.ReadOSRelease()
-	m.DeviceModel = osRelease["MODEL"]
-	m.DeviceSN = osRelease["SN"]
-	res := httper.Get("http://127.0.0.1:"+strconv.Itoa(m.Port)+"/v1/users/status", nil)
-	init := gjson.Get(res, "data.initialized")
-	m.Initialized, _ = strconv.ParseBool(init.Raw)
-
-	return m
-}
 
 func (c *systemService) GenreateSystemEntry() {
 	// constants.DefaultDataPath resolves per-platform: /var/lib/powerlab

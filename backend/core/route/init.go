@@ -43,7 +43,7 @@ func InitInfo() {
 
 	mb.DriveModel = osRelease["MODEL"]
 	if len(mb.DriveModel) == 0 {
-		mb.DriveModel = "Casa"
+		mb.DriveModel = "PowerLab"
 	}
 	os.Remove(config.AppInfo.DBPath + "/baseinfo.conf")
 	by, err := json.Marshal(mb)
