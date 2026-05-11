@@ -1,7 +1,9 @@
 // Package fstab is a typed reader/writer for /etc/fstab. The
 // disk-management service uses it to persist mount-on-boot entries
-// and to clean them up on volume delete. Backed up to .casaos.bak
-// before every mutation.
+// and to clean them up on volume delete. Backed up to .powerlab.bak
+// before every mutation (was .casaos.bak before #248 — operators on
+// pre-#248 installs may still have leftover .casaos.bak files;
+// those are harmless backup artifacts, not consumed by code).
 package fstab
 
 import (
@@ -23,6 +25,20 @@ const (
 	PassCheckAfterBoot  = 2
 
 	DefaultPath = "/etc/fstab"
+
+	// backupSuffix is appended to DefaultPath for the pre-mutation
+	// backup. Operators recovering from a bad write can `cp <path>
+	// .powerlab.bak <path>` to roll back. Renamed from .casaos.bak
+	// per #248.
+	backupSuffix = ".powerlab.bak"
+	// tmpSuffix is the staging file used by RemoveByMountPoint
+	// (write-to-tmp + rename for atomicity). Renamed from
+	// .casaos.new per #248.
+	tmpSuffix = ".powerlab.new"
+	// addedMarker is the comment appended to every line PowerLab
+	// writes to /etc/fstab so the operator can grep for changes.
+	// Renamed from "# Added by the CasaOS" per #248.
+	addedMarker = "\t# Added by PowerLab\n"
 )
 
 var (
@@ -67,11 +83,11 @@ func (e *Entry) String() string {
 	return e.Source + "\t" + e.MountPoint + "\t" + e.FSType + "\t" + e.Options + "\t" + strconv.Itoa(e.Dump) + "\t" + strconv.Itoa(e.Pass)
 }
 
-// Add appends e to /etc/fstab, taking a backup at .casaos.bak first.
-// If a different entry already exists at the same MountPoint, returns
-// ErrDifferentFSTabEntryWithSameMountPoint unless replace is true
-// (in which case the old entry is removed before the new one is
-// added).
+// Add appends e to /etc/fstab, taking a backup at .powerlab.bak
+// first. If a different entry already exists at the same
+// MountPoint, returns ErrDifferentFSTabEntryWithSameMountPoint
+// unless replace is true (in which case the old entry is removed
+// before the new one is added).
 func (f *FStab) Add(e Entry, replace bool) error {
 	entry, err := f.GetEntryByMountPoint(e.MountPoint)
 	if err != nil {
@@ -93,7 +109,7 @@ func (f *FStab) Add(e Entry, replace bool) error {
 		}
 	}
 
-	if err := copy(f.path, f.path+".casaos.bak"); err != nil {
+	if err := copy(f.path, f.path+backupSuffix); err != nil {
 		return err
 	}
 
@@ -103,7 +119,7 @@ func (f *FStab) Add(e Entry, replace bool) error {
 	}
 	defer fstabFile.Close()
 
-	_, err = fstabFile.WriteString(e.String() + "\t# Added by the CasaOS\n")
+	_, err = fstabFile.WriteString(e.String() + addedMarker)
 	if err != nil {
 		return err
 	}
@@ -115,7 +131,7 @@ func (f *FStab) Add(e Entry, replace bool) error {
 // When comment is true the line is preserved with a leading "#"
 // instead of being deleted — useful for revertable changes.
 func (f *FStab) RemoveByMountPoint(mountpoint string, comment bool) error {
-	FStabPathNew := f.path + ".casaos.new"
+	FStabPathNew := f.path + tmpSuffix
 	FStabFileNew, err := os.OpenFile(FStabPathNew, os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
@@ -137,7 +153,7 @@ func (f *FStab) RemoveByMountPoint(mountpoint string, comment bool) error {
 		return err
 	}
 
-	if err := copy(f.path, f.path+".casaos.bak"); err != nil {
+	if err := copy(f.path, f.path+backupSuffix); err != nil {
 		return err
 	}
 
