@@ -31,59 +31,62 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Sprint 6 + Sprint 7 — quality consolidation + structural
-  refactor. **One user-facing behavior fix**, every other
-  change is internal (godoc raises, file splits, helper
-  extracts, documentation, retrospectives). Safe upgrade.
+  Sprint 9 + Sprint 10 — security tightening + visible polish.
+  **One visible feature** (Drive Health card) plus a wave of
+  CasaOS-residue criticals closed with regression tests and
+  the Settings page split into pane components.
 
-  1. **Behavior fix: file download no longer panics on missing
-     files.** `GET /v1/file/download_single?path=...` returned
-     a generic 500 (caught by the recover middleware) when the
-     file didn't exist; now returns the proper 404-shaped
-     `FILE_DOES_NOT_EXIST` envelope matching the rest of the
-     handler. Closes audit #216 §C item 2.
+  1. **NEW: Drive Health card on the dashboard.** Per-disk SMART
+     status + temperature badges (color-coded green/amber/red),
+     reading data the backend already populated from `smartctl`.
+     Hides gracefully on hosts without smartctl. Closes #255 —
+     the headline UX improvement of this wave.
 
-  2. **Per-service Go API reference now on the docs site.** All
-     8 backend modules (pkg, gateway, user-service, message-
-     bus, common, local-storage, app-management, core) at
-     ≥70% godoc coverage with curated landing pages at
-     `/api/<module>/`. Browse at https://neochaotic.github.io/
-     powerlab/. Closes the per-module raise initiative #196.
+  2. **Security tightened (5 fixes).** JWT issuer rebrand AND a
+     real bug catch: `Validate()` previously accepted refresh
+     tokens as access tokens; now the access path rejects
+     unknown issuers (#246). Default app password literal
+     `casaos` → `powerlab` (#243). Docker registry probe
+     User-Agent rebranded (#244). fstab markers + backup file
+     names rebranded (#248). package-linux.sh now ships the
+     `[security] AllowedOrigins` section in fresh installs.
 
-  3. **God-file + god-function refactors landed.** Five Go
-     files/functions flagged in the Sprint 5.5 quality audit
-     (#216 §D + §E) split into siblings:
-     - `compose_app.go` (1276 LOC) → 5 files by responsibility
-     - `file.go` (1166 LOC) → 6 files (browse / mutate /
-       upload / download / websocket)
-     - `CreateContainer` + `RecreateContainer` god functions
-       → orthogonal helpers
-     - `SendFileOperateNotify` → dispatcher + snapshot
-       publisher
-     - `PostAddStorage` → parse + format + mount stages
+  3. **Bug fixes.** Health endpoint glob now queries both
+     `casaos*` AND `powerlab-*` — fresh-install dashboard
+     was empty (#245). Custom App tile click falls back to
+     `ports[0].host` when the dedicated web_port field is
+     empty — apps now open in new tab without forcing two
+     fields for the same value (#278). Settings "CasaOS
+     catalog" → "Community catalog" (#250).
 
-     No behavior changes — every conditional preserved.
+  4. **Settings page split (50% LOC reduction).** Sprint 7
+     carry-forward landed: 1469 LOC → 739 LOC orchestrator
+     plus 5 pane components (Apps, General, Network, Security,
+     About). Closes #123 for the settings side; apps/+page
+     split partial (3 modals extracted), rest in Sprint 11.
 
-  4. **E2E coverage expansion.** Playwright went from a single
-     "page renders" baseline to 10 tests across 6 specs
-     (auth, apps, settings, files, orchestrator, smoke). Will
-     protect the upcoming UI splits queued for Sprint 8.
+  5. **Internal: ~12.5k LOC removed across Sprints 8 + 9 + 10.**
+     CasaOS kill-list completed (backend/cli, Samba, ZeroTier,
+     SSH-to-other-host, peer-broadcast, validator, docgen,
+     migration-tool tree, app-management /v1/* routes,
+     user-service v1 dead handlers). Plus 2 MUST-FIX skipped
+     Go tests resolved (1 implemented, 1 deleted as dead code).
 
-  5. **CasaOS obliterate wave finished.** The remaining items
-     from the residue audit (#203) — TODO/FIXME burn-down,
-     security finding tracked, mermaid.js vendored, docs
-     site Phase 3 polished, 3 quick-win audit fixes.
+  6. **Quality infrastructure.** Frontend coverage measurement
+     in CI with baseline 16.77 % statements; 14-day artifact
+     upload on every push. Documented in
+     `docs/audits/frontend-coverage-baseline.md`. Lift to
+     ≥ 25 % targeted for Sprint 11.
 
-  Net code direction: large addition for godoc + retrospective
-  docs (~5000 LOC), large redistribution for refactors (no
-  net add/remove), small deletion for the panic fix + dead-
-  code kills. 21 changie fragments aggregated.
+  Net code direction across Sprints 9 + 10: net delete (~600
+  LOC removed for cleanup), large redistribution for the
+  Settings split (no net add/remove), small addition for the
+  Drive Health UI + tests.
 
-  UI splits for `apps/+page.svelte` (1561 LOC) and
-  `settings/+page.svelte` (1469 LOC) intentionally deferred to
-  Sprint 8 — they need browser verification and the user is
-  the verification gate. The new E2E suite will catch the
-  obvious "page no longer renders" regressions when they ship.
+  HTTPS re-enable and trust-dance work remain indefinitely
+  deferred per the 2026-05-11 prioritization decision. v0.6
+  readiness is no longer gated on HTTPS — it's gated on the
+  apps/+page split (Sprint 11) plus a positive coverage trend.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
