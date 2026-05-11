@@ -1,0 +1,5 @@
+kind: Fixed
+body: 'Fresh `package-linux.sh` installs now ship the `[security] AllowedOrigins=` section in `/etc/powerlab/message-bus.conf` (Sprint 8 #241 carry-forward). Previously only the embedded sysroot conf.sample carried the section, so operators editing `/etc/powerlab/message-bus.conf` after fresh install found the section missing. Default value is empty (same-origin-only — secure default per ADR-0023); no behaviour change.'
+time: 2026-05-11T09:30:00Z
+custom:
+  Issue: "219"
