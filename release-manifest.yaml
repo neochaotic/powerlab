@@ -31,49 +31,59 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Sprint 5 wave 1 — "obliterate CasaOS" begins. One security
-  fix, one governance ADR, four kill PRs from the residue
-  audit. **No service behavior changes for end users**; this
-  release closes attack surface + cleans inheritance debt.
+  Sprint 6 + Sprint 7 — quality consolidation + structural
+  refactor. **One user-facing behavior fix**, every other
+  change is internal (godoc raises, file splits, helper
+  extracts, documentation, retrospectives). Safe upgrade.
 
-  1. **Security: dead update path removed.** The inherited
-     CasaOS self-update endpoint `POST /v1/sys/update` did
-     `curl https://get.casaos.io/update | bash` from upstream
-     CasaOS DNS infrastructure. Real curl-pipe-bash supply-
-     chain risk; reachable via authenticated API call. The
-     UI never used it (PowerLab's in-app updater under
-     `/v1/powerlab-update/` uses signed manifest.json). Path
-     deleted entirely along with `ServerApi`/`UpdateUrl`
-     config + the upstream-CasaOS version polling.
+  1. **Behavior fix: file download no longer panics on missing
+     files.** `GET /v1/file/download_single?path=...` returned
+     a generic 500 (caught by the recover middleware) when the
+     file didn't exist; now returns the proper 404-shaped
+     `FILE_DOES_NOT_EXIST` envelope matching the rest of the
+     handler. Closes audit #216 §C item 2.
 
-  2. **ADR-0022 — CasaOS upstream is abandoned.** Documents the
-     verified state (latest CasaOS release v0.4.15 from Dec
-     2024, 1.5 years stale, 795 open issues) and formalises
-     the policy: PowerLab takes no new dependencies on
-     IceWhaleTech infrastructure. Becomes the citable rule
-     for rejecting future PRs that would reintroduce CasaOS
-     coupling.
+  2. **Per-service Go API reference now on the docs site.** All
+     8 backend modules (pkg, gateway, user-service, message-
+     bus, common, local-storage, app-management, core) at
+     ≥70% godoc coverage with curated landing pages at
+     `/api/<module>/`. Browse at https://neochaotic.github.io/
+     powerlab/. Closes the per-module raise initiative #196.
 
-  3. **Repo cleanup**: 8 dead `casaos-*.service` files
-     deleted (PowerLab installs `powerlab-*.service` directly),
-     gateway sysroot tree rebranded `etc/casaos/` →
-     `etc/powerlab/`, inherited `backend/core/{CHANGELOG,
-     CODE_OF_CONDUCT,SECURITY}.md` deleted (replaced with
-     PowerLab versions at repo root), cosmetic strings
-     ("CasaOS main service is listening" → "PowerLab core")
-     updated, dead `CasaOSHeart` type deleted.
+  3. **God-file + god-function refactors landed.** Five Go
+     files/functions flagged in the Sprint 5.5 quality audit
+     (#216 §D + §E) split into siblings:
+     - `compose_app.go` (1276 LOC) → 5 files by responsibility
+     - `file.go` (1166 LOC) → 6 files (browse / mutate /
+       upload / download / websocket)
+     - `CreateContainer` + `RecreateContainer` god functions
+       → orthogonal helpers
+     - `SendFileOperateNotify` → dispatcher + snapshot
+       publisher
+     - `PostAddStorage` → parse + format + mount stages
 
-  4. **Codegen no longer pulls upstream**: 8 `//go:generate`
-     directives that fetched `raw.githubusercontent.com/IceWhaleTech/...`
-     openapi.yaml at codegen time now point at the local
-     copies. `go generate ./...` is offline-capable. Per
-     ADR-0022, build-time pulls from upstream are now policy
-     violations.
+     No behavior changes — every conditional preserved.
 
-  Net code direction: significant deletion. The kill list at
-  `docs/audits/casaos-residue-2026-05-10.md` has 4 of 10 PRs
-  remaining (CLI rebrand, JWT cluster, icon CDN, message-bus
-  topic prefix) for v0.5.12+.
+  4. **E2E coverage expansion.** Playwright went from a single
+     "page renders" baseline to 10 tests across 6 specs
+     (auth, apps, settings, files, orchestrator, smoke). Will
+     protect the upcoming UI splits queued for Sprint 8.
+
+  5. **CasaOS obliterate wave finished.** The remaining items
+     from the residue audit (#203) — TODO/FIXME burn-down,
+     security finding tracked, mermaid.js vendored, docs
+     site Phase 3 polished, 3 quick-win audit fixes.
+
+  Net code direction: large addition for godoc + retrospective
+  docs (~5000 LOC), large redistribution for refactors (no
+  net add/remove), small deletion for the panic fix + dead-
+  code kills. 21 changie fragments aggregated.
+
+  UI splits for `apps/+page.svelte` (1561 LOC) and
+  `settings/+page.svelte` (1469 LOC) intentionally deferred to
+  Sprint 8 — they need browser verification and the user is
+  the verification gate. The new E2E suite will catch the
+  obvious "page no longer renders" regressions when they ship.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
