@@ -1,0 +1,5 @@
+kind: Internal
+body: 'Sprint 10 PR B — extract `NetworkPane.svelte` (~85 LOC) from `settings/+page.svelte` (1294 → 1227 LOC, -67). Component takes 5 props (mdnsHostname, reachableUrl, copiedKey, onCopy, networkInterfaces). Continues #123 carry-forward — 2 panes left (Security, About).'
+time: 2026-05-11T08:15:00Z
+custom:
+  Issue: "123"
