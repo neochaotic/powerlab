@@ -4,16 +4,22 @@
 // the SDK can reference stable names.
 package common
 
-// Service identity. SERVICENAME is the message-bus SourceID — kept as
-// "casaos" for backwards-compat with subscribers that already filter
-// on it. VERSION is the legacy CasaOS API version returned by /v1/sys.
-// RANW_NAME is the remote-access tunnel name used by the bundled
-// IceWhale tunnel client.
+// Service identity. SERVICENAME is the message-bus SourceID core
+// publishes events with. Renamed from "casaos" → "powerlab" in
+// Sprint 9 PR F (#251). UI consumers filter by event Name, not
+// SourceID, so the rename is invisible to clients.
+//
+// VERSION is the legacy CasaOS API version returned by /v1/sys.
+// Kept frozen for back-compat with any external client still
+// reading the version probe.
+//
+// RANW_NAME ("IceWhale-RemoteAccess") was removed in Sprint 9 PR F —
+// it had zero callers and was a CasaOS-era remote-access tunnel
+// identifier we never adopted.
 const (
-	SERVICENAME = "casaos"
+	SERVICENAME = "powerlab"
 	VERSION     = "0.4.15"
 	BODY        = " "
-	RANW_NAME   = "IceWhale-RemoteAccess"
 )
 
 // POWERLAB_VERSION is overridden at link time by the build pipeline:

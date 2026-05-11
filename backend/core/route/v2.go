@@ -51,7 +51,7 @@ func init() {
 }
 
 func InitV2Router() http.Handler {
-	appManagement := v2Route.NewCasaOS()
+	appManagement := v2Route.NewServer()
 
 	e := echo.New()
 
