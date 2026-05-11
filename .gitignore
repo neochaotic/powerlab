@@ -75,6 +75,7 @@ tmp/
 # ─── AI Agent Artifacts — must NEVER reach the repo ───────────────────
 .gemini/
 .claude/
+.claude/settings.local.json
 .antigravity/
 **/.antigravity
 **/.antigravity/
