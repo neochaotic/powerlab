@@ -100,6 +100,22 @@ export function installComposeApp(yamlContent: string, dryRun = false) {
 	return api.postYaml<BaseResponse>(`/v2/app_management/compose${dryRun ? '?dry_run=true' : ''}`, yamlContent);
 }
 
+/**
+ * Apply settings to an EXISTING compose app from YAML.
+ *
+ * Backend's `applyComposeAppSettings` (PUT /v2/app_management/compose/{id})
+ * has skip-self port-conflict logic — the app's own currently-published
+ * ports are excluded from the in-use list before validation. The
+ * `installComposeApp` POST path does NOT have this skip-self logic, so
+ * re-deploying an existing app via POST falsely fails with "ports in
+ * use". The orchestrator routes here when the URL carries `?id=X` and
+ * `fork` is not set. Closes #65.
+ */
+export function applyComposeAppSettings(id: string, yamlContent: string, dryRun = false) {
+	const path = `/v2/app_management/compose/${encodeURIComponent(id)}${dryRun ? '?dry_run=true' : ''}`;
+	return api.putYaml<BaseResponse>(path, yamlContent);
+}
+
 /** Get compose YAML from the app store catalog (for install) */
 export function getStoreAppYaml(id: string) {
 	return api.get<string>(`/v2/app_management/apps/${id}/compose`, {
