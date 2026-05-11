@@ -11,14 +11,12 @@ import (
 	"github.com/neochaotic/powerlab/backend/core/pkg/config"
 	"github.com/neochaotic/powerlab/backend/core/pkg/utils/encryption"
 	"github.com/neochaotic/powerlab/backend/core/pkg/utils/file"
-	v1 "github.com/neochaotic/powerlab/backend/core/route/v1"
 	"github.com/neochaotic/powerlab/backend/core/service"
 	"go.uber.org/zap"
 )
 
 func InitFunction() {
 	go InitInfo()
-	//go InitZerotier()
 }
 
 func InitInfo() {
@@ -54,6 +52,3 @@ func InitInfo() {
 	file.WriteToFullPath(by, config.AppInfo.DBPath+"/baseinfo.conf", 0o666)
 }
 
-func InitZerotier() {
-	v1.CheckNetwork()
-}

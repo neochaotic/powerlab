@@ -2,6 +2,7 @@ package v1
 
 import (
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"strconv"
@@ -14,6 +15,18 @@ import (
 
 	"github.com/neochaotic/powerlab/backend/common/utils/logger"
 )
+
+// upgrader is the WebSocket upgrader used by WsShell. The previous
+// implementation lived in the now-removed file_websocket.go (CasaOS
+// peer-broadcast feature, Sprint 8 kill). Inline here so the local
+// pty terminal stays self-contained.
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
 
 // WsShell opens a local pseudo-terminal on the host PowerLab is running on
 // and bridges it to a websocket. No SSH, no credentials, no Remote-Login

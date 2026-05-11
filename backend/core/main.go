@@ -179,7 +179,6 @@ func main() {
 		// /v1/driver, /v1/cloud, /v1/recover removed in Sprint 3 Phase 3
 		// (#101) — see backend/core/route/v1.go for rationale.
 		"/v1/other",
-		"/v1/zt",
 		"/v1/test",
 		// PowerLab-specific endpoints (issue #21 — in-UI updater).
 		// Registered as a separate gateway prefix so it doesn't
