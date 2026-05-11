@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-(globalThis as { __APP_VERSION__: string }).__APP_VERSION__ = '0.5.13-test';
+(globalThis as unknown as { __APP_VERSION__: string }).__APP_VERSION__ = '0.5.13-test';
 
 const { versionHandshake } = await import('./versionHandshake.svelte');
 

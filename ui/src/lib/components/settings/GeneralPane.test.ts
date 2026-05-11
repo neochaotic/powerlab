@@ -2,7 +2,19 @@ import { render, screen, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import GeneralPane from './GeneralPane.svelte';
 
-const defaultProps = {
+type Props = {
+	osHostname: string;
+	timezone: string;
+	onTimezoneChange: (v: string) => void;
+	reachableUrl: string;
+	currentPort: string;
+	portInput: number;
+	onPortInputChange: (v: number) => void;
+	onRequestPortChange: () => void;
+	timezones: readonly string[];
+};
+
+const defaultProps: Props = {
 	osHostname: 'powerlab-host',
 	timezone: 'America/Sao_Paulo',
 	onTimezoneChange: vi.fn(),
@@ -11,7 +23,7 @@ const defaultProps = {
 	portInput: 8765,
 	onPortInputChange: vi.fn(),
 	onRequestPortChange: vi.fn(),
-	timezones: ['UTC', 'America/Sao_Paulo', 'Europe/Berlin'] as const
+	timezones: ['UTC', 'America/Sao_Paulo', 'Europe/Berlin']
 };
 
 beforeEach(() => {

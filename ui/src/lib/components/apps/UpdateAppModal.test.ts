@@ -2,8 +2,8 @@ import { render, screen, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import UpdateAppModal from './UpdateAppModal.svelte';
 
-let onCancel: ReturnType<typeof vi.fn>;
-let onConfirm: ReturnType<typeof vi.fn>;
+let onCancel: () => void;
+let onConfirm: () => void;
 
 const sampleApp = {
 	id: 'nginx-proxy-manager',

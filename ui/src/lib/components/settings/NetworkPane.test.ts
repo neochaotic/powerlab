@@ -2,12 +2,20 @@ import { render, screen, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import NetworkPane from './NetworkPane.svelte';
 
-const defaultProps = {
+type Props = {
+	mdnsHostname: string;
+	reachableUrl: string;
+	copiedKey: string | null;
+	onCopy: (text: string, key: string) => void;
+	networkInterfaces: Array<{ name: string; state: string; type: string; ip?: string; mac?: string }>;
+};
+
+const defaultProps: Props = {
 	mdnsHostname: 'powerlab.local',
 	reachableUrl: 'http://powerlab.local:8765',
-	copiedKey: null as string | null,
+	copiedKey: null,
 	onCopy: vi.fn(),
-	networkInterfaces: [] as Array<{ name: string; state: string; type: string; ip?: string; mac?: string }>
+	networkInterfaces: []
 };
 
 beforeEach(() => {

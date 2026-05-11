@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import AppsPane from './AppsPane.svelte';
 
 describe('AppsPane', () => {
-	let onCopy: ReturnType<typeof vi.fn>;
+	let onCopy: (text: string, key: string) => void;
 
 	beforeEach(() => {
 		onCopy = vi.fn();

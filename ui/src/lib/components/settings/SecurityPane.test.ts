@@ -1,9 +1,23 @@
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import SecurityPane from './SecurityPane.svelte';
+import type { OS } from '$lib/utils/os';
 
-const defaultProps = {
-	activeSecurityTab: 'macos' as const,
+type CertFormat = 'mobileconfig' | 'crt' | 'cer';
+type Props = {
+	activeSecurityTab: OS;
+	onTabChange: (tab: OS) => void;
+	isTestingConnection: boolean;
+	isHttpsSelfSigned: boolean;
+	onDownloadCA: (format: CertFormat) => void;
+	onOpenHttpDownload: (format: CertFormat) => void;
+	onTestHttpsConnection: () => void;
+	onResetTrust: () => void;
+	onConfirmRotateCA: () => void;
+};
+
+const defaultProps: Props = {
+	activeSecurityTab: 'macos',
 	onTabChange: vi.fn(),
 	isTestingConnection: false,
 	isHttpsSelfSigned: false,

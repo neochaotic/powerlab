@@ -2,9 +2,9 @@ import { render, screen, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import UninstallAppModal from './UninstallAppModal.svelte';
 
-let onCancel: ReturnType<typeof vi.fn>;
-let onConfirm: ReturnType<typeof vi.fn>;
-let onDeleteDataChange: ReturnType<typeof vi.fn>;
+let onCancel: () => void;
+let onConfirm: () => void;
+let onDeleteDataChange: (value: boolean) => void;
 
 beforeEach(() => {
 	onCancel = vi.fn();

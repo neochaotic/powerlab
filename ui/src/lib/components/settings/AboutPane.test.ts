@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 
-(globalThis as { __APP_VERSION__: string }).__APP_VERSION__ = '0.5.13-test';
+(globalThis as unknown as { __APP_VERSION__: string }).__APP_VERSION__ = '0.5.13-test';
 
 const mockStorage: Record<string, string> = {};
 global.localStorage = {

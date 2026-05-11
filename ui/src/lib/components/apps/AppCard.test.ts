@@ -1,7 +1,13 @@
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import AppCard from './AppCard.svelte';
+import type { ComposeAppWithStoreInfo, ComposeAppStoreInfo } from '$lib/api/apps';
 
+// Test fixtures cast via `unknown` because the production types
+// (ComposeAppWithStoreInfo) require fields like `compose` that
+// AppCard doesn't actually read. Locally typing every field would
+// duplicate the API contract; the unknown-cast keeps the tests
+// readable at the cost of a single explicit acknowledgement.
 const storeApp = {
 	store_app_id: 'nginx-proxy-manager',
 	title: { en_us: 'Nginx Proxy Manager' },
@@ -9,13 +15,13 @@ const storeApp = {
 	icon: 'https://example.com/icon.png',
 	port_map: '81',
 	hostname: 'localhost'
-};
+} as unknown as ComposeAppStoreInfo;
 
 const installedApp = {
 	id: 'nginx-proxy-manager',
 	status: 'running',
 	store_info: { ...storeApp }
-};
+} as unknown as ComposeAppWithStoreInfo & { id: string };
 
 beforeEach(() => {
 	vi.restoreAllMocks();
@@ -128,7 +134,7 @@ describe('AppCard', () => {
 		const noIcon = {
 			...installedApp,
 			store_info: { ...installedApp.store_info, icon: undefined }
-		};
+		} as unknown as ComposeAppWithStoreInfo & { id: string };
 		const { container } = render(AppCard, { props: { app: noIcon } });
 		expect(container.querySelector('img')).toBeNull();
 	});

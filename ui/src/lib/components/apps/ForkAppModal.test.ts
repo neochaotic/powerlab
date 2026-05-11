@@ -2,8 +2,8 @@ import { render, screen, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ForkAppModal from './ForkAppModal.svelte';
 
-let onCancel: ReturnType<typeof vi.fn>;
-let onConfirm: ReturnType<typeof vi.fn>;
+let onCancel: () => void;
+let onConfirm: () => void;
 
 beforeEach(() => {
 	onCancel = vi.fn();
