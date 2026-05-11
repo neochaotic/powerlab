@@ -211,6 +211,20 @@ export const api = {
 	},
 
 	/**
+	 * PUT with YAML content type (for `applyComposeAppSettings` —
+	 * the edit-and-redeploy path that needs the backend's skip-self
+	 * port-conflict logic).
+	 */
+	putYaml<T>(url: string, yamlBody: string, options?: RequestInit): Promise<T> {
+		return request<T>(url, {
+			...options,
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/yaml', ...(options?.headers || {}) },
+			body: yamlBody
+		});
+	},
+
+	/**
 	 * Upload file with multipart/form-data (for chunked file uploads).
 	 */
 	upload<T>(url: string, formData: FormData, options?: RequestInit): Promise<T> {
