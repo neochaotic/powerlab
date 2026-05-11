@@ -113,4 +113,49 @@ test.describe('/files page', () => {
 		// CodeMirror's updateListener fired in response to typing.
 		await expect(page.getByTitle(/unsaved|nao|sin guardar/i)).toBeVisible({ timeout: 2000 });
 	});
+
+	// Regression for #66: the Delete button only renders when
+	// selection > 0, but the only ways to select were Cmd-click or
+	// right-click → both undiscoverable. The row checkbox column
+	// already exists; this asserts the header carries a select-all
+	// affordance so a plain click + Delete is reachable without
+	// chord shortcuts.
+	test('header select-all toggles every row (#66)', async ({ page }) => {
+		await page.route('**/v1/folder?**', (route) =>
+			route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({
+					success: 200,
+					data: {
+						content: [
+							{ name: 'a.txt', path: '/a.txt', size: 1, is_dir: false, type: 'text/plain', modified: new Date().toISOString() },
+							{ name: 'b.txt', path: '/b.txt', size: 1, is_dir: false, type: 'text/plain', modified: new Date().toISOString() }
+						],
+						total: 2,
+						index: 1,
+						size: 100000
+					}
+				})
+			})
+		);
+
+		await page.goto('/files');
+		await expect(page.getByText('a.txt')).toBeVisible();
+
+		// Header select-all checkbox is the discoverability fix. It
+		// lives in the first <th> and carries an aria-label so a
+		// keyboard / screen-reader user can find it.
+		const selectAll = page.getByLabel(/select all/i);
+		await expect(selectAll).toBeVisible();
+
+		await selectAll.check();
+
+		// Every row checkbox should be checked once select-all toggled.
+		const rowCheckboxes = page.locator('tbody input[type="checkbox"]');
+		await expect(rowCheckboxes).toHaveCount(2);
+		for (let i = 0; i < 2; i++) {
+			await expect(rowCheckboxes.nth(i)).toBeChecked();
+		}
+	});
 });
