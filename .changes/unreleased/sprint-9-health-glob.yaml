@@ -1,0 +1,5 @@
+kind: Fixed
+body: 'Health endpoint (`/v2/casaos/health/services`) now queries BOTH `casaos*` and `powerlab-*` systemd glob patterns instead of just `casaos*`. PowerLab fresh installs (where units are named `powerlab-*`) previously got an empty health dashboard because the legacy glob never matched. Co-resident installs (operator migrating from CasaOS with `casaos-*` units still present) continue to surface the legacy units too. Results are deduped across globs. Closes #245.'
+time: 2026-05-11T03:00:00Z
+custom:
+  Issue: "245"

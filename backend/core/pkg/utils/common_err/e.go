@@ -52,10 +52,6 @@ const (
 	DIR_NOT_EXISTS       = 60004
 	SOURCE_DES_SAME      = 60005
 	MOUNTED_DIRECTIORIES = 60006
-
-	//share
-	SHARE_ALREADY_EXISTS      = 70001
-	SHARE_NAME_ALREADY_EXISTS = 70002
 )
 
 var MsgFlags = map[int]string{
@@ -101,10 +97,6 @@ var MsgFlags = map[int]string{
 	REMOVE_MOUNT_POINT_ERROR: "Failed to remove mount point",
 	DISK_BUSYING:             "Drive is busy",
 	FORMAT_ERROR:             "Formatting failed, please check if the directory is occupied",
-	//share
-	SHARE_ALREADY_EXISTS:      "Share already exists",
-	SHARE_NAME_ALREADY_EXISTS: "Share name already exists",
-	//
 	SOURCE_DES_SAME:     "Source and destination cannot be the same.",
 	FILE_DOES_NOT_EXIST: "File does not exist",
 

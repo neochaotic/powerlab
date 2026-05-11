@@ -2,28 +2,21 @@ package route
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
-	"strings"
-	"time"
 
 	file1 "github.com/neochaotic/powerlab/backend/common/utils/file"
 	"github.com/neochaotic/powerlab/backend/common/utils/logger"
 	"github.com/neochaotic/powerlab/backend/core/common"
 	"github.com/neochaotic/powerlab/backend/core/model"
 	"github.com/neochaotic/powerlab/backend/core/pkg/config"
-	"github.com/neochaotic/powerlab/backend/core/pkg/samba"
 	"github.com/neochaotic/powerlab/backend/core/pkg/utils/encryption"
 	"github.com/neochaotic/powerlab/backend/core/pkg/utils/file"
-	v1 "github.com/neochaotic/powerlab/backend/core/route/v1"
 	"github.com/neochaotic/powerlab/backend/core/service"
 	"go.uber.org/zap"
 )
 
 func InitFunction() {
-	go InitNetworkMount()
 	go InitInfo()
-	//go InitZerotier()
 }
 
 func InitInfo() {
@@ -48,7 +41,7 @@ func InitInfo() {
 
 	mb.DriveModel = osRelease["MODEL"]
 	if len(mb.DriveModel) == 0 {
-		mb.DriveModel = "Casa"
+		mb.DriveModel = "PowerLab"
 	}
 	os.Remove(config.AppInfo.DBPath + "/baseinfo.conf")
 	by, err := json.Marshal(mb)
@@ -59,40 +52,3 @@ func InitInfo() {
 	file.WriteToFullPath(by, config.AppInfo.DBPath+"/baseinfo.conf", 0o666)
 }
 
-func InitNetworkMount() {
-	time.Sleep(time.Second * 10)
-	connections := service.MyService.Connections().GetConnectionsList()
-	for _, v := range connections {
-		connection := service.MyService.Connections().GetConnectionByID(fmt.Sprint(v.ID))
-		directories, err := samba.GetSambaSharesList(connection.Host, connection.Port, connection.Username, connection.Password)
-		if err != nil {
-			service.MyService.Connections().DeleteConnection(fmt.Sprint(connection.ID))
-			logger.Error("mount samba err", zap.Any("err", err), zap.Any("info", connection))
-			continue
-		}
-		baseHostPath := "/mnt/" + connection.Host
-
-		mountPointList, err := service.MyService.System().GetDirPath(baseHostPath)
-		if err != nil {
-			logger.Error("get mount point err", zap.Any("err", err))
-			continue
-		}
-		for _, v := range mountPointList {
-			service.MyService.Connections().UnmountSmaba(v.Path)
-		}
-
-		os.RemoveAll(baseHostPath)
-
-		file.IsNotExistMkDir(baseHostPath)
-		for _, v := range directories {
-			mountPoint := baseHostPath + "/" + v
-			file.IsNotExistMkDir(mountPoint)
-			service.MyService.Connections().MountSmaba(connection.Username, connection.Host, v, connection.Port, mountPoint, connection.Password)
-		}
-		connection.Directories = strings.Join(directories, ",")
-		service.MyService.Connections().UpdateConnection(&connection)
-	}
-}
-func InitZerotier() {
-	v1.CheckNetwork()
-}

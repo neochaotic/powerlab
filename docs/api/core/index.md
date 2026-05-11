@@ -10,10 +10,9 @@ The pages below are auto-generated from the Go source via [gomarkdoc](https://gi
 
 - [common](common.md) — service-name + version constants, message-bus event-type catalog (`EventSystemUtilization`, `EventFileOperate`)
 - [model](model.md) — DB row + JSON shapes (`UserInfo`, `SystemUser`, `Shares`, `SettingItem`, `StorageA`, `Sort`, `Proxy`, `FileStream`, `Object`/`ObjThumb`/`ObjectURL`/`ObjThumbURL`, `Path`, `DeviceInfo`, sys/server/app config, the `Result` envelope)
-- [interfaces](interfaces.md) — `MigrationTool` contract for cmd/migration-tool
-- [service](service.md) — `Repository` container + every service interface: `ConnectionsService` (SMB-mounts), `HealthService`, `NotifyServer` (event broker), `PeerService` (LAN device pairing), `RelyService` (per-app deps), `SharesService` (smb.conf rewriter), `SystemService` (the big one), `OtherService`, plus the legacy WebSocket broadcaster + per-request `Name`/IP helpers
+- [service](service.md) — `Repository` container + every service interface: `HealthService`, `NotifyServer` (event broker), `PeerService` (LAN device pairing), `RelyService` (per-app deps), `SystemService` (the big one), `OtherService`, plus per-request `Name`/IP helpers
 - [service/model](service/model.md) — gorm row types specific to the service layer (PeerDriveDBModel, RelyDBModel, etc.)
-- [route/v1](route/v1.md), [route/v2](route/v2.md) — HTTP handlers
+- [route/v2](route/v2.md) — HTTP handlers (v1 was removed in Sprint 8 PR Q kill-list)
 - [internal/conf](internal/conf.md) — driver-runtime config types
 - [internal/op](internal/op.md) — driver registry (`RegisterDriver`, `GetDriverNew`, `GetDriverInfoMap`) + lifecycle hooks (`ObjsUpdateHook`, `SettingItemHook`, `StorageHook`)
 - [internal/sign](internal/sign.md) — process-wide HMAC signer used by file-share URLs

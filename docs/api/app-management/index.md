@@ -10,7 +10,7 @@ The pages below are auto-generated from the Go source via [gomarkdoc](https://gi
 - [model](model.md) — DB row + JSON shapes (`ServerAppList`, `MyAppList`, `Category`, `CustomizationPostData`, port/env/path arrays for the V1 install form)
 - [service](service.md) — high-leverage app-lifecycle surface: `ComposeService`, `ComposeApp` (Update/PullAndApply/PullAndInstall/Uninstall/Apply), `AppStore`, `AppStoreManagement` (multi-store CRUD + upgrade-availability cache), task helpers
 - [service/v1](service/v1.md) — V1 service-layer compatibility shims
-- [route/v1](route/v1.md), [route/v2](route/v2.md) — HTTP handlers
+- [route/v2](route/v2.md) — HTTP handlers (v1 was removed in Sprint 8 PR Q kill-list)
 - [pkg/docker](pkg/docker.md) — typed wrappers around the docker engine API (auth, container ops, image pull/digest, registry, volumes, content trust)
 - [pkg/config](pkg/config.md) — ini-backed config loaders (`CommonInfo`, `AppInfo`, `ServerInfo`, `Global`)
 

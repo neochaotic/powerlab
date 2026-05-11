@@ -93,9 +93,7 @@ func InitV1Router() http.Handler {
 
 			v1SysGroup.GET("/hardware", v1.GetSystemHardwareInfo) // hardware/info
 
-			v1SysGroup.GET("/wsssh", v1.WsSsh)
 			v1SysGroup.GET("/wsshell", v1.WsShell) // local pty (no SSH, no creds)
-			v1SysGroup.POST("/ssh-login", v1.PostSshLogin)
 			// v1SysGroup.GET("/config", v1.GetSystemConfig) //delete
 			// v1SysGroup.POST("/config", v1.PostSetSystemConfig)
 			v1SysGroup.GET("/logs", v1.GetCasaOSErrorLogs) // error/logs
@@ -166,8 +164,6 @@ func InitV1Router() http.Handler {
 			v1FileGroup.POST("/upload", v1.PostFileUpload)
 			v1FileGroup.GET("/upload", v1.GetFileUpload)
 			// v1FileGroup.GET("/download", v1.UserFileDownloadCommonService)
-			v1FileGroup.GET("/ws", v1.ConnectWebSocket)
-			v1FileGroup.GET("/peers", v1.GetPeers)
 		}
 		// /v1/cloud and /v1/driver groups (cloud storage backends + driver
 		// listing) removed in Sprint 3 Phase 3 (#101). See route header
@@ -196,25 +192,6 @@ func InitV1Router() http.Handler {
 		{
 			v1ImageGroup.GET("", v1.GetFileImage)
 		}
-		v1SambaGroup := v1Group.Group("/samba")
-		v1SambaGroup.Use()
-		{
-			v1ConnectionsGroup := v1SambaGroup.Group("/connections")
-			v1ConnectionsGroup.Use()
-			{
-				v1ConnectionsGroup.GET("", v1.GetSambaConnectionsList)
-				v1ConnectionsGroup.POST("", v1.PostSambaConnectionsCreate)
-				v1ConnectionsGroup.DELETE("/:id", v1.DeleteSambaConnections)
-			}
-			v1SharesGroup := v1SambaGroup.Group("/shares")
-			v1SharesGroup.Use()
-			{
-				v1SharesGroup.GET("", v1.GetSambaSharesList)
-				v1SharesGroup.POST("", v1.PostSambaSharesCreate)
-				v1SharesGroup.DELETE("/:id", v1.DeleteSambaShares)
-				v1SharesGroup.GET("/status", v1.GetSambaStatus)
-			}
-		}
 		v1NotifyGroup := v1Group.Group("/notify")
 		v1NotifyGroup.Use()
 		{
@@ -227,11 +204,6 @@ func InitV1Router() http.Handler {
 		v1OtherGroup.Use()
 		{
 			v1OtherGroup.GET("/search", v1.GetSearchResult)
-		}
-		v1ZerotierGroup := v1Group.Group("/zt")
-		v1ZerotierGroup.Use()
-		{
-			v1ZerotierGroup.Any("/*url", v1.ZerotierProxy)
 		}
 	}
 

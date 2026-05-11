@@ -177,7 +177,7 @@
   "settings.storageConfigDesc": "Configurado al inicio a través de app-management.conf. Edición por interfaz planeada.",
   "settings.appSources": "Fuentes de la tienda de apps",
   "settings.localStore": "Tienda local",
-  "settings.casaCatalog": "Catálogo CasaOS",
+  "settings.communityCatalog": "Catálogo comunitario",
   "settings.bigBearCatalog": "Catálogo Big-Bear",
   "settings.sourcesConfigDesc": "Edite as fuentes a través de app-management.conf. Edición por interfaz planeada.",
   "settings.securityDesc": "Infraestructura HTTPS y gestión de sesiones.",

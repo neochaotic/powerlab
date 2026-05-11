@@ -3,7 +3,7 @@
 	import { ArrowLeft, Play, Code, LayoutDashboard, AlertCircle, X, Loader2, CheckCircle2, Terminal, Package, Minimize2 } from 'lucide-svelte';
 	import { cn } from '$lib/utils';
 	import { api, getAuthToken } from '$lib/api/client';
-	import { getComposeApp, getComposeAppLogs } from '$lib/api/apps';
+	import { getComposeApp, getComposeAppLogs, applyComposeAppSettings } from '$lib/api/apps';
 	import { ENDPOINTS } from '$lib/api/endpoints';
 	import yaml from 'js-yaml';
 	import { readPowerLabExt, writePowerLabExt, deletePowerLabExtProperty } from '$lib/utils/compose-extension';
@@ -382,10 +382,20 @@ services:
 			const parsed = yaml.load(yamlText) as any;
 			const id = parsed?.name || Object.keys(parsed?.services || {})[0] || 'app';
 			deployAppId = id;
-			
+
 			startLogStreaming(id);
-			
-			const response = await api.postYaml<any>(ENDPOINTS.APP_COMPOSE_DEPLOY, yamlText);
+
+			// Edit-mode (URL has ?id=X without &fork=1) MUST use the
+			// PUT applyComposeAppSettings endpoint — only that path
+			// runs the backend's skip-self port-conflict logic. POST
+			// (install) flags the app's own running ports as
+			// conflicts and the deploy fails with "ports in use".
+			// Closes #65.
+			const editingId = $page.url.searchParams.get('id');
+			const fork = $page.url.searchParams.get('fork') === '1';
+			const response = editingId && !fork
+				? await applyComposeAppSettings(editingId, yamlText)
+				: await api.postYaml<any>(ENDPOINTS.APP_COMPOSE_DEPLOY, yamlText);
 			
 			// User now picks the next step explicitly via the success
 			// modal ("Open Launchpad" / "Stay Here") instead of being
@@ -629,7 +639,7 @@ services:
 			{#if activeView === 'split' || activeView === 'form'}
 				<div class={cn("h-full overflow-y-auto border-r border-white/5 custom-scrollbar transition-all duration-500", activeView === 'split' ? "w-1/2" : "w-full")}>
 					<div class="mx-auto max-w-2xl p-8">
-						<ComposeForm bind:model={formModel} onchange={handleFormChange} />
+						<ComposeForm bind:model={formModel} onchange={handleFormChange} nameError={nameValidationError} />
 					</div>
 				</div>
 			{/if}

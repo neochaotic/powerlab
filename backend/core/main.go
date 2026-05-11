@@ -128,12 +128,11 @@ func init() {
 	//configfile.Install()
 }
 
-// @title casaOS API
+// @title PowerLab Core API
 // @version 1.0.0
-// @contact.name lauren.pan
-// @contact.url https://www.zimaboard.com
-// @contact.email lauren.pan@icewhale.org
-// @description casaOS v1版本api
+// @contact.name PowerLab contributors
+// @contact.url https://github.com/neochaotic/powerlab
+// @description PowerLab core service v1 API
 // @host 192.168.2.217:8089
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
@@ -176,12 +175,10 @@ func main() {
 		"/v1/folder",
 		"/v1/batch",
 		"/v1/image",
-		"/v1/samba",
 		"/v1/notify",
 		// /v1/driver, /v1/cloud, /v1/recover removed in Sprint 3 Phase 3
 		// (#101) — see backend/core/route/v1.go for rationale.
 		"/v1/other",
-		"/v1/zt",
 		"/v1/test",
 		// PowerLab-specific endpoints (issue #21 — in-UI updater).
 		// Registered as a separate gateway prefix so it doesn't

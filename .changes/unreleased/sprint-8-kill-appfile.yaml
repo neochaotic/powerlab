@@ -1,0 +1,5 @@
+kind: Removed
+body: 'Delete `backend/app-management/cmd/appfile2compose/` (95 LOC) — CasaOS-era one-shot tool that converted the legacy `appfile.json` format to docker-compose YAML. PowerLab''s App Store has been 100% native compose YAML for the entire fork''s history; the binary was never invoked from any script, install path, or Makefile target. Sprint 8 kill-list batch 3/5.'
+time: 2026-05-11T01:35:00Z
+custom:
+  Issue: ""

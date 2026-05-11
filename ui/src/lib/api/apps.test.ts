@@ -3,6 +3,7 @@ import {
 	getAppStoreList,
 	getInstalledApps,
 	installComposeApp,
+	applyComposeAppSettings,
 	getStoreAppYaml,
 	getComposeApp,
 	uninstallComposeApp,
@@ -121,6 +122,51 @@ describe('Apps API', () => {
 
 		const url = (fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
 		expect(url).not.toContain('dry_run');
+	});
+
+	// ─── Edit-mode redeploy (#65) ─────────────────────────────────────────
+	//
+	// Background: re-deploying an existing Custom App via the Install
+	// (POST /v2/app_management/compose) endpoint runs the dry-run port
+	// check WITHOUT skip-self logic — the app's own running ports get
+	// flagged as conflicts and the deploy fails. The Apply Settings
+	// endpoint (PUT /v2/app_management/compose/{id}) has the skip-self
+	// branch baked in. Routing edits to PUT closes the bug.
+
+	it('applyComposeAppSettings: PUT to /v2/app_management/compose/{id} with YAML body', async () => {
+		vi.stubGlobal('fetch', mockJson({ message: 'ok' }));
+
+		await applyComposeAppSettings('my-nginx', 'services:\n  web:\n    image: nginx');
+
+		expect(fetch).toHaveBeenCalledWith(
+			'/v2/app_management/compose/my-nginx',
+			expect.objectContaining({
+				method: 'PUT',
+				headers: expect.objectContaining({ 'Content-Type': 'application/yaml' }),
+				body: 'services:\n  web:\n    image: nginx'
+			})
+		);
+	});
+
+	it('applyComposeAppSettings: surfaces backend 400 (validation error) as throw', async () => {
+		vi.stubGlobal(
+			'fetch',
+			mockJson({ message: 'invalid YAML' }, 400)
+		);
+
+		await expect(
+			applyComposeAppSettings('bad-app', 'this is not yaml')
+		).rejects.toThrow();
+	});
+
+	it('applyComposeAppSettings: percent-encodes app id with special chars', async () => {
+		vi.stubGlobal('fetch', mockJson({ message: 'ok' }));
+
+		await applyComposeAppSettings('my app/name', 'services: {}');
+
+		const url = (fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+		// "my app/name" → "my%20app%2Fname"
+		expect(url).toBe('/v2/app_management/compose/my%20app%2Fname');
 	});
 
 	// ─── Compose App Operations ───────────────────────────────────────────

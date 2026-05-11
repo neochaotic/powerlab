@@ -32,7 +32,7 @@ const (
 
 	DefaultCategoryFont = "grid"
 	DefaultLanguage     = "en_us"
-	DefaultPassword     = "casaos"
+	DefaultPassword     = "powerlab"
 	DefaultPGID         = "1000"
 	DefaultPUID         = "1000"
 	DefaultUserName     = "admin"
