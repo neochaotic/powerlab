@@ -178,7 +178,7 @@ var (
 		"tiger",
 		"xuhai",
 
-		// Some random early backers of Zimaboard
+		// Common given names for friendly default suggestions.
 		"aaron",
 		"abdulrahman",
 		"adrian",

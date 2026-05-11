@@ -27,14 +27,6 @@ export interface HealthPorts {
 	udp: number[];
 }
 
-// ─── ZeroTier (CasaOS Core: /v2/casaos) ──────────────────────────────
-
-export interface ZTInfo {
-	id: string;
-	name: string;
-	status: string;
-}
-
 // ─── App Management (/v2/app_management) ──────────────────────────────
 
 export interface AppStoreInfo {
@@ -140,7 +132,6 @@ export const ENDPOINTS = {
 	HEALTH_LOGS: '/v2/casaos/health/logs',
 	FILE_UPLOAD: '/v2/casaos/file/upload',
 	FILE_TEST: '/v2/casaos/file/test',
-	ZT_INFO: '/v2/casaos/zt/info',
 
 	// App Management
 	APP_INFO: '/v2/app_management/info',
@@ -165,9 +156,6 @@ export const ENDPOINTS = {
 	MSG_YSK: '/v2/message_bus/ysk',
 	MSG_SOCKET_IO: '/v2/message_bus/socket.io',
 
-	// Gateway
-	GATEWAY_PORT: '/v1/gateway/port',
-
 	// User Service
 	USER_LOGIN: '/v1/users/login',
 	USER_REGISTER: '/v1/users/register',
@@ -182,7 +170,6 @@ export const ENDPOINTS = {
 	// kill #1 — backend route deleted with the rest of the upstream-
 	// CasaOS self-update path. PowerLab updater uses
 	// /v1/powerlab-update/* (see updater.ts).
-	SYS_PORT: '/v1/sys/port',
 	SYS_REBOOT: '/v1/sys/state/restart',
 	SYS_SHUTDOWN: '/v1/sys/state/off',
 	SYS_TIMEZONE: '/v1/sys/timezone',

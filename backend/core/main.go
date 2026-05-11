@@ -128,12 +128,11 @@ func init() {
 	//configfile.Install()
 }
 
-// @title casaOS API
+// @title PowerLab Core API
 // @version 1.0.0
-// @contact.name lauren.pan
-// @contact.url https://www.zimaboard.com
-// @contact.email lauren.pan@icewhale.org
-// @description casaOS v1版本api
+// @contact.name PowerLab contributors
+// @contact.url https://github.com/neochaotic/powerlab
+// @description PowerLab core service v1 API
 // @host 192.168.2.217:8089
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header

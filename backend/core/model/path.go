@@ -16,18 +16,3 @@ type Path struct {
 	Write      bool                   `json:"write"`
 	Extensions map[string]interface{} `json:"extensions"`
 }
-
-// DeviceInfo is the public-facing device descriptor returned by the
-// device discovery endpoint and surfaced on the login screen.
-// LanIpv4 holds the addresses the device is reachable on; Hash is
-// the device's stable per-install id.
-type DeviceInfo struct {
-	LanIpv4     []string `json:"lan_ipv4"`
-	Port        int      `json:"port"`
-	DeviceName  string   `json:"device_name"`
-	DeviceModel string   `json:"device_model"`
-	DeviceSN    string   `json:"device_sn"`
-	Initialized bool     `json:"initialized"`
-	OS_Version  string   `json:"os_version"`
-	Hash        string   `json:"hash"`
-}
