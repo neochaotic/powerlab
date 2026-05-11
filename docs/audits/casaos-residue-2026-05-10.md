@@ -1,5 +1,78 @@
 # CasaOS residue audit — 2026-05-10
 
+> **⚠️ Superseded by Sprints 8 + 9 (2026-05-11).** Most items
+> below are closed. Read the **2026-05-11 delta** section first
+> for the current state. The original Sprint 5 snapshot is
+> preserved below for historical reference.
+
+## 2026-05-11 delta — what's closed
+
+Sprint 8 ran a **kill-list of 9 PRs that removed ~11.6 k LOC** of
+CasaOS-era dead weight (#262 #263 #264 #265 #266 #267 #268 #269
+#270). Sprint 9 followed with 9 more PRs (#272-#281) attacking
+the cosmetic + branding residue this audit originally flagged.
+
+### Critical-tier items — closed
+
+| Item | Action | PR |
+|---|---|---|
+| `DefaultPassword = "casaos"` shipped as new-app default | Renamed to `"powerlab"`; envHelper + constants updated; TDD regression | #272 |
+| `User-Agent: CasaOS` on Docker registry probes | Replaced with `PowerLab/{AppManagementVersion}` | #272 |
+| Health endpoint glob `casaos*` only | Queries BOTH `casaos*` AND `powerlab-*` with dedup | #273 |
+| JWT `iss="casaos"` branding leak | New tokens issued `iss="powerlab"`; bridging accept set + access-token issuer gate | #274 |
+| `fstab.go` writes `.casaos.bak` / `# Added by the CasaOS` | Renamed to `.powerlab.bak` + `# Added by PowerLab` | #275 |
+| Settings catalog label "CasaOS catalog" | Renamed to "Community catalog" (3 locales) | #276 |
+| `v2.CasaOS` struct + `SERVICENAME = "casaos"` | Renamed to `Server` / `SERVICENAME = "powerlab"`; dead `RANW_NAME` deleted | #277 |
+| `Mb.DriveModel = "Casa"` discovery fallback | Renamed to `"PowerLab"` (the most visible "pretending to be CasaOS on the LAN" residue) | Sprint 8 #265 |
+| Swagger contact `@zimaboard.com` / `@icewhale.org` | Rebranded to PowerLab + GitHub URL | Sprint 8 #265 |
+| "Zimaboard backers" random-name comment | Replaced with neutral description | Sprint 8 #265 |
+| Orphan `RANW_NAME = "IceWhale-RemoteAccess"` constant | Deleted (zero callers) | #277 |
+
+### Deleted entirely (Sprint 8 kill-list)
+
+- `backend/cli/` subproject (~4 840 LOC, 61 files) — never built, CI explicitly excluded
+- `backend/cli/.github/`, `casaos-cli-completion` (~95 LOC)
+- `backend/core/route/v1/zerotier.go` + `route/v2/zerotier.go` + `pkg/utils/httper/zerotier.go` (~440 LOC) — VPN doesn't belong in core orchestrator
+- `backend/core/route/v1/ssh.go` (`WsSsh` + `PostSshLogin`, ~113 LOC) — CasaOS SSH-to-other-host; local pty `WsShell` is preserved
+- `backend/core/route/v1/file_websocket.go` (~315 LOC) — Snapdrop-style peer-broadcast; closes #261
+- `backend/core/pkg/samba/` + `route/v1/samba.go` + `service/{shares,connections}.go` + Samba models (~720 LOC, 9 full-file deletes + 11 surgical edits) — Samba removed from product scope
+- `cmd/migration-tool/` tree in all 6 services + orphan `MigrationTool` interfaces (~1 248 LOC) — `scripts/migrate-casaos-data.sh` covers the real migration path
+- `cmd/validator/` + `cmd/message-bus-docgen/` ×4 services (~505 LOC) — Scalar + inline compose validation covers the surface
+- `cmd/appfile2compose/` (~95 LOC) — AppStore is 100 % compose YAML
+- 40 orphan `.github/workflows/` files in backend service dirs — GitHub Actions only honors top-level `.github`
+- 5 orphan sysroot files (casaos.service unit, rclone.service, mergerfs.ctl, env stubs)
+- `backend/core/Makefile` ("@echo 'call john'", refs non-existent CasaOS-UI dir)
+- `notify_old.go` + `migration_0412_and_older.go` (Sprint 8 PR I)
+- App-management `/v1/*` API surface (~1 365 LOC, Sprint 8 PR Q) — UI consumes only `/v2/app_management/*`
+
+### Cosmetic + dead-code residue still standing (intentional)
+
+- `ADR-0007`, `ADR-0021`, `ADR-0022`, `docs/audits/casaos-*`, `docs/coexistence/migrating-from-casaos.md`, `docs/architecture/casaos-strangler.md` — historical, **keep**
+- `LICENSE` AGPL attribution to upstream — **keep**
+- `.changes/v0.5.*.md` + root `CHANGELOG.md` release notes — **keep** (can't rewrite history)
+- `README.md` single CasaOS/ZimaOS comparison line (positioning, intentional)
+- `backend/app-management/common/labels.go` — `LegacyLabelKindKey/Value = "casaos"` (ADR-0021 Docker label dual-write, deliberate one-release compat — drop in v0.6.x per ADR)
+- `backend/message-bus/utils/fixtures.go` — `ZimaOS*Notice` YSK onboarding cards (used in welcome flow; rebrand coordinated separately, not delete-cego)
+- `backend/message-bus/pkg/ysk/adapter.go` — `ZimaIcon` const (used by fixtures above)
+
+### Open follow-ups not in Sprint 8/9
+
+- Sprint 7 carry-forward: `apps/+page.svelte` 1561 LOC + `settings/+page.svelte` 1469 LOC splits (#123)
+- user-service v1 dead handlers (~600 LOC split-out from Sprint 8 PR Q)
+- Frontend coverage baseline established 2026-05-11: 16.77 % (Sprint 9 PR #281); target ≥ 25 % Sprint 10
+
+### Issues closed as stale during Sprint 8/9
+
+- #249 (CLI rebrand) — moot, `backend/cli/` deleted
+- #247 (test-linux-e2e casaos.service) — intentional in-container test scaffolding, not a footgun
+- #261 (peer-discovery feature) — decided not to ship; file_websocket.go killed instead
+- #30 (first-run onboarding tour) — never re-prioritized
+- #171 (skip flag.Parse template) — niche, per-binary workaround already shipped
+
+---
+
+## Original Sprint 5 snapshot (2026-05-10)
+
 Companion to `docs/audits/casaos-dependencies.md`. That doc tracks
 the rolling history of the CasaOS-strip work; this one is a fresh
 "what is left, what to kill, in what order" snapshot taken after
