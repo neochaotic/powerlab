@@ -18,6 +18,8 @@
 		onOpen: (item: FileItem) => void;
 		onSort: (by: 'name' | 'size' | 'modified') => void;
 		onContextMenu: (e: MouseEvent, item: FileItem) => void;
+		onSelectAll?: () => void;
+		onClearSelection?: () => void;
 	}
 
 	let {
@@ -29,8 +31,25 @@
 		onSelect,
 		onOpen,
 		onSort,
-		onContextMenu
+		onContextMenu,
+		onSelectAll = () => {},
+		onClearSelection = () => {}
 	}: Props = $props();
+
+	// Tri-state header checkbox state.
+	// - all rows selected → checked
+	// - some selected     → indeterminate
+	// - none selected     → unchecked
+	const allSelected = $derived(files.length > 0 && selectedPaths.size === files.length);
+	const someSelected = $derived(selectedPaths.size > 0 && selectedPaths.size < files.length);
+
+	// `indeterminate` is a property, not an attribute, so Svelte
+	// can't render it via the template — push it imperatively when
+	// the derived flips. bind:this captures the live element.
+	let selectAllEl = $state<HTMLInputElement | null>(null);
+	$effect(() => {
+		if (selectAllEl) selectAllEl.indeterminate = someSelected;
+	});
 
 	// ── Virtual scrolling ────────────────────────────────────────────────
 	const ROW_HEIGHT = 40; // px — must match the <tr> height set below
@@ -112,7 +131,17 @@
 	<table class="w-full border-collapse text-sm">
 		<thead class="sticky top-0 z-10">
 			<tr class="border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
-				<th class="w-8 px-3 py-2.5"></th>
+				<th class="w-8 px-3 py-2.5 text-center">
+					<input
+						bind:this={selectAllEl}
+						type="checkbox"
+						class="cursor-pointer accent-[var(--color-accent)]"
+						aria-label="Select all"
+						checked={allSelected}
+						disabled={files.length === 0}
+						onchange={() => (allSelected ? onClearSelection() : onSelectAll())}
+					/>
+				</th>
 				<th class="px-3 py-2.5 text-left">
 					<button
 						class="flex items-center gap-1 font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"

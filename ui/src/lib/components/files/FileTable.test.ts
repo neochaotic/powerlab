@@ -100,3 +100,77 @@ describe('FileTable — discoverable file selection (#116 regression)', () => {
 		expect(onOpen).not.toHaveBeenCalled();
 	});
 });
+
+// Regression for #66 — Delete button only shows when something is
+// selected, but selection itself was undiscoverable (Cmd-click or
+// right-click only). The header now carries a select-all checkbox
+// so a plain click + toolbar Delete is reachable.
+describe('FileTable — header select-all (#66 regression)', () => {
+	it('clicking the header checkbox calls onSelectAll when nothing is selected', async () => {
+		const onSelectAll = vi.fn();
+		const onClearSelection = vi.fn();
+
+		const { container } = render(FileTable, {
+			files: sample,
+			selectedPaths: new Set<string>(),
+			sortBy: 'name',
+			sortDir: 'asc',
+			loading: false,
+			onSelect: () => {},
+			onOpen: () => {},
+			onSort: () => {},
+			onContextMenu: () => {},
+			onSelectAll,
+			onClearSelection
+		});
+
+		const headerCheckbox = container.querySelector('thead input[type="checkbox"]') as HTMLInputElement;
+		expect(headerCheckbox).not.toBeNull();
+		expect(headerCheckbox.getAttribute('aria-label')).toBe('Select all');
+
+		await fireEvent.click(headerCheckbox);
+		expect(onSelectAll).toHaveBeenCalled();
+		expect(onClearSelection).not.toHaveBeenCalled();
+	});
+
+	it('clicking the header checkbox calls onClearSelection when all are selected', async () => {
+		const onSelectAll = vi.fn();
+		const onClearSelection = vi.fn();
+
+		const { container } = render(FileTable, {
+			files: sample,
+			selectedPaths: new Set<string>(sample.map((s) => s.path)),
+			sortBy: 'name',
+			sortDir: 'asc',
+			loading: false,
+			onSelect: () => {},
+			onOpen: () => {},
+			onSort: () => {},
+			onContextMenu: () => {},
+			onSelectAll,
+			onClearSelection
+		});
+
+		const headerCheckbox = container.querySelector('thead input[type="checkbox"]') as HTMLInputElement;
+		await fireEvent.click(headerCheckbox);
+		expect(onClearSelection).toHaveBeenCalled();
+		expect(onSelectAll).not.toHaveBeenCalled();
+	});
+
+	it('header checkbox is disabled when there are no rows', () => {
+		const { container } = render(FileTable, {
+			files: [],
+			selectedPaths: new Set<string>(),
+			sortBy: 'name',
+			sortDir: 'asc',
+			loading: false,
+			onSelect: () => {},
+			onOpen: () => {},
+			onSort: () => {},
+			onContextMenu: () => {}
+		});
+
+		const headerCheckbox = container.querySelector('thead input[type="checkbox"]') as HTMLInputElement;
+		expect(headerCheckbox.disabled).toBe(true);
+	});
+});

@@ -312,6 +312,8 @@
 			onOpen={handleOpen}
 			onSort={(by) => store.toggleSort(by)}
 			onContextMenu={handleContextMenu}
+			onSelectAll={() => store.selectAll()}
+			onClearSelection={() => store.clearSelection()}
 		/>
 	</div>
 
