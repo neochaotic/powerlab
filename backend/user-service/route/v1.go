@@ -33,11 +33,6 @@ func InitRouter() http.Handler {
 
 	e.POST("/v1/users/register", v1.PostUserRegister)
 	e.POST("/v1/users/login", v1.PostUserLogin)
-	e.GET("/v1/users/name", v1.GetUserAllUsername) // all/name
-	e.POST("/v1/users/refresh", v1.PostUserRefreshToken)
-	// No short-term modifications
-	e.GET("/v1/users/image", v1.GetUserImage)
-
 	e.GET("/v1/users/status", v1.GetUserStatus) // init/check
 
 	v1Group := e.Group("/v1")
@@ -76,22 +71,12 @@ func InitRouter() http.Handler {
 		v1UsersGroup.GET("/current", v1.GetUserInfo)
 		v1UsersGroup.PUT("/current", v1.PutUserInfo)
 		v1UsersGroup.PUT("/current/password", v1.PutUserPassword)
-
-		v1UsersGroup.GET("/current/custom/:key", v1.GetUserCustomConf)
-		v1UsersGroup.POST("/current/custom/:key", v1.PostUserCustomConf)
-		v1UsersGroup.DELETE("/current/custom/:key", v1.DeleteUserCustomConf)
-
-		v1UsersGroup.POST("/current/image/:key", v1.PostUserUploadImage)
-		v1UsersGroup.PUT("/current/image/:key", v1.PutUserImage)
-		// v1UserGroup.POST("/file/image/:key", v1.PostUserFileImage)
-		v1UsersGroup.DELETE("/current/image", v1.DeleteUserImage)
-
-		v1UsersGroup.PUT("/avatar", v1.PutUserAvatar)
-		v1UsersGroup.GET("/avatar", v1.GetUserAvatar)
-
-		v1UsersGroup.DELETE("/:id", v1.DeleteUser)
-		v1UsersGroup.GET("/:username", v1.GetUserInfoByUsername)
-		v1UsersGroup.DELETE("", v1.DeleteUserAll)
+		// 10 v1 user endpoints removed in Sprint 9 PR K (#252 follow-up):
+		// /v1/users/{name, refresh, image, avatar, current/custom/*,
+		// current/image/*, /:id DELETE, /:username, '' DELETE all}.
+		// UI never consumed any of them; backend/common/external/
+		// did not either. Drops ~570 LOC of CasaOS-era user-mgmt
+		// handlers (single-user PowerLab doesn't need them).
 	}
 
 	return e
