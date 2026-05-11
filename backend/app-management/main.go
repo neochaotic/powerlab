@@ -35,14 +35,8 @@ var (
 	//go:embed api/index.html
 	_docHTML string
 
-	//go:embed api/index_v1.html
-	_docHTMLV1 string
-
 	//go:embed api/app_management/openapi.yaml
 	_docYAML string
-
-	//go:embed api/app_management/openapi_v1.yaml
-	_docYAMLV1 string
 
 	//go:embed build/sysroot/etc/powerlab/app-management.conf.sample
 	_confSample string
@@ -132,10 +126,6 @@ func main() {
 	// initialize routers and register at gateway
 	{
 		apiPaths := []string{
-			"/v1/apps",
-			"/v1/container",
-			"/v1/app-categories",
-			route.V1DocPath,
 			route.V2APIPath,
 			route.V2DocPath,
 		}
@@ -150,17 +140,13 @@ func main() {
 		}
 	}
 
-	v1Router := route.InitV1Router()
 	v2Router := route.InitV2Router()
-	v1DocRouter := route.InitV1DocRouter(_docHTMLV1, _docYAMLV1)
 	v2DocRouter := route.InitV2DocRouter(_docHTML, _docYAML)
 
 	mux := &util_http.HandlerMultiplexer{
 		HandlerMap: map[string]http.Handler{
-			"v1":    v1Router,
-			"v2":    v2Router,
-			"v1doc": v1DocRouter,
-			"doc":   v2DocRouter,
+			"v2":  v2Router,
+			"doc": v2DocRouter,
 		},
 	}
 
