@@ -1,0 +1,5 @@
+kind: Removed
+body: 'Remove the `cmd/migration-tool/` Go binary tree across all 6 backend services (1248 LOC, 22 files). The CasaOS-era pattern of "run a separate Go binary before service start to migrate v0.x.y → v0.x.z data paths" was never used in production: `package-linux.sh` does not build it, `install.sh` does not invoke it, and `scripts/migrate-casaos-data.sh` already covers the full filesystem-level CasaOS → PowerLab migration sourced by install.sh. Also drop the now-orphan `MigrationTool` interface in `backend/common/interfaces.go` and `backend/core/interfaces/migrationTool.go`. Sprint 8 kill-list batch 7/9.'
+time: 2026-05-11T02:00:00Z
+custom:
+  Issue: ""
