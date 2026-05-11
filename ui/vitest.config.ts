@@ -34,10 +34,23 @@ export default defineConfig({
 				// SvelteKit-generated runtime — not our code.
 				'.svelte-kit/**'
 			],
-			// No threshold gates on Sprint 9. The first run
-			// establishes the baseline; gates land once we know
-			// what passing-now looks like (post-Sprint-9 decision).
-			thresholds: undefined
+			// Coverage gate floors — issue #297, landed after the
+			// Sprint 11 lift (#296) brought the four metrics to
+			// 28.75 / 24.21 / 26.41 / 29.60. The gate sits ~5 pp
+			// below each measurement so refactors can temporarily
+			// dip coverage without holding PRs hostage to test
+			// authoring, but a real regression (deleting tests or
+			// landing a large untested feature) red-fails CI.
+			//
+			// Per-file thresholds are intentionally omitted —
+			// they create the "1 file at 0 % blocks the whole PR"
+			// trap. The aggregate is the gate.
+			thresholds: {
+				statements: 23,
+				branches: 19,
+				functions: 21,
+				lines: 24
+			}
 		}
 	}
 });
