@@ -169,14 +169,5 @@ func CheckFileStatus() {
 }
 func IsMounted(path string) bool {
 	mounted, _ := mountinfo.Mounted(path)
-	if mounted {
-		return true
-	}
-	connections := MyService.Connections().GetConnectionsList()
-	for _, v := range connections {
-		if v.MountPoint == path {
-			return true
-		}
-	}
-	return false
+	return mounted
 }
