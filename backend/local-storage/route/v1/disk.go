@@ -199,10 +199,6 @@ func DeleteDisksUmount(ctx echo.Context) error {
 		if err := service.MyService.Disk().DeleteMountPointFromDB(v.Path, v.MountPoint); err != nil {
 			_log.Error(ctx.Request().Context(), "error when deleting mount point from database", err, slog.String("path", v.Path), slog.String("mount point", v.MountPoint))
 		}
-
-		if err := service.MyService.Shares().DeleteShare(v.MountPoint); err != nil {
-			_log.Error(ctx.Request().Context(), "error when deleting share by mount point", err, slog.String("mount point", v.MountPoint))
-		}
 	}
 
 	service.MyService.Disk().RemoveLSBLKCache()

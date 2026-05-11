@@ -104,25 +104,9 @@ func DirPath(ctx echo.Context) error {
 	if err != nil {
 		return ctx.JSON(common_err.SERVICE_ERROR, model.Result{Success: common_err.SERVICE_ERROR, Message: common_err.GetMsg(common_err.SERVICE_ERROR), Data: err.Error()})
 	}
-	shares := service.MyService.Shares().GetSharesList()
-	sharesMap := make(map[string]string)
-	for _, v := range shares {
-		sharesMap[v.Path] = fmt.Sprint(v.ID)
-	}
 	forEnd := req.Index * req.Size
 	if forEnd > len(info) {
 		forEnd = len(info)
-	}
-	for i := (req.Index - 1) * req.Size; i < forEnd; i++ {
-		if v, ok := sharesMap[info[i].Path]; ok {
-			ex := make(map[string]interface{})
-			shareEx := make(map[string]string)
-			shareEx["shared"] = "true"
-			shareEx["id"] = v
-			ex["share"] = shareEx
-			ex["mounted"] = false
-			info[i].Extensions = ex
-		}
 	}
 	if strings.HasPrefix(req.Path, "/mnt") || strings.HasPrefix(req.Path, "/media") {
 		for i := (req.Index - 1) * req.Size; i < forEnd; i++ {

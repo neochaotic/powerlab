@@ -36,10 +36,6 @@ var (
 // layer. Each method returns a long-lived collaborator constructed
 // once at startup. Test code can satisfy the interface with stubs.
 type Repository interface {
-	// Connections returns the dial-test + remote-host registry
-	// service used by the V1 file-explorer's "remote storage"
-	// section.
-	Connections() ConnectionsService
 	// Gateway returns the gateway management SDK client (route
 	// registration on boot).
 	Gateway() external.ManagementService
@@ -53,8 +49,6 @@ type Repository interface {
 	// Rely returns the dependency-tracking service used by the
 	// install/upgrade gates ("can app X be installed?").
 	Rely() RelyService
-	// Shares returns the SMB-share admin service.
-	Shares() SharesService
 	// System returns the system-info + utilization service that
 	// powers the homepage stats widgets.
 	System() SystemService
@@ -80,14 +74,12 @@ func NewService(db *gorm.DB, RuntimePath string) Repository {
 	}
 
 	return &store{
-		connections: NewConnectionsService(db),
-		gateway:     gatewayManagement,
-		notify:      NewNotifyService(db),
-		rely:        NewRelyService(db),
-		system:      NewSystemService(),
-		health:      NewHealthService(),
-		shares:      NewSharesService(db),
-		other:       NewOtherService(),
+		gateway: gatewayManagement,
+		notify:  NewNotifyService(db),
+		rely:    NewRelyService(db),
+		system:  NewSystemService(),
+		health:  NewHealthService(),
+		other:   NewOtherService(),
 
 		peer: NewPeerService(db),
 	}
@@ -96,16 +88,14 @@ func NewService(db *gorm.DB, RuntimePath string) Repository {
 // store is the unexported Repository implementation — fields are
 // the concrete collaborators wired by NewService.
 type store struct {
-	peer        PeerService
-	db          *gorm.DB
-	notify      NotifyServer
-	rely        RelyService
-	system      SystemService
-	shares      SharesService
-	connections ConnectionsService
-	gateway     external.ManagementService
-	health      HealthService
-	other       OtherService
+	peer    PeerService
+	db      *gorm.DB
+	notify  NotifyServer
+	rely    RelyService
+	system  SystemService
+	gateway external.ManagementService
+	health  HealthService
+	other   OtherService
 }
 
 func (c *store) Peer() PeerService {
@@ -118,14 +108,6 @@ func (c *store) Other() OtherService {
 
 func (c *store) Gateway() external.ManagementService {
 	return c.gateway
-}
-
-func (s *store) Connections() ConnectionsService {
-	return s.connections
-}
-
-func (s *store) Shares() SharesService {
-	return s.shares
 }
 
 func (c *store) Rely() RelyService {
