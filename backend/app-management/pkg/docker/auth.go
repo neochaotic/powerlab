@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/docker/distribution/reference"
+	"github.com/neochaotic/powerlab/backend/app-management/common"
 )
 
 type TokenResponse struct {
@@ -71,7 +72,7 @@ func GetChallengeRequest(URL url.URL) (*http.Request, error) {
 		return nil, err
 	}
 	req.Header.Set("Accept", "*/*")
-	req.Header.Set("User-Agent", "CasaOS")
+	req.Header.Set("User-Agent", "PowerLab/"+common.AppManagementVersion)
 	return req, nil
 }
 
