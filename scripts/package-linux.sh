@@ -199,6 +199,16 @@ EOF
 cat > "$STAGE/conf/message-bus.conf.sample" <<EOF
 [common]
 RuntimePath = /var/run/powerlab
+
+[security]
+# AllowedOrigins is a comma-separated list of full origins
+# (scheme://host[:port]) permitted to open the SocketIO stream.
+# Empty (default) -> only same-origin requests are accepted.
+# See #219 + ADR-0023 for the full threat model.
+#
+# Example:
+# AllowedOrigins=http://my-other-app.local:3000,http://192.168.1.20
+AllowedOrigins=
 EOF
 
 cat > "$STAGE/conf/local-storage.conf.sample" <<EOF
