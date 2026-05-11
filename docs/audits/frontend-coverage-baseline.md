@@ -1,24 +1,59 @@
-# Frontend coverage baseline — Sprint 9
+# Frontend coverage baseline — Sprint 9 → Sprint 11
 
 **Date:** 2026-05-11
 **Tooling:** `vitest --coverage` with the v8 provider
-**Source revision:** `main` post-Sprint-9-PRs A–H
+**Source revision:** `main` post-Sprint-9-PRs A–H (baseline) + Sprint 11 PR #296 (second data point)
 **How to reproduce locally:** `cd ui && npm run test:coverage`
 
 ## Why this exists
 
 The 2026-05-11 v0.6 audit listed "frontend test coverage measured + reported" as a must-have before bumping the minor version. Until now coverage was an unknown — the Sprint 8 retro flagged this as soft. Sprint 9 PR I lands the measurement infrastructure so v0.6 readiness gets a number instead of a guess.
 
-## Baseline numbers
+## Trend
+
+| Date       | Sprint | Statements | Branches | Functions | Lines | PR |
+|---|---|---:|---:|---:|---:|---|
+| 2026-05-11 | S9  | 16.77 % | 16.57 % | 16.44 % | 17.78 % | #281 |
+| 2026-05-11 | S11 | **28.75 %** | **24.21 %** | **26.41 %** | **29.60 %** | #296 |
+
+Delta from S9 baseline to S11: **+11.98 pp statements, +7.64 pp branches, +9.97 pp functions, +11.82 pp lines.** All four Sprint 11 targets met (≥ 25 / ≥ 24 / ≥ 23 / ≥ 26).
+
+## Baseline numbers (frozen)
 
 | Metric | % | Covered / Total |
 |---|---:|---:|
-| Statements | **16.77 %** | 1261 / 7517 |
+| Statements | 16.77 % | 1261 / 7517 |
 | Branches | 16.57 % | 401 / 2419 |
 | Functions | 16.44 % | 315 / 1915 |
 | Lines | 17.78 % | 841 / 4729 |
 
+## Sprint 11 numbers (current)
+
+| Metric | % | Covered / Total |
+|---|---:|---:|
+| Statements | **28.75 %** | 2155 / 7495 |
+| Branches | 24.21 % | 586 / 2420 |
+| Functions | 26.41 % | 513 / 1942 |
+| Lines | 29.60 % | 1397 / 4719 |
+
 Reported by the same `vitest --coverage` invocation CI now runs on every push to `main` and every PR. CI uploads the full HTML report as a build artifact (`frontend-coverage-<run-id>`, 14-day retention).
+
+## Where the Sprint 11 lift came from
+
+| Surface | New test files | Notes |
+|---|---|---|
+| Stores (`lib/stores/*.svelte.ts`) | `theme`, `ui`, `system`, `settings`, `versionHandshake` | 37 tests, raised lib/stores from 20.21 % → ~50 % statements |
+| Settings panes | `AppsPane`, `GeneralPane`, `NetworkPane`, `SecurityPane`, `AboutPane` | 25 tests covering prop wiring, callback fires, and conditional render branches |
+| Apps modals | `ForkAppModal`, `UninstallAppModal`, `UpdateAppModal` | 17 tests for open/close + onConfirm contract |
+| Apps surface | `AppCard` | 21 tests covering installed/store/running/stopped + every isPowerLabApp branch |
+| Dashboard widgets | `MiniProgress`, `RadialGauge`, `Sparkline` | 20 tests; covered status-color branches + value clamping |
+| Utility regression locks | `compose-name`, `compose-extension`, `format`, `os` (extended) | Locks #240 inline name validation + ADR-0021 extension priority chain |
+
+Regression locks wired in this PR (≥ 3 from the Sprint 11 charter):
+
+1. **#240** — Custom App empty-name silent fallback to `'web'`. New util `lib/utils/compose-name.ts` + `compose-name.test.ts`.
+2. **ADR-0021 / #201** — `x-powerlab → x-web → x-casaos` extension priority chain. `compose-extension.test.ts` pins the read priority + the round-trip write that preserves the author's chosen key.
+3. **#242** — TextEditor inert/disabled state during file open. Already locked in `TextEditor.test.ts` from Sprint 9; re-verified to still pass after settings/apps splits.
 
 ## What's covered well
 
@@ -50,12 +85,11 @@ Playwright covers many of these at the page level (E2E suite expanded #234) but 
 
 ## Targets
 
-**Sprint 10 goal:** ≥ **25 %** statements. Reachable by:
-1. Splitting `apps/+page.svelte` (Sprint 7 PR 3 carry) + adding component tests on the splits.
-2. Splitting `settings/+page.svelte` (Sprint 7 PR 4 carry) + ditto.
-3. Three trivial store tests (`theme`, `ui`, `system`) — each one is < 20 lines of test code.
+**Sprint 10 goal (achieved Sprint 11 — same week):** ≥ 25 % statements. Hit at 28.75 %. Reached via stores + settings panes + apps modals + AppCard + dashboard widgets + utility regression locks.
 
-**v0.6 cut gate (audit-aligned):** number stamped in CHANGELOG; no hard threshold yet. Threshold gates land Sprint 10 retro when we have a 2-data-point trend (16.77 → Sprint 10 number).
+**Next step (Sprint 11):** vitest threshold gate (issue #297) — once this PR lands, gate the four metrics at the Sprint 11 floor minus a 1-pp safety margin (≥ 27 / ≥ 23 / ≥ 25 / ≥ 28) so a regression breaks CI.
+
+**v0.6 cut gate (audit-aligned):** number stamped in CHANGELOG; threshold gates land via #297 after this PR. With two data points trending strongly up (+12 pp statements in one sprint), v0.6 readiness on the coverage axis is satisfied.
 
 ## CI artifact
 

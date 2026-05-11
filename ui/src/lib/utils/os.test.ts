@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { detectOS } from './os';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { detectOS, getCurrentOS } from './os';
 
 describe('detectOS', () => {
 	it('detects iOS', () => {
@@ -29,5 +29,44 @@ describe('detectOS', () => {
 
 	it('returns unknown for garbage', () => {
 		expect(detectOS('nothing-burger')).toBe('unknown');
+	});
+
+	it('returns unknown for empty string', () => {
+		expect(detectOS('')).toBe('unknown');
+	});
+
+	it('treats Macintosh UA with maxTouchPoints > 2 as iOS (iPadOS 13+)', () => {
+		const originalMaxTouchPoints = Object.getOwnPropertyDescriptor(
+			Navigator.prototype,
+			'maxTouchPoints'
+		);
+		Object.defineProperty(navigator, 'maxTouchPoints', { value: 5, configurable: true });
+		try {
+			const macUA =
+				'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Safari/537.36';
+			expect(detectOS(macUA)).toBe('ios');
+		} finally {
+			if (originalMaxTouchPoints) {
+				Object.defineProperty(Navigator.prototype, 'maxTouchPoints', originalMaxTouchPoints);
+			} else {
+				Object.defineProperty(navigator, 'maxTouchPoints', { value: 0, configurable: true });
+			}
+		}
+	});
+});
+
+describe('getCurrentOS', () => {
+	it('delegates to detectOS with navigator.userAgent', () => {
+		const original = navigator.userAgent;
+		Object.defineProperty(navigator, 'userAgent', {
+			value:
+				'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36',
+			configurable: true
+		});
+		try {
+			expect(getCurrentOS()).toBe('linux');
+		} finally {
+			Object.defineProperty(navigator, 'userAgent', { value: original, configurable: true });
+		}
 	});
 });

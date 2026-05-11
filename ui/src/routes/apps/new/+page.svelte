@@ -14,6 +14,7 @@
 	import { fade } from 'svelte/transition';
 	import { t } from '$lib/i18n/index.svelte';
 	import { parseLatestPhase, phaseProgress } from '$lib/utils/install-phase';
+	import { validateComposeName } from '$lib/utils/compose-name';
 
 	let yamlText = $state(`version: '3.8'
 services:
@@ -50,19 +51,13 @@ services:
 	let isSyncing = $state(false);
 	let isDeploying = $state(false);
 
-	// Service-name validation. Docker Compose accepts lowercase
-	// letters, digits, and `_` `-` `.`; everything else (uppercase,
-	// spaces, special chars) is rejected at the API level. We pre-
-	// validate so the user sees a clear inline message instead of a
-	// stack-shaped backend error after Deploy. Empty input is also
-	// rejected — the previous fallback to `'web'` was confusing
-	// (user thought they had cleared the name, app deployed as
-	// `web` anyway).
-	const NAME_RE = /^[a-z0-9][a-z0-9_.-]*$/;
+	// Service-name validation: see `lib/utils/compose-name.ts`. The
+	// regex lives there so the contract is unit-tested independently
+	// of this 1000-line page (#240 regression lock).
 	const nameValidationError = $derived.by<string | null>(() => {
-		const v = formModel.name?.trim() ?? '';
-		if (v === '') return t('form.nameRequired');
-		if (!NAME_RE.test(v)) return t('form.nameInvalidChars');
+		const err = validateComposeName(formModel.name);
+		if (err === 'empty') return t('form.nameRequired');
+		if (err === 'invalid_chars') return t('form.nameInvalidChars');
 		return null;
 	});
 	let deployResult = $state<{ success: boolean; message: string } | null>(null);
