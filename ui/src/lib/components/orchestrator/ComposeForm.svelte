@@ -25,9 +25,10 @@
 		web_port: string;
 	}
 
-	let { model = $bindable(), onchange }: {
+	let { model = $bindable(), onchange, nameError = null }: {
 		model: ComposeModel;
 		onchange: () => void;
+		nameError?: string | null;
 	} = $props();
 
 	function addPort() {
@@ -147,8 +148,18 @@
 					bind:value={model.name}
 					oninput={onchange}
 					placeholder="e.g. web, db, app"
-					class="w-full rounded-xl border border-white/5 bg-white/[0.03] p-3 text-sm font-mono text-white outline-none focus:border-emerald-500/50 focus:bg-white/[0.05] transition-all"
+					aria-invalid={nameError ? 'true' : 'false'}
+					aria-describedby={nameError ? 'service-name-error' : undefined}
+					class={cn(
+						'w-full rounded-xl border bg-white/[0.03] p-3 text-sm font-mono text-white outline-none transition-all',
+						nameError
+							? 'border-red-500/60 focus:border-red-500 focus:bg-red-500/[0.05]'
+							: 'border-white/5 focus:border-emerald-500/50 focus:bg-white/[0.05]'
+					)}
 				/>
+				{#if nameError}
+					<p id="service-name-error" data-testid="service-name-error" class="mt-1.5 text-xs text-red-400">{nameError}</p>
+				{/if}
 			</div>
 			<div>
 				<label for="container-name" class="mb-2 block text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('form.containerName')}</label>

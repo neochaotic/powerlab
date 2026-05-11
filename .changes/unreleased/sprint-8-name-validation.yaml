@@ -1,0 +1,5 @@
+kind: Fixed
+body: Custom App name field now shows inline validation error (red border + helper text under input) when empty or contains invalid characters. Previously the only feedback was a toast on Deploy + tooltip on the disabled button, leaving users guessing why their input was rejected. Closes #48.
+time: 2026-05-11T00:00:00Z
+custom:
+  Issue: "48"
