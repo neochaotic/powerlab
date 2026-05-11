@@ -15,3 +15,13 @@ type APPModel struct {
 	LogFileExt  string
 	DBPath      string
 }
+
+// SecurityModel mirrors the [security] section of message-bus.conf —
+// hardening knobs the operator can tune without rebuilding. Closes
+// audit finding #219: the SocketIO transports previously accepted
+// any Origin header. AllowedOrigins is a comma-separated list of
+// full origins (e.g. `http://my-other-app.local:3000`); same-origin
+// requests are always allowed without explicit configuration.
+type SecurityModel struct {
+	AllowedOrigins string
+}
