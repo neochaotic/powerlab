@@ -1,0 +1,5 @@
+kind: Internal
+body: 'Sprint 10 PR E — extract 3 modal components from `apps/+page.svelte` (1561 → 1492 LOC, -69): `ForkAppModal`, `UninstallAppModal`, `UpdateAppModal`. Each takes minimal props (open + callbacks). Pattern-proving PR for #123 carry on apps page. Larger modals (Install confirm with port-conflict UI, Detail modal, Install fullscreen + minimized banner) stay in the orchestrator — they have heavy state interaction and need user smoke gate. Continues #123.'
+time: 2026-05-11T09:00:00Z
+custom:
+  Issue: "123"
