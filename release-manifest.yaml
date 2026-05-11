@@ -31,62 +31,85 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Sprint 9 + Sprint 10 — security tightening + visible polish.
-  **One visible feature** (Drive Health card) plus a wave of
-  CasaOS-residue criticals closed with regression tests and
-  the Settings page split into pane components.
+  Sprint 11 — quality solidification. v0.5.13 shipped the visible
+  features (Drive Health card, security fixes, settings split);
+  v0.6 turns those into a durable foundation: measured + gated
+  test coverage on both surfaces, the ADR backlog cleaned up, and
+  the next big feature (Umbrel-catalog import) designed in the
+  open so its implementation can land in Sprint 12+ without
+  surprises.
 
-  1. **NEW: Drive Health card on the dashboard.** Per-disk SMART
-     status + temperature badges (color-coded green/amber/red),
-     reading data the backend already populated from `smartctl`.
-     Hides gracefully on hosts without smartctl. Closes #255 —
-     the headline UX improvement of this wave.
+  1. **Frontend test coverage gated.** Lifted from the Sprint 9
+     baseline (16.77 % statements) to **28.75 % / 24.21 / 26.41 /
+     29.60** (statements / branches / functions / lines) — all
+     four Sprint 11 targets met. 23 new test files added across
+     stores, settings panes, apps modals, AppCard, and dashboard
+     widgets. Three regression locks wired: Custom App empty-name
+     silent fallback (#240), `x-powerlab → x-web → x-casaos`
+     compose extension priority chain (ADR-0025 / #201), and the
+     TextEditor inert-state regression from Sprint 9. The vitest
+     threshold gate now red-fails CI with `exit 1` + a clear
+     `ERROR: Coverage for <metric>` message if any of the four
+     numbers drops below the 5-pp safety floor (23 / 19 / 21 /
+     24). Closes #296, #297. Test count 230 → **401 passing**.
 
-  2. **Security tightened (5 fixes).** JWT issuer rebrand AND a
-     real bug catch: `Validate()` previously accepted refresh
-     tokens as access tokens; now the access path rejects
-     unknown issuers (#246). Default app password literal
-     `casaos` → `powerlab` (#243). Docker registry probe
-     User-Agent rebranded (#244). fstab markers + backup file
-     names rebranded (#248). package-linux.sh now ships the
-     `[security] AllowedOrigins` section in fresh installs.
+  2. **Backend test coverage measured + 404 regression locks.**
+     CI now runs `go test -race -coverprofile=coverage.out
+     -covermode=atomic` per service with 14-day artifact upload
+     (`backend-coverage-<service>-<run-id>`). Baseline emitted:
+     `core` 6.1 % total / `app-management` 15.5 % / `local-storage`
+     measured by the Linux runner. Phase 2 locks the Sprint 3
+     cloud-drive removal (#101 / #143) at the HTTP surface:
+     `/v1/cloud/*`, `/v1/driver/*`, `/v1/recover/*` plus the
+     Sprint 3 self-update kill all assert 404 on both `core` and
+     `local-storage`. A future "let's bring back cloud drives"
+     refactor red-fails CI before re-introducing the upstream
+     dependency. Closes #150 Phases 1 + 2. Phases 3 (testcontainers
+     for Docker-heavy paths) + 4 (fuse/mergerfs build-tag tests
+     for local-storage) deferred to Sprint 12+.
 
-  3. **Bug fixes.** Health endpoint glob now queries both
-     `casaos*` AND `powerlab-*` — fresh-install dashboard
-     was empty (#245). Custom App tile click falls back to
-     `ports[0].host` when the dedicated web_port field is
-     empty — apps now open in new tab without forcing two
-     fields for the same value (#278). Settings "CasaOS
-     catalog" → "Community catalog" (#250).
+  3. **Umbrel-catalog import design landed (ADR-0024).** Captures
+     the legal posture (functional facts vs. expressive content)
+     for importing the largest open home-server catalog without
+     inheriting Umbrel's source-available, non-commercial license.
+     The four-tier filter pipeline auto-rejects apps tightly
+     coupled to Umbrel infrastructure (Bitcoin Core sibling,
+     Lightning daemon, `umbrel_main_network` joins, cross-app
+     volume mounts). The pipeline runs as a scheduled GitHub
+     Action that opens a reviewable PR — not a pre-commit hook,
+     which would slow every dev's commit + flake on offline
+     work. Implementation tracks separately for Sprint 12+.
 
-  4. **Settings page split (50% LOC reduction).** Sprint 7
-     carry-forward landed: 1469 LOC → 739 LOC orchestrator
-     plus 5 pane components (Apps, General, Network, Security,
-     About). Closes #123 for the settings side; apps/+page
-     split partial (3 modals extracted), rest in Sprint 11.
+  4. **ADR backlog cleaned up.** Resolved the duplicate
+     ADR-0011 / ADR-0012 numbering flagged by the 2026-05-10
+     quality audit: the foundation `backend/pkg/` pair renumbered
+     to **0025** (strangler / coexistence) and **0026** (slog
+     logging). ADR-0011 + ADR-0012 are now unambiguously the
+     CA-mismatch + CA-rotation ADRs. 29 files touched with
+     context-sensitive cross-reference updates; each renumbered
+     file carries a "Renumber history" note so historical
+     references still resolve. `decisions/README.md` index
+     brought current (now lists 0001–0023 + 0025 + 0026).
+     Also closed: 7 stale issues in the verify-and-close batch
+     (#19 HTTPS mkcert pattern delivered + strategically
+     disabled, #25 Swagger superseded by Scalar / ADR-0008, #67
+     strangler roadmap completed, #101 + #106 structural CasaOS
+     deps resolved, #119 stale catalog bug, #170 migration-tool
+     deleted in Sprint 8). #184 AppData migrate tool stays open
+     as a genuine deferral pending the dual-write window close.
 
-  5. **Internal: ~12.5k LOC removed across Sprints 8 + 9 + 10.**
-     CasaOS kill-list completed (backend/cli, Samba, ZeroTier,
-     SSH-to-other-host, peer-broadcast, validator, docgen,
-     migration-tool tree, app-management /v1/* routes,
-     user-service v1 dead handlers). Plus 2 MUST-FIX skipped
-     Go tests resolved (1 implemented, 1 deleted as dead code).
+  HTTPS re-enable + trust-dance UX redo remain indefinitely
+  deferred per the 2026-05-11 prioritization decision. When that
+  changes, the work is bundled as a dedicated sprint (HTTPS +
+  trust-dance + UX inseparable, no piecemeal landings). Tracking
+  #294. The release-manifest no longer carries the
+  "v0.6 ships with HTTPS re-enabled" promise that the v0.5.2
+  manifest carried — that framing is superseded.
 
-  6. **Quality infrastructure.** Frontend coverage measurement
-     in CI with baseline 16.77 % statements; 14-day artifact
-     upload on every push. Documented in
-     `docs/audits/frontend-coverage-baseline.md`. Lift to
-     ≥ 25 % targeted for Sprint 11.
-
-  Net code direction across Sprints 9 + 10: net delete (~600
-  LOC removed for cleanup), large redistribution for the
-  Settings split (no net add/remove), small addition for the
-  Drive Health UI + tests.
-
-  HTTPS re-enable and trust-dance work remain indefinitely
-  deferred per the 2026-05-11 prioritization decision. v0.6
-  readiness is no longer gated on HTTPS — it's gated on the
-  apps/+page split (Sprint 11) plus a positive coverage trend.
+  Net code direction Sprint 11: small net add on tests (~+1.6 k
+  LOC) plus the audit / retro doc work; ~500 LOC removed by the
+  ADR renumber's collapse of the old "two files share a number"
+  footnote + duplicate audit narrative.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
