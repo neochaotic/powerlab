@@ -3,13 +3,14 @@ package service
 import (
 	"context"
 	"log/slog"
-	"net/http"
+	"strings"
 
 	socketio "github.com/CorrectRoadH/go-socket.io"
 	"github.com/CorrectRoadH/go-socket.io/engineio"
 	"github.com/CorrectRoadH/go-socket.io/engineio/transport"
 	"github.com/CorrectRoadH/go-socket.io/engineio/transport/polling"
 	"github.com/CorrectRoadH/go-socket.io/engineio/transport/websocket"
+	"github.com/neochaotic/powerlab/backend/message-bus/config"
 	"github.com/neochaotic/powerlab/backend/message-bus/model"
 )
 
@@ -53,29 +54,44 @@ func (s *SocketIOService) Server() *socketio.Server {
 }
 
 // NewSocketIOService constructs a SocketIOService with the default
-// websocket + polling transports. CheckOrigin returns true on both
-// transports — see #219.
+// websocket + polling transports. CheckOrigin enforces the #219
+// allowlist: same-origin always, plus any operator-configured
+// origins from `[security] AllowedOrigins` in message-bus.conf.
 func NewSocketIOService() *SocketIOService {
 	return &SocketIOService{
 		server: buildServer(),
 	}
 }
 
-func buildServer() *socketio.Server {
-	// SECURITY: WebSocket + polling CheckOrigin currently accept ANY
-	// Origin. Mitigated by JWT auth on the gateway path (caller must
-	// present a valid token to reach the message-bus), but the
-	// bypass IS real. Tracked in #219 — do not extend the
-	// message-bus's exposed surface until the allowlist lands.
-	websocketTransport := websocket.Default
-	websocketTransport.CheckOrigin = func(r *http.Request) bool {
-		return true // accepts any origin; see #219
+// parseAllowedOrigins splits the comma-separated `[security]
+// AllowedOrigins` config value into a normalized slice. Whitespace
+// around each entry is trimmed; blank entries are dropped.
+func parseAllowedOrigins(raw string) []string {
+	if raw == "" {
+		return nil
 	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+func buildServer() *socketio.Server {
+	// #219: WebSocket + polling now share an allowlist-based
+	// CheckOrigin. Same-origin requests pass without explicit
+	// configuration; cross-origin callers must be listed in
+	// `[security] AllowedOrigins` of message-bus.conf.
+	checkOrigin := newOriginChecker(parseAllowedOrigins(config.SecurityInfo.AllowedOrigins))
+
+	websocketTransport := websocket.Default
+	websocketTransport.CheckOrigin = checkOrigin
 
 	pollingTransport := polling.Default
-	pollingTransport.CheckOrigin = func(r *http.Request) bool {
-		return true // accepts any origin; see #219
-	}
+	pollingTransport.CheckOrigin = checkOrigin
 
 	server := socketio.NewServer(&engineio.Options{
 		Transports: []transport.Transport{
