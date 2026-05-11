@@ -1,0 +1,5 @@
+kind: Changed
+body: 'Settings → App Sources card now labels the third-party AppStore as "Community catalog" instead of "CasaOS catalog". i18n key renamed `settings.casaCatalog` → `settings.communityCatalog` in all 3 locales (en/es/pt-BR). The hardcoded `<p>CasaOS catalog</p>` literal in `+page.svelte` now uses `{t(...)}` properly. The underlying URL (cdn.jsdelivr.net/.../CasaOS-AppStore@gh-pages) is unchanged — content sourcing decision is ADR-0021. Closes #250.'
+time: 2026-05-11T04:10:00Z
+custom:
+  Issue: "250"

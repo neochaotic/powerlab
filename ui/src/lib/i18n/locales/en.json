@@ -174,7 +174,7 @@
   "settings.storageConfigDesc": "Configured at startup via app-management.conf. UI editing planned.",
   "settings.appSources": "App store sources",
   "settings.localStore": "Local store",
-  "settings.casaCatalog": "CasaOS catalog",
+  "settings.communityCatalog": "Community catalog",
   "settings.bigBearCatalog": "Big-Bear catalog",
   "settings.sourcesConfigDesc": "Edit sources via app-management.conf. UI editing planned.",
   "settings.securityDesc": "HTTPS infrastructure and session management.",
