@@ -1,0 +1,5 @@
+kind: Fixed
+body: 'fstab writes now create `.powerlab.bak` / `.powerlab.new` backup files and a `# Added by PowerLab` marker comment on each appended line, instead of the legacy `.casaos.bak` / `.casaos.new` / `# Added by the CasaOS`. Surprises co-resident installs migrating from CasaOS where those names overlap real CasaOS-written files; harmless on greenfield installs. Existing `.casaos.bak` files on disk are not consumed by code (backup-only artifacts) so no migration step is required. Closes #248.'
+time: 2026-05-11T04:00:00Z
+custom:
+  Issue: "248"
