@@ -23,6 +23,13 @@ var (
 		LogFileExt:  "log",
 	}
 
+	// SecurityInfo mirrors the [security] section of message-bus.conf.
+	// Empty AllowedOrigins → only same-origin SocketIO connections
+	// pass the check. See #219 + ADR-0023.
+	SecurityInfo = &model.SecurityModel{
+		AllowedOrigins: "",
+	}
+
 	Cfg            *ini.File
 	ConfigFilePath string
 )
@@ -65,6 +72,7 @@ func InitSetup(config string, sample string) {
 
 	mapTo("common", CommonInfo)
 	mapTo("app", AppInfo)
+	mapTo("security", SecurityInfo)
 }
 
 func mapTo(section string, v interface{}) {
