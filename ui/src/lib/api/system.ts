@@ -60,6 +60,30 @@ export interface DiskInfo {
 	usedPercent: number;
 }
 
+/**
+ * StorageDevice mirrors the local-storage Drive struct (see
+ * backend/local-storage/model/disk.go). Surfaced by GET /v1/disks.
+ * Fields are populated from smartctl + lsblk; on hosts without
+ * smartctl (or non-Linux) `temperature` is 0 and `health` is "".
+ */
+export interface StorageDevice {
+	name: string;
+	size: number;
+	model: string;
+	health: string;
+	temperature: number;
+	disk_type: string;
+	serial: string;
+	path: string;
+	children_number: number;
+	supported: boolean;
+}
+
+export interface StorageDeviceList {
+	disks: StorageDevice[];
+	avail: StorageDevice[];
+}
+
 /** Get overall system utilization (CPU, RAM, Net) */
 export function getSystemUtilization() {
 	return api.get<ApiResult<SystemUtilization>>('/v1/sys/utilization');
@@ -69,6 +93,14 @@ export function getSystemUtilization() {
 export function getSystemDisk() {
 	// The CasaOS backend returns a single disk info object or an array? Let's assume object or array of objects.
 	return api.get<ApiResult<DiskInfo>>('/v1/sys/disk');
+}
+
+/**
+ * Get the rich device list (lsblk + smartctl) from local-storage.
+ * Includes per-device temperature + SMART health. Closes #255.
+ */
+export function getStorageDevices() {
+	return api.get<ApiResult<StorageDeviceList>>('/v1/disks');
 }
 
 /** Get system hardware info (device model, arch).

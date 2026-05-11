@@ -1,0 +1,5 @@
+kind: Added
+body: '**Headline v0.6 feature**: Dashboard storage card now exposes per-drive **SMART status + temperature** badges (closes #255). Backend already populated `Disk.Temperature` + `Disk.Health` from `smartctl` — UI was throwing the data away. New `Drive Health` section under the existing storage usage rows lists each physical disk with model + bus type + temperature (color-coded: <50°C green, 50–59°C amber, ≥60°C red) + SMART OK/FAIL pill. Smartctl-unavailable hosts (macOS dev, containers without /dev passthrough) render gracefully — badges hide when values are 0/empty. Storage device list polls every 10th utilization tick to keep smartctl call frequency low. 3 locale strings added (en/es/pt-BR).'
+time: 2026-05-11T05:00:00Z
+custom:
+  Issue: "255"

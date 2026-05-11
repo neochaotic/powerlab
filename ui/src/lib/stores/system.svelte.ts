@@ -12,7 +12,14 @@
  *   always replaced by the first successful poll.
  */
 
-import { getSystemUtilization, getSystemDisk, type SystemUtilization, type DiskInfo } from '$lib/api/system';
+import {
+	getSystemUtilization,
+	getSystemDisk,
+	getStorageDevices,
+	type SystemUtilization,
+	type DiskInfo,
+	type StorageDevice
+} from '$lib/api/system';
 
 let utilization = $state<SystemUtilization | null>((() => {
 	if (typeof localStorage === 'undefined') return null;
@@ -25,6 +32,11 @@ let utilization = $state<SystemUtilization | null>((() => {
 })());
 
 let disks = $state<DiskInfo[]>([]);
+// Storage devices (rich shape from /v1/disks: model, temperature,
+// SMART health). Polled at a slower cadence than utilization — SMART
+// + temperature don't change second-by-second and smartctl is a
+// non-trivial syscall. See fetchStorageDevices.
+let storageDevices = $state<StorageDevice[]>([]);
 // Start true if there's no cached utilization on disk; the polling loop flips
 // this to false in its finally{} block. Reading `utilization === null` here
 // would only capture the value at module init, never updating later — Svelte
@@ -107,19 +119,40 @@ async function fetchDisks() {
 	}
 }
 
+async function fetchStorageDevices() {
+	try {
+		const res = await getStorageDevices();
+		if (!res.data || !Array.isArray(res.data.disks)) return;
+		storageDevices = res.data.disks;
+	} catch {
+		// Device-list errors are non-fatal — Linux-only feature, macOS dev
+		// + local-storage-unavailable hosts return errors that mustn't
+		// clobber the main store state.
+	}
+}
+
 export function useSystemStore() {
 	return {
 		get utilization() { return utilization; },
 		get disks() { return disks; },
+		get storageDevices() { return storageDevices; },
 		get loading() { return loading; },
 		get error() { return error; },
 		startPolling(ms = 3000) {
 			if (interval) return;
 			fetchUtilization();
 			fetchDisks();
+			fetchStorageDevices();
 			interval = setInterval(() => {
 				fetchUtilization();
 				fetchDisks();
+				// Storage devices are polled every Nth utilization tick
+				// rather than every tick — smartctl is slow + values
+				// don't change second-by-second.
+				if (storageDevicesPollCount % 10 === 0) {
+					fetchStorageDevices();
+				}
+				storageDevicesPollCount++;
 			}, ms);
 		},
 		stopPolling() {
@@ -130,3 +163,5 @@ export function useSystemStore() {
 		}
 	};
 }
+
+let storageDevicesPollCount = 0;
