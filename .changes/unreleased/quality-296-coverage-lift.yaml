@@ -1,0 +1,11 @@
+kind: quality
+body: 'Frontend vitest coverage lifted from 16.77% baseline (Sprint 9) to **28.75%
+  statements / 24.21% branches / 26.41% functions / 29.60% lines** — all four Sprint
+  11 targets met. 23 new test files: 5 store tests (theme/ui/system/settings/versionHandshake),
+  5 settings panes (AppsPane/GeneralPane/NetworkPane/SecurityPane/AboutPane), 3 apps
+  modals (ForkAppModal/UninstallAppModal/UpdateAppModal), AppCard, 3 dashboard widgets
+  (MiniProgress/RadialGauge/Sparkline), plus utility regression locks (`compose-name`
+  for #240, `compose-extension` for ADR-0021 priority chain, `format`, expanded `os`).
+  Small extraction: `lib/utils/compose-name.ts` lifts the Docker Compose service-name
+  validation out of `apps/new/+page.svelte` so the contract is unit-tested independently.
+  Test count: 230 → 401 passing. Closes #296.'
