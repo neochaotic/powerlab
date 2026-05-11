@@ -1,0 +1,5 @@
+kind: Internal
+body: 'Sprint 10 PR D — extract `AboutPane.svelte` (~280 LOC) from `settings/+page.svelte`, finishing the 5-pane settings split (#123). The pane is mostly static markup (hero, highlights grid, "built with" chips, resources, footer) plus the updater store check/install UI. Reads directly from `$lib/stores/updater.svelte` — no parent wiring needed; zero props. **Settings page final: 1469 → 739 LOC (-730 / 50% reduction).** Closes #123. Apps/+page split (1561 LOC) carries to Sprint 11.'
+time: 2026-05-11T08:45:00Z
+custom:
+  Issue: "123"
