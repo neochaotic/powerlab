@@ -188,7 +188,6 @@ nav:
           - model: api/app-management/model.md
           - service: api/app-management/service.md
           - service/v1: api/app-management/service/v1.md
-          - route v1: api/app-management/route/v1.md
           - route v2: api/app-management/route/v2.md
           - pkg/docker: api/app-management/pkg/docker.md
           - pkg/config: api/app-management/pkg/config.md
@@ -196,7 +195,6 @@ nav:
           - Index: api/core/index.md
           - common: api/core/common.md
           - model: api/core/model.md
-          - interfaces: api/core/interfaces.md
           - service: api/core/service.md
           - service/model: api/core/service/model.md
           - route v1: api/core/route/v1.md
