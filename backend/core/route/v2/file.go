@@ -10,7 +10,7 @@ import (
 
 // Path: route/v2/file.go
 
-func (s *CasaOS) GetFileTest(ctx echo.Context) error {
+func (s *Server) GetFileTest(ctx echo.Context) error {
 
 	//http.ServeFile(w, r, r.URL.Path[1:])
 	http.ServeFile(ctx.Response().Writer, ctx.Request(), "/DATA/test.img")
@@ -18,7 +18,7 @@ func (s *CasaOS) GetFileTest(ctx echo.Context) error {
 	return ctx.String(200, "pong")
 }
 
-func (c *CasaOS) CheckUploadChunk(ctx echo.Context, params codegen.CheckUploadChunkParams) error {
+func (c *Server) CheckUploadChunk(ctx echo.Context, params codegen.CheckUploadChunkParams) error {
 	identifier := ctx.QueryParam("identifier")
 	chunkNumber, err := strconv.ParseInt(ctx.QueryParam("chunkNumber"), 10, 64)
 	if err != nil {
@@ -32,7 +32,7 @@ func (c *CasaOS) CheckUploadChunk(ctx echo.Context, params codegen.CheckUploadCh
 	return ctx.NoContent(http.StatusOK)
 }
 
-func (c *CasaOS) PostUploadFile(ctx echo.Context) error {
+func (c *Server) PostUploadFile(ctx echo.Context) error {
 	path := ctx.FormValue("path")
 
 	// handle the request
