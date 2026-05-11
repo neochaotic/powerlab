@@ -1,5 +1,0 @@
-kind: Internal
-body: 'Sprint 7 carry-forward kicked off (#123): extract the `apps` section of `settings/+page.svelte` into `lib/components/settings/AppsPane.svelte` as the pattern-proving PR. Net reduction 46 LOC on the god file (1469 → 1423); the new component takes 3 props (`storagePath`, `copiedKey`, `onCopy`) so future panes follow the same shape. 4 remaining panes (general/network/security/about) carry forward to Sprint 10 — each needs user smoke-test in browser per Sprint 7 retro''s "user is the verification gate" rule. vitest: 239/239 pass.'
-time: 2026-05-11T07:00:00Z
-custom:
-  Issue: "123"

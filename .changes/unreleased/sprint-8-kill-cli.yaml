@@ -1,5 +1,0 @@
-kind: Removed
-body: 'Delete the entire `backend/cli/` subproject (4840 LOC across 61 files). The legacy CasaOS CLI binary was never built (`package-linux.sh` SERVICES list excludes it), never distributed (install.sh has zero refs), and explicitly skipped by CI (workflow comment: "cli is excluded — its codegen sub-packages live in a separate repository (CasaOS-CLI) that we have not forked yet"). All operator paths flow through the SvelteKit panel + Docker orchestration; CLI maintenance was pure overhead. Sprint 8 kill-list batch 8/9 — biggest single delete of the wave.'
-time: 2026-05-11T02:05:00Z
-custom:
-  Issue: ""

@@ -13,6 +13,93 @@ Each PR adds a tiny YAML fragment under `.changes/unreleased/<id>.yaml`.
 At release time, `changie batch <version>` aggregates the fragments into
 a new section below this header. See `CONTRIBUTING.md` for the workflow.
 
+## [v0.5.13] — 2026-05-11
+### Added
+- **Headline v0.6 feature**: Dashboard storage card now exposes per-drive **SMART status + temperature** badges (closes #255). Backend already populated `Disk.Temperature` + `Disk.Health` from `smartctl` — UI was throwing the data away. New `Drive Health` section under the existing storage usage rows lists each physical disk with model + bus type + temperature (color-coded: <50°C green, 50–59°C amber, ≥60°C red) + SMART OK/FAIL pill. Smartctl-unavailable hosts (macOS dev, containers without /dev passthrough) render gracefully — badges hide when values are 0/empty. Storage device list polls every 10th utilization tick to keep smartctl call frequency low. 3 locale strings added (en/es/pt-BR).
+### Changed
+- Settings → App Sources card now labels the third-party AppStore as "Community catalog" instead of "CasaOS catalog". i18n key renamed `settings.casaCatalog` → `settings.communityCatalog` in all 3 locales (en/es/pt-BR). The hardcoded `<p>CasaOS catalog</p>` literal in `+page.svelte` now uses `{t(...)}` properly. The underlying URL (cdn.jsdelivr.net/.../CasaOS-AppStore@gh-pages) is unchanged — content sourcing decision is ADR-0021. Closes #250.
+- Internal API surface rebrand (#251): renamed `backend/core/route/v2.CasaOS` struct + `NewCasaOS()` constructor to `Server` / `NewServer()` (the type implements the v2 codegen ServerInterface; "Server" is the conventional name and gets rid of branding in godoc + IDE autocomplete). Renamed message-bus SourceID `SERVICENAME = "casaos"` → `"powerlab"` in `backend/core/common/constants.go` — UI consumers filter by event Name, not SourceID, so the rename is invisible to clients. Removed orphan `RANW_NAME = "IceWhale-RemoteAccess"` constant (zero callers, CasaOS-era remote-access tunnel identifier we never adopted). Closes #251.
+### Removed
+- Delete two confirmed-dead source files: `backend/core/route/v1/notify_old.go` (62 LOC, zero callers — superseded by `notify.go` long ago) and `backend/app-management/cmd/migration-tool/migration_0412_and_older.go` (77 LOC, orphaned constructor never wired into `main.go`). 139 LOC of dead weight removed; zero behavioural change. First batch of the Sprint 8 kill-list (~17.7k LOC total queued).
+- Remove the entire Samba/SMB feature surface — UI never consumed any of the 7 Samba endpoints, and the user explicitly removed Samba from PowerLab's product scope on 2026-05-11. Drops 813 LOC net (9 full-file deletes + 11 surgical edits + go-smb2 dependency). Files-page coupling was 3 cosmetic annotations the UI never read. Closes the Samba kill of the Sprint 8 kill-list (~17.7k LOC total queued).
+- Delete `backend/app-management/cmd/appfile2compose/` (95 LOC) — CasaOS-era one-shot tool that converted the legacy `appfile.json` format to docker-compose YAML. PowerLab's App Store has been 100% native compose YAML for the entire fork's history; the binary was never invoked from any script, install path, or Makefile target. Sprint 8 kill-list batch 3/5.
+- Quick-win sweep of CasaOS-era orphan files: 40 dead workflow files (.github/workflows/ inside backend/* — GitHub Actions only honors top-level .github), 5 orphan sysroot files (casaos.service unit, rclone.service unit, mergerfs.ctl, env file with stub key, app-management/env), backend/core/Makefile ("call john"), the dead `model.DeviceInfo` type + `systemService.GetDeviceInfo()` method (zero callers), 3 dead UI endpoint constants (ZT_INFO, SYS_PORT, GATEWAY_PORT) + ZTInfo type, plus 4 string cleanups: swagger contact rebrand (zimaboard.com → PowerLab), random.go "Zimaboard backers" comment, and the "Casa" → "PowerLab" device-discovery fallback in route/init.go (the most visible "pretending to be CasaOS on the LAN" residue). Sprint 8 kill-list batch 4/5; 1709 LOC removed, 48 files changed.
+- Remove network-feature surface that does not belong in PowerLab core: ZeroTier (entire `/v1/zt/*` proxy + `/v2/casaos/zt/*` v2 endpoints + httper helper, ~440 LOC), `WsSsh` + `PostSshLogin` (CasaOS SSH-to-other-host browser terminal — local pty `WsShell` for "open a shell on this server" stays untouched, ~113 LOC), CasaOS Snapdrop-style peer-broadcast `file_websocket.go` (`/v1/file/ws` + `/v1/file/peers`, closes #261, ~315 LOC), and the orphan `pkg/ddns/` constants (zero callers, ~15 LOC). Net: 11 files changed, 915 LOC removed. Aligned with the architectural principle that VPN/DDNS/SMB belong as App Store apps, not core orchestrator features. Sprint 8 kill-list batch 5/9.
+- Delete dev-only standalone main packages that no script ever invokes: `backend/app-management/cmd/validator/` (411 LOC, validated CasaOS appfile.json — but PowerLab installs do compose validation inline in `service/compose_service.go`), and `cmd/message-bus-docgen/` in 3 services (~94 LOC, generated markdown docs nobody publishes — Scalar + openapi.yaml cover this). 7 files removed, 505 LOC. Sprint 8 kill-list batch 6/9.
+- Remove the `cmd/migration-tool/` Go binary tree across all 6 backend services (1248 LOC, 22 files). The CasaOS-era pattern of "run a separate Go binary before service start to migrate v0.x.y → v0.x.z data paths" was never used in production: `package-linux.sh` does not build it, `install.sh` does not invoke it, and `scripts/migrate-casaos-data.sh` already covers the full filesystem-level CasaOS → PowerLab migration sourced by install.sh. Also drop the now-orphan `MigrationTool` interface in `backend/common/interfaces.go` and `backend/core/interfaces/migrationTool.go`. Sprint 8 kill-list batch 7/9.
+- Delete the entire `backend/cli/` subproject (4840 LOC across 61 files). The legacy CasaOS CLI binary was never built (`package-linux.sh` SERVICES list excludes it), never distributed (install.sh has zero refs), and explicitly skipped by CI (workflow comment: "cli is excluded — its codegen sub-packages live in a separate repository (CasaOS-CLI) that we have not forked yet"). All operator paths flow through the SvelteKit panel + Docker orchestration; CLI maintenance was pure overhead. Sprint 8 kill-list batch 8/9 — biggest single delete of the wave.
+- Remove the entire app-management `/v1/*` API surface (1365 LOC). UI consumes only `/v2/app_management/*`; the v1 handlers (`AppUsageList`, `ContainerUpdateInfo`, `ToComposeYAML`, `DockerTerminal`, `UninstallApp`, `UpdateSetting`, `ArchiveContainer`, `GetDockerNetworks`) were CasaOS legacy with zero callers. Drops route/v1/ entire dir, route/v1.go, the v1 OpenAPI spec, the v1 Scalar docs HTML, and the gateway routing entries `/v1/apps`, `/v1/container`, `/v1/app-categories`, `route.V1DocPath`. Sprint 8 kill-list batch 9/9 — final batch of the wave.
+- Drop 10 dead `/v1/users/*` endpoints in user-service that no UI route + no `backend/common/external` caller ever invoked: `/users/{name, refresh, image, avatar}`, `/users/current/{custom/:key, image/:key}`, `/users/{:id DELETE, :username GET, "" DELETE}`. Single-user PowerLab does not exercise multi-user CRUD, avatars, or custom-conf storage. Keeps the 5 endpoints UI actually uses: `register`, `login`, `status`, `current GET`/`current PUT`, `current/password`. Net: 527 LOC removed (route/v1.go: 27 LOC trimmed; route/v1/user.go: 520 LOC of handlers + now-unused imports). Sprint 9 PR K (split-out from Sprint 8 PR Q scope).
+### Fixed
+- Sprint 8 PR B — convert 3 remaining panics in
+`backend/local-storage/service/disk.go` to logged error +
+return false. Audit #216 §C item 2 follow-up; same pattern
+as PR #230 (GetDownloadSingleFile fix).
+
+Affected lines:
+  - line 135 (was: panic on GetMergeAllFromDB error)
+  - line 159 (was: panic in else-branch of CreateMerge errors)
+  - line 192 (was: panic on CreateMergeInDB error)
+
+All 3 are inside `EnsureDefaultMergePoint() bool` — both
+callers (main.go boot path + route/v2/merge.go enable
+endpoint) already handle false gracefully ("mergerfs is
+disabled" log + config flip / "default merge point is not
+empty" 400 response). The pkg/lifecycle recover middleware
+was catching these today and dressing them up as 500s; now
+the proper "mergerfs disabled" path runs instead.
+
+Closes audit #216 §C entirely (the 4th panic in disk.go
+is inside a commented-out block).
+
+- Sprint 8 PR C — fix #50: CA download "Security Profile" /
+"CRT file" / "CA Certificate" links inside the Settings →
+Security walkthrough lists were `<a href="/v1/sys/ca-
+certificate.X">` anchors that bypassed the JS-driven
+`downloadCA()` helper.
+
+When the handler returned an error (CA not yet generated, or
+storage path unreadable), the browser navigated to the URL +
+rendered the plain-text error in place of the SPA — same
+class of "stranded outside the app" UX as the v0.2.7 trust-
+dance test bug.
+
+Fix: replaced the 5 inline anchors with `<button>` elements
+that call `downloadCA(format)` (which already had the
+fetch-based pre-flight + toast.error on failure + no-page-
+navigation behavior, in use by the bottom CTAs since #118
+prep).
+
+Per memory `feedback_no_text_cert.md`, the cert remains a
+binary artifact (.crt / .mobileconfig / .cer) — no copy-to-
+clipboard PEM, no .txt rename. Only the trigger surface
+changed.
+
+Verified: 10/10 E2E pass locally (3.7s).
+
+- Custom App name field now shows inline validation error (red border + helper text under input) when empty or contains invalid characters. Previously the only feedback was a toast on Deploy + tooltip on the disabled button, leaving users guessing why their input was rejected. Closes
+- Files page now exposes a select-all checkbox in the table header so the toolbar Delete button is reachable without Cmd/Ctrl-click chord shortcuts. The header checkbox is tri-state (checked / indeterminate / unchecked) and toggles `store.selectAll` ↔ `store.clearSelection`. Closes #66.
+- Editing an existing Custom App and re-deploying no longer fails with "there are ports in use" when the only conflict is the app's own running ports. The orchestrator now routes edit-mode (URL has `?id=X` without `&fork=1`) to the PUT applyComposeAppSettings endpoint, which carries the backend's skip-self port-conflict logic. POST install is unchanged. Closes #65.
+- Health endpoint (`/v2/casaos/health/services`) now queries BOTH `casaos*` and `powerlab-*` systemd glob patterns instead of just `casaos*`. PowerLab fresh installs (where units are named `powerlab-*`) previously got an empty health dashboard because the legacy glob never matched. Co-resident installs (operator migrating from CasaOS with `casaos-*` units still present) continue to surface the legacy units too. Results are deduped across globs. Closes #245.
+- fstab writes now create `.powerlab.bak` / `.powerlab.new` backup files and a `# Added by PowerLab` marker comment on each appended line, instead of the legacy `.casaos.bak` / `.casaos.new` / `# Added by the CasaOS`. Surprises co-resident installs migrating from CasaOS where those names overlap real CasaOS-written files; harmless on greenfield installs. Existing `.casaos.bak` files on disk are not consumed by code (backup-only artifacts) so no migration step is required. Closes #248.
+- Custom App tile click in the Launchpad now opens the app in a new tab even when the user didn't fill the "Web UI Port (Host Port)" field explicitly (#278). The orchestrator now falls back to the first host port from the `ports:` mapping when `web_port` is empty, so a basic Compose like `ports: [8080:80]` produces a clickable tile out-of-the-box — matching native-app tile behavior. Explicit `web_port` still wins. Closes #278.
+- Fresh `package-linux.sh` installs now ship the `[security] AllowedOrigins=` section in `/etc/powerlab/message-bus.conf` (Sprint 8 #241 carry-forward). Previously only the embedded sysroot conf.sample carried the section, so operators editing `/etc/powerlab/message-bus.conf` after fresh install found the section missing. Default value is empty (same-origin-only — secure default per ADR-0023); no behaviour change.
+### Security
+- message-bus SocketIO transports (websocket + polling) now enforce an Origin allowlist instead of unconditionally accepting `return true`. Same-origin requests pass without configuration; cross-origin callers must be listed in the new `[security] AllowedOrigins` section of `message-bus.conf`. Closes #219, ADR-0023.
+- Replace 2 hardcoded `"casaos"` literals shipped as PowerLab defaults: (a) `DefaultPassword` substituted into every newly installed Compose app via `$DefaultPassword` placeholder is now `"powerlab"` (closes #243), and (b) Docker registry probe `User-Agent` is now `PowerLab/{AppManagementVersion}` instead of the literal `CasaOS` (closes #244 — branding leak + private-registry log fingerprinting). TDD: 3 regression tests authored failing-first, then implemented.
+- JWT access tokens are now issued with `iss="powerlab"` instead of the legacy `"casaos"` (closes #246). The bridging-release accept set in `AcceptedAccessIssuers` lets legacy `iss=casaos` tokens validate too so existing sessions don't get logged out on upgrade — that path drops in v0.7. Also adds a missing access-token issuer gate to `Validate`: refresh tokens (iss=refresh) and tokens from unknown issuers now correctly fail the access path (previously they passed the signature check and were accepted as access tokens, a real bug). Refresh-endpoint code paths use `ParseToken` directly and are unaffected.
+### Internal
+- Add Playwright regression coverage for the v0.3.0 Files-editor inert-textarea bug (#57). The vitest suite already covered `.cm-editor` mount in jsdom; this adds production-fidelity coverage that opens the editor through the real click flow, types via the actual keyboard pipeline, and asserts the dirty-indicator flips on. The original regression was fixed in earlier polish cycles (v0.3.2 / #116 / #121); this PR locks the fix in place. Closes #57.
+- Frontend coverage measurement infrastructure (Sprint 9 PR I). Adds `@vitest/coverage-v8`, configures vitest with the v8 provider + text/html/json-summary reporters, exposes `npm run test:coverage`, and wires CI to upload `ui/coverage/` as a 14-day artifact on every push. Baseline established at **16.77 % statements** (1261/7517) — documented in `docs/audits/frontend-coverage-baseline.md` with targets for Sprint 10 + the v0.6 cut gate. No threshold gates yet; Sprint 10 retro decides the floor.
+- Sprint 7 carry-forward kicked off (#123): extract the `apps` section of `settings/+page.svelte` into `lib/components/settings/AppsPane.svelte` as the pattern-proving PR. Net reduction 46 LOC on the god file (1469 → 1423); the new component takes 3 props (`storagePath`, `copiedKey`, `onCopy`) so future panes follow the same shape. 4 remaining panes (general/network/security/about) carry forward to Sprint 10 — each needs user smoke-test in browser per Sprint 7 retro's "user is the verification gate" rule. vitest: 239/239 pass.
+- Sprint 10 PR A — extract `GeneralPane.svelte` (~145 LOC) from `settings/+page.svelte` (1423 → 1294 LOC, -129). Component takes 9 props (osHostname, timezone, onTimezoneChange, reachableUrl, currentPort, portInput, onPortInputChange, onRequestPortChange, timezones); locale picker calls `setLocale/getLocale/availableLocales` directly (no parent wiring needed). Port-change flow + reboot/shutdown power UI moved inside the pane. Continues #123 carry-forward — 3 panes left (Network, Security, About).
+- Sprint 10 PR B — extract `NetworkPane.svelte` (~85 LOC) from `settings/+page.svelte` (1294 → 1227 LOC, -67). Component takes 5 props (mdnsHostname, reachableUrl, copiedKey, onCopy, networkInterfaces). Continues #123 carry-forward — 2 panes left (Security, About).
+- Sprint 10 PR C — extract `SecurityPane.svelte` (~250 LOC) from `settings/+page.svelte` (1227 → 1011 LOC, -216). The biggest pane: HTTPS onboarding walkthrough (4 OS tabs — iOS/macOS/Android/Windows), CA download buttons, HTTP-fallback for blocked downloads, verification button, reset-trust + rotate-CA recovery actions, account section. 9 props (state + 5 callbacks). Continues #123 carry-forward — 1 pane left (About).
+- Sprint 10 PR D — extract `AboutPane.svelte` (~280 LOC) from `settings/+page.svelte`, finishing the 5-pane settings split (#123). The pane is mostly static markup (hero, highlights grid, "built with" chips, resources, footer) plus the updater store check/install UI. Reads directly from `$lib/stores/updater.svelte` — no parent wiring needed; zero props. **Settings page final: 1469 → 739 LOC (-730 / 50% reduction).** Closes #123. Apps/+page split (1561 LOC) carries to Sprint 11.
+- Sprint 10 PR E — extract 3 modal components from `apps/+page.svelte` (1561 → 1492 LOC, -69): `ForkAppModal`, `UninstallAppModal`, `UpdateAppModal`. Each takes minimal props (open + callbacks). Pattern-proving PR for #123 carry on apps page. Larger modals (Install confirm with port-conflict UI, Detail modal, Install fullscreen + minimized banner) stay in the orchestrator — they have heavy state interaction and need user smoke gate. Continues #123.
+- Sprint 10 PR G — implement-or-delete the 2 Go `t.Skip("MUST FIX!")` tests that violated memory `feedback_no_apagar_test_para_passar`. (1) Rewrite `backend/core/service/file_test.go::TestNewInteruptReader` as 6 proper unit tests for `NewReader`/`NewWriter` context-cancellation (was a 10-second sleep loop reading from upstream CasaOS dev's hardcoded `/Users/liangjianli/Downloads/` path with no assertions). (2) Delete `backend/core/pkg/utils/network_detection.go` + its test entirely — zero production callers, dead code from CasaOS era; drops the `github.com/Curtis-Milo/nat-type-identifier-go` dependency. 13 LOC removed from go.mod/sum.
+
+
 ## [v0.5.12] — 2026-05-10
 ### Fixed
 - Sprint 5.5 quality wave — 3 quick-win fixes from the audit

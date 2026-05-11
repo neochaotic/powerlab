@@ -1,5 +1,0 @@
-kind: Removed
-body: 'Quick-win sweep of CasaOS-era orphan files: 40 dead workflow files (.github/workflows/ inside backend/* — GitHub Actions only honors top-level .github), 5 orphan sysroot files (casaos.service unit, rclone.service unit, mergerfs.ctl, env file with stub key, app-management/env), backend/core/Makefile ("call john"), the dead `model.DeviceInfo` type + `systemService.GetDeviceInfo()` method (zero callers), 3 dead UI endpoint constants (ZT_INFO, SYS_PORT, GATEWAY_PORT) + ZTInfo type, plus 4 string cleanups: swagger contact rebrand (zimaboard.com → PowerLab), random.go "Zimaboard backers" comment, and the "Casa" → "PowerLab" device-discovery fallback in route/init.go (the most visible "pretending to be CasaOS on the LAN" residue). Sprint 8 kill-list batch 4/5; 1709 LOC removed, 48 files changed.'
-time: 2026-05-11T01:35:00Z
-custom:
-  Issue: ""

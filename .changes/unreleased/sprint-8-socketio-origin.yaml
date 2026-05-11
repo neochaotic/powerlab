@@ -1,5 +1,0 @@
-kind: Security
-body: 'message-bus SocketIO transports (websocket + polling) now enforce an Origin allowlist instead of unconditionally accepting `return true`. Same-origin requests pass without configuration; cross-origin callers must be listed in the new `[security] AllowedOrigins` section of `message-bus.conf`. Closes #219, ADR-0023.'
-time: 2026-05-11T00:30:00Z
-custom:
-  Issue: "219"

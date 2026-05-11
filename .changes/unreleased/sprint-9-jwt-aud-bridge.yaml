@@ -1,5 +1,0 @@
-kind: Security
-body: 'JWT access tokens are now issued with `iss="powerlab"` instead of the legacy `"casaos"` (closes #246). The bridging-release accept set in `AcceptedAccessIssuers` lets legacy `iss=casaos` tokens validate too so existing sessions don''t get logged out on upgrade — that path drops in v0.7. Also adds a missing access-token issuer gate to `Validate`: refresh tokens (iss=refresh) and tokens from unknown issuers now correctly fail the access path (previously they passed the signature check and were accepted as access tokens, a real bug). Refresh-endpoint code paths use `ParseToken` directly and are unaffected.'
-time: 2026-05-11T03:30:00Z
-custom:
-  Issue: "246"

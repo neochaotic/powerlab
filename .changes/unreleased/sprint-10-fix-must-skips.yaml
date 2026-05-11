@@ -1,5 +1,0 @@
-kind: Internal
-body: 'Sprint 10 PR G — implement-or-delete the 2 Go `t.Skip("MUST FIX!")` tests that violated memory `feedback_no_apagar_test_para_passar`. (1) Rewrite `backend/core/service/file_test.go::TestNewInteruptReader` as 6 proper unit tests for `NewReader`/`NewWriter` context-cancellation (was a 10-second sleep loop reading from upstream CasaOS dev''s hardcoded `/Users/liangjianli/Downloads/` path with no assertions). (2) Delete `backend/core/pkg/utils/network_detection.go` + its test entirely — zero production callers, dead code from CasaOS era; drops the `github.com/Curtis-Milo/nat-type-identifier-go` dependency. 13 LOC removed from go.mod/sum.'
-time: 2026-05-11T09:45:00Z
-custom:
-  Issue: ""

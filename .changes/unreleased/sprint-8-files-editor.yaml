@@ -1,5 +1,0 @@
-kind: Internal
-body: 'Add Playwright regression coverage for the v0.3.0 Files-editor inert-textarea bug (#57). The vitest suite already covered `.cm-editor` mount in jsdom; this adds production-fidelity coverage that opens the editor through the real click flow, types via the actual keyboard pipeline, and asserts the dirty-indicator flips on. The original regression was fixed in earlier polish cycles (v0.3.2 / #116 / #121); this PR locks the fix in place. Closes #57.'
-time: 2026-05-11T00:30:00Z
-custom:
-  Issue: "57"

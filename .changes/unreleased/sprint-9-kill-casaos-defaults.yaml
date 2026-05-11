@@ -1,5 +1,0 @@
-kind: Security
-body: 'Replace 2 hardcoded `"casaos"` literals shipped as PowerLab defaults: (a) `DefaultPassword` substituted into every newly installed Compose app via `$DefaultPassword` placeholder is now `"powerlab"` (closes #243), and (b) Docker registry probe `User-Agent` is now `PowerLab/{AppManagementVersion}` instead of the literal `CasaOS` (closes #244 — branding leak + private-registry log fingerprinting). TDD: 3 regression tests authored failing-first, then implemented.'
-time: 2026-05-11T02:30:00Z
-custom:
-  Issue: "243"

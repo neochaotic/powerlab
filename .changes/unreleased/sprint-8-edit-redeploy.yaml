@@ -1,5 +1,0 @@
-kind: Fixed
-body: 'Editing an existing Custom App and re-deploying no longer fails with "there are ports in use" when the only conflict is the app''s own running ports. The orchestrator now routes edit-mode (URL has `?id=X` without `&fork=1`) to the PUT applyComposeAppSettings endpoint, which carries the backend''s skip-self port-conflict logic. POST install is unchanged. Closes #65.'
-time: 2026-05-11T00:52:00Z
-custom:
-  Issue: "65"

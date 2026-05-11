@@ -1,5 +1,0 @@
-kind: Removed
-body: 'Remove the entire app-management `/v1/*` API surface (1365 LOC). UI consumes only `/v2/app_management/*`; the v1 handlers (`AppUsageList`, `ContainerUpdateInfo`, `ToComposeYAML`, `DockerTerminal`, `UninstallApp`, `UpdateSetting`, `ArchiveContainer`, `GetDockerNetworks`) were CasaOS legacy with zero callers. Drops route/v1/ entire dir, route/v1.go, the v1 OpenAPI spec, the v1 Scalar docs HTML, and the gateway routing entries `/v1/apps`, `/v1/container`, `/v1/app-categories`, `route.V1DocPath`. Sprint 8 kill-list batch 9/9 — final batch of the wave.'
-time: 2026-05-11T02:10:00Z
-custom:
-  Issue: ""

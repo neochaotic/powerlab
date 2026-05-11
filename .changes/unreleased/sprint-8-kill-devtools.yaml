@@ -1,5 +1,0 @@
-kind: Removed
-body: 'Delete dev-only standalone main packages that no script ever invokes: `backend/app-management/cmd/validator/` (411 LOC, validated CasaOS appfile.json — but PowerLab installs do compose validation inline in `service/compose_service.go`), and `cmd/message-bus-docgen/` in 3 services (~94 LOC, generated markdown docs nobody publishes — Scalar + openapi.yaml cover this). 7 files removed, 505 LOC. Sprint 8 kill-list batch 6/9.'
-time: 2026-05-11T01:55:00Z
-custom:
-  Issue: ""

@@ -1,5 +1,0 @@
-kind: Removed
-body: 'Remove the entire Samba/SMB feature surface — UI never consumed any of the 7 Samba endpoints, and the user explicitly removed Samba from PowerLab''s product scope on 2026-05-11. Drops 813 LOC net (9 full-file deletes + 11 surgical edits + go-smb2 dependency). Files-page coupling was 3 cosmetic annotations the UI never read. Closes the Samba kill of the Sprint 8 kill-list (~17.7k LOC total queued).'
-time: 2026-05-11T01:30:00Z
-custom:
-  Issue: ""

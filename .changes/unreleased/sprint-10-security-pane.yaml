@@ -1,5 +1,0 @@
-kind: Internal
-body: 'Sprint 10 PR C — extract `SecurityPane.svelte` (~250 LOC) from `settings/+page.svelte` (1227 → 1011 LOC, -216). The biggest pane: HTTPS onboarding walkthrough (4 OS tabs — iOS/macOS/Android/Windows), CA download buttons, HTTP-fallback for blocked downloads, verification button, reset-trust + rotate-CA recovery actions, account section. 9 props (state + 5 callbacks). Continues #123 carry-forward — 1 pane left (About).'
-time: 2026-05-11T08:30:00Z
-custom:
-  Issue: "123"

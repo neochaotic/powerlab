@@ -1,5 +1,0 @@
-kind: Removed
-body: 'Delete two confirmed-dead source files: `backend/core/route/v1/notify_old.go` (62 LOC, zero callers — superseded by `notify.go` long ago) and `backend/app-management/cmd/migration-tool/migration_0412_and_older.go` (77 LOC, orphaned constructor never wired into `main.go`). 139 LOC of dead weight removed; zero behavioural change. First batch of the Sprint 8 kill-list (~17.7k LOC total queued).'
-time: 2026-05-11T01:10:00Z
-custom:
-  Issue: ""

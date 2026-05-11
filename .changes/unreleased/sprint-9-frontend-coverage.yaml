@@ -1,5 +1,0 @@
-kind: Internal
-body: 'Frontend coverage measurement infrastructure (Sprint 9 PR I). Adds `@vitest/coverage-v8`, configures vitest with the v8 provider + text/html/json-summary reporters, exposes `npm run test:coverage`, and wires CI to upload `ui/coverage/` as a 14-day artifact on every push. Baseline established at **16.77 % statements** (1261/7517) — documented in `docs/audits/frontend-coverage-baseline.md` with targets for Sprint 10 + the v0.6 cut gate. No threshold gates yet; Sprint 10 retro decides the floor.'
-time: 2026-05-11T06:00:00Z
-custom:
-  Issue: ""

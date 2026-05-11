@@ -1,5 +1,0 @@
-kind: Fixed
-body: 'Files page now exposes a select-all checkbox in the table header so the toolbar Delete button is reachable without Cmd/Ctrl-click chord shortcuts. The header checkbox is tri-state (checked / indeterminate / unchecked) and toggles `store.selectAll` ↔ `store.clearSelection`. Closes #66.'
-time: 2026-05-11T00:42:00Z
-custom:
-  Issue: "66"

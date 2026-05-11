@@ -1,5 +1,0 @@
-kind: Fixed
-body: 'Custom App tile click in the Launchpad now opens the app in a new tab even when the user didn''t fill the "Web UI Port (Host Port)" field explicitly (#278). The orchestrator now falls back to the first host port from the `ports:` mapping when `web_port` is empty, so a basic Compose like `ports: [8080:80]` produces a clickable tile out-of-the-box — matching native-app tile behavior. Explicit `web_port` still wins. Closes #278.'
-time: 2026-05-11T05:30:00Z
-custom:
-  Issue: "278"

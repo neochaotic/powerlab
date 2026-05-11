@@ -1,5 +1,0 @@
-kind: Internal
-body: 'Sprint 10 PR A — extract `GeneralPane.svelte` (~145 LOC) from `settings/+page.svelte` (1423 → 1294 LOC, -129). Component takes 9 props (osHostname, timezone, onTimezoneChange, reachableUrl, currentPort, portInput, onPortInputChange, onRequestPortChange, timezones); locale picker calls `setLocale/getLocale/availableLocales` directly (no parent wiring needed). Port-change flow + reboot/shutdown power UI moved inside the pane. Continues #123 carry-forward — 3 panes left (Network, Security, About).'
-time: 2026-05-11T08:00:00Z
-custom:
-  Issue: "123"

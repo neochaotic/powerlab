@@ -1,5 +1,0 @@
-kind: Changed
-body: 'Internal API surface rebrand (#251): renamed `backend/core/route/v2.CasaOS` struct + `NewCasaOS()` constructor to `Server` / `NewServer()` (the type implements the v2 codegen ServerInterface; "Server" is the conventional name and gets rid of branding in godoc + IDE autocomplete). Renamed message-bus SourceID `SERVICENAME = "casaos"` → `"powerlab"` in `backend/core/common/constants.go` — UI consumers filter by event Name, not SourceID, so the rename is invisible to clients. Removed orphan `RANW_NAME = "IceWhale-RemoteAccess"` constant (zero callers, CasaOS-era remote-access tunnel identifier we never adopted). Closes #251.'
-time: 2026-05-11T04:30:00Z
-custom:
-  Issue: "251"

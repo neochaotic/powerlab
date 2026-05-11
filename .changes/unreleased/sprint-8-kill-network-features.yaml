@@ -1,5 +1,0 @@
-kind: Removed
-body: 'Remove network-feature surface that does not belong in PowerLab core: ZeroTier (entire `/v1/zt/*` proxy + `/v2/casaos/zt/*` v2 endpoints + httper helper, ~440 LOC), `WsSsh` + `PostSshLogin` (CasaOS SSH-to-other-host browser terminal — local pty `WsShell` for "open a shell on this server" stays untouched, ~113 LOC), CasaOS Snapdrop-style peer-broadcast `file_websocket.go` (`/v1/file/ws` + `/v1/file/peers`, closes #261, ~315 LOC), and the orphan `pkg/ddns/` constants (zero callers, ~15 LOC). Net: 11 files changed, 915 LOC removed. Aligned with the architectural principle that VPN/DDNS/SMB belong as App Store apps, not core orchestrator features. Sprint 8 kill-list batch 5/9.'
-time: 2026-05-11T01:50:00Z
-custom:
-  Issue: ""
