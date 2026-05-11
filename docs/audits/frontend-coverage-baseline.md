@@ -87,7 +87,18 @@ Playwright covers many of these at the page level (E2E suite expanded #234) but 
 
 **Sprint 10 goal (achieved Sprint 11 — same week):** ≥ 25 % statements. Hit at 28.75 %. Reached via stores + settings panes + apps modals + AppCard + dashboard widgets + utility regression locks.
 
-**Next step (Sprint 11):** vitest threshold gate (issue #297) — once this PR lands, gate the four metrics at the Sprint 11 floor minus a 1-pp safety margin (≥ 27 / ≥ 23 / ≥ 25 / ≥ 28) so a regression breaks CI.
+**Threshold gate (Sprint 11, #297):** populated in `vitest.config.ts`. Floors sit ~5 pp below the Sprint 11 measurement so refactors can dip temporarily without holding PRs hostage to test authoring, but a real regression (deleting tests or landing a large untested feature) red-fails CI with `exit 1` + a clear `ERROR: Coverage for <metric> does not meet global threshold` message.
+
+| Metric | Sprint 11 actual | Gate floor | Margin |
+|---|---:|---:|---:|
+| Statements | 28.75 % | **23 %** | 5.75 pp |
+| Branches | 24.21 % | **19 %** | 5.21 pp |
+| Functions | 26.41 % | **21 %** | 5.41 pp |
+| Lines | 29.60 % | **24 %** | 5.60 pp |
+
+Per-file thresholds are intentionally omitted — they create the "1 file at 0 % blocks the whole PR" trap. The aggregate is the gate.
+
+Re-tightening protocol: each sprint retro reviews the trend; if coverage settled at a new higher floor for two consecutive sprints, the gate can be raised by `actual - 5 pp` (issue at the time, not pre-decided here).
 
 **v0.6 cut gate (audit-aligned):** number stamped in CHANGELOG; threshold gates land via #297 after this PR. With two data points trending strongly up (+12 pp statements in one sprint), v0.6 readiness on the coverage axis is satisfied.
 
