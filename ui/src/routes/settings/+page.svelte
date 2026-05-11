@@ -782,7 +782,7 @@
 								<p class="mt-0.5 truncate font-mono text-[11px] text-zinc-500">/Users/.../powerlab/store</p>
 							</div>
 							<div class="px-5 py-4">
-								<p class="text-sm font-medium text-white">CasaOS catalog</p>
+								<p class="text-sm font-medium text-white">{t('settings.communityCatalog')}</p>
 								<p class="mt-0.5 truncate font-mono text-[11px] text-zinc-500">cdn.jsdelivr.net/.../CasaOS-AppStore@gh-pages</p>
 							</div>
 							<div class="px-5 py-4">
