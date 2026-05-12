@@ -31,11 +31,47 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Sprint 12 — Umbrel catalogue ships. v0.6.0 cut yesterday on the
-  Sprint 11 quality foundation; v0.6.1 turns the ADR-0024 design
-  into a live pipeline plus a real-user bug fix.
+  Sprint 12 — Umbrel catalogue actually loads (Phase 7 fix).
+  v0.6.1 shipped 241 Umbrel apps under `community-catalog/`
+  but NONE surfaced in the store UI because every emitted
+  compose YAML carried Umbrel-runtime patterns that PowerLab's
+  compose-go validator rejects. v0.6.2 ships the transform
+  layer that rewrites the upstream compose at sync time —
+  end-to-end on a real install, catalogue grew from 162
+  (CasaOS-only) to **336 apps** and the 10 most-requested
+  Umbrel-only ids (agent-zero, affine, enclosed, adventurelog,
+  appsmith, audiobookshelf, excalidraw, 2fauth, activepieces,
+  akaunting) all resolve by their hyphenated upstream id.
 
-  1. **Umbrel catalogue import — 241 apps live.** The clean-room
+  1. **Phase 7 transform — 5 patterns rewritten at sync time.**
+     `backend/sync-catalog/transform.go` (a) drops the
+     `services.app_proxy` Umbrel-runtime helper (no `image:`,
+     compose-go rejects), (b) substitutes `${APP_DATA_DIR}` in
+     volume references with `/DATA/PowerLabAppData/<id>`
+     (ADR-0021 namespace), (c) drops `env_file:` directives that
+     reference paths the loader can't resolve at parse time, (d)
+     replaces `${APP_*_PORT}` placeholders inside `ports:` with
+     sequential 18000+ integers (the actual port mapping lives
+     in `x-powerlab.port_map`), (e) injects a top-level `name:
+     <store_app_id>` so `BuildCatalog` keys the app by upstream
+     id instead of a random compose project name. The Phase 7
+     regression lock is `backend/app-management/service/umbrel_catalog_integration_test.go`
+     which feeds testdata fixtures through the SAME compose loader
+     `BuildCatalog` uses — the missing TDD piece that would have
+     caught the v0.6.1 ship bug. 30+ unit tests in
+     `transform_test.go` cover each transform individually plus
+     edge cases (empty input, malformed YAML, null/int volumes,
+     multi-service substitution, idempotency, substring-not-match).
+
+  2. **Original Sprint 12 scope still applies.** The Phase 4.5
+     wire-up shipped in v0.6.1 (community-catalog/ as a third
+     appstore source), the sync workflow (Monday 06:00 UTC, opens
+     a reviewable PR), the AppCard discreet source badge, the
+     #306 password UX fix, the maintainer documentation
+     (`docs/architecture/community-catalog.md`). v0.6.2 makes
+     all of that visible to the user.
+
+  1.5. **Original Phase 1 framing for context.** The clean-room
      import pipeline from ADR-0024 went from approved design to
      working in a single sprint. `.github/workflows/sync-umbrel-
      catalog.yml` runs every Monday 06:00 UTC, clones the public
