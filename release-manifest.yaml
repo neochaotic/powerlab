@@ -31,85 +31,68 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Sprint 11 — quality solidification. v0.5.13 shipped the visible
-  features (Drive Health card, security fixes, settings split);
-  v0.6 turns those into a durable foundation: measured + gated
-  test coverage on both surfaces, the ADR backlog cleaned up, and
-  the next big feature (Umbrel-catalog import) designed in the
-  open so its implementation can land in Sprint 12+ without
-  surprises.
+  Sprint 12 — Umbrel catalogue ships. v0.6.0 cut yesterday on the
+  Sprint 11 quality foundation; v0.6.1 turns the ADR-0024 design
+  into a live pipeline plus a real-user bug fix.
 
-  1. **Frontend test coverage gated.** Lifted from the Sprint 9
-     baseline (16.77 % statements) to **28.75 % / 24.21 / 26.41 /
-     29.60** (statements / branches / functions / lines) — all
-     four Sprint 11 targets met. 23 new test files added across
-     stores, settings panes, apps modals, AppCard, and dashboard
-     widgets. Three regression locks wired: Custom App empty-name
-     silent fallback (#240), `x-powerlab → x-web → x-casaos`
-     compose extension priority chain (ADR-0025 / #201), and the
-     TextEditor inert-state regression from Sprint 9. The vitest
-     threshold gate now red-fails CI with `exit 1` + a clear
-     `ERROR: Coverage for <metric>` message if any of the four
-     numbers drops below the 5-pp safety floor (23 / 19 / 21 /
-     24). Closes #296, #297. Test count 230 → **401 passing**.
+  1. **Umbrel catalogue import — 241 apps live.** The clean-room
+     import pipeline from ADR-0024 went from approved design to
+     working in a single sprint. `.github/workflows/sync-umbrel-
+     catalog.yml` runs every Monday 06:00 UTC, clones the public
+     `getumbrel/umbrel-apps` repo, runs the four-tier filter
+     (Tier 1 hard-reject `getumbrel/*` images + cross-app
+     siblings; Tier 2 soft-reject Bitcoin / Lightning categories;
+     Tier 3 manual triage; Tier 4 allow), and opens a reviewable
+     PR with the diff stat. First run after Phase 4.5 landed
+     wrote **241 apps** under `community-catalog/Apps/<id>/`
+     (matching the Phase 0 audit projection exactly: 241 allow,
+     44 hard-reject, 45 soft-reject, 0 manual). The legal posture
+     turns on the parser's field allowlist — functional fields
+     only (image, ports, env names) cross the boundary; expressive
+     content (descriptions, marketing) never does. Descriptions
+     are fetched from each app's own upstream README at sync
+     time. Icons hot-linked to `getumbrel.github.io/umbrel-apps-
+     gallery/<id>/icon.svg`. AppCard tile in the UI carries a
+     discreet source label (`networking · umbrel`) with a native
+     hover tooltip + click-through to the upstream repo. See
+     `docs/architecture/community-catalog.md` for the full
+     operational reference. Closes #307.
 
-  2. **Backend test coverage measured + 404 regression locks.**
-     CI now runs `go test -race -coverprofile=coverage.out
-     -covermode=atomic` per service with 14-day artifact upload
-     (`backend-coverage-<service>-<run-id>`). Baseline emitted:
-     `core` 6.1 % total / `app-management` 15.5 % / `local-storage`
-     measured by the Linux runner. Phase 2 locks the Sprint 3
-     cloud-drive removal (#101 / #143) at the HTTP surface:
-     `/v1/cloud/*`, `/v1/driver/*`, `/v1/recover/*` plus the
-     Sprint 3 self-update kill all assert 404 on both `core` and
-     `local-storage`. A future "let's bring back cloud drives"
-     refactor red-fails CI before re-introducing the upstream
-     dependency. Closes #150 Phases 1 + 2. Phases 3 (testcontainers
-     for Docker-heavy paths) + 4 (fuse/mergerfs build-tag tests
-     for local-storage) deferred to Sprint 12+.
+  2. **Password UX off-by-one fix (#306).** Real-user bug report:
+     the SetupWizard accepted 5-character passwords but the
+     backend rejected anything under 6, with a generic
+     "Falha ao inicializar" error masking the actual cause.
+     Root-cause fix: `backend/user-service/route/v1/password.go`
+     declares `MinPasswordLen = 8` as the single source of truth;
+     `SetupWizard.svelte` mirrors the constant + maps backend
+     `common_err` codes onto a discriminated `RegisterResult`
+     type for typed error display. Both sides regression-locked
+     (`password_test.go` + `SetupWizard.test.ts`). Helper text
+     reads "Mínimo 8 caracteres" in pt-BR / "At least 8
+     characters" in en-US / "Mínimo 8 caracteres" in es. The
+     button stays disabled until both length + match gates pass.
 
-  3. **Umbrel-catalog import design landed (ADR-0024).** Captures
-     the legal posture (functional facts vs. expressive content)
-     for importing the largest open home-server catalog without
-     inheriting Umbrel's source-available, non-commercial license.
-     The four-tier filter pipeline auto-rejects apps tightly
-     coupled to Umbrel infrastructure (Bitcoin Core sibling,
-     Lightning daemon, `umbrel_main_network` joins, cross-app
-     volume mounts). The pipeline runs as a scheduled GitHub
-     Action that opens a reviewable PR — not a pre-commit hook,
-     which would slow every dev's commit + flake on offline
-     work. Implementation tracks separately for Sprint 12+.
+  3. **Sync-workflow label-race fix.** First weekly-sync trigger
+     after Phase 4.5 pushed the branch but skipped PR open:
+     `gh pr create --label "catalog"` exits non-zero when the
+     label doesn't exist on the repo, and the trailing
+     `|| true` swallowed the error. Split into separate
+     `gh pr create` + `gh pr edit --add-label` (best-effort)
+     steps so subsequent weekly runs open PRs unconditionally.
 
-  4. **ADR backlog cleaned up.** Resolved the duplicate
-     ADR-0011 / ADR-0012 numbering flagged by the 2026-05-10
-     quality audit: the foundation `backend/pkg/` pair renumbered
-     to **0025** (strangler / coexistence) and **0026** (slog
-     logging). ADR-0011 + ADR-0012 are now unambiguously the
-     CA-mismatch + CA-rotation ADRs. 29 files touched with
-     context-sensitive cross-reference updates; each renumbered
-     file carries a "Renumber history" note so historical
-     references still resolve. `decisions/README.md` index
-     brought current (now lists 0001–0023 + 0025 + 0026).
-     Also closed: 7 stale issues in the verify-and-close batch
-     (#19 HTTPS mkcert pattern delivered + strategically
-     disabled, #25 Swagger superseded by Scalar / ADR-0008, #67
-     strangler roadmap completed, #101 + #106 structural CasaOS
-     deps resolved, #119 stale catalog bug, #170 migration-tool
-     deleted in Sprint 8). #184 AppData migrate tool stays open
-     as a genuine deferral pending the dual-write window close.
+  Net code direction Sprint 12: ~3.0 k LOC added by the new
+  `backend/sync-catalog/` Go package + the `community-catalog/`
+  wire-up + the UI source badge + the 255-line maintainer doc;
+  the bug fix consolidated password validation into a single
+  backend constant with regression locks on both sides. The
+  catalogue itself is 12 738 lines of imported config under
+  `community-catalog/Apps/` — generated content, never edited
+  by hand, ships in the release tarball.
 
-  HTTPS re-enable + trust-dance UX redo remain indefinitely
-  deferred per the 2026-05-11 prioritization decision. When that
-  changes, the work is bundled as a dedicated sprint (HTTPS +
-  trust-dance + UX inseparable, no piecemeal landings). Tracking
-  #294. The release-manifest no longer carries the
-  "v0.6 ships with HTTPS re-enabled" promise that the v0.5.2
-  manifest carried — that framing is superseded.
-
-  Net code direction Sprint 11: small net add on tests (~+1.6 k
-  LOC) plus the audit / retro doc work; ~500 LOC removed by the
-  ADR renumber's collapse of the old "two files share a number"
-  footnote + duplicate audit narrative.
+  Custom App ↔ Community App parity polish (the unified install
+  experience question raised during Phase 5) is Sprint 13 work.
+  HTTPS re-enable + trust-dance + UX redo remain indefinitely
+  deferred — unchanged from v0.6.0.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
