@@ -1,31 +1,27 @@
-version: "3.7"
-
+name: ntfy
 services:
-  app_proxy:
-    environment:
-      APP_HOST: ntfy_app_1
-      APP_PORT: 80
-      PROXY_AUTH_ADD: "false"
-
-  app:
-    image: binwiederhier/ntfy:v2.22.0@sha256:d8b3408c75d5ae78e03339af6103e7e6195e56573eea6f1ad34bb4dc4f44f340
-    user: "1000:1000"
-    restart: on-failure
-    stop_grace_period: 1m
-    entrypoint: [ "/bin/sh", "/entrypoint.sh" ]
-    volumes:
-      - ${APP_DATA_DIR}/entrypoint.sh:/entrypoint.sh
-      - ${APP_DATA_DIR}/data/cache:/var/cache/ntfy
-      - ${APP_DATA_DIR}/data/data:/etc/ntfy
-      - ${APP_DATA_DIR}/data/lib:/var/lib/ntfy
-    environment:
-      NTFY_BASE_URL: http://${DEVICE_DOMAIN_NAME}:${APP_PROXY_PORT}
-      NTFY_UPSTREAM_BASE_URL: https://ntfy.sh
-      NTFY_CACHE_FILE: /var/cache/ntfy/cache.db
-      NTFY_ENABLE_LOGIN: "true"
-      NTFY_AUTH_FILE: /var/lib/ntfy/user.db
-      NTFY_AUTH_DEFAULT_ACCESS: deny-all
-      NTFY_PASSWORD: ${APP_PASSWORD}
+    app:
+        entrypoint:
+            - /bin/sh
+            - /entrypoint.sh
+        environment:
+            NTFY_AUTH_DEFAULT_ACCESS: deny-all
+            NTFY_AUTH_FILE: /var/lib/ntfy/user.db
+            NTFY_BASE_URL: http://${DEVICE_DOMAIN_NAME}:${APP_PROXY_PORT}
+            NTFY_CACHE_FILE: /var/cache/ntfy/cache.db
+            NTFY_ENABLE_LOGIN: "true"
+            NTFY_PASSWORD: ${APP_PASSWORD}
+            NTFY_UPSTREAM_BASE_URL: https://ntfy.sh
+        image: binwiederhier/ntfy:v2.22.0@sha256:d8b3408c75d5ae78e03339af6103e7e6195e56573eea6f1ad34bb4dc4f44f340
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/ntfy/entrypoint.sh:/entrypoint.sh
+            - /DATA/PowerLabAppData/ntfy/data/cache:/var/cache/ntfy
+            - /DATA/PowerLabAppData/ntfy/data/data:/etc/ntfy
+            - /DATA/PowerLabAppData/ntfy/data/lib:/var/lib/ntfy
+version: "3.7"
 
 x-powerlab:
     store_app_id: ntfy
@@ -44,7 +40,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: ntfy
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: ntfy/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:12Z"
+        synced_at: "2026-05-12T14:50:18Z"

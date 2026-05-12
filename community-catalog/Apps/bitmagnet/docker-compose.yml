@@ -1,56 +1,50 @@
-version: "3.7"
-
+name: bitmagnet
 services:
-  app_proxy:
-    environment:
-      APP_HOST: bitmagnet_bitmagnet_1
-      APP_PORT: 3333
-
-  bitmagnet:
-    image: ghcr.io/bitmagnet-io/bitmagnet:v0.10.0@sha256:cf2c16fac5b51f1c18e630b4710175d35d7e44b83012cfd05a2b43712feec05e
-    restart: on-failure
-    stop_grace_period: 1m
-    ports:
-      - "3336:3334/tcp"
-      - "3336:3334/udp"
-    user: "1000:1000"
-    environment:
-      HOME: /tmp
-      XDG_CONFIG_HOME: /config
-      POSTGRES_HOST: bitmagnet_postgres_1
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${APP_PASSWORD}
-      POSTGRES_NAME: bitmagnet
-    volumes:
-      - ${APP_DATA_DIR}/data/config:/config/bitmagnet
-    command:
-      - worker
-      - run
-      - --keys=http_server
-      - --keys=queue_server
-      - --keys=dht_crawler
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  postgres:
-    image: postgres:16-alpine@sha256:23e88eb049fd5d54894d70100df61d38a49ed97909263f79d4ff4c30a5d5fca2
-    restart: on-failure
-    user: "1000:1000"
-    environment:
-      POSTGRES_PASSWORD: ${APP_PASSWORD}
-      POSTGRES_DB: bitmagnet
-      POSTGRES_USER: postgres
-      PGUSER: postgres
-    shm_size: 1g
-    volumes:
-      - ${APP_DATA_DIR}/data/postgres:/var/lib/postgresql/data
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - pg_isready
-      start_period: 20s
-      interval: 10s
+    bitmagnet:
+        command:
+            - worker
+            - run
+            - --keys=http_server
+            - --keys=queue_server
+            - --keys=dht_crawler
+        depends_on:
+            postgres:
+                condition: service_healthy
+        environment:
+            HOME: /tmp
+            POSTGRES_HOST: bitmagnet_postgres_1
+            POSTGRES_NAME: bitmagnet
+            POSTGRES_PASSWORD: ${APP_PASSWORD}
+            POSTGRES_USER: postgres
+            XDG_CONFIG_HOME: /config
+        image: ghcr.io/bitmagnet-io/bitmagnet:v0.10.0@sha256:cf2c16fac5b51f1c18e630b4710175d35d7e44b83012cfd05a2b43712feec05e
+        ports:
+            - 3336:3334/tcp
+            - 3336:3334/udp
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/bitmagnet/data/config:/config/bitmagnet
+    postgres:
+        environment:
+            PGUSER: postgres
+            POSTGRES_DB: bitmagnet
+            POSTGRES_PASSWORD: ${APP_PASSWORD}
+            POSTGRES_USER: postgres
+        healthcheck:
+            interval: 10s
+            start_period: 20s
+            test:
+                - CMD-SHELL
+                - pg_isready
+        image: postgres:16-alpine@sha256:23e88eb049fd5d54894d70100df61d38a49ed97909263f79d4ff4c30a5d5fca2
+        restart: on-failure
+        shm_size: 1g
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/bitmagnet/data/postgres:/var/lib/postgresql/data
+version: "3.7"
 
 x-powerlab:
     store_app_id: bitmagnet
@@ -69,7 +63,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: bitmagnet
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: bitmagnet/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:04Z"
+        synced_at: "2026-05-12T14:50:07Z"

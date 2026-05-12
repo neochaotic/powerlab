@@ -1,18 +1,14 @@
+name: sqlitebrowser
 services:
-  app_proxy:
-    environment:
-      APP_HOST: sqlitebrowser_app_1
-      APP_PORT: 3000
-
-  app:
-    image: linuxserver/sqlitebrowser:3.13.1@sha256:1b1e81f0af222af3353a4c8d3c4737264a1816a43e4410819430335fa099b1da
-    restart: on-failure
-    volumes:
-      - ${APP_DATA_DIR}/data/config:/config
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Etc/CET
+    app:
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=Etc/CET
+        image: linuxserver/sqlitebrowser:3.13.1@sha256:1b1e81f0af222af3353a4c8d3c4737264a1816a43e4410819430335fa099b1da
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/sqlitebrowser/data/config:/config
 
 x-powerlab:
     store_app_id: sqlitebrowser
@@ -29,7 +25,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: sqlitebrowser
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: sqlitebrowser/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:16Z"
+        synced_at: "2026-05-12T14:50:23Z"

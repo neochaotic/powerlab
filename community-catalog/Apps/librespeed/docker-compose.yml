@@ -1,19 +1,14 @@
-version: "3.7"
-
+name: librespeed
 services:
-  app_proxy:
-    environment:
-      APP_HOST: librespeed_server_1
-      APP_PORT: 8080
-
-  server:
-    image: ghcr.io/librespeed/speedtest:6.1.0@sha256:b6b0890047e833158370d59ed5ef289b3e67a58f4a363cd37ef5c09d170d8543
-    environment:
-      PUID: 1000
-      PGID: 1000
-    volumes:
-      - ${APP_DATA_DIR}/data/config:/config
-    restart: on-failure
+    server:
+        environment:
+            PGID: 1000
+            PUID: 1000
+        image: ghcr.io/librespeed/speedtest:6.1.0@sha256:b6b0890047e833158370d59ed5ef289b3e67a58f4a363cd37ef5c09d170d8543
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/librespeed/data/config:/config
+version: "3.7"
 
 x-powerlab:
     store_app_id: librespeed
@@ -30,7 +25,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: librespeed
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: librespeed/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:10Z"
+        synced_at: "2026-05-12T14:50:15Z"

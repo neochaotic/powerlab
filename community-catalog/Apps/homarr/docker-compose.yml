@@ -1,18 +1,13 @@
-version: '3.7'
-
+name: homarr
 services:
-  app_proxy:
-    environment:
-      APP_HOST: homarr_web_1
-      APP_PORT: 7575
-
-  web:
-    image: ghcr.io/homarr-labs/homarr:v1.60.0@sha256:9ec1c487ca908471d83ddb7d56c9135f0034bd584295d56cdb4ee9830d747546
-    restart: on-failure
-    environment:
-      SECRET_ENCRYPTION_KEY: ${APP_SEED}
-    volumes:
-      - ${APP_DATA_DIR}/data:/appdata
+    web:
+        environment:
+            SECRET_ENCRYPTION_KEY: ${APP_SEED}
+        image: ghcr.io/homarr-labs/homarr:v1.61.0@sha256:6a726c72b37d56a7ce271d35498712f90bfd05ee203bc81e069d718489c35b06
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/homarr/data:/appdata
+version: "3.7"
 
 x-powerlab:
     store_app_id: homarr
@@ -29,7 +24,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: homarr
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: homarr/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:08Z"
+        synced_at: "2026-05-12T14:50:12Z"

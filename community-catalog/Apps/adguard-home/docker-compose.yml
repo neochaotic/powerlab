@@ -1,18 +1,23 @@
-version: "3.7"
-
+name: adguard-home
 services:
-  server:
-    image: adguard/adguardhome:v0.107.74@sha256:f29c58a91f79387cbbbb042e140814f58e830d457d44af03d662c8df43db9dea
-    # override the default command to set the web address to port 8095 to avoid conflict with Thunderhub
-    # command from Dockerfile: https://github.com/AdguardTeam/AdGuardHome/blob/master/docker/Dockerfile
-    command: ["--no-check-update", "-c", "/opt/adguardhome/conf/AdGuardHome.yaml", "-w", "/opt/adguardhome/work", "--web-addr", "0.0.0.0:8095"]
-    restart: on-failure
-    network_mode: host
-    volumes:
-      - ${APP_DATA_DIR}/data/work:/opt/adguardhome/work
-      - ${APP_DATA_DIR}/data/conf:/opt/adguardhome/conf
-    cap_add:
-      - NET_ADMIN
+    server:
+        cap_add:
+            - NET_ADMIN
+        command:
+            - --no-check-update
+            - -c
+            - /opt/adguardhome/conf/AdGuardHome.yaml
+            - -w
+            - /opt/adguardhome/work
+            - --web-addr
+            - 0.0.0.0:8095
+        image: adguard/adguardhome:v0.107.74@sha256:f29c58a91f79387cbbbb042e140814f58e830d457d44af03d662c8df43db9dea
+        network_mode: host
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/adguard-home/data/work:/opt/adguardhome/work
+            - /DATA/PowerLabAppData/adguard-home/data/conf:/opt/adguardhome/conf
+version: "3.7"
 
 x-powerlab:
     store_app_id: adguard-home
@@ -29,7 +34,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: adguard-home
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: adguard-home/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:03Z"
+        synced_at: "2026-05-12T14:50:06Z"

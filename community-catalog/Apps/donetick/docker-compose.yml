@@ -1,22 +1,16 @@
-version: '3.7'
-
+name: donetick
 services:
-  app_proxy:
-    environment:
-      APP_HOST: donetick_app_1
-      APP_PORT: 2021
-      PROXY_AUTH_ADD: "false"
-
-  app:
-    image: donetick/donetick:v0.1.75@sha256:5c207a86e5425052e9ffe5286f96f71babfe57337760d303a5fb56a856790d11
-    user: "1000:1000"
-    restart: on-failure
-    volumes:
-      - ${APP_DATA_DIR}/data/app:/donetick-data
-      - ${APP_DATA_DIR}/data/config:/config
-    environment:
-      - DT_ENV=selfhosted
-      - DT_SQLITE_PATH=/donetick-data/donetick.db
+    app:
+        environment:
+            - DT_ENV=selfhosted
+            - DT_SQLITE_PATH=/donetick-data/donetick.db
+        image: donetick/donetick:v0.1.75@sha256:5c207a86e5425052e9ffe5286f96f71babfe57337760d303a5fb56a856790d11
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/donetick/data/app:/donetick-data
+            - /DATA/PowerLabAppData/donetick/data/config:/config
+version: "3.7"
 
 x-powerlab:
     store_app_id: donetick
@@ -35,7 +29,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: donetick
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: donetick/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:05Z"
+        synced_at: "2026-05-12T14:50:10Z"

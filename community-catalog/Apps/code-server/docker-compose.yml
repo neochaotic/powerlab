@@ -1,19 +1,14 @@
-version: "3.7"
-
+name: code-server
 services:
-  app_proxy:
-    environment:
-      APP_HOST: code-server_server_1
-      APP_PORT: 8080
-
-  server:
-    image: codercom/code-server:4.118.0@sha256:4aff9947c113487113201da811564fade1af5f23038b4d683998d024eebbac92
-    restart: on-failure
-    user: "1000:1000"
-    volumes:
-      - ${APP_DATA_DIR}/data:/home/coder
-    environment:
-      PASSWORD: $APP_PASSWORD
+    server:
+        environment:
+            PASSWORD: $APP_PASSWORD
+        image: codercom/code-server:4.118.0@sha256:4aff9947c113487113201da811564fade1af5f23038b4d683998d024eebbac92
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/code-server/data:/home/coder
+version: "3.7"
 
 x-powerlab:
     store_app_id: code-server
@@ -30,7 +25,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: code-server
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: code-server/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:05Z"
+        synced_at: "2026-05-12T14:50:09Z"

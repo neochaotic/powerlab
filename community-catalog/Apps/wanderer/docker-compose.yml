@@ -1,65 +1,59 @@
-version: '3.7'
-
+name: wanderer
 services:
-  app_proxy:
-    environment:
-      APP_HOST: wanderer_web_1
-      APP_PORT: 3000
-      
-  web:
-    image: flomp/wanderer-web:v0.18.5@sha256:49eefcf02155639bf3b750cef96cef9c0f3260ece03348aec316aeb29d713c10
-    user: "1000:1000"
-    depends_on:
-      search:
-        condition: service_healthy
-      db:
-        condition: service_started
-    environment:
-      ORIGIN: http://${DEVICE_DOMAIN_NAME}:3111
-      BODY_SIZE_LIMIT: Infinity
-      PUBLIC_POCKETBASE_URL: http://wanderer_db_1:8090
-      PUBLIC_DISABLE_SIGNUP: "false"
-      UPLOAD_FOLDER: /app/uploads
-      UPLOAD_USER: admin
-      UPLOAD_PASSWORD: ${APP_PASSWORD}
-      PUBLIC_VALHALLA_URL: https://valhalla1.openstreetmap.de
-      PUBLIC_NOMINATIM_URL: https://nominatim.openstreetmap.org
-      MEILI_URL: http://wanderer_search_1:7700
-      MEILI_MASTER_KEY: ${APP_SEED}
-    volumes:
-      - ${APP_DATA_DIR}/data/uploads:/app/uploads
-    restart: on-failure
-
-  search:
-    image: getmeili/meilisearch:v1.14.0@sha256:8cd411ba5d9ec2dfce02e241305208eebacce0fd74a72bece21cadd03dc566ce
-    environment:
-      MEILI_NO_ANALYTICS: "true"
-      MEILI_URL: http://wanderer_search_1:7700
-      MEILI_MASTER_KEY: ${APP_SEED}
-    volumes:
-      - ${APP_DATA_DIR}/data/data.ms:/meili_data/data.ms
-    restart: on-failure
-    healthcheck:
-      test: curl --fail http://localhost:7700/health || exit 1
-      interval: 15s
-      retries: 10
-      start_period: 20s
-      timeout: 10s
-
-  db:
-    image: flomp/wanderer-db:v0.18.5@sha256:c1798be5822e5b802b0e235dba108a5cc0dca7609e1bc52b417c5cafb3981d89
-    user: "1000:1000"
-    depends_on:
-      search:
-        condition: service_healthy
-    environment:
-      POCKETBASE_ENCRYPTION_KEY: ${APP_WANDERER_ENCRYPTION_KEY}
-      MEILI_URL: http://wanderer_search_1:7700
-      MEILI_MASTER_KEY: ${APP_SEED}
-      ORIGIN: http://${DEVICE_DOMAIN_NAME}:3111
-    restart: on-failure
-    volumes:
-      - ${APP_DATA_DIR}/data/pb_data:/pb_data
+    db:
+        depends_on:
+            search:
+                condition: service_healthy
+        environment:
+            MEILI_MASTER_KEY: ${APP_SEED}
+            MEILI_URL: http://wanderer_search_1:7700
+            ORIGIN: http://${DEVICE_DOMAIN_NAME}:3111
+            POCKETBASE_ENCRYPTION_KEY: ${APP_WANDERER_ENCRYPTION_KEY}
+        image: flomp/wanderer-db:v0.19.0@sha256:30a8be29f118812d360166d9f9ad863f5ff7a9619d5d1e8114d61328ee610ad2
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/wanderer/data/pb_data:/pb_data
+    search:
+        environment:
+            MEILI_MASTER_KEY: ${APP_SEED}
+            MEILI_NO_ANALYTICS: "true"
+            MEILI_URL: http://wanderer_search_1:7700
+        healthcheck:
+            interval: 15s
+            retries: 10
+            start_period: 20s
+            test: curl --fail http://localhost:7700/health || exit 1
+            timeout: 10s
+        image: getmeili/meilisearch:v1.14.0@sha256:8cd411ba5d9ec2dfce02e241305208eebacce0fd74a72bece21cadd03dc566ce
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/wanderer/data/data.ms:/meili_data/data.ms
+    web:
+        depends_on:
+            db:
+                condition: service_started
+            search:
+                condition: service_healthy
+        environment:
+            BODY_SIZE_LIMIT: Infinity
+            MEILI_MASTER_KEY: ${APP_SEED}
+            MEILI_URL: http://wanderer_search_1:7700
+            NOMINATIM_URL: https://nominatim.openstreetmap.org
+            ORIGIN: http://${DEVICE_DOMAIN_NAME}:3111
+            OVERPASS_API_URL: https://overpass-api.de
+            PUBLIC_DISABLE_SIGNUP: "false"
+            PUBLIC_POCKETBASE_URL: http://wanderer_db_1:8090
+            UPLOAD_FOLDER: /app/uploads
+            UPLOAD_PASSWORD: ${APP_PASSWORD}
+            UPLOAD_USER: admin
+            VALHALLA_URL: https://valhalla1.openstreetmap.de
+        image: flomp/wanderer-web:v0.19.0@sha256:b17deaf25d3ca1f508149d07bfe7260564380ec4b174de14375274bb78b60504
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/wanderer/data/uploads:/app/uploads
+version: "3.7"
 
 x-powerlab:
     store_app_id: wanderer
@@ -78,7 +72,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: wanderer
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: wanderer/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:18Z"
+        synced_at: "2026-05-12T14:50:26Z"

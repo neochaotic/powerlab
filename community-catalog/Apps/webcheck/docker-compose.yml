@@ -1,15 +1,11 @@
-version: '3.7'
-
+name: webcheck
 services:
-  app_proxy:
-    environment:
-      APP_HOST: webcheck_server_1
-      APP_PORT: 3000
-  server:
-    image: ghcr.io/lissy93/web-check:2.1.0@sha256:f15934b73da05bef3993bf1a62e110c100158b5105d8571229960e1d509c5c77
-    restart: on-failure
-    volumes:
-      - ${APP_DATA_DIR}/data:/app/data
+    server:
+        image: ghcr.io/lissy93/web-check:2.1.0@sha256:f15934b73da05bef3993bf1a62e110c100158b5105d8571229960e1d509c5c77
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/webcheck/data:/app/data
+version: "3.7"
 
 x-powerlab:
     store_app_id: webcheck
@@ -26,7 +22,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: webcheck
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: webcheck/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:18Z"
+        synced_at: "2026-05-12T14:50:26Z"

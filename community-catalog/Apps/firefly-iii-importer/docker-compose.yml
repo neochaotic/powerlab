@@ -1,18 +1,12 @@
-version: "3.7"
-
+name: firefly-iii-importer
 services:
-  app_proxy:
-    environment:
-      APP_HOST: firefly-iii-importer_importer_1
-      APP_PORT: 8080
-
-  importer:
-    image: fireflyiii/data-importer:version-2.3.2@sha256:4e2cbcb0d95c34850534a3772f1732c00f6412077db33b1863703a1b628bdc12
-    restart: on-failure
-    environment:
-      # firefly-iii container:
-      - FIREFLY_III_URL=http://firefly-iii_server_1:8080
-      - VANITY_URL=http://${DEVICE_DOMAIN_NAME}:30009
+    importer:
+        environment:
+            - FIREFLY_III_URL=http://firefly-iii_server_1:8080
+            - VANITY_URL=http://${DEVICE_DOMAIN_NAME}:30009
+        image: fireflyiii/data-importer:version-2.3.2@sha256:4e2cbcb0d95c34850534a3772f1732c00f6412077db33b1863703a1b628bdc12
+        restart: on-failure
+version: "3.7"
 
 x-powerlab:
     store_app_id: firefly-iii-importer
@@ -29,7 +23,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: firefly-iii-importer
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: firefly-iii-importer/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:06Z"
+        synced_at: "2026-05-12T14:50:11Z"

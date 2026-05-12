@@ -1,54 +1,48 @@
-version: '3.7'
-
+name: etherpad
 services:
-  app_proxy:
-    environment:
-      APP_HOST: etherpad_app_1
-      APP_PORT: 9001
-      
-  app:
-    image: etherpad/etherpad:2.7.3@sha256:e277b0f025bf4ff7039a8f3cc9d2995d65a071c4734c30c930a563202e32b0b0
-    volumes:
-      - ${APP_DATA_DIR}/data/plugins:/opt/etherpad-lite/src/plugin_packages
-      - ${APP_DATA_DIR}/data/etherpad-var:/opt/etherpad-lite/var:rw
-    depends_on:
-      - postgres
-    environment:
-      NODE_ENV: production
-      CI: "true"
-      ADMIN_PASSWORD: ${APP_PASSWORD}
-      DB_CHARSET: utf8mb4
-      DB_HOST: etherpad_postgres_1
-      DB_NAME: etherpad
-      DB_PASS: admin
-      DB_PORT: 5432
-      DB_TYPE: "postgres"
-      DB_USER: admin
-      DEFAULT_PAD_TEXT: 
-      DISABLE_IP_LOGGING: "false"
-      LOGLEVEL: INFO
-      SOFFICE: null
-      ALLOW_UNKNOWN_FILE_ENDS: "true"
-      TRUST_PROXY: "true"
-      SKIN_NAME: colibris
-      SKIN_VARIANTS: super-light-toolbar super-light-editor light-background   
-      SHOW_SETTINGS_IN_ADMIN_PAGE: "true"
-      SUPPRESS_ERRORS_IN_PAD_TEXT: "false"   
-    restart: on-failure
-    user: "5001:0"
-
-  postgres:
-    image: postgres:15-alpine@sha256:93a6166360be8f1d116b7ea97ebb8dea9e2c9c746349e952738bbba72a961d7c
-    environment:
-      POSTGRES_DB: etherpad
-      POSTGRES_PASSWORD: admin
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: admin
-      PGDATA: /var/lib/postgresql/data/pgdata
-    restart: on-failure
-    user: "1000:1000"
-    volumes:
-      - ${APP_DATA_DIR}/data/postgres_data:/var/lib/postgresql/data/pgdata
+    app:
+        depends_on:
+            - postgres
+        environment:
+            ADMIN_PASSWORD: ${APP_PASSWORD}
+            ALLOW_UNKNOWN_FILE_ENDS: "true"
+            CI: "true"
+            DB_CHARSET: utf8mb4
+            DB_HOST: etherpad_postgres_1
+            DB_NAME: etherpad
+            DB_PASS: admin
+            DB_PORT: 5432
+            DB_TYPE: postgres
+            DB_USER: admin
+            DEFAULT_PAD_TEXT: null
+            DISABLE_IP_LOGGING: "false"
+            LOGLEVEL: INFO
+            NODE_ENV: production
+            SHOW_SETTINGS_IN_ADMIN_PAGE: "true"
+            SKIN_NAME: colibris
+            SKIN_VARIANTS: super-light-toolbar super-light-editor light-background
+            SOFFICE: null
+            SUPPRESS_ERRORS_IN_PAD_TEXT: "false"
+            TRUST_PROXY: "true"
+        image: etherpad/etherpad:2.7.3@sha256:e277b0f025bf4ff7039a8f3cc9d2995d65a071c4734c30c930a563202e32b0b0
+        restart: on-failure
+        user: "5001:0"
+        volumes:
+            - /DATA/PowerLabAppData/etherpad/data/plugins:/opt/etherpad-lite/src/plugin_packages
+            - /DATA/PowerLabAppData/etherpad/data/etherpad-var:/opt/etherpad-lite/var:rw
+    postgres:
+        environment:
+            PGDATA: /var/lib/postgresql/data/pgdata
+            POSTGRES_DB: etherpad
+            POSTGRES_PASSWORD: admin
+            POSTGRES_PORT: 5432
+            POSTGRES_USER: admin
+        image: postgres:15-alpine@sha256:93a6166360be8f1d116b7ea97ebb8dea9e2c9c746349e952738bbba72a961d7c
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/etherpad/data/postgres_data:/var/lib/postgresql/data/pgdata
+version: "3.7"
 
 x-powerlab:
     store_app_id: etherpad
@@ -65,7 +59,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: etherpad
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: etherpad/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:06Z"
+        synced_at: "2026-05-12T14:50:10Z"

@@ -1,19 +1,15 @@
+name: convertx
 services:
-  app_proxy:
-    environment:
-      APP_HOST: convertx_server_1
-      APP_PORT: 3000
-
-  server:
-    image: c4illin/convertx:v0.17.0@sha256:e1f85be04bbaf8a55ead9261194c3ae0fa0957d303ea537127154860b2552afd
-    restart: on-failure
-    stop_grace_period: 1m
-    user: "1000:1000"
-    environment:
-      - HTTP_ALLOWED=true
-      - ACCOUNT_REGISTRATION=true
-    volumes:
-      - ${APP_DATA_DIR}/data/app:/app/data
+    server:
+        environment:
+            - HTTP_ALLOWED=true
+            - ACCOUNT_REGISTRATION=true
+        image: c4illin/convertx:v0.17.0@sha256:e1f85be04bbaf8a55ead9261194c3ae0fa0957d303ea537127154860b2552afd
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/convertx/data/app:/app/data
 
 x-powerlab:
     store_app_id: convertx
@@ -32,7 +28,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: convertx
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: convertx/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:05Z"
+        synced_at: "2026-05-12T14:50:09Z"

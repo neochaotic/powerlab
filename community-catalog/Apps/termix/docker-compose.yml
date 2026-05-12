@@ -1,16 +1,11 @@
-version: "3.7"
-
+name: termix
 services:
-  app_proxy:
-    environment:
-      APP_HOST: termix_web_1
-      APP_PORT: 8080
-
-  web:
-    image: ghcr.io/lukegus/termix:release-2.1.0@sha256:52e45c1ea3fb85be5b3ade5ff42eed0946fe81131cbd834f6960e00797f17f86
-    restart: on-failure
-    volumes:
-      - ${APP_DATA_DIR}/data:/app/data
+    web:
+        image: ghcr.io/lukegus/termix:release-2.1.0@sha256:52e45c1ea3fb85be5b3ade5ff42eed0946fe81131cbd834f6960e00797f17f86
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/termix/data:/app/data
+version: "3.7"
 
 x-powerlab:
     store_app_id: termix
@@ -29,7 +24,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: termix
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: termix/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:17Z"
+        synced_at: "2026-05-12T14:50:24Z"

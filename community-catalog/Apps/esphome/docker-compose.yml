@@ -1,12 +1,12 @@
-version: "3.7"
-
+name: esphome
 services:
-  server:
-    image: esphome/esphome:2026.4.5@sha256:c7bfa0bea64c68d5ca645b37cf98125c248a494c0f339a13fbc918f559628feb
-    network_mode: host
-    volumes:
-      - ${APP_DATA_DIR}/data:/config
-    restart: on-failure
+    server:
+        image: esphome/esphome:2026.4.5@sha256:c7bfa0bea64c68d5ca645b37cf98125c248a494c0f339a13fbc918f559628feb
+        network_mode: host
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/esphome/data:/config
+version: "3.7"
 
 x-powerlab:
     store_app_id: esphome
@@ -25,7 +25,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: esphome
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: esphome/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:06Z"
+        synced_at: "2026-05-12T14:50:10Z"

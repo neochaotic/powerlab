@@ -1,31 +1,24 @@
-version: "3.7"
-
+name: node-red
 services:
-  app_proxy:
-    environment:
-      APP_HOST: node-red_web_1
-      APP_PORT: 1880
-      # Used to allow (HTTP In) flows to be publicly exposed
-      PROXY_AUTH_WHITELIST: "/public/*"
-  
-  web:
-    image: nodered/node-red:4.1.8@sha256:a5cb1dcdf90a7148b02b9dba4acfe6bd98c7bf3bff1e845dcdecfd7af3a95a29
-    restart: on-failure
-    stop_grace_period: 1m
-    volumes:
-      - ${APP_DATA_DIR}/data:/data
-      - ${APP_LIGHTNING_NODE_DATA_DIR}:/lnd:ro
-    environment:
-      PORT: 1880
-      BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
-      BITCOIN_IP: $APP_BITCOIN_NODE_IP
-      BITCOIN_RPC_PORT: $APP_BITCOIN_RPC_PORT
-      BITCOIN_RPC_USER: $APP_BITCOIN_RPC_USER
-      BITCOIN_RPC_PASS: $APP_BITCOIN_RPC_PASS
-      LND_IP: $APP_LIGHTNING_NODE_IP
-      LND_GRPC_PORT: $APP_LIGHTNING_NODE_GRPC_PORT
-      ELECTRUM_IP: $APP_ELECTRS_NODE_IP
-      ELECTRUM_PORT: $APP_ELECTRS_NODE_PORT
+    web:
+        environment:
+            BITCOIN_IP: $APP_BITCOIN_NODE_IP
+            BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
+            BITCOIN_RPC_PASS: $APP_BITCOIN_RPC_PASS
+            BITCOIN_RPC_PORT: $APP_BITCOIN_RPC_PORT
+            BITCOIN_RPC_USER: $APP_BITCOIN_RPC_USER
+            ELECTRUM_IP: $APP_ELECTRS_NODE_IP
+            ELECTRUM_PORT: $APP_ELECTRS_NODE_PORT
+            LND_GRPC_PORT: $APP_LIGHTNING_NODE_GRPC_PORT
+            LND_IP: $APP_LIGHTNING_NODE_IP
+            PORT: 1880
+        image: nodered/node-red:4.1.8@sha256:a5cb1dcdf90a7148b02b9dba4acfe6bd98c7bf3bff1e845dcdecfd7af3a95a29
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/node-red/data:/data
+            - ${APP_LIGHTNING_NODE_DATA_DIR}:/lnd:ro
+version: "3.7"
 
 x-powerlab:
     store_app_id: node-red
@@ -42,7 +35,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: node-red
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: node-red/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:12Z"
+        synced_at: "2026-05-12T14:50:18Z"

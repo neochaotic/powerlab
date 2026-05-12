@@ -1,24 +1,19 @@
-version: "3.7"
-
+name: music-assistant
 services:
-  web:
-    image: ghcr.io/music-assistant/server:2.8.7@sha256:eef3ee7810d0e4702afa4a0ff55b10bbbfcaa16c98a277fe1b7f4cb6d5d426b4
-    restart: on-failure
-    user: "1000:1000"
-    # Network mode must be set to host for MA to work correctly
-    network_mode: host
-    # UI at data/settings.json defined port 8896
-    # Streamserver at default port 8078
-    # Sendspin at default port 8927
-    volumes:
-      - ${APP_DATA_DIR}/data:/data/
-      - ${UMBREL_ROOT}/data/storage/downloads:/media
-    # privileged caps (and security-opt) needed to mount smb folders within the container
-    cap_add:
-      - SYS_ADMIN
-      - DAC_READ_SEARCH
-    security_opt:
-      - apparmor=unconfined
+    web:
+        cap_add:
+            - SYS_ADMIN
+            - DAC_READ_SEARCH
+        image: ghcr.io/music-assistant/server:2.8.7@sha256:eef3ee7810d0e4702afa4a0ff55b10bbbfcaa16c98a277fe1b7f4cb6d5d426b4
+        network_mode: host
+        restart: on-failure
+        security_opt:
+            - apparmor=unconfined
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/music-assistant/data:/data/
+            - ${UMBREL_ROOT}/data/storage/downloads:/media
+version: "3.7"
 
 x-powerlab:
     store_app_id: music-assistant
@@ -37,7 +32,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: music-assistant
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: music-assistant/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:12Z"
+        synced_at: "2026-05-12T14:50:17Z"

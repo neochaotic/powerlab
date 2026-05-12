@@ -1,20 +1,16 @@
-version: "3.7"
+name: pyload-ng
 services:
-  app_proxy:
-    environment:
-      APP_HOST: pyload-ng_web_1
-      APP_PORT: "8000"
-
-  web:
-    image: linuxserver/pyload-ng:0.5.0@sha256:0ef3e1d15183eb7f517742afe2f75b42c1d58e14640f8d5741f6e88d2d7b9ab5
-    restart: on-failure
-    volumes:
-      - ${APP_DATA_DIR}/data/config:/config
-      - ${UMBREL_ROOT}/data/storage/downloads:/downloads
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Etc/UTC
+    web:
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=Etc/UTC
+        image: linuxserver/pyload-ng:0.5.0@sha256:0ef3e1d15183eb7f517742afe2f75b42c1d58e14640f8d5741f6e88d2d7b9ab5
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/pyload-ng/data/config:/config
+            - ${UMBREL_ROOT}/data/storage/downloads:/downloads
+version: "3.7"
 
 x-powerlab:
     store_app_id: pyload-ng
@@ -33,7 +29,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: pyload-ng
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: pyload-ng/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:15Z"
+        synced_at: "2026-05-12T14:50:21Z"

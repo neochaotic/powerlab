@@ -1,19 +1,14 @@
-version: "3.7"
-
+name: remmina
 services:
-  app_proxy:
-    environment:
-      APP_HOST: remmina_server_1
-      APP_PORT: 3000
-
-  server:
-    image: linuxserver/remmina:1.4.35@sha256:ca2b6788bad28d864086649fc276ce696cac9cdf69e6976b85497b341ed07d8d
-    volumes:
-      - ${APP_DATA_DIR}/data/config:/config
-    restart: on-failure
-    environment:
-      - PUID=1000
-      - PGID=1000
+    server:
+        environment:
+            - PUID=1000
+            - PGID=1000
+        image: linuxserver/remmina:1.4.35@sha256:ca2b6788bad28d864086649fc276ce696cac9cdf69e6976b85497b341ed07d8d
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/remmina/data/config:/config
+version: "3.7"
 
 x-powerlab:
     store_app_id: remmina
@@ -30,7 +25,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: remmina
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: remmina/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:15Z"
+        synced_at: "2026-05-12T14:50:21Z"

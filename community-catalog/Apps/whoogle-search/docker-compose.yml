@@ -1,19 +1,14 @@
-version: "3.7"
-
+name: whoogle-search
 services:
-  app_proxy:
-    environment:
-      APP_HOST: whoogle-search_web_1
-      APP_PORT: 6420
-
-  web:
-    image: benbusby/whoogle-search:1.2.4@sha256:6ae072238642b7e5860c8fa7f68cf06be797eb4e2278fc41d17d3b5e8a051eea
-    restart: on-failure
-    stop_grace_period: 1m
-    init: true
-    user: "927:927"
-    environment:
-      EXPOSE_PORT: 6420
+    web:
+        environment:
+            EXPOSE_PORT: 6420
+        image: benbusby/whoogle-search:1.2.4@sha256:6ae072238642b7e5860c8fa7f68cf06be797eb4e2278fc41d17d3b5e8a051eea
+        init: true
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 927:927
+version: "3.7"
 
 x-powerlab:
     store_app_id: whoogle-search
@@ -32,7 +27,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: whoogle-search
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: whoogle-search/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:18Z"
+        synced_at: "2026-05-12T14:50:27Z"

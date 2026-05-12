@@ -1,23 +1,15 @@
-version: "3.7"
-
+name: pocketbase
 services:
-  app_proxy:
-    environment:
-      APP_HOST: pocketbase_app_1
-      APP_PORT: 8090
-      PROXY_AUTH_ADD: "false"
-  
-  app:
-    image: ghcr.io/muchobien/pocketbase:0.38.0@sha256:254d5f14ca43ce3201b39e1f88faa95d710574a136a8c73d174be0e4c0edc6b6
-    # pocketbase needs to run as root
-    # user: "1000:1000"
-    restart: on-failure
-    stop_grace_period: 1m
-    volumes:
-      - ${APP_DATA_DIR}/data/data:/pb_data
-      - ${APP_DATA_DIR}/data/public:/pb_public
-      - ${APP_DATA_DIR}/data/hooks:/pb_hooks
-      - ${APP_DATA_DIR}/data/migrations:/pb_migrations
+    app:
+        image: ghcr.io/muchobien/pocketbase:0.38.0@sha256:254d5f14ca43ce3201b39e1f88faa95d710574a136a8c73d174be0e4c0edc6b6
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/pocketbase/data/data:/pb_data
+            - /DATA/PowerLabAppData/pocketbase/data/public:/pb_public
+            - /DATA/PowerLabAppData/pocketbase/data/hooks:/pb_hooks
+            - /DATA/PowerLabAppData/pocketbase/data/migrations:/pb_migrations
+version: "3.7"
 
 x-powerlab:
     store_app_id: pocketbase
@@ -34,7 +26,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: pocketbase
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: pocketbase/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:15Z"
+        synced_at: "2026-05-12T14:50:21Z"

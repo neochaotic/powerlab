@@ -1,20 +1,15 @@
-version: "3.7"
+name: urbit
 services:
-  app_proxy:
-    environment:
-      APP_HOST: urbit_manager_1
-      APP_PORT: 8090
-      PROXY_AUTH_ADD: "false"
-  
-  manager:
-    image: mopfelwinrux/urbit-umbrel:v4.3@sha256:91f4ae90f4ed5721de4b9389bc13d79627b52d11d5d8afa08802088f6e65d06d
-    ports:
-      - "34343:34343"
-    volumes:
-      - ${APP_DATA_DIR}/piers:/data/piers
-      - ${APP_DATA_DIR}/keys:/data/keys
-    environment:
-      APP_PASSWORD: ${APP_PASSWORD}
+    manager:
+        environment:
+            APP_PASSWORD: ${APP_PASSWORD}
+        image: mopfelwinrux/urbit-umbrel:v4.3@sha256:91f4ae90f4ed5721de4b9389bc13d79627b52d11d5d8afa08802088f6e65d06d
+        ports:
+            - 34343:34343
+        volumes:
+            - /DATA/PowerLabAppData/urbit/piers:/data/piers
+            - /DATA/PowerLabAppData/urbit/keys:/data/keys
+version: "3.7"
 
 x-powerlab:
     store_app_id: urbit
@@ -33,7 +28,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: urbit
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: urbit/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:18Z"
+        synced_at: "2026-05-12T14:50:26Z"

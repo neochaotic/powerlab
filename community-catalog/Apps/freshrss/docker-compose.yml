@@ -1,20 +1,14 @@
-version: "3.7"
-
+name: freshrss
 services:
-  app_proxy:
-    environment:
-      APP_HOST: freshrss_server_1
-      APP_PORT: 80
-      PROXY_AUTH_WHITELIST: "/api/*"
-
-  server:
-    image: linuxserver/freshrss:1.29.0@sha256:9ea33a3b660f1e8485867374be36d39898c7b43fcbd2595e2442cb1d9b23410e
-    restart: on-failure
-    environment:
-      - PUID=1000
-      - PGID=1000
-    volumes:
-      - ${APP_DATA_DIR}/data:/config
+    server:
+        environment:
+            - PUID=1000
+            - PGID=1000
+        image: linuxserver/freshrss:1.29.0@sha256:9ea33a3b660f1e8485867374be36d39898c7b43fcbd2595e2442cb1d9b23410e
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/freshrss/data:/config
+version: "3.7"
 
 x-powerlab:
     store_app_id: freshrss
@@ -31,7 +25,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: freshrss
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: freshrss/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:07Z"
+        synced_at: "2026-05-12T14:50:11Z"

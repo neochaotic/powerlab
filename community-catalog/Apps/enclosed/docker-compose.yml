@@ -1,18 +1,13 @@
-version: "3.7"
-
+name: enclosed
 services:
-  app_proxy:
-    environment:
-      APP_HOST: enclosed_web_1
-      APP_PORT: 8787
-  
-  web:
-    image: corentinth/enclosed:1.16.0-rootless@sha256:0631baee489b974cf16ffe3884c814e7bcc75df7bd36662b8ded76443b768d06
-    user: 1000:1000
-    restart: on-failure
-    stop_grace_period: 1m
-    volumes:
-      - ${APP_DATA_DIR}/data:/app/.data
+    web:
+        image: corentinth/enclosed:1.16.0-rootless@sha256:0631baee489b974cf16ffe3884c814e7bcc75df7bd36662b8ded76443b768d06
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/enclosed/data:/app/.data
+version: "3.7"
 
 x-powerlab:
     store_app_id: enclosed
@@ -31,7 +26,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: enclosed
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: enclosed/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:06Z"
+        synced_at: "2026-05-12T14:50:10Z"

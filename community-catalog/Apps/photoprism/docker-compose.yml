@@ -1,51 +1,42 @@
-version: "3.7"
-
+name: photoprism
 services:
-  app_proxy:
-    environment:
-      APP_HOST: photoprism_web_1
-      APP_PORT: 8087
-      # These endpoints are protected by HTTP Basic Auth by Photoprism.
-      # More details here: https://docs.photoprism.app/user-guide/sync/webdav/#server-url
-      PROXY_AUTH_WHITELIST: "/originals/*,/import/*"
-  
-  web:
-    image: photoprism/photoprism:260305@sha256:5229f68bce0293320547f35c733de584d7c2d5725a0efbddb68d7a118a8fc21c
-    user: "1000:1000"
-    restart: on-failure
-    stop_grace_period: "1m"
-    volumes:
-      - "${APP_DATA_DIR}/originals:/photoprism/originals"
-      - "${APP_DATA_DIR}/storage:/photoprism/storage"
-    environment:
-      PHOTOPRISM_ADMIN_PASSWORD: "${APP_PASSWORD}"
-      PHOTOPRISM_ORIGINALS_LIMIT: 10000
-      PHOTOPRISM_HTTP_COMPRESSION: "gzip"
-      PHOTOPRISM_HTTP_PORT: 8087
-      PHOTOPRISM_DATABASE_DRIVER: "mysql"
-      PHOTOPRISM_DATABASE_SERVER: "photoprism_db_1:3306"
-      PHOTOPRISM_DATABASE_NAME: "photoprism"
-      PHOTOPRISM_DATABASE_USER: "photoprism"
-      PHOTOPRISM_DATABASE_PASSWORD: "photoprism"
-      PHOTOPRISM_SITE_URL: "http://${APP_DOMAIN}:8087/"
-      PHOTOPRISM_SITE_TITLE: "PhotoPrism"
-      PHOTOPRISM_SITE_CAPTION: "Digital Asset Management"
-      PHOTOPRISM_SITE_DESCRIPTION: ""
-      PHOTOPRISM_SITE_AUTHOR: ""
-
-  db:
-    image: mariadb:10.5.12@sha256:dfcba5641bdbfd7cbf5b07eeed707e6a3672f46823695a0d3aba2e49bbd9b1dd
-    user: "1000:1000"
-    restart: on-failure
-    stop_grace_period: "1m"
-    command: mysqld --transaction-isolation=READ-COMMITTED --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --max-connections=512 --innodb-rollback-on-timeout=OFF --innodb-lock-wait-timeout=50
-    volumes:
-      - "${APP_DATA_DIR}/database:/var/lib/mysql"
-    environment:
-      MYSQL_ROOT_PASSWORD: "photoprism"
-      MYSQL_DATABASE: "photoprism"
-      MYSQL_USER: "photoprism"
-      MYSQL_PASSWORD: "photoprism"
+    db:
+        command: mysqld --transaction-isolation=READ-COMMITTED --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --max-connections=512 --innodb-rollback-on-timeout=OFF --innodb-lock-wait-timeout=50
+        environment:
+            MYSQL_DATABASE: photoprism
+            MYSQL_PASSWORD: photoprism
+            MYSQL_ROOT_PASSWORD: photoprism
+            MYSQL_USER: photoprism
+        image: mariadb:10.5.12@sha256:dfcba5641bdbfd7cbf5b07eeed707e6a3672f46823695a0d3aba2e49bbd9b1dd
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/photoprism/database:/var/lib/mysql
+    web:
+        environment:
+            PHOTOPRISM_ADMIN_PASSWORD: ${APP_PASSWORD}
+            PHOTOPRISM_DATABASE_DRIVER: mysql
+            PHOTOPRISM_DATABASE_NAME: photoprism
+            PHOTOPRISM_DATABASE_PASSWORD: photoprism
+            PHOTOPRISM_DATABASE_SERVER: photoprism_db_1:3306
+            PHOTOPRISM_DATABASE_USER: photoprism
+            PHOTOPRISM_HTTP_COMPRESSION: gzip
+            PHOTOPRISM_HTTP_PORT: 8087
+            PHOTOPRISM_ORIGINALS_LIMIT: 10000
+            PHOTOPRISM_SITE_AUTHOR: ""
+            PHOTOPRISM_SITE_CAPTION: Digital Asset Management
+            PHOTOPRISM_SITE_DESCRIPTION: ""
+            PHOTOPRISM_SITE_TITLE: PhotoPrism
+            PHOTOPRISM_SITE_URL: http://${APP_DOMAIN}:8087/
+        image: photoprism/photoprism:260305@sha256:5229f68bce0293320547f35c733de584d7c2d5725a0efbddb68d7a118a8fc21c
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/photoprism/originals:/photoprism/originals
+            - /DATA/PowerLabAppData/photoprism/storage:/photoprism/storage
+version: "3.7"
 
 x-powerlab:
     store_app_id: photoprism
@@ -64,7 +55,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: photoprism
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: photoprism/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:14Z"
+        synced_at: "2026-05-12T14:50:20Z"

@@ -1,19 +1,13 @@
-version: "3.7"
-
+name: appsmith
 services:
-  app_proxy:
-    environment:
-      APP_HOST: appsmith_app_1
-      APP_PORT: 80
-      PROXY_AUTH_ADD: "false"
-  
-  app:
-    image: appsmith/appsmith-ce:v1.99@sha256:eb9c41524a4be8103666b38b437d5496cb62ead292d9642ba130d8ed37a28aca
-    environment:
-      APPSMITH_ENCRYPTION_PASSWORD: ${APP_PASSWORD}
-      APPSMITH_ENCRYPTION_SALT: ${APP_PASSWORD}
-    volumes:
-      - ${APP_DATA_DIR}/data/app:/appsmith-stacks
+    app:
+        environment:
+            APPSMITH_ENCRYPTION_PASSWORD: ${APP_PASSWORD}
+            APPSMITH_ENCRYPTION_SALT: ${APP_PASSWORD}
+        image: appsmith/appsmith-ce:v1.99@sha256:eb9c41524a4be8103666b38b437d5496cb62ead292d9642ba130d8ed37a28aca
+        volumes:
+            - /DATA/PowerLabAppData/appsmith/data/app:/appsmith-stacks
+version: "3.7"
 
 x-powerlab:
     store_app_id: appsmith
@@ -30,7 +24,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: appsmith
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: appsmith/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:04Z"
+        synced_at: "2026-05-12T14:50:06Z"

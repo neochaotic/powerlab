@@ -1,19 +1,13 @@
-version: "3.7"
-
+name: pingvin-share
 services:
-  app_proxy:
-    environment:
-      APP_HOST: pingvin-share_web_1
-      APP_PORT: 3000
-      PROXY_AUTH_ADD: "false"
-  
-  web:
-    image: stonith404/pingvin-share:v1.13.0@sha256:6bf2bcd3043ee68cb61264f0857511ccf7f212fdb984382b7f2d491635184ad6
-    user: "1000:1000"
-    restart: on-failure
-    volumes:
-      - "${APP_DATA_DIR}/data/backend:/opt/app/backend/data"
-      - "${APP_DATA_DIR}/data/images:/opt/app/frontend/public/img"
+    web:
+        image: stonith404/pingvin-share:v1.13.0@sha256:6bf2bcd3043ee68cb61264f0857511ccf7f212fdb984382b7f2d491635184ad6
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/pingvin-share/data/backend:/opt/app/backend/data
+            - /DATA/PowerLabAppData/pingvin-share/data/images:/opt/app/frontend/public/img
+version: "3.7"
 
 x-powerlab:
     store_app_id: pingvin-share
@@ -32,7 +26,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: pingvin-share
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: pingvin-share/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:14Z"
+        synced_at: "2026-05-12T14:50:21Z"

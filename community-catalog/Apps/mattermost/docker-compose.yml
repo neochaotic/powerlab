@@ -1,53 +1,48 @@
-version: "3.7"
-
+name: mattermost
 services:
-  app_proxy:
-    environment:
-      APP_HOST: mattermost_app_1
-      APP_PORT: 8000
-      PROXY_AUTH_ADD: "false"
-  
-  app:
-    image: alexlack/mattermost-app:v11.6.1@sha256:37b33b51fcf057605a00655afc92729c2348b46a172368821982526a4c1f1b7f
-    user: "1000:1000"
-    restart: on-failure
-    stop_grace_period: 1m
-    environment:
-      MM_USERNAME: admin
-      MM_PASSWORD: admin
-      MM_DBNAME: mattermost
-      MM_SQLSETTINGS_DATASOURCE: postgres://admin:admin@mattermost_db_1:5432/mattermost?sslmode=disable&connect_timeout=10
-    volumes:
-      - ${APP_DATA_DIR}/data/app/mattermost/config:/mattermost/config:rw
-      - ${APP_DATA_DIR}/data/app/mattermost/data:/mattermost/data:rw
-      - ${APP_DATA_DIR}/data/app/mattermost/logs:/mattermost/logs:rw
-      - ${APP_DATA_DIR}/data/app/mattermost/plugins:/mattermost/plugins:rw
-      - ${APP_DATA_DIR}/data/app/mattermost/client-plugins:/mattermost/client/plugins:rw
-      - /etc/localtime:/etc/localtime:ro
-    ports:
-      - "8443:8443/tcp" # WebRTC over tcp
-      - "8443:8443/udp" # WebRTC over udp
-    depends_on:
-      db:
-        condition: service_healthy
-
-  db:
-    image: alexlack/mattermost-db:v11.6.1@sha256:e8349dab19a6d4981d883373ac6c43afe5f3e1102acdaf30c7be2624f97b6794
-    user: "1000:1000"
-    restart: on-failure
-    stop_grace_period: 1m
-    environment:
-      MM_USERNAME: admin
-      MM_PASSWORD: admin
-      MM_DBNAME: mattermost
-    volumes:
-      - ${APP_DATA_DIR}/data/db:/var/lib/postgresql/data
-      - /etc/localtime:/etc/localtime:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    app:
+        depends_on:
+            db:
+                condition: service_healthy
+        environment:
+            MM_DBNAME: mattermost
+            MM_PASSWORD: admin
+            MM_SQLSETTINGS_DATASOURCE: postgres://admin:admin@mattermost_db_1:5432/mattermost?sslmode=disable&connect_timeout=10
+            MM_USERNAME: admin
+        image: alexlack/mattermost-app:v11.6.1@sha256:37b33b51fcf057605a00655afc92729c2348b46a172368821982526a4c1f1b7f
+        ports:
+            - 8443:8443/tcp
+            - 8443:8443/udp
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/mattermost/data/app/mattermost/config:/mattermost/config:rw
+            - /DATA/PowerLabAppData/mattermost/data/app/mattermost/data:/mattermost/data:rw
+            - /DATA/PowerLabAppData/mattermost/data/app/mattermost/logs:/mattermost/logs:rw
+            - /DATA/PowerLabAppData/mattermost/data/app/mattermost/plugins:/mattermost/plugins:rw
+            - /DATA/PowerLabAppData/mattermost/data/app/mattermost/client-plugins:/mattermost/client/plugins:rw
+            - /etc/localtime:/etc/localtime:ro
+    db:
+        environment:
+            MM_DBNAME: mattermost
+            MM_PASSWORD: admin
+            MM_USERNAME: admin
+        healthcheck:
+            interval: 10s
+            retries: 5
+            test:
+                - CMD-SHELL
+                - pg_isready -U postgres
+            timeout: 5s
+        image: alexlack/mattermost-db:v11.6.1@sha256:e8349dab19a6d4981d883373ac6c43afe5f3e1102acdaf30c7be2624f97b6794
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/mattermost/data/db:/var/lib/postgresql/data
+            - /etc/localtime:/etc/localtime:ro
+version: "3.7"
 
 x-powerlab:
     store_app_id: mattermost
@@ -64,7 +59,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: mattermost
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: mattermost/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:11Z"
+        synced_at: "2026-05-12T14:50:16Z"

@@ -1,20 +1,15 @@
-version: "3.7"
-
+name: firefox
 services:
-  app_proxy:
-    environment:
-      APP_HOST: firefox_server_1
-      APP_PORT: 3000
-
-  server:
-    image: linuxserver/firefox:139.0.4@sha256:01c090309f63bc619a1df80bf14fdc87cb6fd922d956da48a968a60ab5a0df6d
-    restart: on-failure
-    environment:
-      - PUID=1000
-      - PGID=1000
-    volumes:
-      - ${APP_DATA_DIR}/data/config:/config
-    shm_size: "1gb"
+    server:
+        environment:
+            - PUID=1000
+            - PGID=1000
+        image: linuxserver/firefox:139.0.4@sha256:01c090309f63bc619a1df80bf14fdc87cb6fd922d956da48a968a60ab5a0df6d
+        restart: on-failure
+        shm_size: 1gb
+        volumes:
+            - /DATA/PowerLabAppData/firefox/data/config:/config
+version: "3.7"
 
 x-powerlab:
     store_app_id: firefox
@@ -31,7 +26,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: firefox
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: firefox/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:06Z"
+        synced_at: "2026-05-12T14:50:11Z"

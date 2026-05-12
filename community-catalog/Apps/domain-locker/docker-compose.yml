@@ -1,46 +1,46 @@
-version: '3.7'
-
+name: domain-locker
 services:
-  app_proxy:
-    environment:
-      APP_HOST: domain-locker_app_1
-      APP_PORT: 3000
-
-  app:
-    image: lissy93/domain-locker:0.1.4@sha256:c49d00d31d0bc948c01c046ce283a11af4bdc0742643ee1ab21675ce7f80da69
-    user: "1000:1000"
-    restart: on-failure
-    environment:
-      DL_ENV_TYPE: selfHosted
-      DL_PG_HOST: domain-locker_postgres_1
-      DL_PG_PORT: 5432
-      DL_PG_USER: postgres
-      DL_PG_PASSWORD: domain-locker
-      DL_PG_NAME: domain_locker
-    depends_on:
-      - postgres
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  postgres:
-    image: postgres:17.4@sha256:fe3f571d128e8efadcd8b2fde0e2b73ebab6dbec33f6bfe69d98c682c7d8f7bd
-    user: "1000:1000"
-    restart: on-failure
-    environment:
-      POSTGRES_DB: domain_locker
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: domain-locker
-    volumes:
-      - ${APP_DATA_DIR}/data/db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    app:
+        depends_on:
+            - postgres
+        environment:
+            DL_ENV_TYPE: selfHosted
+            DL_PG_HOST: domain-locker_postgres_1
+            DL_PG_NAME: domain_locker
+            DL_PG_PASSWORD: domain-locker
+            DL_PG_PORT: 5432
+            DL_PG_USER: postgres
+        healthcheck:
+            interval: 30s
+            retries: 3
+            start_period: 40s
+            test:
+                - CMD
+                - curl
+                - -f
+                - http://localhost:3000/health
+            timeout: 10s
+        image: lissy93/domain-locker:0.1.4@sha256:c49d00d31d0bc948c01c046ce283a11af4bdc0742643ee1ab21675ce7f80da69
+        restart: on-failure
+        user: 1000:1000
+    postgres:
+        environment:
+            POSTGRES_DB: domain_locker
+            POSTGRES_PASSWORD: domain-locker
+            POSTGRES_USER: postgres
+        healthcheck:
+            interval: 10s
+            retries: 5
+            test:
+                - CMD-SHELL
+                - pg_isready -U postgres
+            timeout: 5s
+        image: postgres:17.4@sha256:fe3f571d128e8efadcd8b2fde0e2b73ebab6dbec33f6bfe69d98c682c7d8f7bd
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/domain-locker/data/db_data:/var/lib/postgresql/data
+version: "3.7"
 
 x-powerlab:
     store_app_id: domain-locker
@@ -57,7 +57,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: domain-locker
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: domain-locker/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:05Z"
+        synced_at: "2026-05-12T14:50:09Z"

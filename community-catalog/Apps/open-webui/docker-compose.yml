@@ -1,21 +1,13 @@
-version: '3.7'
-
+name: open-webui
 services:
-  app_proxy:
-    environment:
-      APP_HOST: open-webui_web_1
-      APP_PORT: 8080
-      PROXY_AUTH_ADD: "false"
-
-  web:
-    image: ghcr.io/open-webui/open-webui:v0.9.2@sha256:a7e4796ae894d1e2a0c1824860ade472f35c507608a01c3581377b5c19b0ed49
-    volumes:
-      - ${APP_DATA_DIR}/data/open-webui:/app/backend/data
-    environment:
-      # Exported from ollama app, which is currently a required dependency.
-      # This will need to change once optional dependencies are supported.
-      OLLAMA_BASE_URL: $APP_OLLAMA_URL
-    restart: on-failure
+    web:
+        environment:
+            OLLAMA_BASE_URL: $APP_OLLAMA_URL
+        image: ghcr.io/open-webui/open-webui:v0.9.5@sha256:e045bde3b004cc7f8c319412345eb56c87ea6ac57031534a31ca37ad5424beb3
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/open-webui/data/open-webui:/app/backend/data
+version: "3.7"
 
 x-powerlab:
     store_app_id: open-webui
@@ -34,7 +26,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: open-webui
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: open-webui/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:13Z"
+        synced_at: "2026-05-12T14:50:18Z"

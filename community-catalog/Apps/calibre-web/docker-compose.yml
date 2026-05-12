@@ -1,21 +1,16 @@
-version: "3.7"
-
+name: calibre-web
 services:
-  app_proxy:
-    environment:
-      APP_HOST: calibre-web_server_1
-      APP_PORT: 8083
-
-  server:
-    image: linuxserver/calibre-web:0.6.26@sha256:95fa0d0d07bf1be2404236222a882a467431f34ee35ad29b6e7b3b4bca3b0376
-    stop_grace_period: 1m
-    environment:
-      - PUID=1000
-      - PGID=1000
-    volumes:
-      - ${APP_DATA_DIR}/data/config:/config
-      - ${APP_DATA_DIR}/data/books:/books
-    restart: on-failure
+    server:
+        environment:
+            - PUID=1000
+            - PGID=1000
+        image: linuxserver/calibre-web:0.6.26@sha256:95fa0d0d07bf1be2404236222a882a467431f34ee35ad29b6e7b3b4bca3b0376
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/calibre-web/data/config:/config
+            - /DATA/PowerLabAppData/calibre-web/data/books:/books
+version: "3.7"
 
 x-powerlab:
     store_app_id: calibre-web
@@ -32,7 +27,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: calibre-web
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: calibre-web/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:05Z"
+        synced_at: "2026-05-12T14:50:08Z"

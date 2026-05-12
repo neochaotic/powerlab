@@ -1,44 +1,37 @@
-version: '3.7'
-
+name: docmost
 services:
-  app_proxy:
-    environment:
-      APP_HOST: docmost_web_1
-      APP_PORT: 3000
-
-  web:
-    image: docmost/docmost:0.80.2@sha256:0376e0cd5b82b5f7d221a537e33886c09d1523ca54dbda29c6100106b90ce4e9
-    user: "1000:1000"
-    depends_on:
-      - db
-      - redis
-    environment:
-      APP_URL: "http://${DEVICE_DOMAIN_NAME}:8941"
-      APP_SECRET: ${APP_SEED}
-      DATABASE_URL: 'postgresql://docmostuser:docmostpass@docmost_db_1:5432/docmost?sslmode=disable'
-      REDIS_URL: "redis://docmost_redis_1:6379"
-      DISABLE_TELEMETRY: "true"
-    restart: on-failure
-    volumes:
-      - ${APP_DATA_DIR}/data/docmost_data:/app/data/storage
-
-  db:
-    image: postgres:17.3@sha256:0321e2252ebfeecb8bc1a899755084d29bce872953e1a5a3e25ec0860b739098
-    user: "1000:1000"
-    environment:
-      POSTGRES_DB: docmost
-      POSTGRES_USER: docmostuser
-      POSTGRES_PASSWORD: docmostpass
-    restart: on-failure
-    volumes:
-      - ${APP_DATA_DIR}/data/db_data:/var/lib/postgresql/data
-
-  redis:
-    image: redis:8.0.1@sha256:b3ad79880c88e302deb5e0fed6cee3e90c0031eb90cd936b01ef2f83ff5b3ff2
-    user: "1000:1000"
-    restart: on-failure
-    volumes:
-      - ${APP_DATA_DIR}/data/redis_data:/data
+    db:
+        environment:
+            POSTGRES_DB: docmost
+            POSTGRES_PASSWORD: docmostpass
+            POSTGRES_USER: docmostuser
+        image: postgres:17.3@sha256:0321e2252ebfeecb8bc1a899755084d29bce872953e1a5a3e25ec0860b739098
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/docmost/data/db_data:/var/lib/postgresql/data
+    redis:
+        image: redis:8.0.1@sha256:b3ad79880c88e302deb5e0fed6cee3e90c0031eb90cd936b01ef2f83ff5b3ff2
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/docmost/data/redis_data:/data
+    web:
+        depends_on:
+            - db
+            - redis
+        environment:
+            APP_SECRET: ${APP_SEED}
+            APP_URL: http://${DEVICE_DOMAIN_NAME}:8941
+            DATABASE_URL: postgresql://docmostuser:docmostpass@docmost_db_1:5432/docmost?sslmode=disable
+            DISABLE_TELEMETRY: "true"
+            REDIS_URL: redis://docmost_redis_1:6379
+        image: docmost/docmost:0.80.2@sha256:0376e0cd5b82b5f7d221a537e33886c09d1523ca54dbda29c6100106b90ce4e9
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/docmost/data/docmost_data:/app/data/storage
+version: "3.7"
 
 x-powerlab:
     store_app_id: docmost
@@ -57,7 +50,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: docmost
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: docmost/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:05Z"
+        synced_at: "2026-05-12T14:50:09Z"

@@ -1,41 +1,32 @@
-version: "3.7"
-
+name: pastefy
 services:
-  app_proxy:
-    environment:
-      APP_HOST: pastefy_app_1
-      APP_PORT: 80
-      PROXY_AUTH_ADD: "false"
-
-  db:
-    image: mariadb:11.4.5@sha256:5dfb3093333fa0ea53194ddef0a2bfa21d3b1e1353bd228b22610cd6fc0c04da
-    user: "1000:1000"
-    environment:
-      MYSQL_ROOT_PASSWORD: "tyooe"
-      MYSQL_DATABASE: "pastefy"
-      MYSQL_USER: "pastefy"
-      MYSQL_PASSWORD: "tyooe"
-    volumes:
-      - ${APP_DATA_DIR}/data/db:/var/lib/mysql:rw
-    restart: on-failure
-
-  app:
-    image: interaapps/pastefy:7.1.6@sha256:353ce246ccf24ab1dec42e3c387744b47925065c207699f0bf1ce8e560619ca9
-    user: "1000:1000"
-    environment:
-      HTTP_SERVER_CORS: "*"
-      DATABASE_DRIVER: "mysql"
-      DATABASE_NAME: "pastefy"
-      DATABASE_USER: "pastefy"
-      DATABASE_PASSWORD: "tyooe"
-      DATABASE_HOST: "pastefy_db_1"
-      DATABASE_PORT: "3306"
-      SERVER_NAME: "http://${DEVICE_DOMAIN_NAME}:9900"
-      # OAUTH2_PROVIDER_CLIENT_ID: 
-      # OAUTH2_PROVIDER_CLIENT_SECRET: 
-    restart: on-failure
-    depends_on:
-      - db
+    app:
+        depends_on:
+            - db
+        environment:
+            DATABASE_DRIVER: mysql
+            DATABASE_HOST: pastefy_db_1
+            DATABASE_NAME: pastefy
+            DATABASE_PASSWORD: tyooe
+            DATABASE_PORT: "3306"
+            DATABASE_USER: pastefy
+            HTTP_SERVER_CORS: '*'
+            SERVER_NAME: http://${DEVICE_DOMAIN_NAME}:9900
+        image: interaapps/pastefy:7.1.6@sha256:353ce246ccf24ab1dec42e3c387744b47925065c207699f0bf1ce8e560619ca9
+        restart: on-failure
+        user: 1000:1000
+    db:
+        environment:
+            MYSQL_DATABASE: pastefy
+            MYSQL_PASSWORD: tyooe
+            MYSQL_ROOT_PASSWORD: tyooe
+            MYSQL_USER: pastefy
+        image: mariadb:11.4.5@sha256:5dfb3093333fa0ea53194ddef0a2bfa21d3b1e1353bd228b22610cd6fc0c04da
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/pastefy/data/db:/var/lib/mysql:rw
+version: "3.7"
 
 x-powerlab:
     store_app_id: pastefy
@@ -52,7 +43,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: pastefy
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: pastefy/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:14Z"
+        synced_at: "2026-05-12T14:50:20Z"

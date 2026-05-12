@@ -1,21 +1,16 @@
-version: "3.7"
-
+name: searxng
 services:
-  app_proxy:
-    environment:
-      APP_HOST: searxng-web
-      APP_PORT: 8080
-
-  web:
-    image: ghcr.io/searxng/searxng:2026.4.7-08ef7a63d@sha256:6a89a150d0163877caab1982b7a20d0a03fd4b39401a0d3f26f61ad205949442
-    container_name: searxng-web # Avoid underscores in hostname (Werkzeug rejects them)
-    restart: on-failure
-    environment:
-      SEARXNG_SECRET: ${APP_SEED}
-      SEARXNG_LIMITER: "false" # Disable bot detection — container-to-container calls lack proxy headers
-    volumes:
-      - ${APP_DATA_DIR}/data/config:/etc/searxng
-      - ${APP_DATA_DIR}/data/cache:/var/cache/searxng
+    web:
+        container_name: searxng-web
+        environment:
+            SEARXNG_LIMITER: "false"
+            SEARXNG_SECRET: ${APP_SEED}
+        image: ghcr.io/searxng/searxng:2026.4.7-08ef7a63d@sha256:6a89a150d0163877caab1982b7a20d0a03fd4b39401a0d3f26f61ad205949442
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/searxng/data/config:/etc/searxng
+            - /DATA/PowerLabAppData/searxng/data/cache:/var/cache/searxng
+version: "3.7"
 
 x-powerlab:
     store_app_id: searxng
@@ -32,7 +27,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: searxng
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: searxng/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:16Z"
+        synced_at: "2026-05-12T14:50:22Z"

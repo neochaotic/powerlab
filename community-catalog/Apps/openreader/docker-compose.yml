@@ -1,19 +1,14 @@
-version: '3.7'
-
+name: openreader
 services:
-  app_proxy:
-    environment:
-      APP_HOST: openreader_web_1
-      APP_PORT: 3003
-
-  web:
-    image: ghcr.io/richardr1126/openreader-webui:2.2.0@sha256:245e6b8914cff79cc4c1cea5251446b18199fcabb6e865f543f186a44f071baa
-    user: "1000:1000"
-    environment:
-      - API_BASE=http://kokoro_web_1:8880/v1 #Set the TTS API_BASE URL and/or API_KEY as the default for all devices. These values can also be overridden in the UI.
-    restart: on-failure
-    volumes:
-      - ${APP_DATA_DIR}/data/docstore:/app/docstore
+    web:
+        environment:
+            - API_BASE=http://kokoro_web_1:8880/v1
+        image: ghcr.io/richardr1126/openreader-webui:2.2.0@sha256:245e6b8914cff79cc4c1cea5251446b18199fcabb6e865f543f186a44f071baa
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/openreader/data/docstore:/app/docstore
+version: "3.7"
 
 x-powerlab:
     store_app_id: openreader
@@ -32,7 +27,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: openreader
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: openreader/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:13Z"
+        synced_at: "2026-05-12T14:50:19Z"

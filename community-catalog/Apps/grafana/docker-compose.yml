@@ -1,19 +1,12 @@
-version: "3.7"
-
+name: grafana
 services:
-  
-  app_proxy:
-    environment:
-      APP_HOST: grafana_web_1
-      APP_PORT: 3000
-      PROXY_AUTH_WHITELIST: "/api/*"
-      
-  web:
-    image: grafana/grafana:13.0.1@sha256:0f86bada30d65ef9d0183b90c1e2682ac92d53d95da8bed322b984ea78a4a73a
-    user: 1000:1000
-    restart: on-failure
-    volumes:
-      - ${APP_DATA_DIR}/data:/var/lib/grafana
+    web:
+        image: grafana/grafana:13.0.1@sha256:0f86bada30d65ef9d0183b90c1e2682ac92d53d95da8bed322b984ea78a4a73a
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/grafana/data:/var/lib/grafana
+version: "3.7"
 
 x-powerlab:
     store_app_id: grafana
@@ -32,7 +25,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: grafana
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: grafana/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:07Z"
+        synced_at: "2026-05-12T14:50:12Z"

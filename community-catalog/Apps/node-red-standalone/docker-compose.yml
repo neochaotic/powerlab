@@ -1,15 +1,15 @@
-version: "3.7"
-
+name: node-red-standalone
 services:
-  web:
-    image: nodered/node-red:4.1.9@sha256:830e56a3a05deed2f4ef6334879a3371f2c93df320f58c518c8648c8eaf64792
-    network_mode: host
-    restart: on-failure
-    stop_grace_period: 1m
-    volumes:
-      - ${APP_DATA_DIR}/data:/data
-    environment:
-      PORT: 1881
+    web:
+        environment:
+            PORT: 1881
+        image: nodered/node-red:4.1.10@sha256:eaa2fa23f751581162a4ff9eebb28fcbfcca7935b1a839f63672718f3c816761
+        network_mode: host
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/node-red-standalone/data:/data
+version: "3.7"
 
 x-powerlab:
     store_app_id: node-red-standalone
@@ -26,7 +26,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: node-red-standalone
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: node-red-standalone/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:12Z"
+        synced_at: "2026-05-12T14:50:18Z"

@@ -1,14 +1,9 @@
-version: '3.7'
-
+name: super-productivity
 services:
-  app_proxy:
-    environment:
-      APP_HOST: super-productivity_web_1
-      APP_PORT: 80
-
-  web:
-    image: johannesjo/super-productivity:v18.5.0@sha256:c0bc2f501c4492e854b10c001eb511176cee253a23b33a1b2e446b2245d3caef
-    restart: on-failure
+    web:
+        image: johannesjo/super-productivity:v18.5.0@sha256:c0bc2f501c4492e854b10c001eb511176cee253a23b33a1b2e446b2245d3caef
+        restart: on-failure
+version: "3.7"
 
 x-powerlab:
     store_app_id: super-productivity
@@ -25,7 +20,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: super-productivity
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: super-productivity/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:17Z"
+        synced_at: "2026-05-12T14:50:23Z"

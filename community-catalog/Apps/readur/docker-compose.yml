@@ -1,60 +1,60 @@
-version: "3.7"
-
+name: readur
 services:
-  app_proxy:
-    environment:
-      APP_HOST: readur_app_1
-      APP_PORT: 8000
-
-  app:
-    image: ghcr.io/readur/readur:2.9.1@sha256:16aa8b1d7df218ab0f4fc57fbf890d125020fca416bc3555aa7731e7329020dc
-    user: "1000:1000"
-    restart: on-failure
-    environment:
-      DATABASE_URL: postgresql://readur:readur_password@readur_postgres_1:5432/readur
-      JWT_SECRET: ${APP_SEED}
-      SERVER_ADDRESS: 0.0.0.0:8000
-      UPLOAD_PATH: /app/uploads
-      WATCH_FOLDER: /app/watch
-      ALLOWED_FILE_TYPES: pdf,png,jpg,jpeg,tiff,bmp,gif,txt,rtf,doc,docx
-      WATCH_INTERVAL_SECONDS: 30
-      FILE_STABILITY_CHECK_MS: 500
-      MAX_FILE_AGE_HOURS: 168
-      OCR_LANGUAGE: eng
-      CONCURRENT_OCR_JOBS: 4
-      OCR_TIMEOUT_SECONDS: 300
-      MAX_FILE_SIZE_MB: 50
-      MEMORY_LIMIT_MB: 512
-      CPU_PRIORITY: normal
-      ADMIN_PASSWORD: readur2024
-    volumes:
-      - ${APP_DATA_DIR}/data/uploads:/app/uploads
-      - ${APP_DATA_DIR}/data/watch:/app/watch
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  postgres:
-    image: postgres:17.5@sha256:3962158596daaef3682838cc8eb0e719ad1ce520f88e34596ce8d5de1b6330a1
-    user: "1000:1000"
-    restart: on-failure
-    environment:
-      POSTGRES_USER: readur
-      POSTGRES_PASSWORD: readur_password
-      POSTGRES_DB: readur
-    volumes:
-      - ${APP_DATA_DIR}/data/postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U readur"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    app:
+        depends_on:
+            postgres:
+                condition: service_healthy
+        environment:
+            ADMIN_PASSWORD: readur2024
+            ALLOWED_FILE_TYPES: pdf,png,jpg,jpeg,tiff,bmp,gif,txt,rtf,doc,docx
+            CONCURRENT_OCR_JOBS: 4
+            CPU_PRIORITY: normal
+            DATABASE_URL: postgresql://readur:readur_password@readur_postgres_1:5432/readur
+            FILE_STABILITY_CHECK_MS: 500
+            JWT_SECRET: ${APP_SEED}
+            MAX_FILE_AGE_HOURS: 168
+            MAX_FILE_SIZE_MB: 50
+            MEMORY_LIMIT_MB: 512
+            OCR_LANGUAGE: eng
+            OCR_TIMEOUT_SECONDS: 300
+            SERVER_ADDRESS: 0.0.0.0:8000
+            UPLOAD_PATH: /app/uploads
+            WATCH_FOLDER: /app/watch
+            WATCH_INTERVAL_SECONDS: 30
+        healthcheck:
+            interval: 30s
+            retries: 3
+            start_period: 40s
+            test:
+                - CMD
+                - curl
+                - -f
+                - http://localhost:8000/api/health
+            timeout: 10s
+        image: ghcr.io/readur/readur:2.9.1@sha256:16aa8b1d7df218ab0f4fc57fbf890d125020fca416bc3555aa7731e7329020dc
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/readur/data/uploads:/app/uploads
+            - /DATA/PowerLabAppData/readur/data/watch:/app/watch
+    postgres:
+        environment:
+            POSTGRES_DB: readur
+            POSTGRES_PASSWORD: readur_password
+            POSTGRES_USER: readur
+        healthcheck:
+            interval: 10s
+            retries: 5
+            test:
+                - CMD-SHELL
+                - pg_isready -U readur
+            timeout: 5s
+        image: postgres:17.5@sha256:3962158596daaef3682838cc8eb0e719ad1ce520f88e34596ce8d5de1b6330a1
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/readur/data/postgres_data:/var/lib/postgresql/data
+version: "3.7"
 
 x-powerlab:
     store_app_id: readur
@@ -73,7 +73,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: readur
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: readur/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:15Z"
+        synced_at: "2026-05-12T14:50:21Z"

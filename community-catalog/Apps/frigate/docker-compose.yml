@@ -1,31 +1,21 @@
-version: "3.7"
-
+name: frigate
 services:
-  app_proxy:
-    environment:
-      APP_HOST: frigate_web_1
-      APP_PORT: 5000
-      PROXY_AUTH_ADD: "false"
-  
-  web:
-    privileged: true # this may not be necessary for all setups
-    restart: on-failure
-    image: ghcr.io/blakeblackshear/frigate:0.17.1@sha256:1724960349dad0bd2ae8ec884171a6fd5755a4dc242a0e66cadbda9c0e85c99b
-    shm_size: "128mb" # update for your cameras based on calculation above
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - ${APP_DATA_DIR}/data/config:/config
-      - ${APP_DATA_DIR}/data/storage:/media/frigate
-      # - type: tmpfs # Optional: 1GB of memory, reduces SSD/SD Card wear
-      #   target: /tmp/cache
-      #   tmpfs:
-      #     size: 1000000000
-    ports:
-      - "8554:8554" # RTSP feeds
-      - "8555:8555/tcp" # WebRTC over tcp
-      - "8555:8555/udp" # WebRTC over udp
-    environment:
-      FRIGATE_RTSP_PASSWORD: ${APP_PASSWORD}
+    web:
+        environment:
+            FRIGATE_RTSP_PASSWORD: ${APP_PASSWORD}
+        image: ghcr.io/blakeblackshear/frigate:0.17.1@sha256:1724960349dad0bd2ae8ec884171a6fd5755a4dc242a0e66cadbda9c0e85c99b
+        ports:
+            - 8554:8554
+            - 8555:8555/tcp
+            - 8555:8555/udp
+        privileged: true
+        restart: on-failure
+        shm_size: 128mb
+        volumes:
+            - /etc/localtime:/etc/localtime:ro
+            - /DATA/PowerLabAppData/frigate/data/config:/config
+            - /DATA/PowerLabAppData/frigate/data/storage:/media/frigate
+version: "3.7"
 
 x-powerlab:
     store_app_id: frigate
@@ -42,7 +32,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: frigate
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: frigate/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:07Z"
+        synced_at: "2026-05-12T14:50:11Z"

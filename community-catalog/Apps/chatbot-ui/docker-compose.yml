@@ -1,13 +1,8 @@
-version: "3.7"
-
+name: chatbot-ui
 services:
-  app_proxy:
-    environment:
-      APP_HOST: chatbot-ui_web_1
-      APP_PORT: 3000
-
-  web:
-    image: ghcr.io/mckaywrigley/chatbot-ui:main@sha256:569dffe6043136f03de86bde38453a58d05150f29476239dc1da4ce2573b4101
+    web:
+        image: ghcr.io/mckaywrigley/chatbot-ui:main@sha256:569dffe6043136f03de86bde38453a58d05150f29476239dc1da4ce2573b4101
+version: "3.7"
 
 x-powerlab:
     store_app_id: chatbot-ui
@@ -26,7 +21,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: chatbot-ui
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: chatbot-ui/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:05Z"
+        synced_at: "2026-05-12T14:50:08Z"

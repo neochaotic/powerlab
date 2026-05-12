@@ -1,19 +1,13 @@
-version: "3.7"
-
+name: thelounge
 services:
-  app_proxy:
-    environment:
-      APP_HOST: thelounge_web_1
-      APP_PORT: 9000
-      PROXY_AUTH_ADD: "false"
-
-  web:
-    image: ghcr.io/thelounge/thelounge:v4.4.3@sha256:c0565787e0c44951df4ea77840519a41cfe6a4ec040bf1bda928a91866cc3e5e
-    user: "1000:1000"
-    restart: on-failure
-    stop_grace_period: 1m
-    volumes:
-      - ${APP_DATA_DIR}/data:/var/opt/thelounge
+    web:
+        image: ghcr.io/thelounge/thelounge:v4.4.3@sha256:c0565787e0c44951df4ea77840519a41cfe6a4ec040bf1bda928a91866cc3e5e
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/thelounge/data:/var/opt/thelounge
+version: "3.7"
 
 x-powerlab:
     store_app_id: thelounge
@@ -30,7 +24,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: thelounge
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: thelounge/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:17Z"
+        synced_at: "2026-05-12T14:50:24Z"
