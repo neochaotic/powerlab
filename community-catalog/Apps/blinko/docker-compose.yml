@@ -25,6 +25,8 @@ services:
             options:
                 max-file: "3"
                 max-size: 10m
+        ports:
+            - 1111:1111
         restart: on-failure
         user: 1000:1000
         volumes:
@@ -73,4 +75,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: blinko/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:01:51Z"
+        synced_at: "2026-05-12T15:42:44Z"

@@ -2,6 +2,8 @@ name: mqttx-web
 services:
     app:
         image: emqx/mqttx-web:v1.13.0@sha256:64525ad96286280f85f9f1a3f74a98475d1bbfe7a8ee278f93fa6991e6090c9c
+        ports:
+            - 9012:80
         restart: on-failure
         user: 1000:1000
 
@@ -25,4 +27,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: mqttx-web/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:25Z"
+        synced_at: "2026-05-12T15:43:22Z"

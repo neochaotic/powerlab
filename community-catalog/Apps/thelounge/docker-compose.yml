@@ -2,6 +2,8 @@ name: thelounge
 services:
     web:
         image: ghcr.io/thelounge/thelounge:v4.4.3@sha256:c0565787e0c44951df4ea77840519a41cfe6a4ec040bf1bda928a91866cc3e5e
+        ports:
+            - 9003:9000
         restart: on-failure
         stop_grace_period: 1m
         user: 1000:1000
@@ -27,4 +29,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: thelounge/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:53Z"
+        synced_at: "2026-05-12T15:43:48Z"

@@ -17,6 +17,8 @@ services:
             DB_USERNAME: admin
             LOCALE: en-US
         image: akaunting/akaunting:3.1.21@sha256:918bbc77981e5b96ab6aa6838491cfa7c98cb4ee7bbf9532ee083e7e66d04255
+        ports:
+            - 8773:80
         restart: on-failure
     db:
         environment:
@@ -49,4 +51,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: akaunting/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:01:46Z"
+        synced_at: "2026-05-12T15:42:40Z"

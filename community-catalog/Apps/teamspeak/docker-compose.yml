@@ -17,6 +17,8 @@ services:
         environment:
             JWT_SECRET: $APP_SEED
         image: joni1802/ts3-manager:v2.2.1@sha256:d69890c323e8715cef0f625036c7c51ec7e7da321438897633fff5df83da1e39
+        ports:
+            - 50371:8080
         restart: on-failure
         stop_grace_period: 1m
         user: 1000:1000
@@ -40,4 +42,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: teamspeak/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:52Z"
+        synced_at: "2026-05-12T15:43:47Z"

@@ -4,6 +4,8 @@ services:
         environment:
             JWT_SECRET: ${APP_SEED}
         image: budibase/budibase:3.38.1@sha256:faf8ef0663e980deb4de1d82e25ce6f0a0f620d072307254ae3356e93eb17c11
+        ports:
+            - 6733:80
         restart: on-failure
         stop_grace_period: 1m
         volumes:
@@ -28,4 +30,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: budibase/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:01:52Z"
+        synced_at: "2026-05-12T15:42:44Z"

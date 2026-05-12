@@ -5,6 +5,8 @@ services:
             - PUID=1000
             - PGID=1000
         image: linuxserver/firefox:139.0.4@sha256:01c090309f63bc619a1df80bf14fdc87cb6fd922d956da48a968a60ab5a0df6d
+        ports:
+            - 3434:3000
         restart: on-failure
         shm_size: 1gb
         volumes:
@@ -29,4 +31,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: firefox/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:02Z"
+        synced_at: "2026-05-12T15:42:57Z"

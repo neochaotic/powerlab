@@ -4,6 +4,8 @@ services:
         environment:
             - API_BASE=http://kokoro_web_1:8880/v1
         image: ghcr.io/richardr1126/openreader-webui:2.2.0@sha256:245e6b8914cff79cc4c1cea5251446b18199fcabb6e865f543f186a44f071baa
+        ports:
+            - 3391:3003
         restart: on-failure
         user: 1000:1000
         volumes:
@@ -30,4 +32,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: openreader/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:33Z"
+        synced_at: "2026-05-12T15:43:31Z"

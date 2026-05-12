@@ -19,6 +19,8 @@ services:
                 - http://127.0.0.1/api/health
             timeout: 10s
         image: ghcr.io/timothepoznanski/poznote:6.9.9@sha256:eab73cbcbae32c1b7fcbfec56e8a3b169f27b922fa1fcbe1b2646f031c99dfe0
+        ports:
+            - 8389:80
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/poznote/data:/var/www/html/data
@@ -56,4 +58,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: poznote/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:41Z"
+        synced_at: "2026-05-12T15:43:38Z"

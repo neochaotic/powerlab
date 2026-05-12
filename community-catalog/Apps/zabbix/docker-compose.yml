@@ -30,6 +30,8 @@ services:
             ZBX_SERVER_HOST: zabbix-server
         hostname: zabbix-frontend
         image: zabbix/zabbix-web-nginx-pgsql:7.4.10-alpine@sha256:b810d84400c4527473226f0ccdb7c29eee9397cabfaa220a8ed9135bd110e530
+        ports:
+            - 10052:8080
         restart: on-failure
     zabbix-server:
         depends_on:
@@ -64,4 +66,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: zabbix/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:03:03Z"
+        synced_at: "2026-05-12T15:43:53Z"

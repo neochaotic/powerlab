@@ -5,6 +5,8 @@ services:
             - PUID=1000
             - PGID=1000
         image: linuxserver/snapdrop:version-b8b78cc2@sha256:3e0af233372e6ae7ac711397d40cbe2797cefe13220d65e5e284a64252cc0c2c
+        ports:
+            - 8222:80
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/snapdrop/data/config:/config
@@ -28,4 +30,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: snapdrop/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:48Z"
+        synced_at: "2026-05-12T15:43:45Z"

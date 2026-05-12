@@ -10,6 +10,8 @@ services:
             disable: true
         image: ghcr.io/advplyr/audiobookshelf:2.34.0@sha256:4143292c530f6ac6700afd13360c04f477e4f1a81c1c97c4224b1c7e4330c5c4
         init: true
+        ports:
+            - 13378:80
         restart: on-failure
         stop_grace_period: 1m
         user: 1000:1000
@@ -38,4 +40,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: audiobookshelf/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:01:47Z"
+        synced_at: "2026-05-12T15:42:42Z"

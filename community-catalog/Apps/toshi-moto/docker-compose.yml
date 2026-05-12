@@ -23,6 +23,8 @@ services:
         environment:
             PORT: 8021
         image: toshimoto821/toshi-moto:1.37.1@sha256:c4317ae166e7d4fd57acb5822f44cf2edaef71f5bf032ca0c866b8a12c71a470
+        ports:
+            - 8021:8021
         restart: on-failure
         stop_grace_period: 1m
         user: 1000:1000
@@ -50,4 +52,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: toshi-moto/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:54Z"
+        synced_at: "2026-05-12T15:43:48Z"

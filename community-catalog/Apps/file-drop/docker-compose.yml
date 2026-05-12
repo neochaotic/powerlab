@@ -4,6 +4,8 @@ services:
         environment:
             - NODE_ENV=production
         image: ghcr.io/besoeasy/file-drop:1.1.1@sha256:672d05e260c88bd6d923b2b0b3b845bd80b35e0255cec35b2f047aa7a6525e5f
+        ports:
+            - 3232:3232
         restart: on-failure
         stop_grace_period: 5m
         user: 1000:1000
@@ -29,4 +31,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: file-drop/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:02Z"
+        synced_at: "2026-05-12T15:42:56Z"

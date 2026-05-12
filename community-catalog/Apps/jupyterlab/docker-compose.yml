@@ -3,6 +3,8 @@ services:
     server:
         command: start-notebook.py --NotebookApp.token=${APP_PASSWORD}
         image: quay.io/jupyter/base-notebook:lab-4.5.7@sha256:3171810d80d421edb7bfb93422d5587a763bfee505a603a91cb4f8babdac37ff
+        ports:
+            - 8899:8888
         restart: on-failure
         user: 1000:1000
         volumes:
@@ -28,4 +30,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: jupyterlab/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:14Z"
+        synced_at: "2026-05-12T15:43:08Z"

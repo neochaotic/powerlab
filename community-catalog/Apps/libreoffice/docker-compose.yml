@@ -5,6 +5,8 @@ services:
             - PUID=1000
             - PGID=1000
         image: linuxserver/libreoffice:7.6.7@sha256:a62c7f094f2a7ed8145983d04f54ca80d85b557bbdda0f9aa784ccb6267b70e8
+        ports:
+            - 5001:3000
         restart: on-failure
         stop_grace_period: 1m
         volumes:
@@ -29,4 +31,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: libreoffice/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:17Z"
+        synced_at: "2026-05-12T15:43:13Z"

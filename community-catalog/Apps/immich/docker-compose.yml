@@ -64,6 +64,8 @@ services:
             REDIS_HOSTNAME: immich_redis_1
             REVERSE_GEOCODING_PRECISION: "3"
         image: ghcr.io/immich-app/immich-server:v2.7.5@sha256:c15bff75068effb03f4355997d03dc7e0fc58720c2b54ad6f7f10d1bc57efaa5
+        ports:
+            - 2283:2283
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/immich/data/upload:/data
@@ -102,4 +104,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: immich/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:10Z"
+        synced_at: "2026-05-12T15:43:04Z"

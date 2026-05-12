@@ -13,6 +13,8 @@ services:
             HTTP_SERVER_CORS: '*'
             SERVER_NAME: http://${DEVICE_DOMAIN_NAME}:9900
         image: interaapps/pastefy:7.1.6@sha256:353ce246ccf24ab1dec42e3c387744b47925065c207699f0bf1ce8e560619ca9
+        ports:
+            - 9900:80
         restart: on-failure
         user: 1000:1000
     db:
@@ -46,4 +48,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: pastefy/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:37Z"
+        synced_at: "2026-05-12T15:43:34Z"

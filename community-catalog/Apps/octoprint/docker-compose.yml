@@ -2,6 +2,8 @@ name: octoprint
 services:
     web:
         image: octoprint/octoprint:1.11.7@sha256:49bea4ebfd0cefa9289f058574e7eda6d2de201f1b74309e0c10019e5ec58f04
+        ports:
+            - 5003:5000
         privileged: true
         restart: on-failure
         volumes:
@@ -29,4 +31,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: octoprint/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:31Z"
+        synced_at: "2026-05-12T15:43:28Z"

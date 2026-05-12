@@ -5,6 +5,8 @@ services:
             - PUID=1000
             - PGID=1000
         image: linuxserver/heimdall:2.7.6@sha256:30c32fb4ebe54282b6e60cb0232f57d5fcda60d87a9b7e9a4d1ef71ad636817d
+        ports:
+            - 7392:80
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/heimdall/config:/config
@@ -28,4 +30,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: heimdall/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:07Z"
+        synced_at: "2026-05-12T15:43:01Z"

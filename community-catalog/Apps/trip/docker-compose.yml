@@ -8,6 +8,8 @@ services:
             - --host
             - 0.0.0.0
         image: ghcr.io/itskovacs/trip:1.43.2@sha256:9e63c48d8c11b681d67e1a4178ca9b1818a2aba53e8541df30fcd8bdb40c3ad5
+        ports:
+            - 8980:8000
         restart: on-failure
         stop_grace_period: 1m
         volumes:
@@ -34,4 +36,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: trip/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:55Z"
+        synced_at: "2026-05-12T15:43:49Z"

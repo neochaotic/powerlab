@@ -18,6 +18,8 @@ services:
             security__staffDeviceVerification: "false"
             url: http://${DEVICE_DOMAIN_NAME}:3368
         image: ghost:6.37.1@sha256:b9bb8898a04041632e3233de2f3a7bf4a0d8758fa7e6e2452fe0c8b139a59741
+        ports:
+            - 3368:2368
         restart: on-failure
         user: 1000:1000
         volumes:
@@ -44,4 +46,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: ghost/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:05Z"
+        synced_at: "2026-05-12T15:42:59Z"

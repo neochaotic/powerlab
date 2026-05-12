@@ -33,6 +33,8 @@ services:
             NEXTAUTH_SECRET: ${APP_SEED}
             NEXTAUTH_URL: http://${DEVICE_DOMAIN_NAME}:8620
         image: ghcr.io/karakeep-app/karakeep:0.32.0@sha256:64d6a9bbf2d37b5c808cf06b5d87f1f1c7846fdd3844724145a9741aeb06fd31
+        ports:
+            - 8620:3000
         restart: on-failure
         user: 1000:1000
         volumes:
@@ -59,4 +61,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: karakeep/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:15Z"
+        synced_at: "2026-05-12T15:43:09Z"

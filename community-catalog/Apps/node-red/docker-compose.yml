@@ -13,6 +13,8 @@ services:
             LND_IP: $APP_LIGHTNING_NODE_IP
             PORT: 1880
         image: nodered/node-red:4.1.8@sha256:a5cb1dcdf90a7148b02b9dba4acfe6bd98c7bf3bff1e845dcdecfd7af3a95a29
+        ports:
+            - 1880:1880
         restart: on-failure
         stop_grace_period: 1m
         volumes:
@@ -38,4 +40,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: node-red/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:30Z"
+        synced_at: "2026-05-12T15:43:27Z"

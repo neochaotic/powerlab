@@ -69,6 +69,8 @@ services:
                 - /usr/bin/healthcheck
             timeout: 10s
         image: owncloud/server:10.16.0@sha256:62c93574d2bd0f98d17ac1a541f703653822e4572a628dcf993a8e65b2400e97
+        ports:
+            - 8666:8080
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/owncloud/data/app:/mnt/data
@@ -93,4 +95,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: owncloud/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:35Z"
+        synced_at: "2026-05-12T15:43:32Z"

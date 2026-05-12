@@ -5,6 +5,8 @@ services:
             - PUID=1000
             - PGID=1000
         image: deluan/navidrome:0.61.2@sha256:9fa40b3d8dec43ceb2213d1fa551da3dcfef6ac6d19c2e534efb92527c2bafd2
+        ports:
+            - 4533:4533
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/navidrome/data:/data
@@ -28,4 +30,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: navidrome/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:27Z"
+        synced_at: "2026-05-12T15:43:24Z"

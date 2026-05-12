@@ -2,6 +2,8 @@ name: wikijs
 services:
     server:
         image: linuxserver/wikijs:2.5.314@sha256:459b7ab15e3b726c91fdeebb3e6dada39c409419abaf98aea22866a51262ffaa
+        ports:
+            - 9182:3000
         restart: on-failure
         user: 1000:1000
         volumes:
@@ -30,4 +32,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: wikijs/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:03:01Z"
+        synced_at: "2026-05-12T15:43:52Z"

@@ -280,6 +280,8 @@ services:
         depends_on:
             - web
         image: nginx:alpine3.23@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
+        ports:
+            - 8762:8762
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/plane/config/nginx.conf:/etc/nginx/conf.d/default.conf:ro
@@ -493,4 +495,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: plane/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:40Z"
+        synced_at: "2026-05-12T15:43:37Z"

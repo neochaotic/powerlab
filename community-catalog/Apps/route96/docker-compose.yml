@@ -18,6 +18,8 @@ services:
             APP_PUBLIC_URL: http://${APP_DOMAIN}:8002
             RUST_LOG: info
         image: voidic/route96:v0.7.0@sha256:5ab6064f18ca191dd5836487505607122ef3bfeba6e6ccc5b28eef5c604cf4cc
+        ports:
+            - 8002:8002
         restart: on-failure
         user: 1000:1000
         volumes:
@@ -45,4 +47,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: route96/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:44Z"
+        synced_at: "2026-05-12T15:43:41Z"

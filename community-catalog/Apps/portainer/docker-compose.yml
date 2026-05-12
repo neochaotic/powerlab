@@ -22,6 +22,8 @@ services:
     portainer:
         command: --host unix:///var/run/docker.sock --admin-password-file=/default-password
         image: portainer/portainer-ce:2.39.1-alpine@sha256:2d423f0e4598833b6cdccca4baf59b552522b68d90a8906f11044bbe91e427f6
+        ports:
+            - 9000:9000
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/portainer/default-password:/default-password
@@ -47,4 +49,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: portainer/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:41Z"
+        synced_at: "2026-05-12T15:43:38Z"

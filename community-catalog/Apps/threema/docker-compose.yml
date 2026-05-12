@@ -2,6 +2,8 @@ name: threema
 services:
     web:
         image: dennysubke/threema-web:v2.6.3@sha256:8c65ceb537a7a85bb98ef38263860dc6bede8faef620143ec01a584dec26878d
+        ports:
+            - 8855:80
         restart: on-failure
 version: "3.7"
 
@@ -23,4 +25,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: threema/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:53Z"
+        synced_at: "2026-05-12T15:43:48Z"

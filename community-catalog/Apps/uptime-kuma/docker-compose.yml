@@ -2,6 +2,8 @@ name: uptime-kuma
 services:
     server:
         image: louislam/uptime-kuma:2.3.2@sha256:9aeb4e51d038047f414309c77a1af553281ca535723cb88907d907269d0a908e
+        ports:
+            - 8385:3001
         restart: on-failure
         stop_grace_period: 1m
         volumes:
@@ -26,4 +28,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: uptime-kuma/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:56Z"
+        synced_at: "2026-05-12T15:43:49Z"

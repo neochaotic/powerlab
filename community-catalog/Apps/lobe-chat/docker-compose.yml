@@ -28,6 +28,8 @@ services:
             S3_SET_ACL: "0"
             SEARXNG_URL: http://lobe-chat_searxng_1:8080
         image: lobehub/lobehub:2.1.57@sha256:40374f3cac77f82f3810a0634e89b946188034983f61ad216d9e09a7d20d0394
+        ports:
+            - 7455:3210
         restart: on-failure
     postgres:
         environment:
@@ -128,4 +130,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: lobe-chat/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:19Z"
+        synced_at: "2026-05-12T15:43:16Z"

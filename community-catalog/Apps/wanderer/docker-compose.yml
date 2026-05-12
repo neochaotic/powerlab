@@ -49,6 +49,8 @@ services:
             UPLOAD_USER: admin
             VALHALLA_URL: https://valhalla1.openstreetmap.de
         image: flomp/wanderer-web:v0.19.0@sha256:b17deaf25d3ca1f508149d07bfe7260564380ec4b174de14375274bb78b60504
+        ports:
+            - 3111:3000
         restart: on-failure
         user: 1000:1000
         volumes:
@@ -75,4 +77,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: wanderer/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:59Z"
+        synced_at: "2026-05-12T15:43:51Z"

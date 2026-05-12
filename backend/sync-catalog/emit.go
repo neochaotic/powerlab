@@ -145,7 +145,7 @@ func Emit(ctx EmitContext, manifest UmbrelManifest, upstreamCompose []byte, desc
 	// for the regression locks; this was the v0.6.1 ship bug
 	// caught when the first weekly sync produced 241 unparseable
 	// composes (CHANGELOG fragment fix-307-umbrel-compose-validity).
-	transformed, err := transformUpstreamCompose(upstreamCompose, manifest.ID)
+	transformed, err := transformUpstreamCompose(upstreamCompose, manifest.ID, manifest.Port)
 	if err != nil {
 		return "", fmt.Errorf("transform upstream compose for %s: %w", manifest.ID, err)
 	}

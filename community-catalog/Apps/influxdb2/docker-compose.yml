@@ -2,6 +2,8 @@ name: influxdb2
 services:
     app:
         image: influxdb:2.9.0-alpine@sha256:20c190638610b37cf296e4c2751d276862adaeb76909529ebe5f49b44008ac4b
+        ports:
+            - 8886:8086
         restart: on-failure
         user: 1000:1000
         volumes:
@@ -28,4 +30,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: influxdb2/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:10Z"
+        synced_at: "2026-05-12T15:43:05Z"

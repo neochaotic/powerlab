@@ -2,6 +2,8 @@ name: pocketbase
 services:
     app:
         image: ghcr.io/muchobien/pocketbase:0.38.0@sha256:254d5f14ca43ce3201b39e1f88faa95d710574a136a8c73d174be0e4c0edc6b6
+        ports:
+            - 5400:8090
         restart: on-failure
         stop_grace_period: 1m
         volumes:
@@ -29,4 +31,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: pocketbase/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:40Z"
+        synced_at: "2026-05-12T15:43:38Z"

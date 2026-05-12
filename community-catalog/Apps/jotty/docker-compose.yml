@@ -4,6 +4,8 @@ services:
         environment:
             - NODE_ENV=production
         image: ghcr.io/fccview/jotty:1.23.0@sha256:abd142f8e2036a7bc40d2ee94abea6ab185af078d327af349019c518e0bd1df0
+        ports:
+            - 8345:3000
         restart: on-failure
         user: 1000:1000
         volumes:
@@ -32,4 +34,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: jotty/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:14Z"
+        synced_at: "2026-05-12T15:43:08Z"

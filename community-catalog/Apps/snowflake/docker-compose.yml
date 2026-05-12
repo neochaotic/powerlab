@@ -10,6 +10,8 @@ services:
     web:
         command: gotty --port 3800 --index "/snowflake/index.html" --title-format "Tor Snowflake Proxy" bash -c 'tail -n 10000 -f /snowflake/snowflake.log | grep "Traffic Relayed"'
         image: sorenisanerd/gotty:v1.6.0@sha256:23b4669973e96d8d7d37b3bfd9e6566bdd701aa1a56eee2dc0e0362bd927ed88
+        ports:
+            - 3800:3800
         restart: on-failure
         stop_grace_period: 1m
         volumes:
@@ -34,4 +36,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: snowflake/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:48Z"
+        synced_at: "2026-05-12T15:43:45Z"

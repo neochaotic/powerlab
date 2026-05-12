@@ -5,6 +5,8 @@ services:
             - PUID=1000
             - PGID=1000
         image: linuxserver/bazarr:1.5.6@sha256:b0bc617664dbca25845ac3b1bb6411b145b6a44a6d173071c9d2f426524fdd9f
+        ports:
+            - 6767:6767
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/bazarr/data/config:/config
@@ -29,4 +31,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: bazarr/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:01:49Z"
+        synced_at: "2026-05-12T15:42:42Z"

@@ -10,6 +10,8 @@ services:
             PGID: 1000
             PUID: 1000
         image: ghcr.io/getarcaneapp/arcane:v1.19.0@sha256:a74f3dc05da02d304bd0b2abff3812ec191e46520e99e94561583ea7a08a1afe
+        ports:
+            - 3552:3552
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/arcane/data/app_data:/app/data
@@ -56,4 +58,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: arcane/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:01:47Z"
+        synced_at: "2026-05-12T15:42:41Z"

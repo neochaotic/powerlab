@@ -15,6 +15,8 @@ services:
             - redis
         image: ceramicwhite/nitter:build-38985af@sha256:594a184c3a834c29957ddd917800d61f3d560411d26fa6cf389bef350d4c4ac6
         init: true
+        ports:
+            - 8420:8080
         restart: on-failure
         stop_grace_period: 1m
         user: 1000:1000
@@ -38,4 +40,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: nitter/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:29Z"
+        synced_at: "2026-05-12T15:43:26Z"

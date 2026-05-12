@@ -27,7 +27,7 @@ services:
             GITEA__server__START_SSH_SERVER: "true"
         image: gitea/gitea:1.26.1-rootless@sha256:4c4256497e2e237ddebdd30986c7ce52cb6f936b3e90c34bb9f4665714599f62
         ports:
-            - 18000:18001
+            - 8085:8086
         restart: on-failure
         user: 1000:1000
         volumes:
@@ -55,4 +55,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: gitea/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:05Z"
+        synced_at: "2026-05-12T15:43:00Z"

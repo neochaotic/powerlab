@@ -7,6 +7,8 @@ services:
             - DISABLE_BUILTIN_AUTH=false
             - TZ=UTC
         image: ghcr.io/wizarrrr/wizarr:v2026.4.0@sha256:19da537e01b5470cb34b083b5ac64cb534dd27084d9d66bc634e96c1f3976884
+        ports:
+            - 5690:5690
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/wizarr/data:/data
@@ -32,4 +34,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: wizarr/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:03:02Z"
+        synced_at: "2026-05-12T15:43:52Z"

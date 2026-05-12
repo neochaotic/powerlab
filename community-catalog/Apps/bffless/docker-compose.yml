@@ -57,6 +57,8 @@ services:
         environment:
             DEVICE_DOMAIN_NAME: ${DEVICE_DOMAIN_NAME:-umbrel.local}
         image: ghcr.io/bffless/ce-nginx:umbrel@sha256:40b8f8dd37dd1483a08e687b1f0efe6061c62fcd73013fb46749c74407dbdf84
+        ports:
+            - 5537:5537
         restart: on-failure
         stop_grace_period: 30s
         volumes:
@@ -129,4 +131,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: bffless/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:01:50Z"
+        synced_at: "2026-05-12T15:42:43Z"

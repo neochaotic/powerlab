@@ -5,6 +5,8 @@ services:
             BASE_URL: http://$DEVICE_DOMAIN_NAME:3000
             SITE_TITLE: DumbPad
         image: dumbwareio/dumbpad:1.0.4@sha256:03e4216d7842958287bccf6c51dde1c41735b35235844fb87c70b4443143ada6
+        ports:
+            - 8255:3000
         restart: on-failure
         user: 1000:1000
         volumes:
@@ -31,4 +33,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: dumbpad/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:01:58Z"
+        synced_at: "2026-05-12T15:42:53Z"

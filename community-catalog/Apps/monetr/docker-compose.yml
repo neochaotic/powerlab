@@ -39,6 +39,8 @@ services:
             MONETR_STORAGE_ENABLED: ${MONETR_STORAGE_ENABLED:-true}
             MONETR_STORAGE_PROVIDER: ${MONETR_STORAGE_PROVIDER:-filesystem}
         image: ghcr.io/monetr/monetr:1.14.0@sha256:554dfee11adab524f71d70358f70fe88ec8bb23e57f0afdb92cec352305f7246
+        ports:
+            - 8379:4000
         user: 1000:1000
         volumes:
             - /DATA/PowerLabAppData/monetr/data/app:/etc/monetr
@@ -77,4 +79,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: monetr/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:24Z"
+        synced_at: "2026-05-12T15:43:21Z"

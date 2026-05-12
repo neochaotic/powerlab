@@ -8,6 +8,8 @@ services:
             ADMINPASS: changeme
             DATABASE_URL: mysql://kimaiuser:${APP_PASSWORD}@kimai_db_1/kimai?charset=utf8mb4&serverVersion=8.3.0
         image: kimai/kimai2:apache-2.56.0@sha256:16204b18bb3dad54d249027f5bdf6b5a70d7e60ddac7c9f6b34e9f29dbdef2b9
+        ports:
+            - 8734:8001
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/kimai/data/app:/opt/kimai/var/data
@@ -51,4 +53,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: kimai/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:15Z"
+        synced_at: "2026-05-12T15:43:09Z"

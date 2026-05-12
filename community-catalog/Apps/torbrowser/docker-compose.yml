@@ -5,6 +5,8 @@ services:
             - DARK_MODE=1
             - WEB_AUDIO=1
         image: dennysubke/torbrowser:15.0.1@sha256:81269f7ec6494e5d7d4fc88391256bfb311165bb1d18124984ada296268c6962
+        ports:
+            - 5832:5800
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/torbrowser/config:/config
@@ -30,4 +32,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: torbrowser/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:54Z"
+        synced_at: "2026-05-12T15:43:48Z"

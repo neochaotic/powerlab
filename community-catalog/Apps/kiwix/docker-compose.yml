@@ -4,6 +4,8 @@ services:
         command: |
             /data/*.zim -k
         image: ghcr.io/kiwix/kiwix-serve:3.8.2@sha256:0b6541355b250c6b45d2d7725e88f22f1d6a0f45ad9480d9c0bd4bc58436a12f
+        ports:
+            - 8898:8080
         restart: on-failure
         user: 1000:1000
         volumes:
@@ -30,4 +32,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: kiwix/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:16Z"
+        synced_at: "2026-05-12T15:43:10Z"

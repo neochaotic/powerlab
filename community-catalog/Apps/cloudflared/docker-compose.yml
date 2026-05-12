@@ -22,6 +22,8 @@ services:
             CLOUDFLARED_TOKEN_FILE: /app/data/token
         hostname: cloudflared-web
         image: ghcr.io/radiokot/umbrel-cloudflared:1.0.2@sha256:9660fb4e90317036d2b418f1c9437cc2cdb7f7bdd8d820084237a0c37bb94f5b
+        ports:
+            - 4499:3000
         restart: on-failure
         stop_grace_period: 1s
         volumes:
@@ -48,4 +50,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: cloudflared/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:01:54Z"
+        synced_at: "2026-05-12T15:42:47Z"

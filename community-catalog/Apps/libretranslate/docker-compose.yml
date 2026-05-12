@@ -10,6 +10,8 @@ services:
                 - CMD-SHELL
                 - ./venv/bin/python scripts/healthcheck.py
         image: libretranslate/libretranslate:v1.6.5@sha256:a3518195e4e810ba0d9dd251a851f24918059d757ef3c5cf8e0f881daf4242fc
+        ports:
+            - 7017:5000
         restart: on-failure
         tty: true
         volumes:
@@ -37,4 +39,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: libretranslate/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:18Z"
+        synced_at: "2026-05-12T15:43:15Z"

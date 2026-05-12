@@ -11,6 +11,8 @@ services:
             REQUEST_PROXY: cors:8080
         image: ghcr.io/hzrd149/nostrudel:1.1.0@sha256:f07c931e1a1d264fe70e3377796f35828ab7be8b78236b6ed37459ffd1d6661f
         init: true
+        ports:
+            - 3149:80
         restart: on-failure
         stop_grace_period: 1m
 version: "3.7"
@@ -33,4 +35,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: nostrudel/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:30Z"
+        synced_at: "2026-05-12T15:43:27Z"

@@ -3,6 +3,8 @@ services:
     web:
         image: rotki/rotki:v1.43.0@sha256:dc4a1ac9383eddcbf28573223b0984af43a791df90cd24571d6cf19b9392bfa8
         init: true
+        ports:
+            - 8084:80
         restart: on-failure
         stop_grace_period: 1m
         volumes:
@@ -28,4 +30,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: rotki/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:43Z"
+        synced_at: "2026-05-12T15:43:41Z"

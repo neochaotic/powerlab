@@ -4,6 +4,8 @@ services:
         environment:
             - TRILIUM_DATA_DIR=/data
         image: triliumnext/trilium:v0.102.2@sha256:f1a2fd88e7032d60f863231ce94348e906bcd6a5fa043801badd5896c20c064d
+        ports:
+            - 3779:8080
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/trilium-notes/data:/data
@@ -29,4 +31,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: trilium-notes/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:54Z"
+        synced_at: "2026-05-12T15:43:49Z"

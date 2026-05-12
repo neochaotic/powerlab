@@ -66,6 +66,8 @@ services:
             - DATABASE_URL=postgres://affine:affine@affine_db_1:5432/affine
             - NODE_ENV=production
         image: ghcr.io/toeverything/affine:0.26.3@sha256:725aaceb0ed94d4b832ae6ef9414503291c9b2b4f60bd6f3c7eef571b6149add
+        ports:
+            - 3013:3010
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/affine/data/config:/root/.affine/config
@@ -89,4 +91,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: affine/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:01:45Z"
+        synced_at: "2026-05-12T15:42:39Z"
