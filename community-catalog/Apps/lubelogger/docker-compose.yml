@@ -1,0 +1,37 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: lubelogger_app_1
+      APP_PORT: 8080
+
+  app:
+    image: ghcr.io/hargata/lubelogger:v1.6.4@sha256:82a41d7ebda9b47ce70ab55b590ea597f90ebee56877e6a99b4b786cf2f4432b
+    user: "1000:1000"
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/data/app:/App/data
+      - ${APP_DATA_DIR}/data/keys:/root/.aspnet/DataProtection-Keys
+
+x-powerlab:
+    store_app_id: lubelogger
+    title:
+        en_us: LubeLogger
+    tagline:
+        en_us: A vehicle maintenance and fuel mileage tracker
+    description:
+        en_us: 'Self-Hosted, Open-Source, Web-Based Vehicle Maintenance and Fuel Mileage Tracker Website: https://lubelogger.com Why Because nobody should have to deal with a homemade spreadsheet or a shoebox full of receipts when it comes to vehicle maintenance. Showcase Promotional Brochure Screenshots Demo Try it out before you download it! The live demo resets every 20 minutes. Live Demo Login using username "test" and password "1234" Download LubeLogger is available as both a Docker Image and a Windows Standalone Executable. Read this Getting Started Guide on how to download either of them Kubernetes Deployment Helm Chart provided by Anza-Labs Need Help? Documentation Troubleshooting Guide Search Existing Issues Dependencies - Bootstrap - LiteDB - Npgsql - Bootstrap-DatePicker - SweetAlert2 - CsvHelper - Chart.js - Drawdown - MailKit - Masonry - QRCode-Generator License MIT Support Support this project by Subscribing on Patreon or Making a Donation'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/lubelogger/icon.svg
+    category: files
+    port_map: "8835"
+    author: Hargata Softworks
+    developer: Hargata Softworks
+    source:
+        catalog: umbrel-apps
+        upstream_id: lubelogger
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: lubelogger/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:10Z"

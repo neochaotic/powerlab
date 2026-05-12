@@ -1,0 +1,61 @@
+version: '3.7'
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: rustdesk-server_web_1
+      APP_PORT: 80
+
+  hbbs:
+    container_name: hbbs
+    image: rustdesk/rustdesk-server:1.1.15@sha256:10818ec05b179039c6660f4d8e74b303f0db2858bbad2b18e24992ea22d54cd6
+    ports:
+      - 21115:21115
+      - 21116:21116
+      - 21116:21116/udp
+      - 21118:21118
+    command: hbbs
+    volumes:
+      - ${APP_DATA_DIR}/data/hbbs:/root
+    network_mode: "host"
+    depends_on:
+      - hbbr
+    restart: on-failure
+
+  hbbr:
+    container_name: hbbr
+    image: rustdesk/rustdesk-server:1.1.15@sha256:10818ec05b179039c6660f4d8e74b303f0db2858bbad2b18e24992ea22d54cd6
+    ports:
+      - 21117:21117
+      - 21119:21119
+    command: hbbr
+    volumes:
+      - ${APP_DATA_DIR}/data/hbbr:/root
+    network_mode: "host"
+    restart: on-failure
+
+  web:
+    image: nginx:1.27@sha256:124b44bfc9ccd1f3cedf4b592d4d1e8bddb78b51ec2ed5056c52d3692baebc19
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/data/www:/usr/share/nginx/html:ro
+
+x-powerlab:
+    store_app_id: rustdesk-server
+    title:
+        en_us: RustDesk Server
+    tagline:
+        en_us: A fast and reliable solution for remote access
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/rustdesk-server/icon.svg
+    category: networking
+    port_map: "21080"
+    author: RustDesk Team
+    developer: RustDesk Team
+    source:
+        catalog: umbrel-apps
+        upstream_id: rustdesk-server
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: rustdesk-server/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:15Z"

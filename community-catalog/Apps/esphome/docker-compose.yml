@@ -1,0 +1,31 @@
+version: "3.7"
+
+services:
+  server:
+    image: esphome/esphome:2026.4.5@sha256:c7bfa0bea64c68d5ca645b37cf98125c248a494c0f339a13fbc918f559628feb
+    network_mode: host
+    volumes:
+      - ${APP_DATA_DIR}/data:/config
+    restart: on-failure
+
+x-powerlab:
+    store_app_id: esphome
+    title:
+        en_us: ESPHome
+    tagline:
+        en_us: Intelligently manage all your ESP8266/ESP32 devices
+    description:
+        en_us: 'ESPHome [](https://discord.gg/KhAMKrd) [](https://GitHub.com/esphome/esphome/releases/) [](https://codspeed.io/esphome/esphome) <a href="https://esphome.io/"> <picture> <source media="(prefers-color-scheme: dark)" srcset="https://media.esphome.io/logo/logo-text-on-dark.svg"> <img src="https://media.esphome.io/logo/logo-text-on-light.svg" alt="ESPHome Logo"> </picture> </a> Documentation -- Issues -- Feature requests [](https://www.openhomefoundation.org/)'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/esphome/icon.svg
+    category: automation
+    port_map: "6052"
+    author: ESPHome
+    developer: ESPHome
+    source:
+        catalog: umbrel-apps
+        upstream_id: esphome
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: esphome/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:06Z"

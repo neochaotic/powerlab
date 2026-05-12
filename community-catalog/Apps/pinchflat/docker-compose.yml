@@ -1,0 +1,34 @@
+services:
+  app_proxy:
+    environment:
+      APP_HOST: pinchflat_web_1
+      APP_PORT: 8945
+
+  web:
+    image: ghcr.io/kieraneglin/pinchflat:v2025.6.6@sha256:4e975edf58f0861a5cbfe8fc6aac4851ff5a02dfc3f05ffeea4982e3084a5a4a
+    environment:
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - ${APP_DATA_DIR}/data/config:/config
+      - ${UMBREL_ROOT}/data/storage/downloads:/downloads
+
+x-powerlab:
+    store_app_id: pinchflat
+    title:
+        en_us: Pinchflat
+    tagline:
+        en_us: A automated media backup solution, for online media sources
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/pinchflat/icon.svg
+    category: media
+    port_map: "8945"
+    author: Kieran Eglin
+    developer: Kieran Eglin
+    source:
+        catalog: umbrel-apps
+        upstream_id: pinchflat
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: pinchflat/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:14Z"

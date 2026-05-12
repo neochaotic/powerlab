@@ -1,0 +1,48 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: node-red_web_1
+      APP_PORT: 1880
+      # Used to allow (HTTP In) flows to be publicly exposed
+      PROXY_AUTH_WHITELIST: "/public/*"
+  
+  web:
+    image: nodered/node-red:4.1.8@sha256:a5cb1dcdf90a7148b02b9dba4acfe6bd98c7bf3bff1e845dcdecfd7af3a95a29
+    restart: on-failure
+    stop_grace_period: 1m
+    volumes:
+      - ${APP_DATA_DIR}/data:/data
+      - ${APP_LIGHTNING_NODE_DATA_DIR}:/lnd:ro
+    environment:
+      PORT: 1880
+      BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
+      BITCOIN_IP: $APP_BITCOIN_NODE_IP
+      BITCOIN_RPC_PORT: $APP_BITCOIN_RPC_PORT
+      BITCOIN_RPC_USER: $APP_BITCOIN_RPC_USER
+      BITCOIN_RPC_PASS: $APP_BITCOIN_RPC_PASS
+      LND_IP: $APP_LIGHTNING_NODE_IP
+      LND_GRPC_PORT: $APP_LIGHTNING_NODE_GRPC_PORT
+      ELECTRUM_IP: $APP_ELECTRS_NODE_IP
+      ELECTRUM_PORT: $APP_ELECTRS_NODE_PORT
+
+x-powerlab:
+    store_app_id: node-red
+    title:
+        en_us: Node-RED (Bitcoin)
+    tagline:
+        en_us: Wire together the Internet of Things
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/node-red/icon.svg
+    category: automation
+    port_map: "1880"
+    author: OpenJS Foundation
+    developer: OpenJS Foundation
+    source:
+        catalog: umbrel-apps
+        upstream_id: node-red
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: node-red/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:12Z"

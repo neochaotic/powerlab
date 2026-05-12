@@ -1,0 +1,40 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: qbittorrent_server_1
+      APP_PORT: 8080
+      PROXY_AUTH_ADD: "true"
+      PROXY_AUTH_WHITELIST: "/api/*"
+
+  server:
+    image: ghcr.io/hotio/qbittorrent:release-5.2.0@sha256:1897f527c7a48ec06437a636502a557f3be5d54f5a9298e10d0e7f42095c6ac1
+    environment:
+      - PUID=1000
+      - PGID=1000
+      # - UMASK=002
+    volumes:
+      - ${APP_DATA_DIR}/data/config:/config
+      - ${UMBREL_ROOT}/data/storage/downloads:/downloads
+    restart: on-failure
+
+x-powerlab:
+    store_app_id: qbittorrent
+    title:
+        en_us: qBittorrent
+    tagline:
+        en_us: Free and reliable P2P Bittorrent client
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/qbittorrent/icon.svg
+    category: networking
+    port_map: "8094"
+    author: qBittorrent
+    developer: qBittorrent
+    source:
+        catalog: umbrel-apps
+        upstream_id: qbittorrent
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: qbittorrent/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:15Z"

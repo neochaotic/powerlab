@@ -1,0 +1,72 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: campfire_server_1
+      APP_PORT: 80
+      PROXY_AUTH_ADD: 'false'
+
+  server:
+    image: ghcr.io/basecamp/once-campfire:1.4.3@sha256:21a419dd93b10b3598a25634e5eed2305bec1c75347b260ed1665dbc70864dd8
+    user: "1000:1000"
+    volumes:
+      - ${APP_DATA_DIR}/data/app:/rails/storage
+    environment:
+      RAILS_ENV: production
+      SECRET_KEY_BASE: ${APP_SEED}
+      REDIS_URL: redis://campfire_redis_1:6379
+      DISABLE_SSL: 'true'
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+    depends_on:
+      - redis
+    deploy:
+      # https://once.com/campfire#requirements
+      resources:
+        limits:
+          memory: 8G # 64G for up to 10,000 users
+          cpus: '4' # 32 for up to 10,000 users
+        reservations:
+          memory: 2G
+          cpus: '1'
+    restart: on-failure
+
+  redis:
+    image: redis:7-alpine@sha256:ee64a64eaab618d88051c3ade8f6352d11531fcf79d9a4818b9b183d8c1d18ba
+    user: "1000:1000"
+    command: redis-server --save 60 1 --save 300 10 --save 900 100 --appendonly yes --loglevel warning
+    volumes:
+      - ${APP_DATA_DIR}/data/redis:/data
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    restart: on-failure
+
+x-powerlab:
+    store_app_id: campfire
+    title:
+        en_us: Campfire
+    tagline:
+        en_us: Self-hosted chat for teams
+    description:
+        en_us: 'Campfire Campfire is a web-based chat application. It supports many of the features you''d expect, including: - Multiple rooms, with access controls - Direct messages - File attachments with previews - Search - Notifications (via Web Push) - @mentions - API, with support for bot integrations Deploying with Docker Campfire''s Docker image contains everything needed for a fully-functional, single-machine deployment. This includes the web app, background jobs, caching, file serving, and SSL. To persist storage of the database and file attachments, map a volume to . To configure additional features, you can set the following environment variables: - - enable automatic SSL via Let''s Encrypt for the given domain name - - alternatively, set to serve over plain HTTP - / - set these to a valid keypair to allow sending Web Push notifications. You can generate a new keypair by running - - to enable error reporting to sentry in production, supply your DSN here For example: docker build -t campfire . docker run \ --publish 80:80 --publish 443:443 \ --restart unless-stopped \ --volume campfire:/rails/storage \ --env SECRET_KEY_BASE=$YOUR_SECRET_KEY_BASE \ --env VAPID_PUBLIC_KEY=$YOUR_PUBLIC_KEY \ --env VAPID_PRIVATE_KEY=$YOUR_PRIVATE_KEY \ --env TLS_DOMAIN=chat.example.com \ campfire Running in development bin/setup bin/rails server Worth Noting When you…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/campfire/icon.svg
+    category: social
+    port_map: "8004"
+    author: basecamp
+    developer: basecamp
+    source:
+        catalog: umbrel-apps
+        upstream_id: campfire
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: campfire/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:05Z"

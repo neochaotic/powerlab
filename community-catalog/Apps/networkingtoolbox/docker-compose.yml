@@ -1,0 +1,42 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: networkingtoolbox_app_1
+      APP_PORT: 3000
+
+  app:
+    image: ghcr.io/lissy93/networking-toolbox:1.6.0@sha256:4e97330fb310e1a5fbe185b1bf859270902ddef7934b88cecc6b3def98d21eaa
+    user: "1000:1000"
+    restart: on-failure
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+x-powerlab:
+    store_app_id: networkingtoolbox
+    title:
+        en_us: Networking Toolbox
+    tagline:
+        en_us: The all-in-one offline-first networking toolbox for sysadmins
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/networkingtoolbox/icon.svg
+    category: developer
+    port_map: "3686"
+    author: Alicia Sykes
+    developer: Alicia Sykes
+    source:
+        catalog: umbrel-apps
+        upstream_id: networkingtoolbox
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: networkingtoolbox/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:12Z"

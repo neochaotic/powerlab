@@ -1,0 +1,36 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: tautulli_web_1
+      APP_PORT: 8181
+
+  web:
+    image: linuxserver/tautulli:2.17.1@sha256:7077fd6654547c225ca5a740c4c954379129589f875c84cbe138641d4dd8a9d9
+    volumes:
+      - ${APP_DATA_DIR}/data/config:/config
+    restart: on-failure
+    environment:
+      - PUID=1000
+      - PGID=1000
+
+x-powerlab:
+    store_app_id: tautulli
+    title:
+        en_us: tautulli
+    tagline:
+        en_us: Monitor your Plex Media Server
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/tautulli/icon.svg
+    category: media
+    port_map: "8212"
+    author: Tautulli
+    developer: Tautulli
+    source:
+        catalog: umbrel-apps
+        upstream_id: tautulli
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: tautulli/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:17Z"

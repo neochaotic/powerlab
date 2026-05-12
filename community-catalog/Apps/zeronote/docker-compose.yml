@@ -1,0 +1,36 @@
+version: "3.7"
+services:
+  app_proxy:
+    environment:
+      APP_HOST: zeronote_app_1
+      APP_PORT: 8000
+
+  app:
+    image: ghcr.io/besoeasy/zeronote:1.0.7@sha256:368672d8bdc03a3a0632f241e4a53a2fed1240093eb88c82360c7d112474cbbe
+    user: "1000:1000"
+    restart: on-failure
+    stop_grace_period: 5m
+    environment:
+      - NODE_ENV=production
+
+x-powerlab:
+    store_app_id: zeronote
+    title:
+        en_us: ZeroNote
+    tagline:
+        en_us: All your notes, passwords, bookmarks, and 2FA in one secure, offline-first app
+    description:
+        en_us: 'ZeroNote: One Notes App for Everything ZeroNote is an open-source, offline-first unified app that replaces your password manager, bookmark manager, notes app, and 2FA authenticator with a single encrypted note-taking system powered by smart tags, where everything is stored locally on your device with zero-knowledge encryption and optional peer-to-peer or S3 sync. **Stop juggling multiple apps.** One password manager. One bookmark manager. One notes app. One cloud service. One subscription. One privacy concern after another. **ZeroNote simplifies your digital life** with a single, intelligent note system that becomes whatever you need—password vault, bookmark organizer, document storage, or personal knowledge base. Everything is just a note with smart tags. Why ZeroNote? Your Data, Your Control In a world where companies control your passwords, notes, and bookmarks—**ZeroNote puts you back in charge.** - **Offline-First**: Works completely without internet. Your data lives on your device, not someone''s cloud. - **P2P Sync**: Share between your devices directly using peer-to-peer—no servers, no middlemen. - **S3 Backup**: Want cloud backup? Use your own S3 storage. Not theirs. - **Zero-Knowledge Encryption**: Even if someone gets your backup, they can''t read it without your master password. **The only person who should hold your data is you.** One App,…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/zeronote/icon.svg
+    category: files
+    port_map: "8000"
+    author: besoeasy
+    developer: besoeasy
+    source:
+        catalog: umbrel-apps
+        upstream_id: zeronote
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: zeronote/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:19Z"

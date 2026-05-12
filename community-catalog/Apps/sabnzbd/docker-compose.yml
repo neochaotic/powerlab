@@ -1,0 +1,42 @@
+version: '3.7'
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: sabnzbd_web_1
+      APP_PORT: 8080
+      PROXY_AUTH_WHITELIST: "/api*"
+
+  web:
+    image: linuxserver/sabnzbd:5.0.1@sha256:87c97fa81966adb5cf511ae62b6681a37136c32f1ad7190b0b8b4d12d766ea9f
+    restart: on-failure
+    stop_grace_period: 1m
+    volumes:
+      - ${APP_DATA_DIR}/data/config:/config
+      - ${UMBREL_ROOT}/data/storage/downloads:/downloads
+    environment:
+      - DOCKER_MODS=linuxserver/mods:universal-package-install
+      - INSTALL_PACKAGES=ffmpeg
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+
+x-powerlab:
+    store_app_id: sabnzbd
+    title:
+        en_us: SABnzbd
+    tagline:
+        en_us: The automated Usenet download tool
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/sabnzbd/icon.svg
+    category: networking
+    port_map: "9876"
+    author: sabnzbd
+    developer: sabnzbd
+    source:
+        catalog: umbrel-apps
+        upstream_id: sabnzbd
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: sabnzbd/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:16Z"

@@ -1,0 +1,40 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: palmr_server_1
+      APP_PORT: 5487
+      PROXY_AUTH_ADD: "false"
+
+  server:
+    image: kyantech/palmr:v3.3.2-beta@sha256:043dd6cdbb4d9985b376915020fb26c2037b19876674273eac310ab04cdf16f4
+    restart: on-failure
+    stop_grace_period: 1m
+    environment:
+      PALMR_UID: 1000
+      PALMR_GID: 1000
+    volumes:
+      - ${APP_DATA_DIR}/data:/app/server
+
+x-powerlab:
+    store_app_id: palmr
+    title:
+        en_us: Palmr
+    tagline:
+        en_us: Open-Source File Transfer
+    description:
+        en_us: "> ## ⚠️ Project Archived > After deep reflection, I have decided to focus my limited time and energy on my other projects. As a solo developer, I have struggled to actively maintain multiple projects with the care and attention they deserve. Without enough sponsors, it became unfeasible to maintain Palmr. > If you are interested in continuing this work through a fork, I will be happy to add a link to it here in the README. > We thank all the contributors and users who have supported Palmr over time! \U0001F334 Palmr. - Open-Source File Transfer <p align=\"center\"> <img src=\"https://res.cloudinary.com/technical-intelligence/image/upload/v1749825361/Group_47_1_bcx8gw.png\" alt=\"Palmr Banner\" style=\"width: 100%;\"/> </p> **Palmr.** is a **flexible** and **open-source** alternative to file transfer services like **WeTransfer**, **SendGB**, **Send Anywhere**, and **Files.fm**. <div align=\"center\"> <div style=\"background: linear-gradient(135deg, #ff4757, #ff3838); padding: 20px; border-radius: 12px; margin: 20px 0; box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3); border: 2px solid #ff3838;\"> <h3 style=\"color: white; margin: 0 0 10px 0; font-size: 18px; font-weight: bold;\"> ⚠️ BETA VERSION </h3> <p style=\"color: white; margin: 0; font-size: 14px; opacity: 0.95;\"> <strong>This project is currently in beta phase.</strong><br> Not recommended for production environments. </p> </div> </div> \U0001F517 **For detailed documentation visit:** Palmr. - Documentation \U0001F4CC Why…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/palmr/icon.svg
+    category: files
+    port_map: "8075"
+    author: kyantech
+    developer: kyantech
+    source:
+        catalog: umbrel-apps
+        upstream_id: palmr
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: palmr/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:13Z"

@@ -1,0 +1,34 @@
+version: '3.7'
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: perplexica_web_1
+      APP_PORT: 3000
+
+  web:
+    image: itzcrazykns1337/vane:v1.12.2@sha256:61f2bbf3386ff3df08911fb3de0e1893b04702a4d49ef13fbadbda937b47ab7c
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/data/app_data:/home/perplexica/data
+      - ${APP_DATA_DIR}/data/uploads:/home/perplexica/uploads
+
+x-powerlab:
+    store_app_id: perplexica
+    title:
+        en_us: Vane
+    tagline:
+        en_us: An AI-powered answering engine
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/perplexica/icon.svg
+    category: ai
+    port_map: "3444"
+    author: Kushagra Srivastava
+    developer: Kushagra Srivastava
+    source:
+        catalog: umbrel-apps
+        upstream_id: perplexica
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: perplexica/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:14Z"

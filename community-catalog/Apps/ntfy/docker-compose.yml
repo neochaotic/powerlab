@@ -1,0 +1,50 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: ntfy_app_1
+      APP_PORT: 80
+      PROXY_AUTH_ADD: "false"
+
+  app:
+    image: binwiederhier/ntfy:v2.22.0@sha256:d8b3408c75d5ae78e03339af6103e7e6195e56573eea6f1ad34bb4dc4f44f340
+    user: "1000:1000"
+    restart: on-failure
+    stop_grace_period: 1m
+    entrypoint: [ "/bin/sh", "/entrypoint.sh" ]
+    volumes:
+      - ${APP_DATA_DIR}/entrypoint.sh:/entrypoint.sh
+      - ${APP_DATA_DIR}/data/cache:/var/cache/ntfy
+      - ${APP_DATA_DIR}/data/data:/etc/ntfy
+      - ${APP_DATA_DIR}/data/lib:/var/lib/ntfy
+    environment:
+      NTFY_BASE_URL: http://${DEVICE_DOMAIN_NAME}:${APP_PROXY_PORT}
+      NTFY_UPSTREAM_BASE_URL: https://ntfy.sh
+      NTFY_CACHE_FILE: /var/cache/ntfy/cache.db
+      NTFY_ENABLE_LOGIN: "true"
+      NTFY_AUTH_FILE: /var/lib/ntfy/user.db
+      NTFY_AUTH_DEFAULT_ACCESS: deny-all
+      NTFY_PASSWORD: ${APP_PASSWORD}
+
+x-powerlab:
+    store_app_id: ntfy
+    title:
+        en_us: ntfy
+    tagline:
+        en_us: Send notifications to your phone or desktop via scripts from any computer, and/or using a REST API
+    description:
+        en_us: "<div align=\"center\" markdown=\"1\"> <sup>Special thanks to:</sup> <br> <br> <a href=\"https://go.warp.dev/ntfy\"> <img alt=\"Warp sponsorship\" width=\"400\" src=\"https://raw.githubusercontent.com/warpdotdev/brand-assets/refs/heads/main/Github/Sponsor/Warp-Github-LG-02.png\"> </a> Warp, built for coding with multiple AI agents. Available for MacOS, Linux, & Windows<br> </div> <hr> ntfy.sh | Send push notifications to your phone or desktop via PUT/POST [](https://github.com/binwiederhier/ntfy/releases/latest) [](https://pkg.go.dev/heckel.io/ntfy/v2) [](https://github.com/binwiederhier/ntfy/actions) [](https://goreportcard.com/report/github.com/binwiederhier/ntfy) [](https://codecov.io/gh/binwiederhier/ntfy) [](https://discord.gg/cT7ECsZj9w) [](https://matrix.to/#/#ntfy:matrix.org) [](https://matrix.to/#/#ntfy-space:matrix.org) [](https://ntfy.statuspage.io/) [](https://gitpod.io/#https://github.com/binwiederhier/ntfy) **ntfy** (pronounced \"*notify*\") is a simple HTTP-based pub-sub notification service. With ntfy, you can **send notifications to your phone or desktop via scripts** from any computer, **without having to sign up or pay any fees**. If you'd like to run your own instance of the service, you can easily do so since ntfy is open source. You can access the free version of ntfy at **ntfy.sh**. There is also an open-source Android app available on Google Play or F-Droid, as well as an open source iOS app available on the App Store. <p> <a href=\"https://play.google.com/store/apps/details?id=io.heckel.ntfy\"><img height=\"50\" src=\"docs/static/img/badge-googleplay.png\"></a> <a href=\"https://f-droid.org/en/packages/io.heckel.ntfy/\"><img width=\"170\" src=\"docs/static/img/badge-fdroid.svg\"></a> <a href=\"https://apps.apple.com/us/app/ntfy/id1625396347\"><img height=\"50\" src=\"docs/static/img/badge-appstore.png\"></a> </p> <p> <img src=\".github/images/screenshot-curl.png\" height=\"180\"> <img src=\".github/images/screenshot-web-detail.png\" height=\"180\"> <img src=\".github/images/screenshot-phone-main.jpg\" height=\"180\"> <img src=\".github/images/screenshot-phone-detail.jpg\" height=\"180\"> <img src=\".github/images/screenshot-phone-notification.jpg\" height=\"180\"> </p> ntfy Pro \U0001F4B8 \U0001F389 I now offer paid plans for ntfy.sh if you don't want to self-host, or you want to support the…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/ntfy/icon.svg
+    category: automation
+    port_map: "13119"
+    author: ntfy LLC
+    developer: ntfy LLC
+    source:
+        catalog: umbrel-apps
+        upstream_id: ntfy
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: ntfy/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:12Z"

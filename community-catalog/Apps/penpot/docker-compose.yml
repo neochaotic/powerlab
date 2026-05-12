@@ -1,0 +1,96 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: penpot_penpot-frontend_1
+      APP_PORT: 8080
+      # Can consider disabling auth all together. Penpot has its own auth system.
+      PROXY_AUTH_WHITELIST: "/api/*"
+
+  penpot-frontend:
+    image: penpotapp/frontend:2.14.4@sha256:aecf5131c59a4cd25cebd97af1c8835eef6e25eb74cb2bf349b481a0afae4428
+    volumes:
+      - ${APP_DATA_DIR}/data/assets:/opt/data/assets
+    environment:
+      - PENPOT_FLAGS=enable-registration enable-login-with-password
+    depends_on:
+      - penpot-backend
+      - penpot-exporter
+    restart: on-failure
+
+  penpot-backend:
+    image: penpotapp/backend:2.14.4@sha256:6e2798b2c3ccd6730415db5f28030460d05fa8c01301b3b72ba3dc66af9e3c58
+    # user 1000:1000 to avoid permission issues when importing libraries and templates
+    user: "1000:1000"
+    volumes:
+      - ${APP_DATA_DIR}/data/assets:/opt/data/assets
+    environment:
+      - PENPOT_FLAGS=enable-registration enable-login-with-password disable-email-verification disable-smtp enable-prepl-server disable-secure-session-cookies
+      - PENPOT_DATABASE_URI=postgresql://penpot-postgres/penpot
+      - PENPOT_DATABASE_USERNAME=penpot
+      - PENPOT_DATABASE_PASSWORD=penpot
+      - PENPOT_REDIS_URI=redis://penpot_penpot-valkey_1/0
+      - PENPOT_ASSETS_STORAGE_BACKEND=assets-fs
+      - PENPOT_STORAGE_ASSETS_FS_DIRECTORY=/opt/data/assets
+      - PENPOT_TELEMETRY_ENABLED=false
+      # PENPOT_PUBLIC_URI needs to be set to in order to render thumbnails in the frontend
+      - PENPOT_PUBLIC_URI=http://${DEVICE_DOMAIN_NAME}:${APP_PENPOT_UI_PORT}
+    depends_on:
+      - penpot-postgres
+      - penpot-valkey
+    restart: on-failure
+
+  penpot-exporter:
+    image: penpotapp/exporter:2.14.4@sha256:c5112cf3b54edf8911945042562d6f0be99ca047f1bc22573315e676a65030b5
+    user: "1000:1000"
+    environment:
+      - PENPOT_PUBLIC_URI=http://penpot-frontend
+      - PENPOT_REDIS_URI=redis://penpot_penpot-valkey_1/0
+    restart: on-failure
+
+  penpot-postgres:
+    image: postgres:15@sha256:546445ad21cb5893c0997080b831ee45945e798c4359270e16413c8bd93575db
+    user: "1000:1000"
+    stop_signal: SIGINT
+    volumes:
+      - ${APP_DATA_DIR}/data/postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_INITDB_ARGS=--data-checksums
+      - POSTGRES_DB=penpot
+      - POSTGRES_USER=penpot
+      - POSTGRES_PASSWORD=penpot
+    restart: on-failure
+
+  penpot-valkey:
+    image: valkey/valkey:8.1.3@sha256:facc1d2c3462975c34e10fccb167bfa92b0e0dbd992fc282c29a61c3243afb11
+    user: "1000:1000"
+    restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "valkey-cli ping | grep PONG"]
+      interval: 1s
+      timeout: 3s
+      retries: 5
+      start_period: 3s
+
+x-powerlab:
+    store_app_id: penpot
+    title:
+        en_us: Penpot
+    tagline:
+        en_us: Design and prototyping platform
+    description:
+        en_us: '[uri_license]: https://www.mozilla.org/en-US/MPL/2.0 [uri_license_image]: https://img.shields.io/badge/MPL-2.0-blue.svg <picture> <source media="(prefers-color-scheme: dark)" srcset="https://penpot.app/images/readme/github-dark-mode.png"> <source media="(prefers-color-scheme: light)" srcset="https://penpot.app/images/readme/github-light-mode.png"> <img alt="penpot header image" src="https://penpot.app/images/readme/github-light-mode.png"> </picture> <p align="center"> <a href="https://www.mozilla.org/en-US/MPL/2.0" rel="nofollow"><img alt="License: MPL-2.0" src="https://img.shields.io/badge/MPL-2.0-blue.svg" style="max-width:100%;"></a> <a href="https://community.penpot.app" rel="nofollow"><img alt="Penpot Community" src="https://img.shields.io/discourse/posts?server=https%3A%2F%2Fcommunity.penpot.app" style="max-width:100%;"></a> <a href="https://tree.taiga.io/project/penpot/" title="Managed with Taiga.io" rel="nofollow"><img alt="Managed with Taiga.io" src="https://img.shields.io/badge/managed%20with-TAIGA.io-709f14.svg" style="max-width:100%;"></a> <a href="https://gitpod.io/#https://github.com/penpot/penpot" rel="nofollow"><img alt="Gitpod ready-to-code" src="https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod" style="max-width:100%;"></a> </p> <p align="center"> <a href="https://penpot.app/"><b>Website</b></a> • <a href="https://help.penpot.app/user-guide/"><b>User Guide</b></a> • <a href="https://penpot.app/learning-center"><b>Learning Center</b></a> • <a href="https://community.penpot.app/"><b>Community</b></a> </p> <p align="center"> <a href="https://www.youtube.com/@Penpot"><b>Youtube</b></a> • <a href="https://peertube.kaleidos.net/a/penpot_app/video-channels"><b>Peertube</b></a> • <a href="https://www.linkedin.com/company/penpot/"><b>Linkedin</b></a> • <a href="https://instagram.com/penpot.app"><b>Instagram</b></a> • <a href="https://fosstodon.org/@penpot/"><b>Mastodon</b></a> • <a href="https://bsky.app/profile/penpot.app"><b>Bluesky</b></a> • <a href="https://twitter.com/penpotapp"><b>X</b></a> </p> <br /> Penpot video <br /> Penpot is the first **open-source** design tool for design and code collaboration. Designers can create stunning designs, interactive prototypes, design systems at scale, while developers enjoy ready-to-use code and make their workflow easy and fast. And all of this with no handoff drama. Available on browser or self-hosted, Penpot works with open standards like SVG, CSS, HTML and JSON, and it’s free! The latest updates take Penpot even further. It’s the first design tool to integrate native design tokens—a single source of truth to improve efficiency and collaboration between product design and development. With the huge 2.0 release, Penpot took the…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/penpot/icon.svg
+    category: developer
+    port_map: "9001"
+    author: Penpot
+    developer: Penpot
+    source:
+        catalog: umbrel-apps
+        upstream_id: penpot
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: penpot/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:14Z"

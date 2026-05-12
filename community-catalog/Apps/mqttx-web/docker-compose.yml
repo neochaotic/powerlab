@@ -1,0 +1,32 @@
+services:
+  app_proxy:
+    environment:
+      APP_HOST: mqttx-web_app_1
+      APP_PORT: 80
+
+  app:
+    image: emqx/mqttx-web:v1.13.0@sha256:64525ad96286280f85f9f1a3f74a98475d1bbfe7a8ee278f93fa6991e6090c9c
+    user: "1000:1000"
+    restart: on-failure
+
+x-powerlab:
+    store_app_id: mqttx-web
+    title:
+        en_us: MQTTX Web
+    tagline:
+        en_us: Your All-in-One MQTT Client Toolbox
+    description:
+        en_us: '<img src="./assets/mqttx-logo.png" width="480" alt="MQTTX Logo" /> [](https://github.com/emqx/mqttx/releases) [](https://mqttx.app/downloads) [](https://hub.docker.com/r/emqx/mqttx-web) [](https://hub.docker.com/r/emqx/mqttx-cli) [](https://github.com/emqx/MQTTX/discussions) [](https://slack-invite.emqx.io/) [](https://discord.gg/xYGf3fQnES) [](https://www.youtube.com/channel/UC5FjR77ErAxvZENEWzQaO5Q) [](https://twitter.com/EMQTech) MQTTX is a cross-platform MQTT 5.0 client tool open sourced by EMQ, which can run on macOS, Linux and Windows, and supports formatting MQTT payload. MQTTX simplifies test operation with the help of a familiar, chat-like interface. It’s easy and quick to create multiple, simultaneous online MQTT client connections, and can test the connection, publishing, and subscription functions of MQTT/TCP, MQTT/TLS, MQTT/WebSocket as well as other MQTT protocol features. > MQTT stands for MQ Telemetry Transport. It is a publish/subscribe, extremely simple and lightweight messaging protocol, designed for constrained devices and low-bandwidth, high-latency or unreliable networks. Preview Installation Currently available for download from these app stores macOS App Store [](https://apps.apple.com/us/app/mqttx/id1514074565?mt=12) Homebrew The macOS users can install MQTTX using brew cask Linux [](https://snapcraft.io/mqttx) <a href=''https://flathub.org/apps/details/com.emqx.MQTTX''><img height=''56'' alt=''Download on Flathub'' src=''https://flathub.org/assets/badges/flathub-badge-en.png''/></a> Released Packages Download from GitHub Releases and install it. Alternative, you can download here. Usage See our documentation or manual for details. 1. Get MQTT Broker Ready. - If you do not need to deploy the MQTT Broker locally, you can use the public MQTT 5.0 Broker provided by EMQX Cloud for testing: - To run…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/mqttx-web/icon.svg
+    category: automation
+    port_map: "9012"
+    author: EMQ
+    developer: EMQ
+    source:
+        catalog: umbrel-apps
+        upstream_id: mqttx-web
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: mqttx-web/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:11Z"

@@ -1,0 +1,41 @@
+version: '3.7'
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: donetick_app_1
+      APP_PORT: 2021
+      PROXY_AUTH_ADD: "false"
+
+  app:
+    image: donetick/donetick:v0.1.75@sha256:5c207a86e5425052e9ffe5286f96f71babfe57337760d303a5fb56a856790d11
+    user: "1000:1000"
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/data/app:/donetick-data
+      - ${APP_DATA_DIR}/data/config:/config
+    environment:
+      - DT_ENV=selfhosted
+      - DT_SQLITE_PATH=/donetick-data/donetick.db
+
+x-powerlab:
+    store_app_id: donetick
+    title:
+        en_us: Donetick
+    tagline:
+        en_us: An intelligent way to organize tasks and chores
+    description:
+        en_us: '<img src="assets/icon.png" alt="drawing" width="45"/>Donetick **Simplify Tasks & Chores, Together!** Donetick is an open-source, user-friendly app designed to help you organize tasks and chores effectively. featuring customizable options to help you and others stay organized [](https://discord.gg/6hSH6F33q7) [](https://www.reddit.com/r/donetick) Features Task & Chore Management **Collaborative**: Create and manage tasks either solo or with family and friends. You can create a group and share or assign some of the tasks or chores with others. **Natural Language Task Creation**: Describe what you need to do in plain English. Donetick automatically extracts dates, times, and recurrence patterns from phrases like “Change water filter every 6 months” or “Take the trash out every Monday and Tuesday at 6:15 pm.” **Task Advanced Scheduling**: - Supports flexible scheduling: daily, weekly, monthly, yearly, specific months, specific days of the week, or even adaptive scheduling — where Donetick learns from historical completions to suggest due dates automatically. - Due Date vs Completion Date Based Recurrence: Choose whether recurring tasks should be scheduled from the previous due date (ideal for a consistent cadence) or from the actual completion date (useful when tasks are often delayed). - Assignee Rotation: Automatically rotate task assignments based on who has completed the fewest tasks, randomly, or…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/donetick/icon.svg
+    category: files
+    port_map: "8121"
+    author: Donetick
+    developer: Donetick
+    source:
+        catalog: umbrel-apps
+        upstream_id: donetick
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: donetick/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:05Z"

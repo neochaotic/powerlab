@@ -1,0 +1,72 @@
+version: '3.7'
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: blinko_app_1
+      APP_PORT: 1111
+      PROXY_AUTH_ADD: "false"
+
+  db:
+    image: postgres:17.3@sha256:6e3358e46e34dae6c184f48fd06fe1b3dbf958ad5b83480031907e52b9ec2a7d
+    healthcheck:
+      test: ["CMD", "pg_isready", "-q", "-d", "blinko", "-U", "blinkouser"]
+      timeout: 45s
+      interval: 10s
+      retries: 10
+    user: "1000:1000"
+    volumes:
+      - ${APP_DATA_DIR}/data/db:/var/lib/postgresql/data:rw
+    environment:
+      POSTGRES_DB: blinko
+      POSTGRES_USER: blinkouser
+      POSTGRES_PASSWORD: blinkopass
+    restart: on-failure
+
+  app:
+    image: blinkospace/blinko:1.8.7@sha256:f7c1167f8c86db586599d849539a732929d89adb10977046e7b427813b2a84b4
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1111"]
+      interval: 30s 
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    environment:
+      NODE_ENV: production
+      NEXTAUTH_URL: http://${DEVICE_DOMAIN_NAME}:1111
+      NEXT_PUBLIC_BASE_URL: http://${DEVICE_DOMAIN_NAME}:1111
+      NEXTAUTH_SECRET: ${APP_SEED}
+      DATABASE_URL: postgresql://blinkouser:blinkopass@blinko_db_1:5432/blinko
+    user: "1000:1000"
+    volumes:
+      - ${APP_DATA_DIR}/data/app:/app/.blinko:rw
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+
+x-powerlab:
+    store_app_id: blinko
+    title:
+        en_us: Blinko
+    tagline:
+        en_us: An AI-powered hub for your ideas and notes
+    description:
+        en_us: "<img style=\"border-radius:20px;margin-bottom:20px\" src=\"./app/public/home.png\" alt=\"Blinko\" /> <h1 align=\"center\">Blinko</h1> <div align=\"center\"> </div> <div align=\"center\"> Live Demo • Official Site • Documents • Telegram Chinese • Telegram English • 中文 </div> > Live Demo: username:blinko password:blinko Blinko is an AI-powered card note-taking project. Designed for individuals who want to quickly capture and organize their fleeting thoughts. Blinko allows users to seamlessly jot down ideas the moment they strike, ensuring that no spark of creativity is lost. <div align=\"center\"> [](https://www.pikapods.com/pods?run=blinko) </div> \U0001F680Main Features - \U0001F916**AI-Enhanced Note Retrieval** ：With Blinko's advanced AI-powered RAG (Retrieval-Augmented Generation), you can quickly search and access your notes using natural language queries, making it effortless to find exactly what you need. - \U0001F512**Data Ownership** :Your privacy matters. All your notes and data are stored securely in your self-hosted environment, ensuring complete control over your information. - \U0001F680**Efficient and Fast** :Capture ideas instantly and store them as plain text for easy access, with full Markdown support for quick formatting and seamless sharing. - \U0001F4A1**Lightweight architecture with multi-platform support** :Built with Tauri, Blinko features a clean and lightweight architecture that delivers robust performance while maintaining exceptional speed and efficiency, with native support for multi-platform deployment including macOS, Windows, Android, and Linux. -…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/blinko/icon.svg
+    category: files
+    port_map: "1111"
+    author: Blinko
+    developer: Blinko
+    source:
+        catalog: umbrel-apps
+        upstream_id: blinko
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: blinko/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:04Z"

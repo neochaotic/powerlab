@@ -1,0 +1,43 @@
+version: '3.7'
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: cobalt_web_1
+      APP_PORT: 9001
+      PROXY_AUTH_ADD: "false"
+  web:
+    image: dennysubke/cobalt:11.5@sha256:e3b1626d6026f1f714643ad9b0b14257b0ce9ab4cedb3a5e041eb540f2e12798
+    read_only: true
+    restart: on-failure
+    user: "1000:1000"
+    ports:
+      - 9013:9000
+    environment:
+      API_URL: "http://${DEVICE_DOMAIN_NAME}:9013/"
+      API_AUTH_REQUIRED: 0
+      DURATION_LIMIT: 86400
+
+
+
+x-powerlab:
+    store_app_id: cobalt
+    title:
+        en_us: cobalt
+    tagline:
+        en_us: Best way to save what you love
+    description:
+        en_us: "<div align=\"center\"> <br/> <p> <img src=\"web/static/favicon.png\" title=\"cobalt\" alt=\"cobalt logo\" width=\"100\" /> </p> <p> best way to save what you love <br/> <a href=\"https://cobalt.tools\"> cobalt.tools </a> </p> <p> <a href=\"https://discord.gg/pQPt8HBUPu\"> \U0001F4AC community discord server </a> <br/> <a href=\"https://x.com/justusecobalt\"> \U0001F426 twitter </a> <a href=\"https://bsky.app/profile/cobalt.tools\"> \U0001F98B bluesky </a> </p> <br/> </div> cobalt is a media downloader that doesn't piss you off. it's friendly, efficient, and doesn't have ads, trackers, paywalls or other nonsense. paste the link, get the file, move on. that simple, just how it should be. cobalt monorepo this monorepo includes source code for api, frontend, and related packages: - api tree & readme - web tree & readme - packages tree it also includes documentation in the docs tree: - how to run a cobalt instance - how to protect a cobalt instance - cobalt api instance environment variables - cobalt api documentation ethics cobalt is a tool that makes downloading public content easier. it takes **zero liability**. the end user is responsible for what they download, how they use and distribute that content. cobalt never caches any content, it works like a fancy proxy. cobalt is in no way a piracy tool and cannot be used as such. it…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/cobalt/icon.svg
+    category: media
+    port_map: "9009"
+    author: imputnet
+    developer: imputnet
+    source:
+        catalog: umbrel-apps
+        upstream_id: cobalt
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: cobalt/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:05Z"

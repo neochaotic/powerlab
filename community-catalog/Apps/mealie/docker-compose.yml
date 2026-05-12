@@ -1,0 +1,41 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: mealie_web_1
+      APP_PORT: 9000
+      PROXY_AUTH_WHITELIST: "/api/*"
+
+  web:
+    image: ghcr.io/mealie-recipes/mealie:v3.17.0@sha256:d570139f1891346131d02f8e4d1853100ae4846474958ca6c68cfe1648058467
+    restart: on-failure
+    environment:
+      # Allow additional user sign-up without token
+      ALLOW_SIGNUP: "true"
+      PUID: 1000
+      PGID: 1000
+      MAX_WORKERS: 1
+      WEB_CONCURRENCY: 1
+    volumes:
+      - ${APP_DATA_DIR}/data:/app/data
+
+x-powerlab:
+    store_app_id: mealie
+    title:
+        en_us: Mealie
+    tagline:
+        en_us: A Place for All Your Recipes
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/mealie/icon.svg
+    category: files
+    port_map: "9925"
+    author: Hayden
+    developer: Hayden
+    source:
+        catalog: umbrel-apps
+        upstream_id: mealie
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: mealie/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:11Z"

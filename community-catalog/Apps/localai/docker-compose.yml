@@ -1,0 +1,40 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: localai_api_1
+      APP_PORT: 8080
+      PROXY_AUTH_WHITELIST: "/v1/*"
+  api:
+    image: localai/localai:v4.1.3@sha256:a6af99e17a73a92caa134e70ae84492cc47b67645c1676268a7522ad14f4c09d
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/readyz"]
+      interval: 1m
+      timeout: 20m
+      retries: 5
+    environment:
+      - MODELS_PATH=/models
+    volumes:
+      - ${APP_DATA_DIR}/data/models:/models:cached
+      - ${APP_DATA_DIR}/data/images/:/tmp/generated/images/
+
+x-powerlab:
+    store_app_id: localai
+    title:
+        en_us: LocalAI
+    tagline:
+        en_us: Drop-in OpenAI replacement
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/localai/icon.svg
+    category: ai
+    port_map: "8793"
+    author: Ettore Di Giacinto
+    developer: Ettore Di Giacinto
+    source:
+        catalog: umbrel-apps
+        upstream_id: localai
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: localai/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:10Z"

@@ -1,0 +1,37 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: freshrss_server_1
+      APP_PORT: 80
+      PROXY_AUTH_WHITELIST: "/api/*"
+
+  server:
+    image: linuxserver/freshrss:1.29.0@sha256:9ea33a3b660f1e8485867374be36d39898c7b43fcbd2595e2442cb1d9b23410e
+    restart: on-failure
+    environment:
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - ${APP_DATA_DIR}/data:/config
+
+x-powerlab:
+    store_app_id: freshrss
+    title:
+        en_us: FreshRSS
+    tagline:
+        en_us: A free, self-hostable aggregator for rss feeds
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/freshrss/icon.svg
+    category: social
+    port_map: "3432"
+    author: FreshRSS Org
+    developer: FreshRSS Org
+    source:
+        catalog: umbrel-apps
+        upstream_id: freshrss
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: freshrss/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:07Z"

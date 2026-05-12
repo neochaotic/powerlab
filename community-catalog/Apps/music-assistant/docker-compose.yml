@@ -1,0 +1,43 @@
+version: "3.7"
+
+services:
+  web:
+    image: ghcr.io/music-assistant/server:2.8.7@sha256:eef3ee7810d0e4702afa4a0ff55b10bbbfcaa16c98a277fe1b7f4cb6d5d426b4
+    restart: on-failure
+    user: "1000:1000"
+    # Network mode must be set to host for MA to work correctly
+    network_mode: host
+    # UI at data/settings.json defined port 8896
+    # Streamserver at default port 8078
+    # Sendspin at default port 8927
+    volumes:
+      - ${APP_DATA_DIR}/data:/data/
+      - ${UMBREL_ROOT}/data/storage/downloads:/media
+    # privileged caps (and security-opt) needed to mount smb folders within the container
+    cap_add:
+      - SYS_ADMIN
+      - DAC_READ_SEARCH
+    security_opt:
+      - apparmor=unconfined
+
+x-powerlab:
+    store_app_id: music-assistant
+    title:
+        en_us: Music Assistant
+    tagline:
+        en_us: A music library manager for your offline and online music sources
+    description:
+        en_us: 'Music Assistant **Music Assistant Server** Music Assistant is a free, opensource Media library manager that connects to your streaming services and a wide range of connected speakers. The server is the beating heart, the core of Music Assistant and must run on an always-on device like a Raspberry Pi, a NAS or an Intel NUC or alike. **Documentation and support** Documentation https://music-assistant.io Beta Documentation https://beta.music-assistant.io For issues, please go to the issue tracker. For feature requests, please see feature requests. Running the server Music Assistant can be operated as a complete standalone product but it is actually tailored to use side by side with Home Assistant, it is meant with automation in mind, hence our recommended installation method is to run the server as a Home assistant Add-on. Installation Instructions See here https://music-assistant.io/installation/ [repository-badge]: https://img.shields.io/badge/Add%20repository%20to%20my-Home%20Assistant-41BDF5?logo=home-assistant&style=for-the-badge [repository-url]: https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fmusic-assistant%2Fhome-assistant-addon Note that although Music Assistant''s main code is written in python, it has multiple dependencies on external/OS components such as ffmpeg and custom binaries and it is therefore not possible to run it as standalone pypi package. The only available installation method to run the Music Assistant server is by running the Docker container or the Home Assistant add-on. [](https://www.openhomefoundation.org/)'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/music-assistant/icon.svg
+    category: media
+    port_map: "8896"
+    author: Music Assistant
+    developer: Music Assistant
+    source:
+        catalog: umbrel-apps
+        upstream_id: music-assistant
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: music-assistant/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:12Z"

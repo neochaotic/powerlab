@@ -1,0 +1,35 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: zen_app_1
+      APP_PORT: 8080
+
+  app:
+    image: ghcr.io/sheshbabu/zen/zen:1.5.0@sha256:370d7ae0d8b4d06593b44ffa1cfde5d15c7f80abe4bbe8d94e86d8d29e250270
+    user: "1000:1000"
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/data/app:/data
+      - ${APP_DATA_DIR}/data/images:/images
+
+x-powerlab:
+    store_app_id: zen
+    title:
+        en_us: Zen
+    tagline:
+        en_us: A simple app for focused and private note-taking
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/zen/icon.svg
+    category: files
+    port_map: "8894"
+    author: Sheshbabu
+    developer: Sheshbabu
+    source:
+        catalog: umbrel-apps
+        upstream_id: zen
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: zen/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:19Z"

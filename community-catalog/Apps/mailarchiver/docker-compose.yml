@@ -1,0 +1,54 @@
+services:
+  app_proxy:
+    environment:
+      APP_HOST: mailarchiver_app_1
+      APP_PORT: 5000
+
+  app:
+    image: ghcr.io/s1t5/mailarchiver:2604.2@sha256:53800df180b876e3cc02e31f088e0684bf81a4380ad22b5419da99e8559bb5ba
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/data/data-protection-keys:/app/DataProtection-Keys
+      - ${APP_DATA_DIR}/data/appsettings.json:/app/appsettings.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:18.3-alpine3.23@sha256:4da1a4828be12604092fa55311276f08f9224a74a62dcb4708bd7439e2a03911
+    restart: on-failure
+    user: 1000:1000
+    environment:
+      POSTGRES_DB: mailarchiver
+      POSTGRES_USER: mailarchiver
+      POSTGRES_PASSWORD: mailarchiver
+    volumes:
+      - ${APP_DATA_DIR}/data/database:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mailarchiver -d mailarchiver"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+x-powerlab:
+    store_app_id: mailarchiver
+    title:
+        en_us: Mail Archiver
+    tagline:
+        en_us: A comprehensive solution for archiving, searching, and exporting emails
+    description:
+        en_us: "\U0001F4E7 Mail-Archiver - Email Archiving System **A comprehensive solution for archiving, searching, and exporting emails** \U0001F310 **Website:** mail-archiver.org <div style=\"display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;\"> <a href=\"https://mail-archiver.org\" target=\"_blank\"><img src=\"https://img.shields.io/badge/Website-mail--archiver.org-4A90D9?style=for-the-badge&logo=globe&logoColor=white\" alt=\"Website\"></a> <a href=\"#\"><img src=\"https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white\" alt=\"Docker\"></a> <a href=\"#\"><img src=\"https://img.shields.io/badge/.NET-512BD4?style=for-the-badge&logo=dotnet&logoColor=white\" alt=\".NET\"></a> <a href=\"#\"><img src=\"https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white\" alt=\"PostgreSQL\"></a> <a href=\"#\"><img src=\"https://img.shields.io/badge/Bootstrap-563D7C?style=for-the-badge&logo=bootstrap&logoColor=white\" alt=\"Bootstrap\"></a> <a href=\"https://github.com/s1t5/mail-archiver\"><img src=\"https://img.shields.io/github/stars/s1t5/mail-archiver?style=for-the-badge&logo=github\" alt=\"GitHub Stars\"></a> <a href=\"https://www.buymeacoffee.com/s1t5\" target=\"_blank\"><img src=\"https://img.shields.io/badge/Buy%20Me%20a%20Coffee-s1t5-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black\" alt=\"Buy Me a Coffee\"></a> <a href=\"https://ko-fi.com/s1t5dev\" target=\"_blank\"><img src=\"https://img.shields.io/badge/Ko--Fi-s1t5dev-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white\" alt=\"Ko-fi\"></a> </div> ✨ Key Features \U0001F4CC Core Features - Automated archiving of incoming and outgoing emails from multiple accounts - Storage of email content and attachments with scheduled synchronization - Mobile and desktop optimized, multilingual responsive UI with dark mode - OpenID Connect (OIDC) for integration of external authentication services (OIDC Implementation Guide) \U0001F50D Search & Access - Advanced search across all archived emails with filtering options - Preview emails with attachment list - Export entire mail accounts as mbox files or zipped EML archives - Export selected individual emails or email batches \U0001F465 User Management - Multi-user support with account-specific permissions - Dashboard with statistics, storage monitoring, and sender analysis - Comprehensive access logging with detailed activity tracking of user activities (Access, Export, Deletion, Restore and many more) - see Access Logging Guide for…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/mailarchiver/icon.svg
+    category: files
+    port_map: "5006"
+    author: s1t5
+    developer: s1t5
+    source:
+        catalog: umbrel-apps
+        upstream_id: mailarchiver
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: mailarchiver/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:10Z"

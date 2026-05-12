@@ -1,0 +1,36 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: downtify_downtify_1
+      APP_PORT: 8000
+
+  downtify:
+    image: ghcr.io/henriquesebastiao/downtify:2.6.1@sha256:045233125aa8b41d4e504a73beeb7964d0ef75b1e00175b6a95130c0df8eba29
+    stop_grace_period: 1m
+    volumes:
+      - ${UMBREL_ROOT}/data/storage/downloads/downtify:/downloads
+      - ${APP_DATA_DIR}/data:/data
+
+x-powerlab:
+    store_app_id: downtify
+    title:
+        en_us: Downtify
+    tagline:
+        en_us: Download Spotify music with album art and metadata
+    description:
+        en_us: "<h1 align=\"center\"> <a href=\"https://github.com/henriquesebastiao/downtify\" target=\"_blank\" rel=\"noopener noreferrer\"> <picture> <img width=\"80\" src=\"https://github.com/user-attachments/assets/628d4334-7326-446e-9f2a-4d3ab4fc95c3\"> </picture> </a> <br> Downtify </h1> <p align=\"center\"> <strong>Self-hosted music downloader. Paste a Spotify link, get a perfectly tagged audio file — no API keys, no account, no hassle.</strong> </p> <div align=\"center\"> [](https://github.com/henriquesebastiao/downtify/actions/workflows/test.yml) [](https://github.com/henriquesebastiao/downtify/releases) [](/LICENSE) [](https://hub.docker.com/r/henriquesebastiao/downtify) [](https://github.com/henriquesebastiao/downtify) </div> https://github.com/user-attachments/assets/9711efe8-a960-4e1a-8d55-e0d1c20208f7 ✨ What is Downtify? Downtify is a **self-hosted web app** that downloads music from Spotify — without touching the Spotify API, without needing an account, and without any Premium subscription. Just drop a link and get a fully-tagged audio file. It resolves track metadata directly from Spotify's public embed pages, finds the best audio match on YouTube Music, downloads it with , converts it with , and embeds album art + all metadata with . The entire pipeline runs inside a single Docker container. \U0001F680 Features | Feature | Details | |---------|---------| | \U0001F3B5 **Tracks, albums & playlists** | Any Spotify link works — single track, full album, or entire playlist | | \U0001F441️ **Playlist Monitor** | Watch playlists and **auto-download new songs** as they are added to Spotify | | \U0001F3A8 **Rich metadata** | Album art, title, artist, album, year — all embedded in every file | | \U0001F39A️ **Multiple…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/downtify/icon.svg
+    category: media
+    port_map: "8789"
+    author: Henrique Sebastião
+    developer: Henrique Sebastião
+    source:
+        catalog: umbrel-apps
+        upstream_id: downtify
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: downtify/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:06Z"

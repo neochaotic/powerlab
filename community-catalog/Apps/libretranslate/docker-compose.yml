@@ -1,0 +1,50 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: libretranslate_main_1
+      APP_PORT: 5000
+      PROXY_AUTH_ADD: "false"
+  main:
+    image: libretranslate/libretranslate:v1.6.5@sha256:a3518195e4e810ba0d9dd251a851f24918059d757ef3c5cf8e0f881daf4242fc
+    restart: on-failure
+
+    ## Log to docker compose logs. This allows you to see the model download progress when first installing.
+    tty: true
+    healthcheck:
+      test: ['CMD-SHELL', './venv/bin/python scripts/healthcheck.py']     
+    ## Uncomment above command and define your args if necessary
+    # command: --ssl --ga-id MY-GA-ID --req-limit 100 --char-limit 500
+    ## Uncomment this section and the libretranslate_api_keys volume if you want to backup your API keys
+    environment:
+      - LT_API_KEYS=true
+      - LT_API_KEYS_DB_PATH=/app/db/api_keys.db # Same result as `db/api_keys.db` or `./db/api_keys.db`
+    ## Uncomment these vars and libretranslate_models volume to optimize loading time.
+      - LT_UPDATE_MODELS=true
+    ##  - LT_LOAD_ONLY=en,fr
+    volumes:
+      - ${APP_DATA_DIR}/data/api_keys:/app/db
+      - ${APP_DATA_DIR}/data/models:/home/libretranslate/.local:rw
+
+x-powerlab:
+    store_app_id: libretranslate
+    title:
+        en_us: LibreTranslate
+    tagline:
+        en_us: Free and Open Source machine translation API
+    description:
+        en_us: LibreTranslate Try it online! | API Docs | Community Forum | Bluesky [](https://pypi.org/project/libretranslate) [](https://github.com/LibreTranslate/LibreTranslate/actions?query=workflow%3A%22Run+tests%22) [](https://github.com/LibreTranslate/LibreTranslate/actions/workflows/publish-docker.yml) [](https://github.com/LibreTranslate/LibreTranslate/actions/workflows/publish-package.yml) [](https://codeberg.org/teaserbot-labs/delightful-humane-design) Free and Open Source Machine Translation API, entirely self-hosted. Unlike other APIs, it doesn't rely on proprietary software such as Google or Azure to perform translations. Instead, its translation engine is powered by the open source Argos Translate library. Getting Started - Quickstart - Usage Instructions - Community Resources Credits This work is largely possible thanks to Argos Translate, which powers the translation engine. License GNU Affero General Public License v3 Trademark See Trademark Guidelines
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/libretranslate/icon.svg
+    category: ai
+    port_map: "7017"
+    author: LibreTranslate Contributors
+    developer: LibreTranslate Contributors
+    source:
+        catalog: umbrel-apps
+        upstream_id: libretranslate
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: libretranslate/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:10Z"

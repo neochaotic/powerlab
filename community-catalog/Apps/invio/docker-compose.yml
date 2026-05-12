@@ -1,0 +1,56 @@
+services:
+
+  app_proxy:
+    environment:
+      APP_HOST: invio_frontend_1
+      APP_PORT: 8000
+      PROXY_AUTH_ADD: "false"
+
+  backend:
+    image: ghcr.io/kittendevv/invio-backend:v2.0.0@sha256:bc1aa1d27cf0b12b7e1a1eac2e55f9fb8274375502b6b93fb12cc16670ce0f74
+    environment:
+      ADMIN_USER: "admin"
+      ADMIN_PASS: ${APP_PASSWORD}
+      JWT_SECRET: ${APP_SEED}
+      SESSION_TTL_SECONDS: 43200
+      SECURE_HEADERS_DISABLED: "false"
+      ENABLE_HSTS: "true"
+      DATABASE_PATH: /app/data/invio.db
+    volumes:
+      - ${APP_DATA_DIR}/data:/app/data
+    restart: on-failure
+
+  frontend:
+    image: ghcr.io/kittendevv/invio-frontend:v2.0.0@sha256:54cbfc6ff2a585cf7299468a7b160a98d84f197cdbcb6bdf2bda82a7a0210099
+    environment:
+      PORT: 8000
+      BACKEND_URL: http://invio_backend_1:3000
+      COOKIE_SECURE: "false"
+      FRONTEND_SECURE_HEADERS_DISABLED: "false"
+      ENABLE_HSTS: "false"
+      ORIGIN: "http://${DEVICE_DOMAIN_NAME}:8003"
+    depends_on:
+      - backend
+    restart: on-failure
+
+x-powerlab:
+    store_app_id: invio
+    title:
+        en_us: Invio
+    tagline:
+        en_us: Invio is a self-hosted invoicing app without the bloat
+    description:
+        en_us: "<p align=\"center\"> <img src=\"https://raw.githubusercontent.com/kittendevv/Invio/refs/heads/main/assets/banner-default.png\" alt=\"Invio\" width=\"100%\" /> </p> <p align=\"center\"><b>Selfhosted invoicing without the bloat.</b></p> <p align=\"center\"> <a href=\"https://invio.dev\">Website</a> • <a href=\"https://demo.invio.dev\">Live Demo</a> • <a href=\"https://github.com/kittendevv/Invio/wiki\">Documentation</a> • <a href=\"https://ko-fi.com/codingkitten\">Support</a> </p> <p align=\"center\"> <img src=\"https://hackatime-badge.hackclub.com/U080TNHKK32/Invio\" alt=\"Hacktime Badge\" style=\"height: 30px;\" height=\"30\"> </p> \U0001F31F Why Invio? - Zero Bloat - Create an invoice, share a link, get paid. No menus to dig through, no setup wizards, no fluff. - Fully Selfhosted - Your data, stays your data. Host it on your own hardware and never worry about what happens when a SaaS company changes its pricing or shuts down. - Client Friendly - Skip the 'how do I log in?' emails. Just send a secure link, no account needed. - Free. Forever. - No subscription, no per-invoice charges, no hidden fees. Invio is fully free and open source. Good tools shouldn't cost a fortune. \U0001F680 Quick Start Check out the Quick Start guide in the documentation to get up and running. \U0001F5BC️ Screenshots <details> <summary>Dashboard</summary> <img src=\"https://cdn.hackclub.com/019c2a41-c03a-7dc0-be72-df477fdb13e1/screenshot_2026-02-04_210324.png\" alt=\"Invio Dashboard\" width=\"100%\" /> </details> <details> <summary>Invoice Creation</summary> <img src=\"https://cdn.hackclub.com/019c2a43-426b-7edd-943b-f0f807897527/screenshot_2026-02-04_210545.png\" alt=\"Invio Dashboard\" width=\"100%\" /> </details> <details> <summary>Settings</summary> <img src=\"https://cdn.hackclub.com/019c2a49-aed5-7242-994e-900eebc628ed/Screenshot%202026-02-04%20211257.png\" alt=\"Invio Dashboard\" width=\"100%\" /> </details> <details> <summary>Invoices</summary> <img src=\"https://cdn.hackclub.com/019c2573-a8ee-7fe4-bba1-2824ed37430d/5ac9f89da2a86332583027f70630bb772f652836_invoices.png\" alt=\"Invio Dashboard\" width=\"100%\" /> </details> \U0001F496 Contributors Invio is…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/invio/icon.svg
+    category: finance
+    port_map: "8003"
+    author: kittendevv
+    developer: kittendevv
+    source:
+        catalog: umbrel-apps
+        upstream_id: invio
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: invio/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:08Z"

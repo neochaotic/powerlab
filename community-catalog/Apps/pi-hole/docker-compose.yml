@@ -1,0 +1,40 @@
+version: "3.7"
+
+services:
+  server:
+    image: pihole/pihole:2026.04.1@sha256:1c32c36b862a12762656b6471c854cebc01fe945639ba3a893611337c2c95e99
+    # Pi-hole doesn't currently support running as non-root
+    # https://github.com/pi-hole/docker-pi-hole/issues/685
+    # user: "1000:1000"
+    restart: on-failure
+    network_mode: host
+    volumes:
+      - ${APP_DATA_DIR}/data/pihole:/etc/pihole/
+      - ${APP_DATA_DIR}/data/dnsmasq:/etc/dnsmasq.d/
+    environment:
+      - FTLCONF_webserver_api_password=${APP_PASSWORD}
+      - FTLCONF_webserver_port=8082,[::]:8082
+      # Listen on all interfaces, permit all origins
+      - FTLCONF_dns_listeningMode=all
+    cap_add:
+      - NET_ADMIN
+
+x-powerlab:
+    store_app_id: pi-hole
+    title:
+        en_us: Pi-hole
+    tagline:
+        en_us: Block ads on your entire network
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/pi-hole/icon.svg
+    category: networking
+    port_map: "8082"
+    author: Pi-hole®
+    developer: Pi-hole®
+    source:
+        catalog: umbrel-apps
+        upstream_id: pi-hole
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: pi-hole/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:14Z"

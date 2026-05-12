@@ -1,0 +1,36 @@
+version: '3.7'
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: rotki_web_1
+      APP_PORT: 80
+
+  web:
+    image: rotki/rotki:v1.42.1@sha256:c088bdd6fec5bfe92f6e1a93829d844fa8076040d1754683e07348a97677d4d0
+    restart: on-failure
+    stop_grace_period: 1m
+    init: true
+    volumes:
+      - ${APP_DATA_DIR}/data/data:/data
+      - ${APP_DATA_DIR}/data/logs:/logs
+
+x-powerlab:
+    store_app_id: rotki
+    title:
+        en_us: rotki
+    tagline:
+        en_us: Portfolio tracking, analytics, accounting and tax reporting
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/rotki/icon.svg
+    category: finance
+    port_map: "8084"
+    author: Rotki
+    developer: Rotki
+    source:
+        catalog: umbrel-apps
+        upstream_id: rotki
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: rotki/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:15Z"

@@ -1,0 +1,31 @@
+version: '3.7'
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: super-productivity_web_1
+      APP_PORT: 80
+
+  web:
+    image: johannesjo/super-productivity:v18.5.0@sha256:c0bc2f501c4492e854b10c001eb511176cee253a23b33a1b2e446b2245d3caef
+    restart: on-failure
+
+x-powerlab:
+    store_app_id: super-productivity
+    title:
+        en_us: Super Productivity
+    tagline:
+        en_us: An efficient way to manage tasks, time, and projects all in one place
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/super-productivity/icon.svg
+    category: files
+    port_map: "8020"
+    author: Johannes Schickling
+    developer: Johannes Schickling
+    source:
+        catalog: umbrel-apps
+        upstream_id: super-productivity
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: super-productivity/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:17Z"

@@ -1,0 +1,31 @@
+version: "3.7"
+
+services:
+  server:
+    image: homebridge/homebridge:2026-05-06@sha256:e99118910aa5da96f66fb7cd4142c00e7ea524d5700bb3597fe5b90b270dd5d7
+    # container runs as root
+    network_mode: host
+    # available at port 8581
+    volumes:
+      - ${APP_DATA_DIR}/data/homebridge:/homebridge
+    restart: on-failure
+
+x-powerlab:
+    store_app_id: homebridge
+    title:
+        en_us: Homebridge
+    tagline:
+        en_us: HomeKit support for the impatient
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/homebridge/icon.svg
+    category: automation
+    port_map: "8581"
+    author: Homebridge
+    developer: Homebridge
+    source:
+        catalog: umbrel-apps
+        upstream_id: homebridge
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: homebridge/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:08Z"

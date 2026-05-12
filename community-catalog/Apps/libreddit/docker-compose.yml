@@ -1,0 +1,38 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: libreddit_web_1
+      APP_PORT: 7420
+
+  web:
+    image: ceramicwhite/libreddit:0.22.9@sha256:00a133da4ae8eb1b7d3ce9af0ca387e2dd929dc6b490736532b5d998a025c362
+    restart: on-failure
+    stop_grace_period: 1m
+    init: true
+    user: "1000:1000"
+    environment:
+      PORT: 7420
+    healthcheck:
+      disable: true
+
+x-powerlab:
+    store_app_id: libreddit
+    title:
+        en_us: LibReddit
+    tagline:
+        en_us: An alternative private front-end to Reddit
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/libreddit/icon.svg
+    category: social
+    port_map: "7420"
+    author: Spikecodes
+    developer: Spikecodes
+    source:
+        catalog: umbrel-apps
+        upstream_id: libreddit
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: libreddit/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:10Z"
