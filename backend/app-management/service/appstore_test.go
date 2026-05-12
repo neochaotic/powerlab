@@ -101,9 +101,17 @@ func TestGetApp(t *testing.T) {
 func TestSkipUpdateCatalog(t *testing.T) {
 	logger.LogInitConsoleOnly()
 
+	// Was previously also `casaos.oss-cn-shanghai.aliyuncs.com` (China
+	// region mirror). Dropped on 2026-05-12 — PowerLab never referenced
+	// that mirror in any production conf, and the test was flaking ~40 %
+	// of CI runs with TLS handshake timeouts that exceeded the test
+	// timeout (the per-URL HEAD probe was fast enough to pass the
+	// `isURLReachable` skip-gate, but the full ZIP GET that
+	// `UpdateCatalog()` performs ran 28 s+ and failed). The remaining
+	// `casaos.app` URL covers the cache-skip behavior under test
+	// identically; we didn't lose coverage by dropping the duplicate.
 	appStoreURL := []string{
 		"https://casaos.app/store/main.zip",
-		"https://casaos.oss-cn-shanghai.aliyuncs.com/store/main.zip",
 	}
 
 	for _, url := range appStoreURL {
