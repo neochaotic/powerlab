@@ -1,0 +1,10 @@
+kind: Fixed
+body: 'Sync-umbrel-catalog workflow no longer fails silently when the `catalog`
+  label is missing on the repo. `gh pr create --label X` validates the label
+  upfront and exits non-zero if it doesn''t exist — leaving the branch pushed
+  but no PR open (the workflow''s `|| true` swallowed the error). Split into a
+  separate `gh pr edit --add-label` step that runs after PR creation, with the
+  label step being best-effort. First-run symptom: first weekly sync after #317
+  pushed the branch but skipped the PR open.'
+custom:
+  Issue: "307"
