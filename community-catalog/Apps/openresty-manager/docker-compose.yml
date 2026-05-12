@@ -40,4 +40,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: openresty-manager/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T14:50:19Z"
+        synced_at: "2026-05-12T15:02:34Z"

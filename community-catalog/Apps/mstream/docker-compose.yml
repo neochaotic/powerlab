@@ -8,7 +8,7 @@ services:
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/mstream/data:/config
-            - ${UMBREL_ROOT}/data/storage/downloads/music:/music
+            - /DATA/data/storage/downloads/music:/music
 version: "3.7"
 
 x-powerlab:
@@ -29,4 +29,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: mstream/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T14:50:17Z"
+        synced_at: "2026-05-12T15:02:25Z"

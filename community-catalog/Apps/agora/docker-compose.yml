@@ -17,7 +17,7 @@ services:
         user: 1000:1000
         volumes:
             - /DATA/PowerLabAppData/agora/files:/files
-            - ${APP_LIGHTNING_NODE_DATA_DIR}:/lnd:ro
+            - /DATA/PowerLabAppData/agora:/lnd:ro
     filebrowser:
         entrypoint: /data/entrypoint.sh
         environment:
@@ -71,4 +71,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: agora/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T14:50:06Z"
+        synced_at: "2026-05-12T15:01:45Z"

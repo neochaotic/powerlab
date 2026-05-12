@@ -18,7 +18,7 @@ services:
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/samba/data/samba/smb.conf:/etc/samba/smb.conf
-            - ${UMBREL_ROOT}/data/storage:/storage
+            - /DATA/data/storage:/storage
 version: "3.7"
 
 x-powerlab:
@@ -39,4 +39,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: samba/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T14:50:22Z"
+        synced_at: "2026-05-12T15:02:45Z"
