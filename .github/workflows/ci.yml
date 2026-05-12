@@ -157,6 +157,7 @@ jobs:
           - app-management
           - local-storage
           - pkg
+          - sync-catalog
     steps:
       - uses: actions/checkout@v4
 
