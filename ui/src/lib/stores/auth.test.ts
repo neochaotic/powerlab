@@ -104,9 +104,13 @@ describe('Auth Store', () => {
 		
 		vi.stubGlobal('fetch', fetchMock);
 
-		const success = await auth.register('new_admin', 'pass123');
+		const result = await auth.register('new_admin', 'pass123');
 
-		expect(success).toBe(true);
+		// Issue #306: register() now returns a discriminated RegisterResult
+		// instead of a boolean. 'ok' is the success token; other codes
+		// (passTooShort / keyExpired / userExists / failed) are surfaced
+		// to SetupWizard for specific error messages.
+		expect(result).toBe('ok');
 		expect(auth.isAuthenticated).toBe(true);
 		expect(auth.user?.username).toBe('new_admin');
 		expect(fetchMock).toHaveBeenCalledTimes(2);
