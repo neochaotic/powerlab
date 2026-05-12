@@ -1,0 +1,29 @@
+kind: Fixed
+body: 'Umbrel-catalog import — Phase 7 (#307) — the v0.6.1 release shipped a
+  populated `community-catalog/` directory but 0 Umbrel apps surfaced in the
+  store, because every emitted compose YAML carried Umbrel-runtime patterns
+  that PowerLab''s compose-go validator rejects: `services.app_proxy` without
+  an `image:` (Umbrel runtime helper), `${APP_DATA_DIR}` un-substituted in
+  volume references (compose-go treats as undefined named-volume), `env_file:`
+  pointing at paths that don''t exist at parse time, `${APP_*_PORT}`
+  placeholders inside `ports:` (compose-go port parser is strict), and
+  missing top-level `name:` (compose project name fell back to a random
+  temp-dir basename, so `BuildCatalog` keyed the app under names like
+  `amazing_ubs` instead of `agent-zero` — present in the API but unreachable
+  by id). `backend/sync-catalog/transform.go` rewrites the upstream compose
+  to handle all five patterns at sync time. End-to-end verification on a
+  v0.6.1 install: catalog grew from 162 (CasaOS-only) to 336 apps; 10
+  representative Umbrel-only ids (agent-zero, affine, enclosed, adventurelog,
+  appsmith, audiobookshelf, excalidraw, 2fauth, activepieces, akaunting) all
+  resolve by their hyphenated upstream ids. Regression locked by:
+  `backend/sync-catalog/transform_test.go` (20+ unit tests covering each
+  transform individually plus edge cases — empty input, malformed YAML,
+  null/int volume entries, multi-service substitution, idempotency,
+  substring-not-match) and `backend/app-management/service/umbrel_catalog_integration_test.go`
+  (loader-level round trip: emit → `NewComposeAppFromYAML` parse → assert
+  no error + correct project name). The integration test is the missing TDD
+  piece that would have caught the v0.6.1 ship bug — it walks
+  `testdata/umbrel-fixtures/Apps/*/docker-compose.yml` and feeds each
+  through the SAME compose loader BuildCatalog uses.'
+custom:
+  Issue: "307"

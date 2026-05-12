@@ -1,0 +1,30 @@
+name: agent-zero
+services:
+  web:
+    image: agent0ai/agent-zero:v1.13@sha256:7eace75109567ed0ed5fca3470ab4a4c8e5809931a2163975c4204492336a5b1
+    restart: on-failure
+    volumes:
+      - /DATA/PowerLabAppData/agent-zero/data:/a0
+    environment:
+      - ALLOWED_ORIGINS=http://${DEVICE_DOMAIN_NAME}:${APP_AGENTZERO_PORT}
+version: "3.7"
+
+x-powerlab:
+  store_app_id: agent-zero
+  title:
+    en_us: Agent Zero
+  tagline:
+    en_us: A personal, organic agentic framework that grows and learns with you
+  icon: https://getumbrel.github.io/umbrel-apps-gallery/agent-zero/icon.svg
+  category: ai
+  port_map: "3015"
+  author: Agent Zero AI
+  developer: Agent Zero AI
+  source:
+    catalog: umbrel-apps
+    upstream_id: agent-zero
+    upstream_repo: https://github.com/getumbrel/umbrel-apps
+    upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+    upstream_path: agent-zero/umbrel-app.yml
+    transform_version: "1.0"
+    synced_at: "2026-05-12T03:53:03Z"

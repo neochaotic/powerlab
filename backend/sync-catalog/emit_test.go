@@ -47,13 +47,18 @@ func TestEmit_WritesComposeAtCasaOSCompatPath(t *testing.T) {
 	}
 }
 
-// TestEmit_KeepsUpstreamComposeVerbatim is the legal-posture
-// load-bearer: the upstream YAML bytes are preserved exactly
-// (whitespace, comments, key order) so the on-disk file is the
-// app maintainer's compose, not a re-serialised guess of it.
-// Our `x-powerlab:` block is appended; the upstream content
-// must show up unchanged at the start.
-func TestEmit_KeepsUpstreamComposeVerbatim(t *testing.T) {
+// TestEmit_PreservesFunctionalFacts is the legal-posture load-bearer
+// (revised from Phase 4's "preserved verbatim" assertion): after
+// Phase 7's Umbrel→PowerLab transform (`transform.go`, ship-bug fix
+// for v0.6.1), the upstream YAML is round-tripped through
+// yaml.Marshal/Unmarshal so we can drop the `app_proxy` Umbrel-runtime
+// helper service and substitute `${APP_DATA_DIR}`. Formatting +
+// comments are NOT preserved across the round-trip; the ADR-0024
+// legal posture still holds because the FACTUAL fields (image refs,
+// ports, env names, volume paths) are what's preserved — those are
+// uncopyrightable. Expressive content was never imported in the
+// first place (no comments to lose).
+func TestEmit_PreservesFunctionalFacts(t *testing.T) {
 	root := t.TempDir()
 	path, err := Emit(EmitContext{
 		OutputRoot:     root,
@@ -65,10 +70,19 @@ func TestEmit_KeepsUpstreamComposeVerbatim(t *testing.T) {
 	}
 
 	data, _ := os.ReadFile(path)
-	if !strings.HasPrefix(string(data), sampleUpstreamCompose) {
-		t.Errorf("upstream compose was not preserved verbatim; got prefix: %q", string(data)[:80])
+	s := string(data)
+	// Image refs survive — the most load-bearing fact for "did the
+	// app actually come from the upstream maintainer's compose?".
+	if !strings.Contains(s, "jc21/nginx-proxy-manager:2.14.0") {
+		t.Errorf("upstream image ref not preserved, got:\n%s", s)
 	}
-	if !strings.Contains(string(data), "\nx-powerlab:\n") {
+	// Port mapping survives the transform (the sample's only
+	// concrete functional fact beyond the image ref + restart).
+	if !strings.Contains(s, "81:81") {
+		t.Errorf("port mapping not preserved, got:\n%s", s)
+	}
+	// Our x-powerlab block is appended at the end
+	if !strings.Contains(s, "\nx-powerlab:\n") {
 		t.Error("x-powerlab block not appended")
 	}
 }

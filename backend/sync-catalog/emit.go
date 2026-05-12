@@ -136,17 +136,31 @@ func Emit(ctx EmitContext, manifest UmbrelManifest, upstreamCompose []byte, desc
 		info.Description = map[string]string{"en_us": description}
 	}
 
-	// Marshal the x-powerlab block separately and append. We
-	// keep the upstream compose YAML verbatim (preserves
-	// formatting + comments) and add our extension at the end
-	// of the file. The compose v3 grammar accepts any top-level
-	// `x-*` extension keys.
+	// Apply Umbrel→PowerLab compose transform before stamping the
+	// x-powerlab block. Without this, the upstream YAML carries an
+	// `app_proxy` service with no image and `${APP_DATA_DIR}`
+	// volume references that compose-go's validator rejects — the
+	// catalog walker would silently drop every imported app.
+	// See `transform.go` for the rationale + `transform_test.go`
+	// for the regression locks; this was the v0.6.1 ship bug
+	// caught when the first weekly sync produced 241 unparseable
+	// composes (CHANGELOG fragment fix-307-umbrel-compose-validity).
+	transformed, err := transformUpstreamCompose(upstreamCompose, manifest.ID)
+	if err != nil {
+		return "", fmt.Errorf("transform upstream compose for %s: %w", manifest.ID, err)
+	}
+
+	// Marshal the x-powerlab block separately and append. The
+	// upstream compose has been YAML-round-tripped by transform
+	// (formatting + comments lost — acceptable since the file is
+	// machine-emitted and machine-read; maintainer-curated content
+	// goes in `description-powerlab.md` sidecars).
 	blockYAML, err := yaml.Marshal(map[string]XPowerLabStoreInfo{"x-powerlab": info})
 	if err != nil {
 		return "", fmt.Errorf("marshal x-powerlab: %w", err)
 	}
 
-	out := bytesEnsureTrailingNewline(upstreamCompose)
+	out := bytesEnsureTrailingNewline(transformed)
 	out = append(out, '\n')
 	out = append(out, blockYAML...)
 
