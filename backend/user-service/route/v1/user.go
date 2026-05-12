@@ -35,13 +35,19 @@ func PostUserRegister(ctx echo.Context) error {
 			model.Result{Success: common_err.KEY_NOT_EXIST, Message: common_err.GetMsg(common_err.KEY_NOT_EXIST)})
 	}
 
-	if len(username) == 0 || len(pwd) == 0 {
+	if len(username) == 0 {
 		return ctx.JSON(common_err.CLIENT_ERROR,
 			model.Result{Success: common_err.INVALID_PARAMS, Message: common_err.GetMsg(common_err.INVALID_PARAMS)})
 	}
-	if len(pwd) < 6 {
+	// Issue #306 fix — password validation extracted to
+	// `ValidatePassword` in `password.go`; minimum bumped 6 → 8 to
+	// match the UI guard + i18n strings, eliminating the off-by-one
+	// where a 5-char password passed UI validation, hit the backend,
+	// and surfaced as a generic "backend error" instead of the
+	// specific "password too short" message.
+	if code := ValidatePassword(pwd); code != 0 {
 		return ctx.JSON(common_err.CLIENT_ERROR,
-			model.Result{Success: common_err.PWD_IS_TOO_SIMPLE, Message: common_err.GetMsg(common_err.PWD_IS_TOO_SIMPLE)})
+			model.Result{Success: code, Message: common_err.GetMsg(code)})
 	}
 	oldUser := service.MyService.User().GetUserInfoByUserName(username)
 	if oldUser.Id > 0 {

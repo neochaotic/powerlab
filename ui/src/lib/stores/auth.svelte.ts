@@ -2,6 +2,43 @@ import { browser, dev } from '$app/environment';
 import { api, setAuthToken } from '$lib/api/client';
 import { ENDPOINTS, type SuccessResponse } from '$lib/api/endpoints';
 
+/**
+ * RegisterResult is the discriminated outcome of `auth.register()`.
+ * Each non-ok code maps 1:1 to a specific i18n key in SetupWizard
+ * (issue #306 — the original generic "backend error" was confusing
+ * users on legitimate validation failures).
+ */
+export type RegisterResult =
+	| 'ok'             // register + auto-login both succeeded
+	| 'passTooShort'   // backend PWD_IS_TOO_SIMPLE (10005)
+	| 'keyExpired'     // backend KEY_NOT_EXIST (10010) — setup token gone, restart wizard
+	| 'userExists'     // backend USER_EXIST (10007)
+	| 'failed';        // anything else (network, 5xx, unknown 4xx)
+
+// Backend response codes from backend/common/utils/common_err/e.go
+const BACKEND_CODE_PWD_TOO_SIMPLE = 10005;
+const BACKEND_CODE_KEY_NOT_EXIST = 10010;
+const BACKEND_CODE_USER_EXIST = 10007;
+
+/**
+ * mapBackendCodeToRegisterResult inspects an error thrown by `api.post`
+ * and extracts the backend `Success` code if present, mapping it to
+ * a RegisterResult. The API client typically wraps the response body
+ * in the error's `.data` or `.response` property — we probe both to
+ * be defensive.
+ */
+function mapBackendCodeToRegisterResult(error: unknown): RegisterResult {
+	if (error && typeof error === 'object') {
+		// Try common error shapes: { data: { Success } }, { response: { data: { Success } } }
+		const e = error as { data?: { Success?: number }; response?: { data?: { Success?: number } } };
+		const code = e.data?.Success ?? e.response?.data?.Success;
+		if (code === BACKEND_CODE_PWD_TOO_SIMPLE) return 'passTooShort';
+		if (code === BACKEND_CODE_KEY_NOT_EXIST) return 'keyExpired';
+		if (code === BACKEND_CODE_USER_EXIST) return 'userExists';
+	}
+	return 'failed';
+}
+
 interface User {
 	username: string;
 	avatar?: string;
@@ -61,7 +98,20 @@ export const auth = $state({
 		}
 	},
 
-	async register(username: string, password: string) {
+	/**
+	 * Register a new user. Returns a discriminated result code so the
+	 * SetupWizard can show a specific error message instead of the
+	 * generic "Failed to initialize" — issue #306.
+	 *
+	 * Backend codes mapped (see backend/common/utils/common_err/e.go):
+	 *   10005 PWD_IS_TOO_SIMPLE  → 'passTooShort'
+	 *   10010 KEY_NOT_EXIST      → 'keyExpired' (setup token gone — restart wizard)
+	 *   10007 USER_EXIST         → 'userExists'
+	 *   anything else            → 'failed' (generic — backend logs)
+	 *
+	 * 'ok' means register + auto-login both succeeded.
+	 */
+	async register(username: string, password: string): Promise<RegisterResult> {
 		// Race-fix: SetupWizard may submit before checkStatus() has resolved.
 		// In that case registrationKey is empty — fetch it on-demand instead
 		// of failing silently.
@@ -70,7 +120,7 @@ export const auth = $state({
 		}
 		if (!this.registrationKey) {
 			console.error('No registration key available — system may already be initialized');
-			return false;
+			return 'keyExpired';
 		}
 
 		this.isLoading = true;
@@ -81,12 +131,13 @@ export const auth = $state({
 				key: this.registrationKey
 			});
 
-			// After registration, immediately log in. The wizard only cares
-			// whether registration+login succeeded — boolean is enough.
-			return (await this.login(username, password)) === 'ok';
+			// After registration, immediately log in. Either success or
+			// fall through to a generic 'failed' (the wizard treats
+			// login failure right after register as "weird state").
+			return (await this.login(username, password)) === 'ok' ? 'ok' : 'failed';
 		} catch (error) {
 			console.error('Registration failed:', error);
-			return false;
+			return mapBackendCodeToRegisterResult(error);
 		} finally {
 			this.isLoading = false;
 		}

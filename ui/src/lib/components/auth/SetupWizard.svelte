@@ -1,9 +1,15 @@
 <script lang="ts">
-	import { auth } from '$lib/stores/auth.svelte';
-	import { User, Lock, Rocket, ShieldCheck, ArrowRight, Loader2, Server } from 'lucide-svelte';
+	import { auth, type RegisterResult } from '$lib/stores/auth.svelte';
+	import { User, Lock, Rocket, ShieldCheck, ArrowRight, Loader2, Server, Check } from 'lucide-svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import { fade, fly, scale } from 'svelte/transition';
 	import { onMount } from 'svelte';
+
+	// Password floor — MUST match `MinPasswordLen` in
+	// backend/user-service/route/v1/password.go. Issue #306 was caused
+	// by a mismatch between this guard (was 5) and the backend (was 6);
+	// both now agree on 8.
+	const MIN_PASSWORD_LEN = 8;
 
 	let username = $state('admin');
 	let password = $state('');
@@ -11,6 +17,25 @@
 	let step = $state(1);
 	let loading = $state(false);
 	let error = $state('');
+
+	// Realtime validity gates — drive the helper text colour + the
+	// Finish button's disabled state. Both update as the user types.
+	const passwordLongEnough = $derived(password.length >= MIN_PASSWORD_LEN);
+	const passwordsMatch = $derived(password === confirmPassword && confirmPassword.length > 0);
+
+	function mapRegisterError(code: RegisterResult): string {
+		switch (code) {
+			case 'passTooShort':
+				return t('error.passTooShortBackend');
+			case 'keyExpired':
+				return t('error.setupKeyExpired');
+			case 'userExists':
+				return t('error.userExists');
+			case 'failed':
+			default:
+				return t('error.setupFailed');
+		}
+	}
 
 	async function handleSetup() {
 		// Re-entry guard: a fast double-click or Enter-Enter could otherwise
@@ -22,7 +47,7 @@
 			error = t('error.passMismatch');
 			return;
 		}
-		if (password.length < 5) {
+		if (password.length < MIN_PASSWORD_LEN) {
 			error = t('error.passTooShort');
 			return;
 		}
@@ -30,8 +55,8 @@
 		loading = true;
 		error = '';
 
-		const success = await auth.register(username, password);
-		if (!success) {
+		const result = await auth.register(username, password);
+		if (result !== 'ok') {
 			// Most common cause: register succeeded but a stale state in the auth
 			// store caused login() to be called with wrong arguments. If we got
 			// here AND auth.isAuthenticated is now true, the registration actually
@@ -40,7 +65,7 @@
 				window.location.reload();
 				return;
 			}
-			error = t('error.setupFailed');
+			error = mapRegisterError(result);
 		}
 		loading = false;
 	}
@@ -105,14 +130,24 @@
 						<label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1" for="password">{t('setup.masterPassword')}</label>
 						<div class="relative group">
 							<Lock class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600 group-focus-within:text-emerald-500 transition-colors" />
-							<input 
+							<input
 								id="password"
-								type="password" 
+								type="password"
 								bind:value={password}
 								class="w-full h-14 bg-zinc-900/50 border border-white/5 rounded-2xl pl-12 pr-4 text-sm text-white outline-none focus:border-emerald-500/50 focus:bg-zinc-900 transition-all"
 								placeholder="••••••••"
+								aria-describedby="password-helper"
 							/>
+							{#if password.length > 0 && passwordLongEnough}
+								<Check class="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" data-testid="password-check" />
+							{/if}
 						</div>
+						<!-- Helper text — Apple-style: muted, never alarmist. Turns
+								 emerald when the floor is met, zinc otherwise; stays
+								 visible always so the rule is upfront (#306 fix). -->
+						<p id="password-helper" class="ml-1 text-[10px] font-medium {passwordLongEnough ? 'text-emerald-500' : 'text-zinc-500'}" data-testid="password-helper">
+							{t('setup.passwordRule', { min: String(MIN_PASSWORD_LEN) })}
+						</p>
 					</div>
 
 					<div class="space-y-2">
@@ -135,10 +170,11 @@
 						</div>
 					{/if}
 
-					<button 
+					<button
 						type="submit"
-						disabled={loading || !password || !confirmPassword}
+						disabled={loading || !passwordLongEnough || !passwordsMatch}
 						class="w-full h-16 rounded-2xl bg-emerald-500 text-black font-bold text-lg hover:bg-emerald-400 active:scale-[0.98] transition-all disabled:opacity-50 disabled:bg-zinc-800 disabled:text-zinc-600 flex items-center justify-center gap-2 mt-8 shadow-[0_0_30px_rgba(16,185,129,0.15)]"
+						data-testid="setup-finish-btn"
 					>
 						{#if loading}
 							<Loader2 class="h-5 w-5 animate-spin" /> {t('setup.initializing')}
