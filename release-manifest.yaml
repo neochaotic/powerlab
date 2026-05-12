@@ -31,7 +31,28 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Sprint 12 — Umbrel catalogue actually loads (Phase 7 fix).
+  Sprint 12 — Umbrel catalogue actually loads, **on upgrade too**.
+  v0.6.3 ships the rebuilt tarball with the Phase 7.5 transform applied
+  to every YAML in `community-catalog/`, plus a CI gate that walks the
+  on-disk catalog through the same loader `BuildCatalog` uses at runtime.
+  Any future regression — a new Umbrel upstream pattern, a transform
+  refactor that misses an invariant — fails CI BEFORE the tag, so the
+  broken tarball never ships.
+
+  Concrete on user's box: upgrade v0.5.13 → v0.6.3 surfaces 336 apps
+  (up from 162 CasaOS-only), including all the Umbrel-only ids that
+  v0.6.1/v0.6.2 silently dropped: agent-zero, affine, enclosed,
+  adventurelog, appsmith, audiobookshelf, excalidraw, 2fauth,
+  activepieces, akaunting.
+
+  Phase 7.5 caught 18 apps that v0.6.2 would have shipped broken
+  (agora + 8 others use `${APP_<NAME>_DATA_DIR}` sibling-app data
+  dirs; another batch use `${UMBREL_ROOT}/data/storage/downloads`
+  for shared media — neither was handled by the original Phase 7
+  `${APP_DATA_DIR}` substitution).
+
+  v0.6.2 framing (preserved for context):
+
   v0.6.1 shipped 241 Umbrel apps under `community-catalog/`
   but NONE surfaced in the store UI because every emitted
   compose YAML carried Umbrel-runtime patterns that PowerLab's
