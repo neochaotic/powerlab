@@ -27,7 +27,7 @@ log() { echo "[powerlab-pkg] $*"; }
 # ─── 1. Clean & prepare ──────────────────────────────────────────────────
 log "Packaging PowerLab v$VERSION for linux/$ARCH"
 rm -rf "$STAGE" "$TARBALL"
-mkdir -p "$STAGE/bin" "$STAGE/www" "$STAGE/conf" "$STAGE/systemd" "$STAGE/store"
+mkdir -p "$STAGE/bin" "$STAGE/www" "$STAGE/conf" "$STAGE/systemd" "$STAGE/store" "$STAGE/community-catalog"
 
 # ─── 2. Cross-compile Go services ────────────────────────────────────────
 log "Cross-compiling backend services for linux/$ARCH..."
@@ -146,6 +146,17 @@ if (( SKIP_OK == 0 )); then
 fi
 cp -R build/* "$STAGE/www/"
 
+# ─── 3.5. Bundle community catalog (Umbrel-sync output) ──────────────────
+# Pre-populated by .github/workflows/sync-umbrel-catalog.yml weekly. We
+# ship whatever's in the repo's community-catalog/ dir into the tarball
+# so a fresh install has the catalogue on first boot (no internet hop
+# required for the community layer). If the dir is empty (e.g. before
+# the first sync run), only .gitkeep is shipped — harmless.
+if [[ -d "$ROOT/community-catalog" ]]; then
+  cp -R "$ROOT/community-catalog"/. "$STAGE/community-catalog/"
+  log "  bundled community-catalog ($(find "$STAGE/community-catalog" -name docker-compose.yml 2>/dev/null | wc -l | tr -d ' ') apps)"
+fi
+
 # ─── 4. Sample config files ──────────────────────────────────────────────
 log "Generating sample configs..."
 
@@ -175,6 +186,9 @@ StoragePath = /DATA
 
 [server]
 appstore = https://cdn.jsdelivr.net/gh/IceWhaleTech/CasaOS-AppStore@gh-pages/store/main.zip
+# Local PowerLab community catalog — populated weekly by sync-umbrel-catalog
+# (see docs/architecture/community-catalog.md).
+appstore = /var/lib/powerlab/community-catalog
 EOF
 
 cat > "$STAGE/conf/core.conf.sample" <<EOF
@@ -495,7 +509,7 @@ install -d -m 0755 /etc/powerlab
 # code only mkdir's the *runtime* db path, not the persist db path, so
 # without this dir it panics on first start with "out of memory (14)"
 # (sqlite's confusing rendering of SQLITE_CANTOPEN).
-install -d -m 0755 /var/lib/powerlab/{apps,appstore,conf,backups,db}
+install -d -m 0755 /var/lib/powerlab/{apps,appstore,conf,backups,db,community-catalog}
 install -d -m 0755 /var/log/powerlab
 install -d -m 0755 /var/run/powerlab
 install -d -m 0755 /usr/share/powerlab
@@ -507,6 +521,17 @@ install -m 0755 "$HERE/bin/powerlab-"* /usr/bin/
 echo "[powerlab-install] Installing static UI to /usr/share/powerlab/www..."
 rm -rf /usr/share/powerlab/www
 cp -R "$HERE/www" /usr/share/powerlab/www
+
+# Install/refresh community catalog (Umbrel weekly-sync output) at
+# /var/lib/powerlab/community-catalog. The directory is also created by
+# the install -d step above; here we copy in the pre-bundled apps. We
+# use rsync-like semantics: copy contents, don't wipe the destination —
+# operator-written overrides (description-powerlab.md) survive upgrades.
+# See docs/architecture/community-catalog.md.
+if [[ -d "$HERE/community-catalog" ]]; then
+  echo "[powerlab-install] Installing community catalog..."
+  cp -R "$HERE/community-catalog"/. /var/lib/powerlab/community-catalog/
+fi
 
 # Install the PAM service policy at /etc/pam.d/powerlab. PowerLab's
 # Linux auth path (auth_os_pam_linux.go) prefers this service over the

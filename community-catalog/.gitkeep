@@ -1,0 +1,6 @@
+# Output directory for the weekly Umbrel-catalog sync — see
+# .github/workflows/sync-umbrel-catalog.yml and docs/architecture/
+# community-catalog.md. The sync workflow populates `Apps/<id>/` under
+# this directory; this .gitkeep file ensures the directory exists in
+# the repo before the first sync runs so dev workflows + package-linux.sh
+# don't trip on a missing dir.
