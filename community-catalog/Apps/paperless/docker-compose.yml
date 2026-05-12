@@ -43,8 +43,8 @@ services:
         volumes:
             - /DATA/PowerLabAppData/paperless/data/data:/usr/src/paperless/data
             - /DATA/PowerLabAppData/paperless/data/media:/usr/src/paperless/media
-            - ${UMBREL_ROOT}/data/storage/paperless/export:/usr/src/paperless/export
-            - ${UMBREL_ROOT}/data/storage/paperless/consume:/usr/src/paperless/consume
+            - /DATA/data/storage/paperless/export:/usr/src/paperless/export
+            - /DATA/data/storage/paperless/consume:/usr/src/paperless/consume
 version: "3.7"
 
 x-powerlab:
@@ -67,4 +67,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: paperless/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T14:50:19Z"
+        synced_at: "2026-05-12T15:02:35Z"

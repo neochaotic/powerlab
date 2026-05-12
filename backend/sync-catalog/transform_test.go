@@ -209,6 +209,82 @@ services:
 	}
 }
 
+// ─── Generalized volume placeholder substitution ───
+// Beyond the original `${APP_DATA_DIR}` case, the production catalog
+// surfaces TWO more placeholder families that need the same treatment.
+// The v0.6.3 CI gate caught both — see production_catalog_test.go.
+
+func TestSubstituteSiblingAppDataDir(t *testing.T) {
+	// A Lightning-Network UI references the Lightning Node's data dir
+	// via `${APP_LIGHTNING_NODE_DATA_DIR}` (Umbrel sibling-app convention).
+	// On PowerLab the sibling won't exist, but we still substitute with
+	// a valid path so the catalog parses.
+	in := []byte(`version: '3.7'
+services:
+  web:
+    image: agora:latest
+    volumes:
+      - ${APP_LIGHTNING_NODE_DATA_DIR}:/data/lnd:ro
+`)
+	out, err := transformUpstreamCompose(in, "agora")
+	if err != nil {
+		t.Fatalf("transform: %v", err)
+	}
+	s := string(out)
+	if strings.Contains(s, "${APP_LIGHTNING_NODE_DATA_DIR}") {
+		t.Errorf("sibling-app data dir placeholder not substituted, got:\n%s", s)
+	}
+	if !strings.Contains(s, "/DATA/PowerLabAppData/agora") {
+		t.Errorf("expected substituted to AppData path, got:\n%s", s)
+	}
+}
+
+func TestSubstituteUmbrelRoot(t *testing.T) {
+	// Apps that read from Umbrel's shared storage tree
+	// (`/data/storage/downloads`, `/data/storage/music`, …) prefix the
+	// path with `${UMBREL_ROOT}`. We map that to `/DATA` (PowerLab's
+	// shared storage root).
+	in := []byte(`version: '3.7'
+services:
+  server:
+    image: deluge:latest
+    volumes:
+      - ${UMBREL_ROOT}/data/storage/downloads:/downloads
+`)
+	out, err := transformUpstreamCompose(in, "deluge")
+	if err != nil {
+		t.Fatalf("transform: %v", err)
+	}
+	s := string(out)
+	if strings.Contains(s, "${UMBREL_ROOT}") {
+		t.Errorf("${UMBREL_ROOT} not substituted, got:\n%s", s)
+	}
+	if !strings.Contains(s, "/DATA/data/storage/downloads:/downloads") {
+		t.Errorf("expected /DATA mapping, got:\n%s", s)
+	}
+}
+
+func TestSubstituteMultipleVarKindsInOneCompose(t *testing.T) {
+	// Realistic shape: app that uses its OWN data dir AND reads from
+	// Umbrel's downloads tree. Both must be substituted.
+	in := []byte(`version: '3.7'
+services:
+  web:
+    image: sonarr:latest
+    volumes:
+      - ${APP_DATA_DIR}/config:/config
+      - ${UMBREL_ROOT}/data/storage/downloads:/downloads
+      - ${APP_LIGHTNING_NODE_DATA_DIR}:/lightning:ro
+`)
+	out, err := transformUpstreamCompose(in, "sonarr")
+	if err != nil {
+		t.Fatalf("transform: %v", err)
+	}
+	if strings.Contains(string(out), "${") {
+		t.Errorf("all placeholders should be substituted, got:\n%s", out)
+	}
+}
+
 // ─── Top-level `name:` injection — see transform.go for the bug story ───
 
 func TestTransformInjectsNameField(t *testing.T) {

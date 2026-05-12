@@ -4,7 +4,7 @@ services:
         image: ghcr.io/henriquesebastiao/downtify:2.7.0@sha256:95d00787cfcd645ce8e48aead56b6a6b96c6f85646c14d8f7a6491f1a03e0cbc
         stop_grace_period: 1m
         volumes:
-            - ${UMBREL_ROOT}/data/storage/downloads/downtify:/downloads
+            - /DATA/data/storage/downloads/downtify:/downloads
             - /DATA/PowerLabAppData/downtify/data:/data
 version: "3.7"
 
@@ -28,4 +28,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: downtify/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T14:50:10Z"
+        synced_at: "2026-05-12T15:01:58Z"

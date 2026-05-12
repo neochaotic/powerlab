@@ -2,10 +2,30 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"gopkg.in/yaml.v3"
 )
+
+// volumePlaceholderRE matches any Umbrel-ecosystem placeholder that
+// appears inside a service's volume reference. Three flavors land here:
+//
+//   - `${APP_DATA_DIR}`           — this app's own data dir
+//   - `${APP_<NAME>_DATA_DIR}`    — a SIBLING app's data dir (e.g. an
+//                                   app that depends on Lightning Node
+//                                   refers to `${APP_LIGHTNING_NODE_DATA_DIR}`)
+//   - `${UMBREL_ROOT}`            — Umbrel's installation root, used by
+//                                   apps that read from `/data/storage/`
+//                                   (downloads, music, paperless export, …)
+//
+// All three need to substitute to PATHS that compose-go accepts as bind
+// mounts (start with `/`). The actual on-disk paths don't need to exist
+// at catalog-read time — the validator only checks the FORMAT (is it a
+// path or a named volume?). Apps that depend on sibling-app data dirs
+// won't actually work in PowerLab without those siblings installed, but
+// they'll at least surface in the store UI so a maintainer can decide.
+var volumePlaceholderRE = regexp.MustCompile(`\$\{(APP_[A-Z0-9_]*DIR|UMBREL_ROOT)\}`)
 
 // Umbrel-specific transform: the upstream `docker-compose.yml` files
 // in `getumbrel/umbrel-apps` assume an Umbrel runtime that we don't
@@ -231,8 +251,26 @@ func replacePlaceholderPort(spec string, counter *int) string {
 // or maps (`- {type: bind, source: ..., target: ...}`). We handle both
 // shapes; non-string non-map entries are passed through unchanged.
 func substituteAppDataDir(doc map[string]any, storeAppID string) {
-	const placeholder = "${APP_DATA_DIR}"
-	replacement := fmt.Sprintf("/DATA/PowerLabAppData/%s", storeAppID)
+	// Replacement function: maps each captured placeholder to a
+	// PowerLab-style path. The default treats every `*_DATA_DIR` and
+	// `${UMBREL_ROOT}` reference as "this app's own data". That's
+	// imperfect for sibling-app dependencies (an app referencing
+	// `${APP_LIGHTNING_NODE_DATA_DIR}` won't actually find Lightning
+	// Node's data under this app's dir), but it lets the catalog
+	// parse so the app surfaces in the store — letting the operator
+	// see the app + decide what to do, instead of silently dropping
+	// it.
+	appData := fmt.Sprintf("/DATA/PowerLabAppData/%s", storeAppID)
+
+	subst := func(s string) string {
+		return volumePlaceholderRE.ReplaceAllStringFunc(s, func(match string) string {
+			// match looks like `${UMBREL_ROOT}` or `${APP_FOO_DATA_DIR}`
+			if match == "${UMBREL_ROOT}" {
+				return "/DATA"
+			}
+			return appData
+		})
+	}
 
 	services, ok := doc["services"].(map[string]any)
 	if !ok {
@@ -251,12 +289,12 @@ func substituteAppDataDir(doc map[string]any, storeAppID string) {
 		for i, v := range volumes {
 			switch vv := v.(type) {
 			case string:
-				if strings.Contains(vv, placeholder) {
-					volumes[i] = strings.ReplaceAll(vv, placeholder, replacement)
+				if strings.Contains(vv, "${") {
+					volumes[i] = subst(vv)
 				}
 			case map[string]any:
-				if src, ok := vv["source"].(string); ok && strings.Contains(src, placeholder) {
-					vv["source"] = strings.ReplaceAll(src, placeholder, replacement)
+				if src, ok := vv["source"].(string); ok && strings.Contains(src, "${") {
+					vv["source"] = subst(src)
 				}
 			}
 		}

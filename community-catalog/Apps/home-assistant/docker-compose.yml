@@ -6,7 +6,7 @@ services:
         privileged: true
         volumes:
             - /DATA/PowerLabAppData/home-assistant/data:/config
-            - ${UMBREL_ROOT}/data/storage/downloads:/media
+            - /DATA/data/storage/downloads:/media
             - /dev:/dev
             - /run/dbus:/run/dbus:ro
 version: "3.7"
@@ -29,4 +29,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: home-assistant/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T14:50:12Z"
+        synced_at: "2026-05-12T15:02:08Z"

@@ -12,7 +12,7 @@ services:
         volumes:
             - /DATA/PowerLabAppData/plex/data/config:/config
             - /DATA/PowerLabAppData/plex/data/transcode:/transcode
-            - ${UMBREL_ROOT}/data/storage/downloads:/downloads
+            - /DATA/data/storage/downloads:/downloads
 version: "3.7"
 
 x-powerlab:
@@ -33,4 +33,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: plex/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T14:50:21Z"
+        synced_at: "2026-05-12T15:02:40Z"
