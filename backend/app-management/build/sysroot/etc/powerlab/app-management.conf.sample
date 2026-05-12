@@ -11,3 +11,5 @@ AppsPath = /var/lib/powerlab/apps
 [server]
 appstore = https://cdn.jsdelivr.net/gh/IceWhaleTech/CasaOS-AppStore@gh-pages/store/main.zip
 appstore = https://github.com/bigbeartechworld/big-bear-casaos/archive/refs/heads/master.zip
+# Local PowerLab community catalog — populated weekly by sync-umbrel-catalog.
+appstore = /var/lib/powerlab/community-catalog

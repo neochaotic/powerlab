@@ -41,6 +41,7 @@ backend/gateway/gateway
 backend/user-service/user-service
 backend/message-bus/message-bus
 backend/local-storage/local-storage
+backend/sync-catalog/sync-catalog
 
 # ─── Runtime data — never commit (machine-local state) ────────────────
 backend/runtime/
