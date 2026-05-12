@@ -1,18 +1,13 @@
-version: "3.7"
-
+name: metube
 services:
-  app_proxy:
-    environment:
-      APP_HOST: metube_metube_1
-      APP_PORT: 8081
-
-  metube:
-    image: ghcr.io/alexta69/metube:2026.04.28@sha256:caf21da7d83a4003b429ef1126e9c1499f36f8401a1f8a7b158f70b94ade8edd
-    restart: on-failure
-    volumes:
-      - ${UMBREL_ROOT}/data/storage/downloads/metube:/downloads
-    environment:
-      - DELETE_FILE_ON_TRASHCAN=true
+    metube:
+        environment:
+            - DELETE_FILE_ON_TRASHCAN=true
+        image: ghcr.io/alexta69/metube:2026.04.28@sha256:caf21da7d83a4003b429ef1126e9c1499f36f8401a1f8a7b158f70b94ade8edd
+        restart: on-failure
+        volumes:
+            - ${UMBREL_ROOT}/data/storage/downloads/metube:/downloads
+version: "3.7"
 
 x-powerlab:
     store_app_id: metube
@@ -29,7 +24,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: metube
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: metube/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:11Z"
+        synced_at: "2026-05-12T14:50:16Z"

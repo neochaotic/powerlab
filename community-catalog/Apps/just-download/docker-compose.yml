@@ -1,21 +1,16 @@
-version: "3.7"
-
+name: just-download
 services:
-  app_proxy:
-    environment:
-      APP_HOST: just-download_web_1
-      APP_PORT: 5000
-  
-  web:
-    image: codeberg.org/highghlow/just-download:v1.0.9@sha256:96d8ed20104418ca41ccc8fc7001889f827bc60235b71b8e9aa19d1f5a6e4db7
-    restart: on-failure
-    stop_grace_period: 1m
-    volumes:
-      - ${APP_DATA_DIR}/data/config:/config
-    environment:
-      LOCK_TRANSMISSION_CONFIG: 1
-      CONFIG_LOCATION: /config/config.json
-      CONFIG: '{"indexers": [], "transmission": {"host": "transmission_server_1", "port": 9091}}'
+    web:
+        environment:
+            CONFIG: '{"indexers": [], "transmission": {"host": "transmission_server_1", "port": 9091}}'
+            CONFIG_LOCATION: /config/config.json
+            LOCK_TRANSMISSION_CONFIG: 1
+        image: codeberg.org/highghlow/just-download:v1.0.9@sha256:96d8ed20104418ca41ccc8fc7001889f827bc60235b71b8e9aa19d1f5a6e4db7
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/just-download/data/config:/config
+version: "3.7"
 
 x-powerlab:
     store_app_id: just-download
@@ -32,7 +27,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: just-download
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: just-download/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:09Z"
+        synced_at: "2026-05-12T14:50:14Z"

@@ -1,24 +1,19 @@
-version: "3.7"
-
+name: syncthing
 services:
-  app_proxy:
-    environment:
-      APP_HOST: syncthing_server_1
-      APP_PORT: 8384
-
-  server:
-    image: syncthing/syncthing:2.0.16@sha256:4a961394ca471f4e48f31ad2cef50697e502c8799e2e98477a1c3844e0c5bc54
-    restart: on-failure
-    stop_grace_period: 1m
-    hostname: umbrel
-    environment:
-      - PUID=1000
-      - PGID=1000
-    volumes:
-      - ${APP_DATA_DIR}/data:/var/syncthing
-    ports:
-      - 22000:22000/tcp
-      - 22000:22000/udp
+    server:
+        environment:
+            - PUID=1000
+            - PGID=1000
+        hostname: umbrel
+        image: syncthing/syncthing:2.1.0@sha256:7c60eb0ec887696c8684de88aea2dfe39a7391184b29d33c0aad778c99c7683e
+        ports:
+            - 22000:22000/tcp
+            - 22000:22000/udp
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/syncthing/data:/var/syncthing
+version: "3.7"
 
 x-powerlab:
     store_app_id: syncthing
@@ -37,7 +32,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: syncthing
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: syncthing/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:17Z"
+        synced_at: "2026-05-12T14:50:24Z"

@@ -1,23 +1,18 @@
-version: "3.7"
-
+name: homehub
 services:
-  app_proxy:
-    environment:
-      APP_HOST: homehub_web_1
-      APP_PORT: 5000
-
-  web:
-    image: ghcr.io/surajverma/homehub:0.2.3.2@sha256:7ffa2ed369b39bb090b6eae1ee7d27b803215939794107b3e4cbeede627338ec
-    restart: on-failure
-    environment:
-      - FLASK_ENV=production
-      - SECRET_KEY=${APP_SEED}
-    volumes:
-      - ${APP_DATA_DIR}/data/uploads:/app/uploads
-      - ${APP_DATA_DIR}/data/media:/app/media
-      - ${APP_DATA_DIR}/data/pdfs:/app/pdfs
-      - ${APP_DATA_DIR}/data/app_data:/app/data
-      - ${APP_DATA_DIR}/data/config/config.yml:/app/config.yml:ro
+    web:
+        environment:
+            - FLASK_ENV=production
+            - SECRET_KEY=${APP_SEED}
+        image: ghcr.io/surajverma/homehub:0.2.3.2@sha256:7ffa2ed369b39bb090b6eae1ee7d27b803215939794107b3e4cbeede627338ec
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/homehub/data/uploads:/app/uploads
+            - /DATA/PowerLabAppData/homehub/data/media:/app/media
+            - /DATA/PowerLabAppData/homehub/data/pdfs:/app/pdfs
+            - /DATA/PowerLabAppData/homehub/data/app_data:/app/data
+            - /DATA/PowerLabAppData/homehub/data/config/config.yml:/app/config.yml:ro
+version: "3.7"
 
 x-powerlab:
     store_app_id: homehub
@@ -36,7 +31,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: homehub
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: homehub/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:08Z"
+        synced_at: "2026-05-12T14:50:13Z"

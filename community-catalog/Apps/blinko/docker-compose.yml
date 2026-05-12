@@ -1,53 +1,57 @@
-version: '3.7'
-
+name: blinko
 services:
-  app_proxy:
-    environment:
-      APP_HOST: blinko_app_1
-      APP_PORT: 1111
-      PROXY_AUTH_ADD: "false"
-
-  db:
-    image: postgres:17.3@sha256:6e3358e46e34dae6c184f48fd06fe1b3dbf958ad5b83480031907e52b9ec2a7d
-    healthcheck:
-      test: ["CMD", "pg_isready", "-q", "-d", "blinko", "-U", "blinkouser"]
-      timeout: 45s
-      interval: 10s
-      retries: 10
-    user: "1000:1000"
-    volumes:
-      - ${APP_DATA_DIR}/data/db:/var/lib/postgresql/data:rw
-    environment:
-      POSTGRES_DB: blinko
-      POSTGRES_USER: blinkouser
-      POSTGRES_PASSWORD: blinkopass
-    restart: on-failure
-
-  app:
-    image: blinkospace/blinko:1.8.7@sha256:f7c1167f8c86db586599d849539a732929d89adb10977046e7b427813b2a84b4
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:1111"]
-      interval: 30s 
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-    environment:
-      NODE_ENV: production
-      NEXTAUTH_URL: http://${DEVICE_DOMAIN_NAME}:1111
-      NEXT_PUBLIC_BASE_URL: http://${DEVICE_DOMAIN_NAME}:1111
-      NEXTAUTH_SECRET: ${APP_SEED}
-      DATABASE_URL: postgresql://blinkouser:blinkopass@blinko_db_1:5432/blinko
-    user: "1000:1000"
-    volumes:
-      - ${APP_DATA_DIR}/data/app:/app/.blinko:rw
-    logging:
-      options:
-        max-size: "10m"
-        max-file: "3"
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: on-failure
+    app:
+        depends_on:
+            db:
+                condition: service_healthy
+        environment:
+            DATABASE_URL: postgresql://blinkouser:blinkopass@blinko_db_1:5432/blinko
+            NEXT_PUBLIC_BASE_URL: http://${DEVICE_DOMAIN_NAME}:1111
+            NEXTAUTH_SECRET: ${APP_SEED}
+            NEXTAUTH_URL: http://${DEVICE_DOMAIN_NAME}:1111
+            NODE_ENV: production
+        healthcheck:
+            interval: 30s
+            retries: 5
+            start_period: 30s
+            test:
+                - CMD
+                - curl
+                - -f
+                - http://localhost:1111
+            timeout: 10s
+        image: blinkospace/blinko:1.8.7@sha256:f7c1167f8c86db586599d849539a732929d89adb10977046e7b427813b2a84b4
+        logging:
+            options:
+                max-file: "3"
+                max-size: 10m
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/blinko/data/app:/app/.blinko:rw
+    db:
+        environment:
+            POSTGRES_DB: blinko
+            POSTGRES_PASSWORD: blinkopass
+            POSTGRES_USER: blinkouser
+        healthcheck:
+            interval: 10s
+            retries: 10
+            test:
+                - CMD
+                - pg_isready
+                - -q
+                - -d
+                - blinko
+                - -U
+                - blinkouser
+            timeout: 45s
+        image: postgres:17.3@sha256:6e3358e46e34dae6c184f48fd06fe1b3dbf958ad5b83480031907e52b9ec2a7d
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/blinko/data/db:/var/lib/postgresql/data:rw
+version: "3.7"
 
 x-powerlab:
     store_app_id: blinko
@@ -66,7 +70,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: blinko
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: blinko/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:04Z"
+        synced_at: "2026-05-12T14:50:07Z"

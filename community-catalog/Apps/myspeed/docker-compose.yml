@@ -1,18 +1,12 @@
-version: "3.7"
-
+name: myspeed
 services:
-  app_proxy:
-    environment:
-      APP_HOST: myspeed_web_1
-      APP_PORT: 5216
-
-  web:
-    image: germannewsmaker/myspeed:1.0.9@sha256:3a3e774b3f78d930a5a962d625b99bcb3d71730bfeb4a6b93e04fd38cfe7d9a9
-    # myspeed must be run as root
-    restart: on-failure
-    stop_grace_period: 1m
-    volumes:
-     - ${APP_DATA_DIR}/data/myspeed:/myspeed/data
+    web:
+        image: germannewsmaker/myspeed:1.0.9@sha256:3a3e774b3f78d930a5a962d625b99bcb3d71730bfeb4a6b93e04fd38cfe7d9a9
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/myspeed/data/myspeed:/myspeed/data
+version: "3.7"
 
 x-powerlab:
     store_app_id: myspeed
@@ -29,7 +23,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: myspeed
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: myspeed/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:12Z"
+        synced_at: "2026-05-12T14:50:17Z"

@@ -1,31 +1,21 @@
-version: "3.7"
-
+name: libretranslate
 services:
-  app_proxy:
-    environment:
-      APP_HOST: libretranslate_main_1
-      APP_PORT: 5000
-      PROXY_AUTH_ADD: "false"
-  main:
-    image: libretranslate/libretranslate:v1.6.5@sha256:a3518195e4e810ba0d9dd251a851f24918059d757ef3c5cf8e0f881daf4242fc
-    restart: on-failure
-
-    ## Log to docker compose logs. This allows you to see the model download progress when first installing.
-    tty: true
-    healthcheck:
-      test: ['CMD-SHELL', './venv/bin/python scripts/healthcheck.py']     
-    ## Uncomment above command and define your args if necessary
-    # command: --ssl --ga-id MY-GA-ID --req-limit 100 --char-limit 500
-    ## Uncomment this section and the libretranslate_api_keys volume if you want to backup your API keys
-    environment:
-      - LT_API_KEYS=true
-      - LT_API_KEYS_DB_PATH=/app/db/api_keys.db # Same result as `db/api_keys.db` or `./db/api_keys.db`
-    ## Uncomment these vars and libretranslate_models volume to optimize loading time.
-      - LT_UPDATE_MODELS=true
-    ##  - LT_LOAD_ONLY=en,fr
-    volumes:
-      - ${APP_DATA_DIR}/data/api_keys:/app/db
-      - ${APP_DATA_DIR}/data/models:/home/libretranslate/.local:rw
+    main:
+        environment:
+            - LT_API_KEYS=true
+            - LT_API_KEYS_DB_PATH=/app/db/api_keys.db
+            - LT_UPDATE_MODELS=true
+        healthcheck:
+            test:
+                - CMD-SHELL
+                - ./venv/bin/python scripts/healthcheck.py
+        image: libretranslate/libretranslate:v1.6.5@sha256:a3518195e4e810ba0d9dd251a851f24918059d757ef3c5cf8e0f881daf4242fc
+        restart: on-failure
+        tty: true
+        volumes:
+            - /DATA/PowerLabAppData/libretranslate/data/api_keys:/app/db
+            - /DATA/PowerLabAppData/libretranslate/data/models:/home/libretranslate/.local:rw
+version: "3.7"
 
 x-powerlab:
     store_app_id: libretranslate
@@ -44,7 +34,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: libretranslate
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: libretranslate/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:10Z"
+        synced_at: "2026-05-12T14:50:15Z"

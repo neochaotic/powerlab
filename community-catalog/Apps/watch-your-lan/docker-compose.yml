@@ -1,23 +1,19 @@
-version: "3.7"
-
+name: watch-your-lan
 services:
-  web:
-    image: aceberg/watchyourlan:2.1.4@sha256:f77532ca7c3c9a4398cb094df7674013a3d7fcf4699386f1e456c24df6fef00e
-    network_mode: "host"        
-    restart: on-failure
-    stop_grace_period: 1m
-    init: true
-    environment:
-      TZ: "UTC"                         # required: needs your TZ for correct time
-      IFACES: "eth0 wlan0 enp1s0"       # required: 1 or more interface
-      HOST: "0.0.0.0"                   # optional, default: 0.0.0.0
-      PORT: "8840"                      # optional, default: 8840
-      # Exclude to allow custom config:
-      # TIMEOUT: "120"                    # optional, time in seconds, default: 120
-      # THEME: "sand"                     # optional
-      # COLOR: "dark"                     # optional
-    volumes:
-      - ${APP_DATA_DIR}/data:/data/WatchYourLAN
+    web:
+        environment:
+            HOST: 0.0.0.0
+            IFACES: eth0 wlan0 enp1s0
+            PORT: "8840"
+            TZ: UTC
+        image: aceberg/watchyourlan:2.1.4@sha256:f77532ca7c3c9a4398cb094df7674013a3d7fcf4699386f1e456c24df6fef00e
+        init: true
+        network_mode: host
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/watch-your-lan/data:/data/WatchYourLAN
+version: "3.7"
 
 x-powerlab:
     store_app_id: watch-your-lan
@@ -36,7 +32,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: watch-your-lan
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: watch-your-lan/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:18Z"
+        synced_at: "2026-05-12T14:50:26Z"

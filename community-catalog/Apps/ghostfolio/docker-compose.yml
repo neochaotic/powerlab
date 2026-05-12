@@ -1,50 +1,43 @@
-version: "3.7"
-
+name: ghostfolio
 services:
-  app_proxy:
-    environment:
-      APP_HOST: ghostfolio_server_1
-      APP_PORT: 3334
-
-  server:
-    image: ghostfolio/ghostfolio:3.2.0@sha256:bc734d99774c2e168d8f3241c816ae3df2851d2014b7a0bf241bc7df412e01ab
-    init: true
-    restart: on-failure
-    environment:
-      NODE_ENV: production
-      HOST: 0.0.0.0
-      PORT: 3334
-      ACCESS_TOKEN_SALT: $APP_GHOSTFOLIO_ACCESS_TOKEN_SALT
-      DATABASE_URL: postgresql://${APP_GHOSTFOLIO_DB_USERNAME}:${APP_GHOSTFOLIO_DB_PASSWORD}@ghostfolio_postgres_1:5432/${APP_GHOSTFOLIO_DB_DATABASE_NAME}
-      JWT_SECRET_KEY: ${APP_SEED}
-      POSTGRES_DB: ${APP_GHOSTFOLIO_DB_DATABASE_NAME}
-      POSTGRES_USER: ${APP_GHOSTFOLIO_DB_USERNAME}
-      POSTGRES_PASSWORD: ${APP_GHOSTFOLIO_DB_PASSWORD}
-      REDIS_HOST: ghostfolio_redis_1
-      REDIS_PASSWORD: ${APP_GHOSTFOLIO_REDIS_PASSWORD}
-      REDIS_PORT: 6379
-
-  postgres:
-    image: postgres:14-bullseye@sha256:c2a30d08a6f9e6c365595fd086c9e0436064c52425f15f72379ecf0807bac518
-    restart: on-failure
-    stop_grace_period: 1m
-    user: "1000:1000"
-    environment:
-      POSTGRES_USER: ${APP_GHOSTFOLIO_DB_USERNAME}
-      POSTGRES_PASSWORD: ${APP_GHOSTFOLIO_DB_PASSWORD}
-      POSTGRES_DB: ${APP_GHOSTFOLIO_DB_DATABASE_NAME}
-      PGDATA: /var/lib/postgresql/data
-    volumes:
-      - ${APP_DATA_DIR}/data/postgres:/var/lib/postgresql/data
-
-  redis:
-    image: redis:6.2-bullseye@sha256:5cdb2ac6f780e1d250787f4a887c1ed1166e3389757189ea913059409acc6f7c
-    restart: on-failure
-    user: "1000:1000"
-    command: >
-      --requirepass ${APP_GHOSTFOLIO_REDIS_PASSWORD}
-    volumes:
-      - ${APP_DATA_DIR}/data/redis:/data
+    postgres:
+        environment:
+            PGDATA: /var/lib/postgresql/data
+            POSTGRES_DB: ${APP_GHOSTFOLIO_DB_DATABASE_NAME}
+            POSTGRES_PASSWORD: ${APP_GHOSTFOLIO_DB_PASSWORD}
+            POSTGRES_USER: ${APP_GHOSTFOLIO_DB_USERNAME}
+        image: postgres:14-bullseye@sha256:c2a30d08a6f9e6c365595fd086c9e0436064c52425f15f72379ecf0807bac518
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/ghostfolio/data/postgres:/var/lib/postgresql/data
+    redis:
+        command: |
+            --requirepass ${APP_GHOSTFOLIO_REDIS_PASSWORD}
+        image: redis:6.2-bullseye@sha256:5cdb2ac6f780e1d250787f4a887c1ed1166e3389757189ea913059409acc6f7c
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/ghostfolio/data/redis:/data
+    server:
+        environment:
+            ACCESS_TOKEN_SALT: $APP_GHOSTFOLIO_ACCESS_TOKEN_SALT
+            DATABASE_URL: postgresql://${APP_GHOSTFOLIO_DB_USERNAME}:${APP_GHOSTFOLIO_DB_PASSWORD}@ghostfolio_postgres_1:5432/${APP_GHOSTFOLIO_DB_DATABASE_NAME}
+            HOST: 0.0.0.0
+            JWT_SECRET_KEY: ${APP_SEED}
+            NODE_ENV: production
+            PORT: 3334
+            POSTGRES_DB: ${APP_GHOSTFOLIO_DB_DATABASE_NAME}
+            POSTGRES_PASSWORD: ${APP_GHOSTFOLIO_DB_PASSWORD}
+            POSTGRES_USER: ${APP_GHOSTFOLIO_DB_USERNAME}
+            REDIS_HOST: ghostfolio_redis_1
+            REDIS_PASSWORD: ${APP_GHOSTFOLIO_REDIS_PASSWORD}
+            REDIS_PORT: 6379
+        image: ghostfolio/ghostfolio:3.2.0@sha256:bc734d99774c2e168d8f3241c816ae3df2851d2014b7a0bf241bc7df412e01ab
+        init: true
+        restart: on-failure
+version: "3.7"
 
 x-powerlab:
     store_app_id: ghostfolio
@@ -63,7 +56,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: ghostfolio
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: ghostfolio/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:07Z"
+        synced_at: "2026-05-12T14:50:12Z"

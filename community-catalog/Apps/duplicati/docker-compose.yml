@@ -1,25 +1,19 @@
-version: "3.7"
-
+name: duplicati
 services:
-  app_proxy:
-    environment:
-      APP_HOST: duplicati_duplicati_1
-      APP_PORT: 8200
-      PROXY_AUTH_ADD: "false"
-  
-  duplicati:
-    image: duplicati/duplicati:2.3.0.1@sha256:c5cc20fc744cce2957a61cb0b331ecdf333c9fcf28281f96cc587e11ed4536af
-    user: "1000:1000"
-    restart: on-failure
-    stop_grace_period: 1m
-    volumes:
-      - ${APP_DATA_DIR}/data:/data
-      - ${UMBREL_ROOT}/data/storage:/umbrel
-    environment:
-      DUPLICATI__WEBSERVICE_PORT: "8200"
-      DUPLICATI__WEBSERVICE_INTERFACE: "any"
-      DUPLICATI__WEBSERVICE_PASSWORD: "${APP_PASSWORD}"
-      DUPLICATI__WEBSERVICE_ALLOWED_HOSTNAMES: "*"
+    duplicati:
+        environment:
+            DUPLICATI__WEBSERVICE_ALLOWED_HOSTNAMES: '*'
+            DUPLICATI__WEBSERVICE_INTERFACE: any
+            DUPLICATI__WEBSERVICE_PASSWORD: ${APP_PASSWORD}
+            DUPLICATI__WEBSERVICE_PORT: "8200"
+        image: duplicati/duplicati:2.3.0.1@sha256:c5cc20fc744cce2957a61cb0b331ecdf333c9fcf28281f96cc587e11ed4536af
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/duplicati/data:/data
+            - ${UMBREL_ROOT}/data/storage:/umbrel
+version: "3.7"
 
 x-powerlab:
     store_app_id: duplicati
@@ -36,7 +30,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: duplicati
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: duplicati/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:06Z"
+        synced_at: "2026-05-12T14:50:10Z"

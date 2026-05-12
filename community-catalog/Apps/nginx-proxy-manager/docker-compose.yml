@@ -1,29 +1,23 @@
-version: "3.7"
-
+name: nginx-proxy-manager
 services:
-  app_proxy:
-    environment:
-      APP_HOST: nginx-proxy-manager_web_1
-      APP_PORT: 81
-      
-  web:
-    image: jc21/nginx-proxy-manager:2.14.0@sha256:2aa69b382a384b676c0d4f1d6f2eac40ecd478fcf7af1cfb3f9f1d3cd0c81e12
-    hostname: nginx-proxy-manager_web_1
-    restart: on-failure
-    ports:
-      - 40080:80
-      - 40443:443
-    volumes:
-      - ${APP_DATA_DIR}/data/npm-data:/data
-      - ${APP_DATA_DIR}/data/letsencrypt:/etc/letsencrypt
-  
-  docker-host:
-    image: qoomon/docker-host:3.3.1@sha256:ec9d214d7fa88932e9186ca2f4419d44661376929931248525b08e7fa9e270f7
-    hostname: $DEVICE_DOMAIN_NAME
-    cap_add:
-      - NET_ADMIN
-      - NET_RAW
-    restart: on-failure
+    docker-host:
+        cap_add:
+            - NET_ADMIN
+            - NET_RAW
+        hostname: $DEVICE_DOMAIN_NAME
+        image: qoomon/docker-host:3.3.1@sha256:ec9d214d7fa88932e9186ca2f4419d44661376929931248525b08e7fa9e270f7
+        restart: on-failure
+    web:
+        hostname: nginx-proxy-manager_web_1
+        image: jc21/nginx-proxy-manager:2.14.0@sha256:2aa69b382a384b676c0d4f1d6f2eac40ecd478fcf7af1cfb3f9f1d3cd0c81e12
+        ports:
+            - 40080:80
+            - 40443:443
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/nginx-proxy-manager/data/npm-data:/data
+            - /DATA/PowerLabAppData/nginx-proxy-manager/data/letsencrypt:/etc/letsencrypt
+version: "3.7"
 
 x-powerlab:
     store_app_id: nginx-proxy-manager
@@ -40,7 +34,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: nginx-proxy-manager
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: nginx-proxy-manager/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:12Z"
+        synced_at: "2026-05-12T14:50:17Z"

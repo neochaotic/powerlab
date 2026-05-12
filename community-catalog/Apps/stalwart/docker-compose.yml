@@ -1,28 +1,22 @@
-version: "3.9"
-
+name: stalwart
 services:
-  app_proxy:
-    environment:
-      APP_HOST: stalwart_server_1
-      APP_PORT: 8080
-      PROXY_AUTH_ADD: "false"
-
-  server:
-    image: stalwartlabs/stalwart:v0.15.5@sha256:dcf575db2d53d9ef86d6ced8abe4ba491984659a0f8862cc6079ee7b41c3c568
-    user: "1000:1000"
-    ports:
-      - 10443:443  # HTTPS
-      - 10025:25   # SMTP
-      - 10465:465  # SMTPS
-      - 10587:587  # SMTP Submission
-      - 10143:143  # IMAP
-      - 10993:993  # IMAPS
-      - 14190:4190 # Sieve
-      - 10110:110  # POP3
-      - 10995:995  # POP3S
-    volumes:
-      - ${APP_DATA_DIR}/data:/opt/stalwart
-    restart: on-failure
+    server:
+        image: stalwartlabs/stalwart:v0.15.5@sha256:dcf575db2d53d9ef86d6ced8abe4ba491984659a0f8862cc6079ee7b41c3c568
+        ports:
+            - 10443:443
+            - "10025:25"
+            - 10465:465
+            - 10587:587
+            - 10143:143
+            - 10993:993
+            - 14190:4190
+            - 10110:110
+            - 10995:995
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/stalwart/data:/opt/stalwart
+version: "3.9"
 
 x-powerlab:
     store_app_id: stalwart
@@ -41,7 +35,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: stalwart
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: stalwart/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:16Z"
+        synced_at: "2026-05-12T14:50:23Z"

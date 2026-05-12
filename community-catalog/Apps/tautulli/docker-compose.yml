@@ -1,19 +1,14 @@
-version: "3.7"
-
+name: tautulli
 services:
-  app_proxy:
-    environment:
-      APP_HOST: tautulli_web_1
-      APP_PORT: 8181
-
-  web:
-    image: linuxserver/tautulli:2.17.1@sha256:7077fd6654547c225ca5a740c4c954379129589f875c84cbe138641d4dd8a9d9
-    volumes:
-      - ${APP_DATA_DIR}/data/config:/config
-    restart: on-failure
-    environment:
-      - PUID=1000
-      - PGID=1000
+    web:
+        environment:
+            - PUID=1000
+            - PGID=1000
+        image: linuxserver/tautulli:2.17.1@sha256:7077fd6654547c225ca5a740c4c954379129589f875c84cbe138641d4dd8a9d9
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/tautulli/data/config:/config
+version: "3.7"
 
 x-powerlab:
     store_app_id: tautulli
@@ -30,7 +25,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: tautulli
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: tautulli/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:17Z"
+        synced_at: "2026-05-12T14:50:24Z"

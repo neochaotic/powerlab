@@ -1,23 +1,22 @@
-version: "3.7"
-
+name: localai
 services:
-  app_proxy:
-    environment:
-      APP_HOST: localai_api_1
-      APP_PORT: 8080
-      PROXY_AUTH_WHITELIST: "/v1/*"
-  api:
-    image: localai/localai:v4.1.3@sha256:a6af99e17a73a92caa134e70ae84492cc47b67645c1676268a7522ad14f4c09d
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/readyz"]
-      interval: 1m
-      timeout: 20m
-      retries: 5
-    environment:
-      - MODELS_PATH=/models
-    volumes:
-      - ${APP_DATA_DIR}/data/models:/models:cached
-      - ${APP_DATA_DIR}/data/images/:/tmp/generated/images/
+    api:
+        environment:
+            - MODELS_PATH=/models
+        healthcheck:
+            interval: 1m
+            retries: 5
+            test:
+                - CMD
+                - curl
+                - -f
+                - http://localhost:8080/readyz
+            timeout: 20m
+        image: localai/localai:v4.1.3@sha256:a6af99e17a73a92caa134e70ae84492cc47b67645c1676268a7522ad14f4c09d
+        volumes:
+            - /DATA/PowerLabAppData/localai/data/models:/models:cached
+            - /DATA/PowerLabAppData/localai/data/images/:/tmp/generated/images/
+version: "3.7"
 
 x-powerlab:
     store_app_id: localai
@@ -34,7 +33,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: localai
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: localai/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:10Z"
+        synced_at: "2026-05-12T14:50:15Z"

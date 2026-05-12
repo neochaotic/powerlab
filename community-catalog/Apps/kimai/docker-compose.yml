@@ -1,45 +1,35 @@
-version: "3.7"
-
+name: kimai
 services:
-  app_proxy:
-    environment:
-      APP_HOST: kimai_app_1
-      APP_PORT: 8001
-      PROXY_AUTH_ADD: "false"
-
-  app:
-    # currently does not work properly rootless
-    #user: "1000:1000"
-    image: kimai/kimai2:apache-2.56.0@sha256:16204b18bb3dad54d249027f5bdf6b5a70d7e60ddac7c9f6b34e9f29dbdef2b9
-    volumes:
-      - ${APP_DATA_DIR}/data/app:/opt/kimai/var/data
-      - ${APP_DATA_DIR}/data/app/plugins:/opt/kimai/var/plugins
-    environment:
-      ADMINMAIL: umbrel@umbrel.local
-      # cannot use $APP_PASSWORD here, as the maximum allowed length is 60 characters
-      ADMINPASS: changeme
-      DATABASE_URL: "mysql://kimaiuser:${APP_PASSWORD}@kimai_db_1/kimai?charset=utf8mb4&serverVersion=8.3.0"
-    restart: on-failure
-    depends_on:
-      - db
-
-  db:
-    user: "1000:1000"
-    image: mariadb:11.4.5@sha256:5dfb3093333fa0ea53194ddef0a2bfa21d3b1e1353bd228b22610cd6fc0c04da
-    volumes:
-      - ${APP_DATA_DIR}/data/db:/var/lib/mysql
-    environment:
-      MYSQL_DATABASE: kimai
-      MYSQL_USER: kimaiuser
-      MYSQL_PASSWORD: $APP_PASSWORD
-      MYSQL_ROOT_PASSWORD: $APP_PASSWORD
-    restart: on-failure
-    healthcheck:
-      test: mysqladmin -p$$MYSQL_ROOT_PASSWORD ping -h localhost
-      interval: 20s
-      start_period: 10s
-      timeout: 10s
-      retries: 3
+    app:
+        depends_on:
+            - db
+        environment:
+            ADMINMAIL: umbrel@umbrel.local
+            ADMINPASS: changeme
+            DATABASE_URL: mysql://kimaiuser:${APP_PASSWORD}@kimai_db_1/kimai?charset=utf8mb4&serverVersion=8.3.0
+        image: kimai/kimai2:apache-2.56.0@sha256:16204b18bb3dad54d249027f5bdf6b5a70d7e60ddac7c9f6b34e9f29dbdef2b9
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/kimai/data/app:/opt/kimai/var/data
+            - /DATA/PowerLabAppData/kimai/data/app/plugins:/opt/kimai/var/plugins
+    db:
+        environment:
+            MYSQL_DATABASE: kimai
+            MYSQL_PASSWORD: $APP_PASSWORD
+            MYSQL_ROOT_PASSWORD: $APP_PASSWORD
+            MYSQL_USER: kimaiuser
+        healthcheck:
+            interval: 20s
+            retries: 3
+            start_period: 10s
+            test: mysqladmin -p$$MYSQL_ROOT_PASSWORD ping -h localhost
+            timeout: 10s
+        image: mariadb:11.4.5@sha256:5dfb3093333fa0ea53194ddef0a2bfa21d3b1e1353bd228b22610cd6fc0c04da
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/kimai/data/db:/var/lib/mysql
+version: "3.7"
 
 x-powerlab:
     store_app_id: kimai
@@ -58,7 +48,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: kimai
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: kimai/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:09Z"
+        synced_at: "2026-05-12T14:50:14Z"

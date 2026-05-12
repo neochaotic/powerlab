@@ -1,19 +1,14 @@
-version: '3.7'
-
+name: rotki
 services:
-  app_proxy:
-    environment:
-      APP_HOST: rotki_web_1
-      APP_PORT: 80
-
-  web:
-    image: rotki/rotki:v1.42.1@sha256:c088bdd6fec5bfe92f6e1a93829d844fa8076040d1754683e07348a97677d4d0
-    restart: on-failure
-    stop_grace_period: 1m
-    init: true
-    volumes:
-      - ${APP_DATA_DIR}/data/data:/data
-      - ${APP_DATA_DIR}/data/logs:/logs
+    web:
+        image: rotki/rotki:v1.43.0@sha256:dc4a1ac9383eddcbf28573223b0984af43a791df90cd24571d6cf19b9392bfa8
+        init: true
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/rotki/data/data:/data
+            - /DATA/PowerLabAppData/rotki/data/logs:/logs
+version: "3.7"
 
 x-powerlab:
     store_app_id: rotki
@@ -30,7 +25,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: rotki
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: rotki/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:15Z"
+        synced_at: "2026-05-12T14:50:22Z"

@@ -1,35 +1,24 @@
-version: "3.7"
-
+name: nitter
 services:
-  app_proxy:
-    environment:
-      APP_HOST: nitter_web_1
-      APP_PORT: 8080
-
-  web:
-    image: ceramicwhite/nitter:build-38985af@sha256:594a184c3a834c29957ddd917800d61f3d560411d26fa6cf389bef350d4c4ac6
-    restart: on-failure
-    stop_grace_period: 1m
-    init: true
-    user: 1000:1000
-    command: >
-      /bin/sh -c "sed -i 
-      -e 's/localhost/nitter_redis_1/g' 
-      -e 's/redisPassword = \"\"/redisPassword = \"moneyprintergobrrr\"/g' 
-      -e 's/theme = \"Nitter\"/theme = \"auto_(twitter)\"/g' 
-      /src/nitter.conf
-      && ./nitter"
-    depends_on:
-      - redis
-  
-  redis:
-    image: redis:6.2.2-buster@sha256:e10f55f92478715698a2cef97c2bbdc48df2a05081edd884938903aa60df6396
-    restart: on-failure
-    stop_grace_period: 1m
-    user: 1000:1000
-    command: "redis-server --save 60 1 --loglevel warning --requirepass moneyprintergobrrr"
-    volumes:
-      - ${APP_DATA_DIR}/data/redis:/data
+    redis:
+        command: redis-server --save 60 1 --loglevel warning --requirepass moneyprintergobrrr
+        image: redis:6.2.2-buster@sha256:e10f55f92478715698a2cef97c2bbdc48df2a05081edd884938903aa60df6396
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/nitter/data/redis:/data
+    web:
+        command: |
+            /bin/sh -c "sed -i  -e 's/localhost/nitter_redis_1/g'  -e 's/redisPassword = \"\"/redisPassword = \"moneyprintergobrrr\"/g'  -e 's/theme = \"Nitter\"/theme = \"auto_(twitter)\"/g'  /src/nitter.conf && ./nitter"
+        depends_on:
+            - redis
+        image: ceramicwhite/nitter:build-38985af@sha256:594a184c3a834c29957ddd917800d61f3d560411d26fa6cf389bef350d4c4ac6
+        init: true
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+version: "3.7"
 
 x-powerlab:
     store_app_id: nitter
@@ -46,7 +35,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: nitter
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: nitter/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:12Z"
+        synced_at: "2026-05-12T14:50:18Z"

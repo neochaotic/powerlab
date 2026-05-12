@@ -1,29 +1,20 @@
-version: "3.7"
-
+name: stirling-pdf
 services:
-  app_proxy:
-    environment:
-      APP_HOST: stirling-pdf_app_1
-      APP_PORT: 8080
-      PROXY_AUTH_WHITELIST: "/api/*"
-  app:
-    image: stirlingtools/stirling-pdf:2.10.1@sha256:950c596db26e0764f642def2fd4f9ee904ff2ac16d83fe621ff731b771d9b385
-    # Stirling PDF does not work with a custom user
-    #user: "1000:1000"
-    restart: on-failure
-    stop_grace_period: 1m
-    volumes:
-      # Required for extra OCR languages
-      - ${APP_DATA_DIR}/data/tessdata:/usr/share/tessdata
-      - ${APP_DATA_DIR}/data/configs:/configs
-      - ${APP_DATA_DIR}/data/logs:/logs
-      - ${APP_DATA_DIR}/data/pipeline:/pipeline
-    environment:
-      # Not needed as Umbrel authenticates the user
-      DOCKER_ENABLE_SECURITY: "false"
-      INSTALL_BOOK_AND_ADVANCED_HTML_OPS: "true"
-      LANGS: ALL
-      SECURITY_ENABLELOGIN: "false"
+    app:
+        environment:
+            DOCKER_ENABLE_SECURITY: "false"
+            INSTALL_BOOK_AND_ADVANCED_HTML_OPS: "true"
+            LANGS: ALL
+            SECURITY_ENABLELOGIN: "false"
+        image: stirlingtools/stirling-pdf:2.10.1@sha256:950c596db26e0764f642def2fd4f9ee904ff2ac16d83fe621ff731b771d9b385
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/stirling-pdf/data/tessdata:/usr/share/tessdata
+            - /DATA/PowerLabAppData/stirling-pdf/data/configs:/configs
+            - /DATA/PowerLabAppData/stirling-pdf/data/logs:/logs
+            - /DATA/PowerLabAppData/stirling-pdf/data/pipeline:/pipeline
+version: "3.7"
 
 x-powerlab:
     store_app_id: stirling-pdf
@@ -42,7 +33,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: stirling-pdf
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: stirling-pdf/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:16Z"
+        synced_at: "2026-05-12T14:50:23Z"

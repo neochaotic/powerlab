@@ -1,41 +1,34 @@
-version: "3.7"
-
+name: nocodb
 services:
-  app_proxy:
-    environment:
-      APP_HOST: nocodb_app_1
-      APP_PORT: 8080
-      PROXY_AUTH_ADD: "false"
-
-  app:
-    image: nocodb/nocodb:2026.04.5@sha256:4498ea3612227f43842468033e27661ff3db4775a5cbc40399695198329ee2b2
-    restart: on-failure
-    user: "1000:1000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      NC_DB: "pg://nocodb_postgres_1:5432?u=nocodb&p=itworkslocally&d=nocodb"
-    volumes:
-      - ${APP_DATA_DIR}/data/app:/usr/app/data
-
-  postgres:
-    image: postgres:18.3-alpine@sha256:52098013b4b64a746626437d38afc03cabff6cdeb4d3d92e2342aa95f0ce56ea
-    restart: on-failure
-    stop_grace_period: 1m
-    environment:
-      POSTGRES_DB: nocodb
-      POSTGRES_USER: nocodb
-      POSTGRES_PASSWORD: itworkslocally
-      PGDATA: /data/pgdata
-    healthcheck:
-      test: "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    volumes:
-      - ${APP_DATA_DIR}/data/db:/data
+    app:
+        depends_on:
+            postgres:
+                condition: service_healthy
+        environment:
+            NC_DB: pg://nocodb_postgres_1:5432?u=nocodb&p=itworkslocally&d=nocodb
+        image: nocodb/nocodb:2026.04.5@sha256:4498ea3612227f43842468033e27661ff3db4775a5cbc40399695198329ee2b2
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/nocodb/data/app:/usr/app/data
+    postgres:
+        environment:
+            PGDATA: /data/pgdata
+            POSTGRES_DB: nocodb
+            POSTGRES_PASSWORD: itworkslocally
+            POSTGRES_USER: nocodb
+        healthcheck:
+            interval: 10s
+            retries: 5
+            start_period: 30s
+            test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+            timeout: 5s
+        image: postgres:18.3-alpine@sha256:52098013b4b64a746626437d38afc03cabff6cdeb4d3d92e2342aa95f0ce56ea
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/nocodb/data/db:/data
+version: "3.7"
 
 x-powerlab:
     store_app_id: nocodb
@@ -52,7 +45,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: nocodb
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: nocodb/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:12Z"
+        synced_at: "2026-05-12T14:50:18Z"

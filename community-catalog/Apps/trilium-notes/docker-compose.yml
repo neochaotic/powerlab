@@ -1,19 +1,13 @@
-version: "3.7"
-
+name: trilium-notes
 services:
-  app_proxy:
-    environment:
-      APP_HOST: trilium-notes_server_1
-      APP_PORT: 8080
-      PROXY_AUTH_WHITELIST: "/api/*"
-
-  server:
-    image: triliumnext/trilium:v0.102.2@sha256:f1a2fd88e7032d60f863231ce94348e906bcd6a5fa043801badd5896c20c064d
-    restart: on-failure
-    environment:
-      - TRILIUM_DATA_DIR=/data
-    volumes:
-      - ${APP_DATA_DIR}/data:/data
+    server:
+        environment:
+            - TRILIUM_DATA_DIR=/data
+        image: triliumnext/trilium:v0.102.2@sha256:f1a2fd88e7032d60f863231ce94348e906bcd6a5fa043801badd5896c20c064d
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/trilium-notes/data:/data
+version: "3.7"
 
 x-powerlab:
     store_app_id: trilium-notes
@@ -32,7 +26,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: trilium-notes
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: trilium-notes/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:17Z"
+        synced_at: "2026-05-12T14:50:25Z"

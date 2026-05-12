@@ -1,37 +1,30 @@
+name: invio
 services:
-
-  app_proxy:
-    environment:
-      APP_HOST: invio_frontend_1
-      APP_PORT: 8000
-      PROXY_AUTH_ADD: "false"
-
-  backend:
-    image: ghcr.io/kittendevv/invio-backend:v2.0.0@sha256:bc1aa1d27cf0b12b7e1a1eac2e55f9fb8274375502b6b93fb12cc16670ce0f74
-    environment:
-      ADMIN_USER: "admin"
-      ADMIN_PASS: ${APP_PASSWORD}
-      JWT_SECRET: ${APP_SEED}
-      SESSION_TTL_SECONDS: 43200
-      SECURE_HEADERS_DISABLED: "false"
-      ENABLE_HSTS: "true"
-      DATABASE_PATH: /app/data/invio.db
-    volumes:
-      - ${APP_DATA_DIR}/data:/app/data
-    restart: on-failure
-
-  frontend:
-    image: ghcr.io/kittendevv/invio-frontend:v2.0.0@sha256:54cbfc6ff2a585cf7299468a7b160a98d84f197cdbcb6bdf2bda82a7a0210099
-    environment:
-      PORT: 8000
-      BACKEND_URL: http://invio_backend_1:3000
-      COOKIE_SECURE: "false"
-      FRONTEND_SECURE_HEADERS_DISABLED: "false"
-      ENABLE_HSTS: "false"
-      ORIGIN: "http://${DEVICE_DOMAIN_NAME}:8003"
-    depends_on:
-      - backend
-    restart: on-failure
+    backend:
+        environment:
+            ADMIN_PASS: ${APP_PASSWORD}
+            ADMIN_USER: admin
+            DATABASE_PATH: /app/data/invio.db
+            ENABLE_HSTS: "true"
+            JWT_SECRET: ${APP_SEED}
+            SECURE_HEADERS_DISABLED: "false"
+            SESSION_TTL_SECONDS: 43200
+        image: ghcr.io/kittendevv/invio-backend:v2.0.1@sha256:603d3a7a1134bd515fe06afc671e01ac454f0e53a90595d3bc0ba3c5dbceaf40
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/invio/data:/app/data
+    frontend:
+        depends_on:
+            - backend
+        environment:
+            BACKEND_URL: http://invio_backend_1:3000
+            COOKIE_SECURE: "false"
+            ENABLE_HSTS: "false"
+            FRONTEND_SECURE_HEADERS_DISABLED: "false"
+            ORIGIN: http://${DEVICE_DOMAIN_NAME}:8003
+            PORT: 8000
+        image: ghcr.io/kittendevv/invio-frontend:v2.0.1@sha256:8dfc68bbc8063e66508a4750d9d3191aa8bbe0348d94560ae5ea0c61d3f1e852
+        restart: on-failure
 
 x-powerlab:
     store_app_id: invio
@@ -50,7 +43,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: invio
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: invio/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:08Z"
+        synced_at: "2026-05-12T14:50:13Z"

@@ -1,14 +1,12 @@
-version: "3.7"
-
+name: homebridge
 services:
-  server:
-    image: homebridge/homebridge:2026-05-06@sha256:e99118910aa5da96f66fb7cd4142c00e7ea524d5700bb3597fe5b90b270dd5d7
-    # container runs as root
-    network_mode: host
-    # available at port 8581
-    volumes:
-      - ${APP_DATA_DIR}/data/homebridge:/homebridge
-    restart: on-failure
+    server:
+        image: homebridge/homebridge:2026-05-10@sha256:0783bf37e5b7681e515f95998f7084505596e176ca8ddacce4a7d034bf2c71cd
+        network_mode: host
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/homebridge/data/homebridge:/homebridge
+version: "3.7"
 
 x-powerlab:
     store_app_id: homebridge
@@ -25,7 +23,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: homebridge
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: homebridge/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:08Z"
+        synced_at: "2026-05-12T14:50:13Z"

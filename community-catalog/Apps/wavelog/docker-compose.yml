@@ -1,32 +1,25 @@
-version: "3.7"
-
+name: wavelog
 services:
-  app_proxy:
-    environment:
-      APP_HOST: wavelog_app_1
-      APP_PORT: 80
-      PROXY_AUTH_ADD: "false"
-
-  app:
-    image: ghcr.io/wavelog/wavelog:2.4.2@sha256:4df7277277b7e601852b1a8905273eca6b67c1b4a4eb91da408e5f90e97f8886
-    environment:
-      CI_ENV: docker
-    volumes:
-      - ${APP_DATA_DIR}/data/config:/var/www/html/application/config/docker
-      - ${APP_DATA_DIR}/data/uploads:/var/www/html/uploads
-      - ${APP_DATA_DIR}/data/userdata:/var/www/html/userdata
-    depends_on:
-      - wavelog-db
-
-  wavelog-db:
-    image: mariadb:11.4@sha256:39596f079862334be04f4231664862e55d4febe54309cc62f750f2297de85b06
-    environment:
-      MARIADB_RANDOM_ROOT_PASSWORD: yes
-      MARIADB_DATABASE: wavelog
-      MARIADB_USER: wavelog
-      MARIADB_PASSWORD: wavelog
-    volumes:
-      - ${APP_DATA_DIR}/data/db:/var/lib/mysql
+    app:
+        depends_on:
+            - wavelog-db
+        environment:
+            CI_ENV: docker
+        image: ghcr.io/wavelog/wavelog:2.4.2@sha256:4df7277277b7e601852b1a8905273eca6b67c1b4a4eb91da408e5f90e97f8886
+        volumes:
+            - /DATA/PowerLabAppData/wavelog/data/config:/var/www/html/application/config/docker
+            - /DATA/PowerLabAppData/wavelog/data/uploads:/var/www/html/uploads
+            - /DATA/PowerLabAppData/wavelog/data/userdata:/var/www/html/userdata
+    wavelog-db:
+        environment:
+            MARIADB_DATABASE: wavelog
+            MARIADB_PASSWORD: wavelog
+            MARIADB_RANDOM_ROOT_PASSWORD: "yes"
+            MARIADB_USER: wavelog
+        image: mariadb:11.4@sha256:39596f079862334be04f4231664862e55d4febe54309cc62f750f2297de85b06
+        volumes:
+            - /DATA/PowerLabAppData/wavelog/data/db:/var/lib/mysql
+version: "3.7"
 
 x-powerlab:
     store_app_id: wavelog
@@ -43,7 +36,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: wavelog
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: wavelog/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:18Z"
+        synced_at: "2026-05-12T14:50:26Z"

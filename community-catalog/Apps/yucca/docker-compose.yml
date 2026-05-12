@@ -1,26 +1,20 @@
-version: "3.8"
-
+name: yucca
 services:
-  app_proxy:
-    environment:
-      APP_HOST: yucca_yucca_1
-      APP_PORT: 9910
-      PROXY_AUTH_WHITELIST: "/v1/*"
-
-  yucca:
-    image: yuccastream/yucca:0.12.0@sha256:815909dda5241cc56bf856967bd12c1aa7f44c35831574fae758b849851632ab
-    restart: on-failure
-    shm_size: "128mb"
-    working_dir: /opt/yucca
-    volumes:
-      - "${APP_DATA_DIR}/data/data:/opt/yucca/data"
-      - "${APP_DATA_DIR}/data/ffmpeg:/opt/yucca/ffmpeg"
-    ports:
-      - 10925:10925 # SMTP server
-      - 9912:9912 # telemetry (prometheus)
-    environment: # Read more about configuration here https://docs.yucca.app/en/configuration/
-      YUCCA_SERVER_DATA_DIR: "/opt/yucca/data"
-      YUCCA_SMTP_SERVER_LISTEN_ADDRESS: ":10925"
+    yucca:
+        environment:
+            YUCCA_SERVER_DATA_DIR: /opt/yucca/data
+            YUCCA_SMTP_SERVER_LISTEN_ADDRESS: :10925
+        image: yuccastream/yucca:0.12.3@sha256:04fdb29981d01c00b20b22f02b46d7e844f2a5c2a8675dcc52d8c748bc853e0c
+        ports:
+            - 10925:10925
+            - 9912:9912
+        restart: on-failure
+        shm_size: 128mb
+        volumes:
+            - /DATA/PowerLabAppData/yucca/data/data:/opt/yucca/data
+            - /DATA/PowerLabAppData/yucca/data/ffmpeg:/opt/yucca/ffmpeg
+        working_dir: /opt/yucca
+version: "3.8"
 
 x-powerlab:
     store_app_id: yucca
@@ -37,7 +31,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: yucca
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: yucca/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:19Z"
+        synced_at: "2026-05-12T14:50:27Z"

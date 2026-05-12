@@ -1,19 +1,14 @@
-version: "3.7"
-
+name: databag
 services:
-  app_proxy:
-    environment:
-      APP_HOST: databag_web_1
-      APP_PORT: 7000
-      
-  web:
-    image: balzack/databag:0.1.18@sha256:37c4ab38f64842afa44ed8aea0e47271112795180708f0cb7be8ee7c7defebac
-    restart: on-failure
-    stop_grace_period: 1m
-    volumes:
-      - ${APP_DATA_DIR}/data/databag:/var/lib/databag
-    environment:
-      ADMIN: $APP_PASSWORD
+    web:
+        environment:
+            ADMIN: $APP_PASSWORD
+        image: balzack/databag:0.1.18@sha256:37c4ab38f64842afa44ed8aea0e47271112795180708f0cb7be8ee7c7defebac
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/databag/data/databag:/var/lib/databag
+version: "3.7"
 
 x-powerlab:
     store_app_id: databag
@@ -32,7 +27,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: databag
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: databag/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:05Z"
+        synced_at: "2026-05-12T14:50:09Z"

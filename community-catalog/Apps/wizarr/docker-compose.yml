@@ -1,21 +1,16 @@
-version: "3.7"
-
+name: wizarr
 services:
-  app_proxy:
-    environment:
-      APP_HOST: wizarr_app_1
-      APP_PORT: 5690
-      
-  app:
-    image: ghcr.io/wizarrrr/wizarr:v2026.4.0@sha256:19da537e01b5470cb34b083b5ac64cb534dd27084d9d66bc634e96c1f3976884
-    restart: on-failure
-    volumes:
-      - ${APP_DATA_DIR}/data:/data
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - DISABLE_BUILTIN_AUTH=false
-      - TZ=UTC
+    app:
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - DISABLE_BUILTIN_AUTH=false
+            - TZ=UTC
+        image: ghcr.io/wizarrrr/wizarr:v2026.4.0@sha256:19da537e01b5470cb34b083b5ac64cb534dd27084d9d66bc634e96c1f3976884
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/wizarr/data:/data
+version: "3.7"
 
 x-powerlab:
     store_app_id: wizarr
@@ -34,7 +29,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: wizarr
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: wizarr/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:19Z"
+        synced_at: "2026-05-12T14:50:27Z"

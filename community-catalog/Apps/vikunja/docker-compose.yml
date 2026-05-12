@@ -1,44 +1,38 @@
-version: "3.7"
-
+name: vikunja
 services:
-  app_proxy:
-    environment:
-      APP_HOST: vikunja_web_1
-      APP_PORT: 3456
-      # vikunja has its own auth, so we don't need to use transparent umbrel auth here
-      PROXY_AUTH_ADD: "false"
-
-  db:
-    image: mariadb:10.11.8@sha256:75f6e61397758489d1dccf95db33b6b49ebfc7ec1253d40060fdf8ceb7f938a3
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-    environment:
-      MYSQL_ROOT_PASSWORD: supersecret
-      MYSQL_USER: vikunja
-      MYSQL_PASSWORD: secret
-      MYSQL_DATABASE: vikunja
-    volumes:
-      - ${APP_DATA_DIR}/data/db:/var/lib/mysql
-    restart: on-failure
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u $$MYSQL_USER --password=$$MYSQL_PASSWORD"]
-      interval: 2s
-      start_period: 30s
-
-  web:
-    image: vikunja/vikunja:2.3.0@sha256:f6b80393c1998cd5cd0dc38d24762c59ab4c10000a6f1032ef5b554e262cab93
-    environment:
-      VIKUNJA_SERVICE_PUBLICURL: http://${DEVICE_DOMAIN_NAME}:4523
-      VIKUNJA_DATABASE_HOST: vikunja_db_1
-      VIKUNJA_DATABASE_PASSWORD: secret
-      VIKUNJA_DATABASE_TYPE: mysql
-      VIKUNJA_DATABASE_USER: vikunja
-      VIKUNJA_DATABASE_DATABASE: vikunja
-      VIKUNJA_SERVICE_JWTSECRET: ${APP_SEED}
-    volumes: 
-      - ${APP_DATA_DIR}/data/files:/app/vikunja/files
-    depends_on:
-      - db
-    restart: on-failure
+    db:
+        command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+        environment:
+            MYSQL_DATABASE: vikunja
+            MYSQL_PASSWORD: secret
+            MYSQL_ROOT_PASSWORD: supersecret
+            MYSQL_USER: vikunja
+        healthcheck:
+            interval: 2s
+            start_period: 30s
+            test:
+                - CMD-SHELL
+                - mysqladmin ping -h localhost -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+        image: mariadb:10.11.8@sha256:75f6e61397758489d1dccf95db33b6b49ebfc7ec1253d40060fdf8ceb7f938a3
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/vikunja/data/db:/var/lib/mysql
+    web:
+        depends_on:
+            - db
+        environment:
+            VIKUNJA_DATABASE_DATABASE: vikunja
+            VIKUNJA_DATABASE_HOST: vikunja_db_1
+            VIKUNJA_DATABASE_PASSWORD: secret
+            VIKUNJA_DATABASE_TYPE: mysql
+            VIKUNJA_DATABASE_USER: vikunja
+            VIKUNJA_SERVICE_JWTSECRET: ${APP_SEED}
+            VIKUNJA_SERVICE_PUBLICURL: http://${DEVICE_DOMAIN_NAME}:4523
+        image: vikunja/vikunja:2.3.0@sha256:f6b80393c1998cd5cd0dc38d24762c59ab4c10000a6f1032ef5b554e262cab93
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/vikunja/data/files:/app/vikunja/files
+version: "3.7"
 
 x-powerlab:
     store_app_id: vikunja
@@ -57,7 +51,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: vikunja
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: vikunja/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:18Z"
+        synced_at: "2026-05-12T14:50:26Z"

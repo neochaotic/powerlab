@@ -1,31 +1,26 @@
+name: docuseal
 services:
-  app_proxy:
-    environment:
-      APP_HOST: docuseal_server_1
-      APP_PORT: 3000
-
-  server:
-    image: docuseal/docuseal:2.5.2@sha256:c404f8c2101305736c21dcbd5b2fc29b1b17be48bbb056e19608e64d7d81a7ce
-    user: "1000:1000"
-    depends_on:
-      - db
-    restart: on-failure
-    stop_grace_period: 1m
-    environment:
-      DATABASE_URL: 'postgresql://docusealuser:docusealpass@docuseal_db_1:5432/docuseal?sslmode=disable'
-    volumes:
-      - ${APP_DATA_DIR}/data/app:/data/docuseal
-
-  db:
-    image: postgres:17.3@sha256:0321e2252ebfeecb8bc1a899755084d29bce872953e1a5a3e25ec0860b739098
-    user: "1000:1000"
-    environment:
-      POSTGRES_DB: docuseal
-      POSTGRES_USER: docusealuser
-      POSTGRES_PASSWORD: docusealpass
-    restart: on-failure
-    volumes:
-      - ${APP_DATA_DIR}/data/db:/var/lib/postgresql/data
+    db:
+        environment:
+            POSTGRES_DB: docuseal
+            POSTGRES_PASSWORD: docusealpass
+            POSTGRES_USER: docusealuser
+        image: postgres:17.3@sha256:0321e2252ebfeecb8bc1a899755084d29bce872953e1a5a3e25ec0860b739098
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/docuseal/data/db:/var/lib/postgresql/data
+    server:
+        depends_on:
+            - db
+        environment:
+            DATABASE_URL: postgresql://docusealuser:docusealpass@docuseal_db_1:5432/docuseal?sslmode=disable
+        image: docuseal/docuseal:2.5.3@sha256:fa8d01c978fa9d2f51bc8250bfbbbb1ba843bcf198e94c84c62bf9f53f1beaaa
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/docuseal/data/app:/data/docuseal
 
 x-powerlab:
     store_app_id: docuseal
@@ -44,7 +39,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: docuseal
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: docuseal/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:05Z"
+        synced_at: "2026-05-12T14:50:09Z"

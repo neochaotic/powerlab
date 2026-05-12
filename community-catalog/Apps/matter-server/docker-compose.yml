@@ -1,19 +1,15 @@
-version: "3.7"
-
+name: matter-server
 services:
-  server:
-    image: ghcr.io/matter-js/python-matter-server:8.1.2@sha256:6827e352011e2d8c2bde771e446fcf72acc49150ef66bad978816bac1762aad3
-    restart: on-failure
-    # Required for mDNS to work correctly
-    network_mode: host
-    # UI at default port 5580
-    security_opt:
-      # Needed for Bluetooth via dbus
-      - apparmor:unconfined
-    volumes:
-      - ${APP_DATA_DIR}/data:/data/
-      # Required for Bluetooth via D-Bus
-      - /run/dbus:/run/dbus:ro
+    server:
+        image: ghcr.io/matter-js/python-matter-server:8.1.2@sha256:6827e352011e2d8c2bde771e446fcf72acc49150ef66bad978816bac1762aad3
+        network_mode: host
+        restart: on-failure
+        security_opt:
+            - apparmor:unconfined
+        volumes:
+            - /DATA/PowerLabAppData/matter-server/data:/data/
+            - /run/dbus:/run/dbus:ro
+version: "3.7"
 
 x-powerlab:
     store_app_id: matter-server
@@ -32,7 +28,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: matter-server
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: matter-server/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:11Z"
+        synced_at: "2026-05-12T14:50:15Z"

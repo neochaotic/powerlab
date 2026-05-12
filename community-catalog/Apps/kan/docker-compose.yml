@@ -1,45 +1,40 @@
+name: kan
 services:
-  app_proxy:
-    environment:
-      APP_HOST: kan_server_1
-      APP_PORT: 3000
-      PROXY_AUTH_ADD: "false"
-
-  migrate:
-    image: ghcr.io/kanbn/kan-migrate:0.5.6@sha256:a2460e460b70a77ad60a12a8057b2a720cb9e4037a015ea508574887c5bceca1
-    environment:
-      POSTGRES_URL: 'postgresql://kanuser:kanpassword@kan_db_1:5432/kan?sslmode=disable'
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: on-failure
-
-  server:
-    image: ghcr.io/kanbn/kan:0.5.6@sha256:3509af72635922b8195fc08e052f6257f8a05c50c8afcadc636f78c717667673
-    environment:
-      NEXT_PUBLIC_BASE_URL: http://${DEVICE_DOMAIN_NAME}:8373
-      BETTER_AUTH_SECRET: ${APP_SEED}
-      POSTGRES_URL: 'postgresql://kanuser:kanpassword@kan_db_1:5432/kan?sslmode=disable'
-      NEXT_PUBLIC_ALLOW_CREDENTIALS: "true"
-    depends_on:
-      - db
-    restart: on-failure
-
-  db:
-    image: postgres:17.3@sha256:0321e2252ebfeecb8bc1a899755084d29bce872953e1a5a3e25ec0860b739098
-    user: "1000:1000"
-    environment:
-      POSTGRES_DB: kan
-      POSTGRES_USER: kanuser
-      POSTGRES_PASSWORD: kanpassword
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kan -d kan"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    restart: on-failure
-    volumes:
-      - ${APP_DATA_DIR}/data/db:/var/lib/postgresql/data
+    db:
+        environment:
+            POSTGRES_DB: kan
+            POSTGRES_PASSWORD: kanpassword
+            POSTGRES_USER: kanuser
+        healthcheck:
+            interval: 5s
+            retries: 10
+            test:
+                - CMD-SHELL
+                - pg_isready -U kan -d kan
+            timeout: 5s
+        image: postgres:17.3@sha256:0321e2252ebfeecb8bc1a899755084d29bce872953e1a5a3e25ec0860b739098
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/kan/data/db:/var/lib/postgresql/data
+    migrate:
+        depends_on:
+            db:
+                condition: service_healthy
+        environment:
+            POSTGRES_URL: postgresql://kanuser:kanpassword@kan_db_1:5432/kan?sslmode=disable
+        image: ghcr.io/kanbn/kan-migrate:0.5.6@sha256:a2460e460b70a77ad60a12a8057b2a720cb9e4037a015ea508574887c5bceca1
+        restart: on-failure
+    server:
+        depends_on:
+            - db
+        environment:
+            BETTER_AUTH_SECRET: ${APP_SEED}
+            NEXT_PUBLIC_ALLOW_CREDENTIALS: "true"
+            NEXT_PUBLIC_BASE_URL: http://${DEVICE_DOMAIN_NAME}:8373
+            POSTGRES_URL: postgresql://kanuser:kanpassword@kan_db_1:5432/kan?sslmode=disable
+        image: ghcr.io/kanbn/kan:0.5.6@sha256:3509af72635922b8195fc08e052f6257f8a05c50c8afcadc636f78c717667673
+        restart: on-failure
 
 x-powerlab:
     store_app_id: kan
@@ -58,7 +53,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: kan
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: kan/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:09Z"
+        synced_at: "2026-05-12T14:50:14Z"

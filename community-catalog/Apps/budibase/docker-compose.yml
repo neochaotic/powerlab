@@ -1,20 +1,14 @@
-version: "3.7"
-
+name: budibase
 services:
-  app_proxy:
-    environment:
-      APP_HOST: budibase_budibase_1
-      APP_PORT: 80
-      PROXY_AUTH_ADD: "false"
-
-  budibase:
-    image: budibase/budibase:3.38.0@sha256:f1df138b70dfa20d235633acf7f6ed36f6f833baa43791734ee3c773bfe169a3
-    restart: on-failure
-    stop_grace_period: 1m
-    volumes:
-      - ${APP_DATA_DIR}/data/budibase:/data
-    environment:
-      JWT_SECRET: ${APP_SEED}
+    budibase:
+        environment:
+            JWT_SECRET: ${APP_SEED}
+        image: budibase/budibase:3.38.1@sha256:faf8ef0663e980deb4de1d82e25ce6f0a0f620d072307254ae3356e93eb17c11
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/budibase/data/budibase:/data
+version: "3.7"
 
 x-powerlab:
     store_app_id: budibase
@@ -31,7 +25,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: budibase
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: budibase/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:04Z"
+        synced_at: "2026-05-12T14:50:08Z"

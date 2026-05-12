@@ -1,19 +1,15 @@
-version: "3.7"
+name: chromium
 services:
-  app_proxy:
-    environment:
-      APP_HOST: chromium_chromium_1
-      APP_PORT: 3000
-
-  chromium:
-    image: ghcr.io/linuxserver/chromium:version-8d3cb5f1@sha256:d7c5f7faf5fe524117fd73c4d446e1bf81bccd0d64d073a30b8c9819fdf105d6
-    environment:
-      - PUID=1000
-      - PGID=1000
-    volumes:
-      - ${APP_DATA_DIR}/data:/config
-    shm_size: "1gb"
-    restart: on-failure
+    chromium:
+        environment:
+            - PUID=1000
+            - PGID=1000
+        image: ghcr.io/linuxserver/chromium:version-8d3cb5f1@sha256:d7c5f7faf5fe524117fd73c4d446e1bf81bccd0d64d073a30b8c9819fdf105d6
+        restart: on-failure
+        shm_size: 1gb
+        volumes:
+            - /DATA/PowerLabAppData/chromium/data:/config
+version: "3.7"
 
 x-powerlab:
     store_app_id: chromium
@@ -30,7 +26,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: chromium
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: chromium/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:05Z"
+        synced_at: "2026-05-12T14:50:08Z"

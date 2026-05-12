@@ -1,31 +1,25 @@
-version: '3.7'
-
+name: samba
 services:
-  app_proxy:
-    environment:
-      APP_HOST: samba_homepage_1
-      APP_PORT: 80
-
-  homepage:
-    image: loficafe/static-web-server-samba:1.0.1@sha256:783667f052d9535bb75946ff9bc807989b041e25437ef10c30b291589d041e6e
-    restart: on-failure
-    user: "1000:1000"
-    volumes:
-      - ${APP_DATA_DIR}/data/samba/smb.conf:/public/smb.conf:ro
-
-  server:
-    image: dockurr/samba:4.23.5@sha256:63428d1cb6c1ace60cfa782c1d6c9e4b3686044fc47600c97055e6b62e9bb5fa
-    restart: on-failure
-    environment:
-      USER: umbrel
-      PASS: ${APP_PASSWORD}
-      UID: 1000
-      GID: 1000
-    ports:
-      - '446:445'
-    volumes:
-      - ${APP_DATA_DIR}/data/samba/smb.conf:/etc/samba/smb.conf
-      - ${UMBREL_ROOT}/data/storage:/storage
+    homepage:
+        image: loficafe/static-web-server-samba:1.0.1@sha256:783667f052d9535bb75946ff9bc807989b041e25437ef10c30b291589d041e6e
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/samba/data/samba/smb.conf:/public/smb.conf:ro
+    server:
+        environment:
+            GID: 1000
+            PASS: ${APP_PASSWORD}
+            UID: 1000
+            USER: umbrel
+        image: dockurr/samba:4.23.5@sha256:63428d1cb6c1ace60cfa782c1d6c9e4b3686044fc47600c97055e6b62e9bb5fa
+        ports:
+            - 446:445
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/samba/data/samba/smb.conf:/etc/samba/smb.conf
+            - ${UMBREL_ROOT}/data/storage:/storage
+version: "3.7"
 
 x-powerlab:
     store_app_id: samba
@@ -42,7 +36,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: samba
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: samba/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:16Z"
+        synced_at: "2026-05-12T14:50:22Z"

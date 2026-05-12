@@ -1,48 +1,40 @@
+name: plausible
 services:
-  app_proxy:
-    environment:
-      APP_HOST: plausible_plausible_1
-      APP_PORT: 8000
-
-  plausible_db:
-    # Plausible v2.1.1 was tested against PostgreSQL versions 15 and 16
-    # https://github.com/plausible/analytics/blob/v2.1.1/.github/workflows/elixir.yml#L21-L32
-    image: postgres:16-alpine@sha256:492898505cb45f9835acc327e98711eaa9298ed804e0bb36f29e08394229550d
-    restart: on-failure
-    user: "1000:1000"
-    volumes:
-      - ${APP_DATA_DIR}/db-data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_PASSWORD=postgres
-
-  plausible_events_db:
-    image: clickhouse/clickhouse-server:24.12-alpine@sha256:cd450891db46cc6ffe313ca2b0fb7dbfb897a6873ca74a724cbe050a2cf62621
-    restart: on-failure
-    user: "1000:1000"
-    volumes:
-      - ${APP_DATA_DIR}/event-data:/var/lib/clickhouse
-      - ${APP_DATA_DIR}/event-logs:/var/log/clickhouse-server
-      - ${APP_DATA_DIR}/clickhouse/clickhouse-config.xml:/etc/clickhouse-server/config.d/logging.xml:ro
-      - ${APP_DATA_DIR}/clickhouse/clickhouse-user-config.xml:/etc/clickhouse-server/users.d/logging.xml:ro
-    ulimits:
-      nofile:
-        soft: 262144
-        hard: 262144
-    environment:
-      - CLICKHOUSE_SKIP_USER_SETUP=1
-
-  plausible:
-    image: ghcr.io/plausible/community-edition:v3.2.0@sha256:3d8af8d4a1be32c3dcc5e8dc01496639d945edd9963827e18abe984dd6bda086
-    restart: on-failure
-    user: "1000:1000"
-    command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
-    depends_on:
-      - plausible_db
-      - plausible_events_db
-    environment:
-      - BASE_URL=http://${DEVICE_DOMAIN_NAME}:9092
-      - SECRET_KEY_BASE=${APP_SEED}
-      - TOTP_VAULT_KEY=${APP_PLAUSIBLE_VAULT_KEY}
+    plausible:
+        command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
+        depends_on:
+            - plausible_db
+            - plausible_events_db
+        environment:
+            - BASE_URL=http://${DEVICE_DOMAIN_NAME}:9092
+            - SECRET_KEY_BASE=${APP_SEED}
+            - TOTP_VAULT_KEY=${APP_PLAUSIBLE_VAULT_KEY}
+        image: ghcr.io/plausible/community-edition:v3.2.0@sha256:3d8af8d4a1be32c3dcc5e8dc01496639d945edd9963827e18abe984dd6bda086
+        restart: on-failure
+        user: 1000:1000
+    plausible_db:
+        environment:
+            - POSTGRES_PASSWORD=postgres
+        image: postgres:16-alpine@sha256:492898505cb45f9835acc327e98711eaa9298ed804e0bb36f29e08394229550d
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/plausible/db-data:/var/lib/postgresql/data
+    plausible_events_db:
+        environment:
+            - CLICKHOUSE_SKIP_USER_SETUP=1
+        image: clickhouse/clickhouse-server:24.12-alpine@sha256:cd450891db46cc6ffe313ca2b0fb7dbfb897a6873ca74a724cbe050a2cf62621
+        restart: on-failure
+        ulimits:
+            nofile:
+                hard: 262144
+                soft: 262144
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/plausible/event-data:/var/lib/clickhouse
+            - /DATA/PowerLabAppData/plausible/event-logs:/var/log/clickhouse-server
+            - /DATA/PowerLabAppData/plausible/clickhouse/clickhouse-config.xml:/etc/clickhouse-server/config.d/logging.xml:ro
+            - /DATA/PowerLabAppData/plausible/clickhouse/clickhouse-user-config.xml:/etc/clickhouse-server/users.d/logging.xml:ro
 
 x-powerlab:
     store_app_id: plausible
@@ -59,7 +51,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: plausible
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: plausible/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:15Z"
+        synced_at: "2026-05-12T14:50:21Z"

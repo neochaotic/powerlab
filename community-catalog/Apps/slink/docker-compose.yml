@@ -1,29 +1,24 @@
-version: "3.7"
-
+name: slink
 services:
-  app_proxy:
-    environment:
-      APP_HOST: slink_web_1
-      APP_PORT: 3000
-
-  web:
-    image: anirdev/slink:v1.11.1@sha256:4f74ed25da4290ea30d5041b3adc2e563609f4a81590b0164ce9681b63a7f698
-    user: "1000:1000"
-    restart: on-failure
-    environment:
-      TZ: UTC
-      ORIGIN: http://${DEVICE_DOMAIN_NAME}:8811
-      REQUIRE_SSL: "false"
-      USER_APPROVAL_REQUIRED: "false"
-      USER_PASSWORD_MIN_LENGTH: 8
-      USER_PASSWORD_REQUIREMENTS: 15
-      IMAGE_MAX_SIZE: 15M
-      IMAGE_STRIP_EXIF_METADATA: "true"
-      IMAGE_COMPRESSION_QUALITY: 80
-      STORAGE_PROVIDER: local
-    volumes:
-      - ${APP_DATA_DIR}/data/var:/app/var/data
-      - ${APP_DATA_DIR}/data/images:/app/slink/images
+    web:
+        environment:
+            IMAGE_COMPRESSION_QUALITY: 80
+            IMAGE_MAX_SIZE: 15M
+            IMAGE_STRIP_EXIF_METADATA: "true"
+            ORIGIN: http://${DEVICE_DOMAIN_NAME}:8811
+            REQUIRE_SSL: "false"
+            STORAGE_PROVIDER: local
+            TZ: UTC
+            USER_APPROVAL_REQUIRED: "false"
+            USER_PASSWORD_MIN_LENGTH: 8
+            USER_PASSWORD_REQUIREMENTS: 15
+        image: anirdev/slink:v1.11.1@sha256:4f74ed25da4290ea30d5041b3adc2e563609f4a81590b0164ce9681b63a7f698
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/slink/data/var:/app/var/data
+            - /DATA/PowerLabAppData/slink/data/images:/app/slink/images
+version: "3.7"
 
 x-powerlab:
     store_app_id: slink
@@ -42,7 +37,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: slink
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: slink/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:16Z"
+        synced_at: "2026-05-12T14:50:23Z"

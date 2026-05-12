@@ -1,25 +1,20 @@
-version: '3.7'
-
+name: zoraxy
 services:
-  app_proxy:
-    environment:
-      APP_HOST: zoraxy_server_1
-      APP_PORT: 8000
-
-  server:
-    image: zoraxydocker/zoraxy:v3.3.2@sha256:2d4bcfb9fe4073c33242b452374017f61e1e4be2f8dc59d963c0359b6e02d3b5
-    restart: on-failure
-    ports:
-      - 41080:80
-      - 41443:443
-    volumes:
-      - ${APP_DATA_DIR}/data/config/:/opt/zoraxy/config
-      - /etc/localtime:/etc/localtime:ro
-    environment:
-      FASTGEOIP: "false"
-      ZEROTIER: "false"
-      DOCKER: "false"
-      NOAUTH: "true"
+    server:
+        environment:
+            DOCKER: "false"
+            FASTGEOIP: "false"
+            NOAUTH: "true"
+            ZEROTIER: "false"
+        image: zoraxydocker/zoraxy:v3.3.2@sha256:2d4bcfb9fe4073c33242b452374017f61e1e4be2f8dc59d963c0359b6e02d3b5
+        ports:
+            - 41080:80
+            - 41443:443
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/zoraxy/data/config/:/opt/zoraxy/config
+            - /etc/localtime:/etc/localtime:ro
+version: "3.7"
 
 x-powerlab:
     store_app_id: zoraxy
@@ -38,7 +33,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: zoraxy
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: zoraxy/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:19Z"
+        synced_at: "2026-05-12T14:50:27Z"

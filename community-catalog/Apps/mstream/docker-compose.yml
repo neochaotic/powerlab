@@ -1,20 +1,15 @@
-version: '3.7'
-
+name: mstream
 services:
-  app_proxy:
-    environment:
-      APP_HOST: mstream_server_1
-      APP_PORT: 3000
-
-  server:
-    image: linuxserver/mstream:6.7.1@sha256:400fc0549f52beecf1d1e3f98196bc43b85b987a9d4086fff4f17615ea57bc71
-    restart: on-failure
-    environment:
-      - PUID=1000
-      - PGID=1000
-    volumes:
-      - ${APP_DATA_DIR}/data:/config
-      - ${UMBREL_ROOT}/data/storage/downloads/music:/music
+    server:
+        environment:
+            - PUID=1000
+            - PGID=1000
+        image: linuxserver/mstream:6.7.1@sha256:400fc0549f52beecf1d1e3f98196bc43b85b987a9d4086fff4f17615ea57bc71
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/mstream/data:/config
+            - ${UMBREL_ROOT}/data/storage/downloads/music:/music
+version: "3.7"
 
 x-powerlab:
     store_app_id: mstream
@@ -31,7 +26,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: mstream
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: mstream/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:12Z"
+        synced_at: "2026-05-12T14:50:17Z"

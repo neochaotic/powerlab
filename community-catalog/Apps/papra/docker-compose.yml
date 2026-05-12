@@ -1,19 +1,14 @@
+name: papra
 services:
-  app_proxy:
-    environment:
-      APP_HOST: papra_server_1
-      APP_PORT: 1221
-      PROXY_AUTH_WHITELIST: "/api/*"
-
-  server:
-    image: ghcr.io/papra-hq/papra:26.0.0-rootless@sha256:e41d2237a59b072063e4059a85492cb11fe4aefb706851becbbce88c7c2ae072
-    user: 1000:1000
-    restart: on-failure
-    environment:
-      - AUTH_SECRET=${APP_SEED}
-      - APP_BASE_URL=http://${DEVICE_DOMAIN_NAME}:8112
-    volumes:
-      - ${APP_DATA_DIR}/data:/app/app-data
+    server:
+        environment:
+            - AUTH_SECRET=${APP_SEED}
+            - APP_BASE_URL=http://${DEVICE_DOMAIN_NAME}:8112
+        image: ghcr.io/papra-hq/papra:26.0.0-rootless@sha256:e41d2237a59b072063e4059a85492cb11fe4aefb706851becbbce88c7c2ae072
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/papra/data:/app/app-data
 
 x-powerlab:
     store_app_id: papra
@@ -32,7 +27,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: papra
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: papra/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:14Z"
+        synced_at: "2026-05-12T14:50:19Z"

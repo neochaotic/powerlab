@@ -1,20 +1,16 @@
-version: "3.7"
+name: jotty
 services:
-  app_proxy:
-    environment:
-      APP_HOST: jotty_web_1
-      APP_PORT: "3000"
-
-  web:
-    image: ghcr.io/fccview/jotty:1.23.0@sha256:abd142f8e2036a7bc40d2ee94abea6ab185af078d327af349019c518e0bd1df0
-    user: "1000:1000"
-    restart: on-failure
-    volumes:
-      - ${APP_DATA_DIR}/data/app:/app/data
-      - ${APP_DATA_DIR}/data/config:/app/config
-      - ${APP_DATA_DIR}/data/cache:/app/.next/cache
-    environment:
-      - NODE_ENV=production
+    web:
+        environment:
+            - NODE_ENV=production
+        image: ghcr.io/fccview/jotty:1.23.0@sha256:abd142f8e2036a7bc40d2ee94abea6ab185af078d327af349019c518e0bd1df0
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/jotty/data/app:/app/data
+            - /DATA/PowerLabAppData/jotty/data/config:/app/config
+            - /DATA/PowerLabAppData/jotty/data/cache:/app/.next/cache
+version: "3.7"
 
 x-powerlab:
     store_app_id: jotty
@@ -33,7 +29,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: jotty
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: jotty/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:09Z"
+        synced_at: "2026-05-12T14:50:14Z"

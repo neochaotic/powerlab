@@ -1,44 +1,39 @@
-version: '3.7'
-
+name: kitchenowl
 services:
-  app_proxy:
-    environment:
-      APP_HOST: kitchenowl_web_1
-      APP_PORT: 8080
-      PROXY_AUTH_ADD: "false"
-
-  web:
-    image: tombursch/kitchenowl:v0.7.6@sha256:a9db258965941c4183acb87c68bb7704e5af569d54a66fde8f3ed51801bb9949
-    user: "1000:1000"
-    restart: on-failure
-    environment:
-      JWT_SECRET_KEY: ${APP_PASSWORD}
-      DB_DRIVER: postgresql
-      DB_HOST: kitchenowl_db_1
-      DB_NAME: kitchenowl
-      DB_USER: kitchenowl
-      DB_PASSWORD: password
-    volumes:
-      - ${APP_DATA_DIR}/data/kitchenowl_files:/data
-    depends_on:
-      - db
-
-  db:
-    image: postgres:17.4@sha256:fe3f571d128e8efadcd8b2fde0e2b73ebab6dbec33f6bfe69d98c682c7d8f7bd
-    user: "1000:1000"
-    restart: on-failure
-    environment:
-      POSTGRES_DB: kitchenowl
-      POSTGRES_USER: kitchenowl
-      POSTGRES_PASSWORD: password
-    volumes:
-      - ${APP_DATA_DIR}/data/kitchenowl_db:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
-      interval: 30s
-      timeout: 60s
-      retries: 5
-      start_period: 80s
+    db:
+        environment:
+            POSTGRES_DB: kitchenowl
+            POSTGRES_PASSWORD: password
+            POSTGRES_USER: kitchenowl
+        healthcheck:
+            interval: 30s
+            retries: 5
+            start_period: 80s
+            test:
+                - CMD-SHELL
+                - pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}
+            timeout: 60s
+        image: postgres:17.4@sha256:fe3f571d128e8efadcd8b2fde0e2b73ebab6dbec33f6bfe69d98c682c7d8f7bd
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/kitchenowl/data/kitchenowl_db:/var/lib/postgresql/data
+    web:
+        depends_on:
+            - db
+        environment:
+            DB_DRIVER: postgresql
+            DB_HOST: kitchenowl_db_1
+            DB_NAME: kitchenowl
+            DB_PASSWORD: password
+            DB_USER: kitchenowl
+            JWT_SECRET_KEY: ${APP_PASSWORD}
+        image: tombursch/kitchenowl:v0.7.8@sha256:9f8d7e7849c68b3b516c92938b0489dc6173568f266c48e429556de0cb9d8d82
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/kitchenowl/data/kitchenowl_files:/data
+version: "3.7"
 
 x-powerlab:
     store_app_id: kitchenowl
@@ -57,7 +52,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: kitchenowl
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: kitchenowl/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:09Z"
+        synced_at: "2026-05-12T14:50:14Z"

@@ -1,25 +1,19 @@
-version: '3.7'
-
+name: jellyseerr
 services:
-  app_proxy:
-    environment:
-      APP_HOST: jellyseerr_server_1
-      APP_PORT: 5055
-      PROXY_AUTH_WHITELIST: "/api/*"
-
-  server:
-    image: ghcr.io/seerr-team/seerr:v3.2.0@sha256:c4cbd5121236ac2f70a843a0b920b68a27976be57917555f1c45b08a1e6b2aad
-    user: "1000:1000"
-    init: true
-    volumes:
-      - ${APP_DATA_DIR}/data/config:/app/config
-    restart: on-failure
-    healthcheck:
-      test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/status || exit 1
-      start_period: 20s
-      timeout: 3s
-      interval: 15s
-      retries: 3
+    server:
+        healthcheck:
+            interval: 15s
+            retries: 3
+            start_period: 20s
+            test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/status || exit 1
+            timeout: 3s
+        image: ghcr.io/seerr-team/seerr:v3.2.0@sha256:c4cbd5121236ac2f70a843a0b920b68a27976be57917555f1c45b08a1e6b2aad
+        init: true
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/jellyseerr/data/config:/app/config
+version: "3.7"
 
 x-powerlab:
     store_app_id: jellyseerr
@@ -38,7 +32,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: jellyseerr
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: jellyseerr/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:09Z"
+        synced_at: "2026-05-12T14:50:14Z"

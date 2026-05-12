@@ -1,14 +1,9 @@
-version: "3.7"
-
+name: snort
 services:
-  app_proxy:
-    environment:
-      APP_HOST: snort_web_1
-      APP_PORT: 8080
-
-  web:
-    image: voidic/snort:v0.5.3@sha256:410778efd4d74f001bb20e91e9f752bda8bb2e5d5f796a2020b253be8b9ca099
-    init: true
+    web:
+        image: voidic/snort:v0.5.3@sha256:410778efd4d74f001bb20e91e9f752bda8bb2e5d5f796a2020b253be8b9ca099
+        init: true
+version: "3.7"
 
 x-powerlab:
     store_app_id: snort
@@ -25,7 +20,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: snort
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: snort/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:16Z"
+        synced_at: "2026-05-12T14:50:23Z"

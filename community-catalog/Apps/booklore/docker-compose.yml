@@ -1,38 +1,30 @@
-version: "3.7"
-
+name: booklore
 services:
-  app_proxy:
-    environment:
-      APP_HOST: booklore_web_1
-      APP_PORT: 6060
-      
-  web:
-    image: ghcr.io/booklore-app/booklore:v2.3.0@sha256:10474742a0e704ec48540a3e5559cf27c16bcf0c021c494ba5bf3cc25b16b887
-    # does not work rootless
-    #user: "1000:1000"
-    restart: on-failure
-    environment:
-      DATABASE_URL: jdbc:mariadb://booklore_db_1:3306/booklore
-      DATABASE_USERNAME: bookloreuser
-      DATABASE_PASSWORD: booklorepass
-    depends_on:
-      db:
-        condition: service_started
-    volumes:
-      - ${APP_DATA_DIR}/data/app:/app/data
-      - ${APP_DATA_DIR}/data/books:/books
-
-  db:
-    image: mariadb:12.0.2@sha256:b30cc65b57a11a2e791ad5c06284e599fe9f1bf3fe9081a88d85bcf36389be4a
-    user: "1000:1000"
-    restart: on-failure
-    environment:
-      MARIADB_DATABASE: booklore
-      MARIADB_USER: bookloreuser
-      MARIADB_PASSWORD: booklorepass
-      MARIADB_ROOT_PASSWORD: rootpass
-    volumes:
-      - ${APP_DATA_DIR}/data/db:/var/lib/mysql
+    db:
+        environment:
+            MARIADB_DATABASE: booklore
+            MARIADB_PASSWORD: booklorepass
+            MARIADB_ROOT_PASSWORD: rootpass
+            MARIADB_USER: bookloreuser
+        image: mariadb:12.0.2@sha256:b30cc65b57a11a2e791ad5c06284e599fe9f1bf3fe9081a88d85bcf36389be4a
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/booklore/data/db:/var/lib/mysql
+    web:
+        depends_on:
+            db:
+                condition: service_started
+        environment:
+            DATABASE_PASSWORD: booklorepass
+            DATABASE_URL: jdbc:mariadb://booklore_db_1:3306/booklore
+            DATABASE_USERNAME: bookloreuser
+        image: ghcr.io/booklore-app/booklore:v2.3.0@sha256:10474742a0e704ec48540a3e5559cf27c16bcf0c021c494ba5bf3cc25b16b887
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/booklore/data/app:/app/data
+            - /DATA/PowerLabAppData/booklore/data/books:/books
+version: "3.7"
 
 x-powerlab:
     store_app_id: booklore
@@ -49,7 +41,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: booklore
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: booklore/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:04Z"
+        synced_at: "2026-05-12T14:50:08Z"

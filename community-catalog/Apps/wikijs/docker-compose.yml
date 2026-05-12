@@ -1,20 +1,14 @@
-version: "3.7"
-
+name: wikijs
 services:
-  app_proxy:
-    environment:
-      APP_HOST: wikijs_server_1
-      APP_PORT: 3000
-      PROXY_AUTH_ADD: "false"
-  
-  server:
-    user: "1000:1000"
-    image: linuxserver/wikijs:2.5.314@sha256:459b7ab15e3b726c91fdeebb3e6dada39c409419abaf98aea22866a51262ffaa
-    restart: on-failure
-    volumes:
-      - ${APP_DATA_DIR}/data:/data
-      - ${APP_DATA_DIR}/repo:/app/wiki/data/repo
-      - ${APP_DATA_DIR}/config:/config
+    server:
+        image: linuxserver/wikijs:2.5.314@sha256:459b7ab15e3b726c91fdeebb3e6dada39c409419abaf98aea22866a51262ffaa
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/wikijs/data:/data
+            - /DATA/PowerLabAppData/wikijs/repo:/app/wiki/data/repo
+            - /DATA/PowerLabAppData/wikijs/config:/config
+version: "3.7"
 
 x-powerlab:
     store_app_id: wikijs
@@ -33,7 +27,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: wikijs
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: wikijs/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:19Z"
+        synced_at: "2026-05-12T14:50:27Z"

@@ -1,15 +1,10 @@
-version: '3.7'
-
+name: kokoro
 services:
-  app_proxy:
-    environment:
-      APP_HOST: kokoro_web_1
-      APP_PORT: 8880
-
-  web:
-    image: ghcr.io/remsky/kokoro-fastapi-cpu:v0.2.4-master@sha256:03a5201c0327f1f1a1619ebbd9722e3b5477b0cccc588aaddb74dd89aad67f15
-    user: "1000:1000"
-    restart: on-failure
+    web:
+        image: ghcr.io/remsky/kokoro-fastapi-cpu:v0.2.4-master@sha256:03a5201c0327f1f1a1619ebbd9722e3b5477b0cccc588aaddb74dd89aad67f15
+        restart: on-failure
+        user: 1000:1000
+version: "3.7"
 
 x-powerlab:
     store_app_id: kokoro
@@ -26,7 +21,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: kokoro
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: kokoro/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:10Z"
+        synced_at: "2026-05-12T14:50:14Z"

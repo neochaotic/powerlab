@@ -1,18 +1,13 @@
-version: "3.7"
-
+name: lubelogger
 services:
-  app_proxy:
-    environment:
-      APP_HOST: lubelogger_app_1
-      APP_PORT: 8080
-
-  app:
-    image: ghcr.io/hargata/lubelogger:v1.6.4@sha256:82a41d7ebda9b47ce70ab55b590ea597f90ebee56877e6a99b4b786cf2f4432b
-    user: "1000:1000"
-    restart: on-failure
-    volumes:
-      - ${APP_DATA_DIR}/data/app:/App/data
-      - ${APP_DATA_DIR}/data/keys:/root/.aspnet/DataProtection-Keys
+    app:
+        image: ghcr.io/hargata/lubelogger:v1.6.4@sha256:82a41d7ebda9b47ce70ab55b590ea597f90ebee56877e6a99b4b786cf2f4432b
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/lubelogger/data/app:/App/data
+            - /DATA/PowerLabAppData/lubelogger/data/keys:/root/.aspnet/DataProtection-Keys
+version: "3.7"
 
 x-powerlab:
     store_app_id: lubelogger
@@ -31,7 +26,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: lubelogger
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: lubelogger/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:10Z"
+        synced_at: "2026-05-12T14:50:15Z"

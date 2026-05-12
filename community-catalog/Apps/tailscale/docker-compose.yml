@@ -1,14 +1,14 @@
-version: "3.7"
-
+name: tailscale
 services:
-  web:
-    network_mode: "host" # TODO: We can remove this later with some iptables magic
-    image: tailscale/tailscale:v1.96.5@sha256:dbeff02d2337344b351afac203427218c4d0a06c43fc10a865184063498472a6
-    restart: on-failure
-    stop_grace_period: 1m
-    command: "sh -c 'tailscale web --listen 0.0.0.0:8240 & exec tailscaled --tun=userspace-networking'"
-    volumes:
-      - ${APP_DATA_DIR}/data:/var/lib
+    web:
+        command: sh -c 'tailscale web --listen 0.0.0.0:8240 & exec tailscaled --tun=userspace-networking'
+        image: tailscale/tailscale:v1.96.5@sha256:dbeff02d2337344b351afac203427218c4d0a06c43fc10a865184063498472a6
+        network_mode: host
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/tailscale/data:/var/lib
+version: "3.7"
 
 x-powerlab:
     store_app_id: tailscale
@@ -27,7 +27,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: tailscale
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: tailscale/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:17Z"
+        synced_at: "2026-05-12T14:50:24Z"

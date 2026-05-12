@@ -1,54 +1,48 @@
-version: '3.7'
-
+name: openhands
 services:
-  app_proxy:
-    environment:
-      APP_HOST: openhands_web_1
-      APP_PORT: 3000
-
-  docker:
-    image: docker:28.0.4-dind@sha256:ddb0033088b4fab74881ade341a582e3c6c8021b82377703ba1a6106bd3ded44
-    privileged: true
-    network_mode: host
-    stop_grace_period: 1m
-    restart: on-failure
-    environment:
-      DOCKER_ENSURE_BRIDGE: "dind0:10.32.0.1/16"
-    entrypoint: /entrypoint.sh
-    command: >
-      dockerd
-        --bridge dind0
-        --data-root /data/data
-        --exec-root /data/exec
-        --host unix:///data/docker.sock
-        --pidfile /data/docker.pid
-    volumes:
-      - ${APP_DATA_DIR}/entrypoint.sh:/entrypoint.sh
-      - ${APP_DATA_DIR}/data/docker:/data
-
-  web:
-    image: ghcr.io/openhands/openhands:1.7.0@sha256:916abcb15cc451d96853bd41c55117bb2ff3de0b9914cdcd861d338055798dc6
-    stdin_open: true
-    tty: true
-    pull_policy: always
-    healthcheck:
-      test: timeout 10s bash -c ':> /dev/tcp/127.0.0.1/3000' || exit 1
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 90s
-    environment:
-      - SANDBOX_RUNTIME_CONTAINER_IMAGE=docker.openhands.dev/openhands/runtime:0.62-nikolaik@sha256:95fc4d8e753f41d34cd564e78d3d64217c5d22296ea1cb7bf92614c8198de8f5
-      - WORKSPACE_MOUNT_PATH=/opt/workspace_base
-      - LOG_ALL_EVENTS=true
-    volumes:
-      - ${APP_DATA_DIR}/data/docker:/var/run:rw
-      - ${APP_DATA_DIR}/data/openhands:/.openhands-state:rw
-      - ${APP_DATA_DIR}/data/workspace:/opt/workspace_base:rw
-    extra_hosts:
-      - host.docker.internal:host-gateway
-      - ${APP_DOMAIN}:host-gateway
-    restart: on-failure
+    docker:
+        command: |
+            dockerd
+              --bridge dind0
+              --data-root /data/data
+              --exec-root /data/exec
+              --host unix:///data/docker.sock
+              --pidfile /data/docker.pid
+        entrypoint: /entrypoint.sh
+        environment:
+            DOCKER_ENSURE_BRIDGE: dind0:10.32.0.1/16
+        image: docker:28.0.4-dind@sha256:ddb0033088b4fab74881ade341a582e3c6c8021b82377703ba1a6106bd3ded44
+        network_mode: host
+        privileged: true
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/openhands/entrypoint.sh:/entrypoint.sh
+            - /DATA/PowerLabAppData/openhands/data/docker:/data
+    web:
+        environment:
+            - SANDBOX_RUNTIME_CONTAINER_IMAGE=docker.openhands.dev/openhands/runtime:0.62-nikolaik@sha256:95fc4d8e753f41d34cd564e78d3d64217c5d22296ea1cb7bf92614c8198de8f5
+            - WORKSPACE_MOUNT_PATH=/opt/workspace_base
+            - LOG_ALL_EVENTS=true
+        extra_hosts:
+            - host.docker.internal:host-gateway
+            - ${APP_DOMAIN}:host-gateway
+        healthcheck:
+            interval: 10s
+            retries: 3
+            start_period: 90s
+            test: timeout 10s bash -c ':> /dev/tcp/127.0.0.1/3000' || exit 1
+            timeout: 5s
+        image: ghcr.io/openhands/openhands:1.7.0@sha256:916abcb15cc451d96853bd41c55117bb2ff3de0b9914cdcd861d338055798dc6
+        pull_policy: always
+        restart: on-failure
+        stdin_open: true
+        tty: true
+        volumes:
+            - /DATA/PowerLabAppData/openhands/data/docker:/var/run:rw
+            - /DATA/PowerLabAppData/openhands/data/openhands:/.openhands-state:rw
+            - /DATA/PowerLabAppData/openhands/data/workspace:/opt/workspace_base:rw
+version: "3.7"
 
 x-powerlab:
     store_app_id: openhands
@@ -67,7 +61,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: openhands
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: openhands/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T03:53:13Z"
+        synced_at: "2026-05-12T14:50:19Z"
