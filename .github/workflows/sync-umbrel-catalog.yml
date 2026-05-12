@@ -180,9 +180,14 @@ jobs:
           Refs: #307 (umbrella), ADR-0024
           EOF
           )"
+          # PR-create + labeling are split so a missing label never blocks
+          # PR creation (the first run hit this — `gh pr create --label X`
+          # validates the label upfront and exits non-zero if it doesn't
+          # exist, leaving the branch pushed but no PR open). `gh pr edit`
+          # is best-effort.
           gh pr create \
             --base main \
             --head "${{ steps.vars.outputs.branch }}" \
             --title "${{ steps.vars.outputs.pr_title }}" \
-            --body "$BODY" \
-            --label "catalog" || true
+            --body "$BODY"
+          gh pr edit "${{ steps.vars.outputs.branch }}" --add-label "catalog" 2>/dev/null || true
