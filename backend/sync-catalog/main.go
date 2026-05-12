@@ -37,8 +37,28 @@ func main() {
 		allowedCats  = flag.String("allow-categories", "", "comma-separated soft-reject categories to opt back in (e.g. 'Bitcoin,Lightning')")
 		workdir      = flag.String("workdir", "", "use this pre-cloned dir instead of cloning (skips git clone)")
 		dryRun       = flag.Bool("dry-run", false, "scan + filter + report; do not write any files")
+		validateOnly = flag.String("validate-only", "", "skip sync; validate an existing catalog tree at this path + exit (0 = clean, 1 = errors)")
 	)
 	flag.Parse()
+
+	// --validate-only short-circuits sync entirely. Used by CI to gate
+	// merges of weekly sync PRs (#307 Phase 6) and by maintainers
+	// editing description-powerlab.md / icon overrides locally.
+	if *validateOnly != "" {
+		errs, err := ValidateCatalogTree(*validateOnly)
+		if err != nil {
+			log.Fatalf("validate %q: %v", *validateOnly, err)
+		}
+		for _, e := range errs {
+			fmt.Println(e.String())
+		}
+		if len(errs) > 0 {
+			fmt.Fprintf(os.Stderr, "\n%d validation error(s)\n", len(errs))
+			os.Exit(1)
+		}
+		fmt.Println("catalog OK")
+		return
+	}
 
 	if *source != "umbrel" {
 		fmt.Fprintf(os.Stderr, "unsupported source %q (only 'umbrel' is wired today)\n", *source)
