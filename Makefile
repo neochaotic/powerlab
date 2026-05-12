@@ -1,4 +1,4 @@
-.PHONY: dev build test check lint clean help
+.PHONY: dev build test check lint clean help sync-catalog sync-catalog-dry
 
 # ─── Frontend ──────────────────────────────────────────────────────────
 
@@ -31,6 +31,23 @@ test-backend: ## Run Go backend tests
 	cd backend/user-service && go test ./... -v
 	cd backend/local-storage && go test ./... -v
 	cd backend/message-bus && go test ./... -v
+
+# ─── Catalog sync ─────────────────────────────────────────────────────
+
+sync-catalog: ## Run umbrel-catalog sync locally (writes to community-catalog/)
+	cd backend/sync-catalog && go build -o /tmp/sync-catalog .
+	/tmp/sync-catalog \
+		--source umbrel \
+		--output community-catalog \
+		--upstream https://github.com/getumbrel/umbrel-apps.git
+
+sync-catalog-dry: ## Dry-run the umbrel-catalog sync (scans + reports, no files written)
+	cd backend/sync-catalog && go build -o /tmp/sync-catalog .
+	/tmp/sync-catalog \
+		--source umbrel \
+		--output /tmp/sync-dryrun \
+		--upstream https://github.com/getumbrel/umbrel-apps.git \
+		--dry-run
 
 # ─── Utilities ─────────────────────────────────────────────────────────
 

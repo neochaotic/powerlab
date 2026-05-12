@@ -1,0 +1,9 @@
+kind: Internal
+body: 'Umbrel-catalog sync pipeline — Phase 3 (#307) — `.github/workflows/sync-umbrel-catalog.yml`
+  runs Monday 06:00 UTC + on `workflow_dispatch`. Builds the sync-catalog binary
+  from Phase 1 (#310), runs it against the upstream, commits the diff to a date-stamped
+  `catalog/umbrel-sync-YYYY-MM-DD` branch and opens a PR with the filter summary
+  + diff-stat for human review. No-op when there is no diff vs main; dry-run flag
+  available via the manual dispatch UI. Concurrency group cancels older scheduled
+  runs when a manual trigger fires. Local equivalent: `make sync-catalog` and
+  `make sync-catalog-dry`.'
