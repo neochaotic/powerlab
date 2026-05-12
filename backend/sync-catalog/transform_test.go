@@ -29,7 +29,7 @@ services:
     image: nginx:latest
     restart: on-failure
 `)
-	out, err := transformUpstreamCompose(in, "foo")
+	out, err := transformUpstreamCompose(in, "foo", 0)
 	if err != nil {
 		t.Fatalf("transform: %v", err)
 	}
@@ -52,7 +52,7 @@ services:
       - ${APP_DATA_DIR}/config:/app/config:rw
       - /tmp:/tmp
 `)
-	out, err := transformUpstreamCompose(in, "my-app")
+	out, err := transformUpstreamCompose(in, "my-app", 0)
 	if err != nil {
 		t.Fatalf("transform: %v", err)
 	}
@@ -85,7 +85,7 @@ services:
         source: ${APP_DATA_DIR}/state
         target: /var/lib/app
 `)
-	out, err := transformUpstreamCompose(in, "my-app")
+	out, err := transformUpstreamCompose(in, "my-app", 0)
 	if err != nil {
 		t.Fatalf("transform: %v", err)
 	}
@@ -112,7 +112,7 @@ services:
     volumes:
       - ${APP_DATA_DIR}/data:/app/data
 `)
-	out, err := transformUpstreamCompose(in, "foo")
+	out, err := transformUpstreamCompose(in, "foo", 0)
 	if err != nil {
 		t.Fatalf("transform: %v", err)
 	}
@@ -145,7 +145,7 @@ services:
     environment:
       - ALLOWED_ORIGINS=http://${DEVICE_DOMAIN_NAME}:${APP_AGENTZERO_PORT}
 `)
-	out, err := transformUpstreamCompose(in, "agent-zero")
+	out, err := transformUpstreamCompose(in, "agent-zero", 0)
 	if err != nil {
 		t.Fatalf("transform: %v", err)
 	}
@@ -196,11 +196,11 @@ services:
     volumes:
       - ${APP_DATA_DIR}/data:/app/data
 `)
-	first, err := transformUpstreamCompose(in, "foo")
+	first, err := transformUpstreamCompose(in, "foo", 0)
 	if err != nil {
 		t.Fatalf("first transform: %v", err)
 	}
-	second, err := transformUpstreamCompose(first, "foo")
+	second, err := transformUpstreamCompose(first, "foo", 0)
 	if err != nil {
 		t.Fatalf("second transform: %v", err)
 	}
@@ -226,7 +226,7 @@ services:
     volumes:
       - ${APP_LIGHTNING_NODE_DATA_DIR}:/data/lnd:ro
 `)
-	out, err := transformUpstreamCompose(in, "agora")
+	out, err := transformUpstreamCompose(in, "agora", 0)
 	if err != nil {
 		t.Fatalf("transform: %v", err)
 	}
@@ -251,7 +251,7 @@ services:
     volumes:
       - ${UMBREL_ROOT}/data/storage/downloads:/downloads
 `)
-	out, err := transformUpstreamCompose(in, "deluge")
+	out, err := transformUpstreamCompose(in, "deluge", 0)
 	if err != nil {
 		t.Fatalf("transform: %v", err)
 	}
@@ -276,7 +276,7 @@ services:
       - ${UMBREL_ROOT}/data/storage/downloads:/downloads
       - ${APP_LIGHTNING_NODE_DATA_DIR}:/lightning:ro
 `)
-	out, err := transformUpstreamCompose(in, "sonarr")
+	out, err := transformUpstreamCompose(in, "sonarr", 0)
 	if err != nil {
 		t.Fatalf("transform: %v", err)
 	}
@@ -293,7 +293,7 @@ services:
   web:
     image: nginx:latest
 `)
-	out, err := transformUpstreamCompose(in, "agent-zero")
+	out, err := transformUpstreamCompose(in, "agent-zero", 0)
 	if err != nil {
 		t.Fatalf("transform: %v", err)
 	}
@@ -312,7 +312,7 @@ services:
   web:
     image: nginx:latest
 `)
-	out, err := transformUpstreamCompose(in, "my-id")
+	out, err := transformUpstreamCompose(in, "my-id", 0)
 	if err != nil {
 		t.Fatalf("transform: %v", err)
 	}
@@ -342,7 +342,7 @@ services:
     environment:
       - LOG_LEVEL=info
 `)
-	out, err := transformUpstreamCompose(in, "foo")
+	out, err := transformUpstreamCompose(in, "foo", 0)
 	if err != nil {
 		t.Fatalf("transform: %v", err)
 	}
@@ -365,7 +365,7 @@ services:
       - "22:${APP_SSH_PORT}"
       - "${APP_HTTP_PORT}:80"
 `)
-	out, err := transformUpstreamCompose(in, "foo")
+	out, err := transformUpstreamCompose(in, "foo", 0)
 	if err != nil {
 		t.Fatalf("transform: %v", err)
 	}
@@ -389,7 +389,7 @@ services:
         published: ${APP_HTTP_PORT}
         protocol: tcp
 `)
-	out, err := transformUpstreamCompose(in, "foo")
+	out, err := transformUpstreamCompose(in, "foo", 0)
 	if err != nil {
 		t.Fatalf("transform: %v", err)
 	}
@@ -413,7 +413,7 @@ services:
     ports:
       - "${APP_SSH_PORT}:22"
 `)
-	out, err := transformUpstreamCompose(in, "foo")
+	out, err := transformUpstreamCompose(in, "foo", 0)
 	if err != nil {
 		t.Fatalf("transform: %v", err)
 	}
@@ -437,7 +437,7 @@ services:
       - "8080:80"
       - "8443:443"
 `)
-	out, err := transformUpstreamCompose(in, "foo")
+	out, err := transformUpstreamCompose(in, "foo", 0)
 	if err != nil {
 		t.Fatalf("transform: %v", err)
 	}
@@ -453,7 +453,7 @@ services:
 // ─── Defensive edge cases — must not panic, return reasonable output ───
 
 func TestTransformEmptyInput(t *testing.T) {
-	out, err := transformUpstreamCompose([]byte(""), "foo")
+	out, err := transformUpstreamCompose([]byte(""), "foo", 0)
 	if err != nil {
 		t.Fatalf("empty input: expected nil err, got %v", err)
 	}
@@ -472,7 +472,7 @@ networks:
   default:
     external: true
 `)
-	out, err := transformUpstreamCompose(in, "foo")
+	out, err := transformUpstreamCompose(in, "foo", 0)
 	if err != nil {
 		t.Fatalf("no services key: %v", err)
 	}
@@ -485,7 +485,7 @@ func TestTransformEmptyServices(t *testing.T) {
 	in := []byte(`version: '3.7'
 services: {}
 `)
-	out, err := transformUpstreamCompose(in, "foo")
+	out, err := transformUpstreamCompose(in, "foo", 0)
 	if err != nil {
 		t.Fatalf("empty services: %v", err)
 	}
@@ -506,7 +506,7 @@ services:
       APP_HOST: foo
       APP_PORT: 80
 `)
-	out, err := transformUpstreamCompose(in, "foo")
+	out, err := transformUpstreamCompose(in, "foo", 0)
 	if err != nil {
 		t.Fatalf("only app_proxy: %v", err)
 	}
@@ -528,7 +528,7 @@ services:
       - 12345
       - ${APP_DATA_DIR}/data:/app/data
 `)
-	out, err := transformUpstreamCompose(in, "foo")
+	out, err := transformUpstreamCompose(in, "foo", 0)
 	if err != nil {
 		t.Fatalf("integer volume entry: %v", err)
 	}
@@ -548,7 +548,7 @@ services:
       - ~
       - ${APP_DATA_DIR}/foo:/foo
 `)
-	out, err := transformUpstreamCompose(in, "foo")
+	out, err := transformUpstreamCompose(in, "foo", 0)
 	if err != nil {
 		t.Fatalf("null volume entry: %v", err)
 	}
@@ -565,7 +565,7 @@ services:
     environment:
       - FOO=bar
 `)
-	out, err := transformUpstreamCompose(in, "foo")
+	out, err := transformUpstreamCompose(in, "foo", 0)
 	if err != nil {
 		t.Fatalf("service with no volumes: %v", err)
 	}
@@ -593,7 +593,7 @@ services:
     volumes:
       - ${APP_DATA_DIR}/db:/var/lib/postgresql/data
 `)
-	out, err := transformUpstreamCompose(in, "myapp")
+	out, err := transformUpstreamCompose(in, "myapp", 0)
 	if err != nil {
 		t.Fatalf("multi-service: %v", err)
 	}
@@ -624,7 +624,7 @@ configs:
   myconf:
     external: true
 `)
-	out, err := transformUpstreamCompose(in, "foo")
+	out, err := transformUpstreamCompose(in, "foo", 0)
 	if err != nil {
 		t.Fatalf("with networks+configs: %v", err)
 	}
@@ -652,7 +652,7 @@ services:
     volumes:
       - ${APP_DATA_DIR}/data:/app
 `)
-	out, err := transformUpstreamCompose(in, "foo")
+	out, err := transformUpstreamCompose(in, "foo", 0)
 	if err != nil {
 		t.Fatalf("substring test: %v", err)
 	}
@@ -693,7 +693,7 @@ services:
       io.powerlab.test: "true"
       nested.label.deep: "value"
 `)
-	out, err := transformUpstreamCompose(in, "foo")
+	out, err := transformUpstreamCompose(in, "foo", 0)
 	if err != nil {
 		t.Fatalf("deeply nested: %v", err)
 	}
@@ -713,7 +713,7 @@ func TestTransformMalformedYAMLReturnsError(t *testing.T) {
 	in := []byte(`version: '3.7
 services:
   web: [`)
-	_, err := transformUpstreamCompose(in, "foo")
+	_, err := transformUpstreamCompose(in, "foo", 0)
 	if err == nil {
 		t.Errorf("expected error on malformed YAML, got nil")
 	}

@@ -47,6 +47,8 @@ services:
         healthcheck:
             disable: true
         image: ceramicwhite/invidious:build-fda8d1b@sha256:39fe17102eb65ff34ac83e4d2b7f4233e735c1221e3c881fd0e0919b78760f81
+        ports:
+            - 3420:3000
         restart: on-failure
         stop_grace_period: 1m
         user: 1000:1000
@@ -70,4 +72,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: invidious/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:11Z"
+        synced_at: "2026-05-12T15:43:05Z"

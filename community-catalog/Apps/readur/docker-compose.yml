@@ -32,6 +32,8 @@ services:
                 - http://localhost:8000/api/health
             timeout: 10s
         image: ghcr.io/readur/readur:2.9.1@sha256:16aa8b1d7df218ab0f4fc57fbf890d125020fca416bc3555aa7731e7329020dc
+        ports:
+            - 8111:8000
         restart: on-failure
         user: 1000:1000
         volumes:
@@ -76,4 +78,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: readur/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:42Z"
+        synced_at: "2026-05-12T15:43:40Z"

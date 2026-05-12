@@ -5,6 +5,8 @@ services:
             - PUID=1000
             - PGID=1000
         image: ghcr.io/linuxserver/chromium:version-8d3cb5f1@sha256:d7c5f7faf5fe524117fd73c4d446e1bf81bccd0d64d073a30b8c9819fdf105d6
+        ports:
+            - 30099:3000
         restart: on-failure
         shm_size: 1gb
         volumes:
@@ -29,4 +31,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: chromium/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:01:53Z"
+        synced_at: "2026-05-12T15:42:47Z"

@@ -8,6 +8,8 @@ services:
             PUID: 1000
             WEB_CONCURRENCY: 1
         image: ghcr.io/mealie-recipes/mealie:v3.17.0@sha256:d570139f1891346131d02f8e4d1853100ae4846474958ca6c68cfe1648058467
+        ports:
+            - 9925:9000
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/mealie/data:/app/data
@@ -31,4 +33,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: mealie/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:22Z"
+        synced_at: "2026-05-12T15:43:19Z"

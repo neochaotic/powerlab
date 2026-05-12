@@ -7,6 +7,8 @@ services:
             disable: true
         image: ceramicwhite/libreddit:0.22.9@sha256:00a133da4ae8eb1b7d3ce9af0ca387e2dd929dc6b490736532b5d998a025c362
         init: true
+        ports:
+            - 7420:7420
         restart: on-failure
         stop_grace_period: 1m
         user: 1000:1000
@@ -30,4 +32,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: libreddit/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:17Z"
+        synced_at: "2026-05-12T15:43:13Z"

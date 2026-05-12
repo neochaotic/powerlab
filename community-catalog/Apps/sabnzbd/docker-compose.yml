@@ -8,6 +8,8 @@ services:
             - PGID=1000
             - TZ=Etc/UTC
         image: linuxserver/sabnzbd:5.0.1@sha256:87c97fa81966adb5cf511ae62b6681a37136c32f1ad7190b0b8b4d12d766ea9f
+        ports:
+            - 9876:8080
         restart: on-failure
         stop_grace_period: 1m
         volumes:
@@ -33,4 +35,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: sabnzbd/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:45Z"
+        synced_at: "2026-05-12T15:43:42Z"

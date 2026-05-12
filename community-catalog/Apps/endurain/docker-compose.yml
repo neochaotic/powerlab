@@ -14,6 +14,8 @@ services:
             SECRET_KEY: ${APP_PASSWORD}
             UID: "1000"
         image: ghcr.io/endurain-project/endurain:v0.17.7@sha256:af3d2b50667c081211e9af6b3590f6cbfbaacb73f63910902574f9d65c24b346
+        ports:
+            - 8865:8080
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/endurain/data/app:/app/backend/data
@@ -56,4 +58,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: endurain/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:00Z"
+        synced_at: "2026-05-12T15:42:55Z"

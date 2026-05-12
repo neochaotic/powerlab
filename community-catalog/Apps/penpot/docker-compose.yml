@@ -33,6 +33,8 @@ services:
         environment:
             - PENPOT_FLAGS=enable-registration enable-login-with-password
         image: penpotapp/frontend:2.14.4@sha256:aecf5131c59a4cd25cebd97af1c8835eef6e25eb74cb2bf349b481a0afae4428
+        ports:
+            - 9001:8080
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/penpot/data/assets:/opt/data/assets
@@ -82,4 +84,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: penpot/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:37Z"
+        synced_at: "2026-05-12T15:43:35Z"

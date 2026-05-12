@@ -4,6 +4,8 @@ services:
         environment:
             SECRET_ENCRYPTION_KEY: ${APP_SEED}
         image: ghcr.io/homarr-labs/homarr:v1.61.0@sha256:6a726c72b37d56a7ce271d35498712f90bfd05ee203bc81e069d718489c35b06
+        ports:
+            - 7575:7575
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/homarr/data:/appdata
@@ -27,4 +29,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: homarr/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:07Z"
+        synced_at: "2026-05-12T15:43:02Z"

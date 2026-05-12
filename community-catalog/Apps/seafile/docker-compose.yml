@@ -43,6 +43,8 @@ services:
             - ENABLE_SEADOC=true
             - SEADOC_SERVER_URL=http://${DEVICE_DOMAIN_NAME}:8921
         image: seafileltd/seafile-mc:12.0.14@sha256:8d0dd6b682c12cb0e1d4f1f73ba223b0176e9e3d43805408a2f631706e9c10e8
+        ports:
+            - 8920:80
         volumes:
             - /DATA/PowerLabAppData/seafile/data/seafile-data:/shared
 version: "3.7"
@@ -65,4 +67,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: seafile/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:46Z"
+        synced_at: "2026-05-12T15:43:43Z"

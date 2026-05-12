@@ -6,6 +6,8 @@ services:
             SEARXNG_LIMITER: "false"
             SEARXNG_SECRET: ${APP_SEED}
         image: ghcr.io/searxng/searxng:2026.4.7-08ef7a63d@sha256:6a89a150d0163877caab1982b7a20d0a03fd4b39401a0d3f26f61ad205949442
+        ports:
+            - 8182:8080
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/searxng/data/config:/etc/searxng
@@ -30,4 +32,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: searxng/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:47Z"
+        synced_at: "2026-05-12T15:43:44Z"

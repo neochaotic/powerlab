@@ -9,6 +9,8 @@ services:
             - NEXTAUTH_URL=http://${DEVICE_DOMAIN_NAME}:8233/api/v1/auth
             - NEXTAUTH_SECRET=linkwarden
         image: ghcr.io/linkwarden/linkwarden:v2.14.1@sha256:31cf4bd2a2e111991fa5c9de03174c8698869c83722105c6ce529e4c911e6861
+        ports:
+            - 8233:3000
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/linkwarden/data/app:/data/data
@@ -48,4 +50,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: linkwarden/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:19Z"
+        synced_at: "2026-05-12T15:43:15Z"

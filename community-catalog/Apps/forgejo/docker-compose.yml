@@ -36,7 +36,7 @@ services:
             FORGEJO__server__START_SSH_SERVER: "true"
         image: codeberg.org/forgejo/forgejo:15.0.2-rootless@sha256:cc2d74fb4c30385a8ee34de8c8f83344f7316cec70bd2cc7eb82b2802fa28e0b
         ports:
-            - 18000:18001
+            - 8101:8102
         restart: on-failure
         user: 1000:1000
         volumes:
@@ -62,4 +62,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: forgejo/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:03Z"
+        synced_at: "2026-05-12T15:42:58Z"

@@ -19,6 +19,8 @@ services:
                 - http://localhost:8000/health
             timeout: 10s
         image: mrsunglasses/flaresolverr-status:0.0.2@sha256:5a12b6ee183b64b87546b5f30537abaf333f7b2cd83856e6e2bcca874d165dc9
+        ports:
+            - 8191:8000
         restart: on-failure
 
 x-powerlab:
@@ -39,4 +41,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: flaresolverr/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:03Z"
+        synced_at: "2026-05-12T15:42:57Z"

@@ -51,6 +51,8 @@ services:
             SECRET_KEY_BASE: $APP_SEED
             SELF_HOSTING_ENABLED: "true"
         image: ghcr.io/maybe-finance/maybe:0.6.0@sha256:1e791e88ecc4d124d05142d943bcec5b5a172e889f648c97d334363133384f01
+        ports:
+            - 3063:3063
         restart: on-failure
         stop_grace_period: 1m
         volumes:
@@ -96,4 +98,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: maybe/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:22Z"
+        synced_at: "2026-05-12T15:43:18Z"

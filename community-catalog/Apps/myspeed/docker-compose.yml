@@ -2,6 +2,8 @@ name: myspeed
 services:
     web:
         image: germannewsmaker/myspeed:1.0.9@sha256:3a3e774b3f78d930a5a962d625b99bcb3d71730bfeb4a6b93e04fd38cfe7d9a9
+        ports:
+            - 5216:5216
         restart: on-failure
         stop_grace_period: 1m
         volumes:
@@ -26,4 +28,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: myspeed/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:26Z"
+        synced_at: "2026-05-12T15:43:23Z"

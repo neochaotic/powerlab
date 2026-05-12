@@ -27,6 +27,8 @@ services:
             AP_TRIGGER_DEFAULT_POLL_INTERVAL: 5
             AP_WEBHOOK_TIMEOUT_SECONDS: 30
         image: ghcr.io/activepieces/activepieces:0.83.0@sha256:fd21bb9a433d54ec708197826094a3f9e67d8dfa48cdc9ec7fd155c95a73986c
+        ports:
+            - 8146:80
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/activepieces/data/app/cache:/usr/src/app/cache
@@ -75,4 +77,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: activepieces/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:01:44Z"
+        synced_at: "2026-05-12T15:42:38Z"

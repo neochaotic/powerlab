@@ -25,6 +25,8 @@ services:
             SUPPRESS_ERRORS_IN_PAD_TEXT: "false"
             TRUST_PROXY: "true"
         image: etherpad/etherpad:2.7.3@sha256:e277b0f025bf4ff7039a8f3cc9d2995d65a071c4734c30c930a563202e32b0b0
+        ports:
+            - 9002:9001
         restart: on-failure
         user: "5001:0"
         volumes:
@@ -62,4 +64,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: etherpad/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:01Z"
+        synced_at: "2026-05-12T15:42:55Z"

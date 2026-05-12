@@ -24,6 +24,8 @@ services:
             ORIGIN: http://${DEVICE_DOMAIN_NAME}:8003
             PORT: 8000
         image: ghcr.io/kittendevv/invio-frontend:v2.0.1@sha256:8dfc68bbc8063e66508a4750d9d3191aa8bbe0348d94560ae5ea0c61d3f1e852
+        ports:
+            - 8003:8000
         restart: on-failure
 
 x-powerlab:
@@ -46,4 +48,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: invio/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:11Z"
+        synced_at: "2026-05-12T15:43:05Z"

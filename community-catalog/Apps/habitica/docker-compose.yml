@@ -28,6 +28,8 @@ services:
             - BASE_URL=http://${DEVICE_DOMAIN_NAME}:3944
             - INVITE_ONLY=false
         image: awinterstein/habitica-server:5.47.2@sha256:3827aeb8246fd4f4630b738944164d38b00f54a3d55a966eedeced4eddb2aa1d
+        ports:
+            - 3944:3000
         restart: on-failure
 version: "3.7"
 
@@ -49,4 +51,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: habitica/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:06Z"
+        synced_at: "2026-05-12T15:43:01Z"

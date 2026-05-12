@@ -6,6 +6,8 @@ services:
             - PGID=1000
             - TZ=Etc/CET
         image: linuxserver/sqlitebrowser:3.13.1@sha256:1b1e81f0af222af3353a4c8d3c4737264a1816a43e4410819430335fa099b1da
+        ports:
+            - 8887:3000
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/sqlitebrowser/data/config:/config
@@ -28,4 +30,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: sqlitebrowser/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:48Z"
+        synced_at: "2026-05-12T15:43:45Z"

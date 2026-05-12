@@ -7,6 +7,8 @@ services:
             ZIGBEE2MQTT_CONFIG_FRONTEND_PORT: 8080
             ZIGBEE2MQTT_CONFIG_MQTT_SERVER: mqtt://mosquitto_broker_1:1883
         image: koenkk/zigbee2mqtt:2.10.1@sha256:67c26dcf8346aced02fe1380a6afd1b57268bcef10faae3f6057c13d5d3dfa80
+        ports:
+            - 60082:8080
         privileged: true
         restart: on-failure
         volumes:
@@ -31,4 +33,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: zigbee2mqtt/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:03:04Z"
+        synced_at: "2026-05-12T15:43:53Z"

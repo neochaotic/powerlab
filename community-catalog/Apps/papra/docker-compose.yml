@@ -5,6 +5,8 @@ services:
             - AUTH_SECRET=${APP_SEED}
             - APP_BASE_URL=http://${DEVICE_DOMAIN_NAME}:8112
         image: ghcr.io/papra-hq/papra:26.0.0-rootless@sha256:e41d2237a59b072063e4059a85492cb11fe4aefb706851becbbce88c7c2ae072
+        ports:
+            - 8112:1221
         restart: on-failure
         user: 1000:1000
         volumes:
@@ -30,4 +32,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: papra/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:36Z"
+        synced_at: "2026-05-12T15:43:33Z"

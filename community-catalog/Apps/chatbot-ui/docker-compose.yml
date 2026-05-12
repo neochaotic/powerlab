@@ -2,6 +2,8 @@ name: chatbot-ui
 services:
     web:
         image: ghcr.io/mckaywrigley/chatbot-ui:main@sha256:569dffe6043136f03de86bde38453a58d05150f29476239dc1da4ce2573b4101
+        ports:
+            - 10101:3000
 version: "3.7"
 
 x-powerlab:
@@ -24,4 +26,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: chatbot-ui/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:01:53Z"
+        synced_at: "2026-05-12T15:42:46Z"

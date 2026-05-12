@@ -34,6 +34,8 @@ services:
             test: timeout 10s bash -c ':> /dev/tcp/127.0.0.1/3000' || exit 1
             timeout: 5s
         image: ghcr.io/openhands/openhands:1.7.0@sha256:916abcb15cc451d96853bd41c55117bb2ff3de0b9914cdcd861d338055798dc6
+        ports:
+            - 3993:3000
         pull_policy: always
         restart: on-failure
         stdin_open: true
@@ -64,4 +66,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: openhands/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:33Z"
+        synced_at: "2026-05-12T15:43:30Z"

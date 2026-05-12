@@ -2,6 +2,8 @@ name: grafana
 services:
     web:
         image: grafana/grafana:13.0.1@sha256:0f86bada30d65ef9d0183b90c1e2682ac92d53d95da8bed322b984ea78a4a73a
+        ports:
+            - 3030:3000
         restart: on-failure
         user: 1000:1000
         volumes:
@@ -28,4 +30,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: grafana/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:06Z"
+        synced_at: "2026-05-12T15:43:01Z"

@@ -7,6 +7,8 @@ services:
             - STORAGE_PATH=/data/diagrams
             - ENABLE_GIT_BACKUP=false
         image: stnsmith/fossflow:master-4426d08@sha256:9709d727bf15c96b32860744ddeef3be693362bbea136574dc7685b61744298b
+        ports:
+            - 8176:80
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/fossflow/data/diagrams:/data/diagrams
@@ -30,4 +32,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: fossflow/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:04Z"
+        synced_at: "2026-05-12T15:42:58Z"

@@ -10,6 +10,8 @@ services:
                 - nc -z 127.0.0.1 80 || exit 1
             timeout: 5s
         image: ghcr.io/civilblur/mazanoke:v1.1.6@sha256:92cc7474deb789af6549318563b7a9ee750131f9f7b297cc9c87ab67e656c22c
+        ports:
+            - 3474:80
         restart: on-failure
 version: "3.7"
 
@@ -33,4 +35,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: mazanoke/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:22Z"
+        synced_at: "2026-05-12T15:43:19Z"

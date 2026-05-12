@@ -5,6 +5,8 @@ services:
             - FIREFLY_III_URL=http://firefly-iii_server_1:8080
             - VANITY_URL=http://${DEVICE_DOMAIN_NAME}:30009
         image: fireflyiii/data-importer:version-2.3.2@sha256:4e2cbcb0d95c34850534a3772f1732c00f6412077db33b1863703a1b628bdc12
+        ports:
+            - 30010:8080
         restart: on-failure
 version: "3.7"
 
@@ -26,4 +28,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: firefly-iii-importer/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:02Z"
+        synced_at: "2026-05-12T15:42:57Z"

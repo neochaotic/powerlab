@@ -2,6 +2,8 @@ name: baikal
 services:
     web:
         image: ghcr.io/aalmenar/baikal:0.11.1-nginx@sha256:f83c70831ebe2ca9ba84ba7b60927f25941f0fba88bdea6bbebe1d0464bb2aa7
+        ports:
+            - 8890:80
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/baikal/data/config:/var/www/baikal/config
@@ -26,4 +28,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: baikal/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:01:48Z"
+        synced_at: "2026-05-12T15:42:42Z"

@@ -7,6 +7,8 @@ services:
             LANGS: ALL
             SECURITY_ENABLELOGIN: "false"
         image: stirlingtools/stirling-pdf:2.10.1@sha256:950c596db26e0764f642def2fd4f9ee904ff2ac16d83fe621ff731b771d9b385
+        ports:
+            - 27829:8080
         restart: on-failure
         stop_grace_period: 1m
         volumes:
@@ -36,4 +38,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: stirling-pdf/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:49Z"
+        synced_at: "2026-05-12T15:43:45Z"

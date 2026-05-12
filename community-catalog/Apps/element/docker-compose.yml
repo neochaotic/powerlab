@@ -2,6 +2,8 @@ name: element
 services:
     web:
         image: vectorim/element-web:v1.12.17@sha256:f4a81a24d49a9c5b97e02e77a3013ec799873e500e69041078a28be98e4f1280
+        ports:
+            - 8088:80
         restart: on-failure
         stop_grace_period: 1m
         user: nginx:nginx
@@ -25,4 +27,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: element/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:01:59Z"
+        synced_at: "2026-05-12T15:42:53Z"

@@ -2,6 +2,8 @@ name: passky-client
 services:
     web:
         image: rabbitcompany/passky-client:8.1.1@sha256:9c144ceb22920c60dc659c8635f48a92be4bffdb7dc768aba0d26a9a42c3005d
+        ports:
+            - 5052:80
         restart: on-failure
         stop_grace_period: 1m
 version: "3.7"
@@ -26,4 +28,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: passky-client/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:36Z"
+        synced_at: "2026-05-12T15:43:34Z"

@@ -6,6 +6,8 @@ services:
             - NODE_ENV=production
             - DB_PATH=/app/data/database.sqlite
         image: ghcr.io/ozencb/excalidraw-persist:0.18.0-persist.7@sha256:8c86a50d299cdcd27e178e80e7567479bf9b6c5eb62d08abbbfcd5ddba60bc26
+        ports:
+            - 4422:80
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/excalidraw/data:/app/data:rw
@@ -31,4 +33,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: excalidraw/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:01Z"
+        synced_at: "2026-05-12T15:42:55Z"

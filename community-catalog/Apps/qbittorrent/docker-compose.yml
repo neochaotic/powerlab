@@ -5,6 +5,8 @@ services:
             - PUID=1000
             - PGID=1000
         image: ghcr.io/hotio/qbittorrent:release-5.2.0@sha256:1897f527c7a48ec06437a636502a557f3be5d54f5a9298e10d0e7f42095c6ac1
+        ports:
+            - 8094:8080
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/qbittorrent/data/config:/config
@@ -29,4 +31,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: qbittorrent/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:42Z"
+        synced_at: "2026-05-12T15:43:39Z"

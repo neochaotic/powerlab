@@ -2,6 +2,8 @@ name: morphos
 services:
     web:
         image: ghcr.io/danvergara/morphos-server:0.6.0@sha256:3d6f64ef386cbb6a7c5d55526e1a69da2d3661a1996d757897e92bf4369088f5
+        ports:
+            - 3778:8080
         restart: on-failure
         stop_grace_period: 1m
 version: "3.7"
@@ -26,4 +28,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: morphos/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:24Z"
+        synced_at: "2026-05-12T15:43:22Z"

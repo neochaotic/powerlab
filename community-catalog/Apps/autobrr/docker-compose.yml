@@ -2,6 +2,8 @@ name: autobrr
 services:
     web:
         image: ghcr.io/autobrr/autobrr:v1.77.1@sha256:26796bb64ad4cd5956def3e171d485daf7353e952b603f9602d44836e4c9b314
+        ports:
+            - 7474:7474
         restart: on-failure
         stop_grace_period: 1m
         user: 1000:1000
@@ -27,4 +29,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: autobrr/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:01:47Z"
+        synced_at: "2026-05-12T15:42:42Z"

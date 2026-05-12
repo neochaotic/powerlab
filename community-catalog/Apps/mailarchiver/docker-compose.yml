@@ -5,6 +5,8 @@ services:
             postgres:
                 condition: service_healthy
         image: ghcr.io/s1t5/mailarchiver:2604.2@sha256:53800df180b876e3cc02e31f088e0684bf81a4380ad22b5419da99e8559bb5ba
+        ports:
+            - 5006:5000
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/mailarchiver/data/data-protection-keys:/app/DataProtection-Keys
@@ -48,4 +50,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: mailarchiver/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:20Z"
+        synced_at: "2026-05-12T15:43:17Z"

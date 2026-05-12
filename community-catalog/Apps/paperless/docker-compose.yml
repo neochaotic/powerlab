@@ -39,6 +39,8 @@ services:
             PAPERLESS_TIKA_ENDPOINT: http://paperless_tika_1:9998
             PAPERLESS_TIKA_GOTENBERG_ENDPOINT: http://paperless_gotenberg_1:3000
         image: ghcr.io/paperless-ngx/paperless-ngx:2.20.15@sha256:6c86cad803970ea782683a8e80e7403444c5bf3cf70de63b4d3c8e87500db92f
+        ports:
+            - 2349:8000
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/paperless/data/data:/usr/src/paperless/data
@@ -67,4 +69,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: paperless/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:35Z"
+        synced_at: "2026-05-12T15:43:33Z"

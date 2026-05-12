@@ -27,6 +27,13 @@ import (
 // they'll at least surface in the store UI so a maintainer can decide.
 var volumePlaceholderRE = regexp.MustCompile(`\$\{(APP_[A-Z0-9_]*DIR|UMBREL_ROOT)\}`)
 
+// portPlaceholderRE matches both shell-var forms — `${APP_FOO_PORT}` AND
+// the brace-less `$APP_FOO_PORT`. Some upstream Umbrel composes use the
+// short form (synapse: `ports: - 8008:$APP_SYNAPSE_PORT`), so a regex
+// that only matches braces silently skips them and the port spec ships
+// as a literal `$VAR` that compose-go's strict port parser rejects.
+var portPlaceholderRE = regexp.MustCompile(`\$\{?[A-Z_][A-Z0-9_]*\}?`)
+
 // Umbrel-specific transform: the upstream `docker-compose.yml` files
 // in `getumbrel/umbrel-apps` assume an Umbrel runtime that we don't
 // replicate. Two patterns appear in ~95% of upstream apps and both
@@ -75,7 +82,7 @@ var volumePlaceholderRE = regexp.MustCompile(`\$\{(APP_[A-Z0-9_]*DIR|UMBREL_ROOT
 //     human-curated content separately
 //   - yaml.v3 with a yaml.Node round-trip would preserve formatting
 //     but adds ~80 LOC of node walking for marginal benefit
-func transformUpstreamCompose(upstream []byte, storeAppID string) ([]byte, error) {
+func transformUpstreamCompose(upstream []byte, storeAppID string, basePort int) ([]byte, error) {
 	var doc map[string]any
 	if err := yaml.Unmarshal(upstream, &doc); err != nil {
 		return nil, fmt.Errorf("parse upstream compose: %w", err)
@@ -97,16 +104,148 @@ func transformUpstreamCompose(upstream []byte, storeAppID string) ([]byte, error
 	// for the same reason; we mirror the convention here.
 	doc["name"] = storeAppID
 
+	// Order matters: extract app_proxy routing info BEFORE stripping
+	// the service, then strip, then add the equivalent `ports:` mapping
+	// to the target service. Without this, apps that exposed their port
+	// solely via Umbrel's app_proxy (e.g. enclosed — no `ports:` in the
+	// real service) lose all external accessibility after the strip and
+	// the launchpad click-through opens to nothing.
+	target, appPort, hasProxy := extractAppProxyTarget(doc, storeAppID)
 	stripAppProxyService(doc)
+	if hasProxy && basePort > 0 {
+		addPortMapping(doc, target, appPort, basePort)
+	}
 	substituteAppDataDir(doc, storeAppID)
 	dropEnvFileFromServices(doc)
-	substitutePortPlaceholders(doc)
+	substitutePortPlaceholders(doc, basePort)
 
 	out, err := yaml.Marshal(doc)
 	if err != nil {
 		return nil, fmt.Errorf("marshal transformed compose: %w", err)
 	}
 	return out, nil
+}
+
+// extractAppProxyTarget reads Umbrel's `services.app_proxy.environment`
+// to recover the inner service name + container port it was routing to.
+// `APP_HOST` follows Umbrel's `<projectID>_<svcName>_<replica>` convention
+// (e.g. `enclosed_web_1`); `APP_PORT` is the container's listening port.
+// We need both BEFORE `stripAppProxyService` removes the service — once
+// stripped, this signal is lost and we can't recover the port mapping.
+//
+// Returns ok=false if app_proxy isn't present or env is incomplete; the
+// caller must skip the addPortMapping step in that case so apps that
+// already expose `ports:` in the real service aren't double-mapped.
+func extractAppProxyTarget(doc map[string]any, storeAppID string) (svcName, appPort string, ok bool) {
+	services, sOK := doc["services"].(map[string]any)
+	if !sOK {
+		return "", "", false
+	}
+	proxy, pOK := services["app_proxy"].(map[string]any)
+	if !pOK {
+		return "", "", false
+	}
+	env, _ := proxy["environment"].(map[string]any)
+	if env == nil {
+		return "", "", false
+	}
+	host, _ := env["APP_HOST"].(string)
+	// APP_PORT can be unmarshaled as int or string depending on whether
+	// the upstream wrote `APP_PORT: 8080` (int) or `APP_PORT: "8080"` (str).
+	switch p := env["APP_PORT"].(type) {
+	case string:
+		appPort = p
+	case int:
+		appPort = fmt.Sprintf("%d", p)
+	}
+	// Resolve APP_HOST to a service name via four strategies in order:
+	//
+	//   A. Direct match against a service's `hostname:` field
+	//      (cloudflared-style: APP_HOST: cloudflared-web ↔ hostname:
+	//      cloudflared-web on the web service).
+	//
+	//   B. Direct match against `container_name:` (searxng-style).
+	//
+	//   C. The `<storeAppID>_<svcName>_<replica>` convention — strip
+	//      the storeAppID prefix + trailing `_<digits>`. This is the
+	//      default Umbrel pattern (enclosed_web_1 → web).
+	//
+	//   D. Shell-var fallback: APP_HOST = `$APP_FOO_IP`. We can't
+	//      resolve at sync time, so pick the first non-proxy service.
+	//      The vast majority of apps with this pattern have a single
+	//      "main" service anyway.
+	//
+	// The audit on 2026-05-12 surfaced cloudflared/searxng (hostname),
+	// no apps using container_name (searxng-style is rare upstream),
+	// and agora (shell-var) — all three flavors handled here.
+
+	// (A) hostname match
+	for sName, sAny := range services {
+		if sName == "app_proxy" {
+			continue
+		}
+		svc, _ := sAny.(map[string]any)
+		if svc == nil {
+			continue
+		}
+		if hn, _ := svc["hostname"].(string); hn != "" && hn == host {
+			return sName, appPort, appPort != ""
+		}
+	}
+
+	// (B) container_name match
+	for sName, sAny := range services {
+		if sName == "app_proxy" {
+			continue
+		}
+		svc, _ := sAny.(map[string]any)
+		if svc == nil {
+			continue
+		}
+		if cn, _ := svc["container_name"].(string); cn != "" && cn == host {
+			return sName, appPort, appPort != ""
+		}
+	}
+
+	// (C) <storeAppID>_<svc>_<replica> convention
+	prefix := storeAppID + "_"
+	if strings.HasPrefix(host, prefix) {
+		rest := strings.TrimPrefix(host, prefix)
+		if i := strings.LastIndex(rest, "_"); i > 0 {
+			svcName = rest[:i]
+		} else {
+			svcName = rest
+		}
+		return svcName, appPort, svcName != "" && appPort != ""
+	}
+
+	// (D) Shell-var fallback: pick first non-proxy service.
+	if strings.HasPrefix(host, "$") || host == "" {
+		for sName := range services {
+			if sName != "app_proxy" {
+				return sName, appPort, appPort != ""
+			}
+		}
+	}
+
+	return "", "", false
+}
+
+// addPortMapping adds a `ports:` entry to the target service so the
+// host port == basePort (= manifest.Port = x-powerlab.port_map) routes
+// to the container's internal appPort. No-op if the target service
+// already declares a `ports:` list (don't override the upstream's
+// explicit port choices).
+func addPortMapping(doc map[string]any, svcName, appPort string, basePort int) {
+	services, _ := doc["services"].(map[string]any)
+	svc, ok := services[svcName].(map[string]any)
+	if !ok {
+		return
+	}
+	if existing, has := svc["ports"].([]any); has && len(existing) > 0 {
+		return
+	}
+	svc["ports"] = []any{fmt.Sprintf("%d:%s", basePort, appPort)}
 }
 
 // stripAppProxyService removes `services.app_proxy` from the parsed
@@ -179,12 +318,20 @@ func dropEnvFileFromServices(doc map[string]any) {
 // services with placeholder ports, each gets a distinct integer so
 // the project still passes compose-go's "no duplicate host ports"
 // check.
-func substitutePortPlaceholders(doc map[string]any) {
+func substitutePortPlaceholders(doc map[string]any, basePort int) {
 	services, ok := doc["services"].(map[string]any)
 	if !ok {
 		return
 	}
-	port := 18000
+	// First placeholder = basePort (== manifest's port:, == x-powerlab.port_map),
+	// so the launchpad's click-through URL (built from port_map) hits the right
+	// container port. Subsequent placeholders in multi-port apps get +1 to avoid
+	// host-port collisions inside compose-go's validator. Fallback 18000 only
+	// kicks in when the manifest has no port (rare; defensive).
+	port := basePort
+	if port <= 0 {
+		port = 18000
+	}
 	for _, svc := range services {
 		svcMap, ok := svc.(map[string]any)
 		if !ok {
@@ -197,18 +344,16 @@ func substitutePortPlaceholders(doc map[string]any) {
 		for i, p := range ports {
 			switch pp := p.(type) {
 			case string:
-				if strings.Contains(pp, "${") {
+				if strings.Contains(pp, "$") {
 					ports[i] = replacePlaceholderPort(pp, &port)
 				}
 			case map[string]any:
 				// Long-form: { target: 80, published: ${APP_X_PORT} }
-				if pub, ok := pp["published"].(string); ok && strings.Contains(pub, "${") {
+				if pub, ok := pp["published"].(string); ok && strings.Contains(pub, "$") {
 					pp["published"] = fmt.Sprintf("%d", port)
 					port++
 				}
-				// `target` is typically a literal int but defensively
-				// handle strings too.
-				if tgt, ok := pp["target"].(string); ok && strings.Contains(tgt, "${") {
+				if tgt, ok := pp["target"].(string); ok && strings.Contains(tgt, "$") {
 					pp["target"] = fmt.Sprintf("%d", port)
 					port++
 				}
@@ -217,24 +362,19 @@ func substitutePortPlaceholders(doc map[string]any) {
 	}
 }
 
-// replacePlaceholderPort returns the input with any `${...}` substring
-// replaced by an integer pulled from the counter. The counter is
-// advanced once per substitution so multi-port specs (e.g.
-// `${APP_HTTP}:${APP_TCP}`) get distinct values.
+// replacePlaceholderPort returns the input with any shell-var-style
+// placeholder (`${VAR}` or `$VAR`) replaced by an integer pulled from
+// the counter. The counter is advanced once per substitution so
+// multi-port specs (e.g. `${APP_HTTP}:$APP_TCP`) get distinct values.
+// The regex-based replace handles both brace forms uniformly.
 func replacePlaceholderPort(spec string, counter *int) string {
-	out := spec
-	for strings.Contains(out, "${") {
-		start := strings.Index(out, "${")
-		end := strings.Index(out[start:], "}")
-		if end < 0 {
-			break // malformed; bail
-		}
-		placeholder := out[start : start+end+1]
-		out = strings.Replace(out, placeholder, fmt.Sprintf("%d", *counter), 1)
+	return portPlaceholderRE.ReplaceAllStringFunc(spec, func(_ string) string {
+		v := fmt.Sprintf("%d", *counter)
 		*counter++
-	}
-	return out
+		return v
+	})
 }
+
 
 // substituteAppDataDir walks every service's `volumes:` list and
 // replaces literal `${APP_DATA_DIR}` substrings with PowerLab's

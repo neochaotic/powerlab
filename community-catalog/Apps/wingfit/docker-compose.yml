@@ -8,6 +8,8 @@ services:
             - --host
             - 0.0.0.0
         image: ghcr.io/itskovacs/wingfit:5.3.1@sha256:fed5dcc1c8abdec6409f4272caa08f9a6f1d2a3c8e1f9a13b3459c2ffea8a360
+        ports:
+            - 8950:8000
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/wingfit/data:/app/storage
@@ -33,4 +35,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: wingfit/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:03:02Z"
+        synced_at: "2026-05-12T15:43:52Z"

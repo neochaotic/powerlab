@@ -2,6 +2,8 @@ name: perplexica
 services:
     web:
         image: itzcrazykns1337/vane:v1.12.2@sha256:61f2bbf3386ff3df08911fb3de0e1893b04702a4d49ef13fbadbda937b47ab7c
+        ports:
+            - 3444:3000
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/perplexica/data/app_data:/home/perplexica/data
@@ -26,4 +28,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: perplexica/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:38Z"
+        synced_at: "2026-05-12T15:43:35Z"

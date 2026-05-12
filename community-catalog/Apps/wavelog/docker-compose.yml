@@ -6,6 +6,8 @@ services:
         environment:
             CI_ENV: docker
         image: ghcr.io/wavelog/wavelog:2.4.2@sha256:4df7277277b7e601852b1a8905273eca6b67c1b4a4eb91da408e5f90e97f8886
+        ports:
+            - 8099:80
         volumes:
             - /DATA/PowerLabAppData/wavelog/data/config:/var/www/html/application/config/docker
             - /DATA/PowerLabAppData/wavelog/data/uploads:/var/www/html/uploads
@@ -39,4 +41,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: wavelog/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:03:00Z"
+        synced_at: "2026-05-12T15:43:51Z"

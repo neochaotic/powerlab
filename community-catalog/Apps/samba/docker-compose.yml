@@ -2,6 +2,8 @@ name: samba
 services:
     homepage:
         image: loficafe/static-web-server-samba:1.0.1@sha256:783667f052d9535bb75946ff9bc807989b041e25437ef10c30b291589d041e6e
+        ports:
+            - 9445:80
         restart: on-failure
         user: 1000:1000
         volumes:
@@ -39,4 +41,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: samba/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:02:45Z"
+        synced_at: "2026-05-12T15:43:43Z"

@@ -6,6 +6,8 @@ services:
             TZ: Europe/Berlin
             UID: 1000
         image: linuxserver/emby:version-4.9.3.0@sha256:dbd1a3c83205445d13aad13362bdfa8478a6912541a1e32d654c550baf494e5a
+        ports:
+            - 8097:8096
         restart: on-failure
         volumes:
             - /DATA/PowerLabAppData/emby/data/config:/config:rw
@@ -30,4 +32,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: emby/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:01:59Z"
+        synced_at: "2026-05-12T15:42:54Z"

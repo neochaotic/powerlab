@@ -2,6 +2,8 @@ name: chatpad-ai
 services:
     web:
         image: ghcr.io/deiucanta/chatpad:bb5f4abb36b45320df69dfccb64e734f36ca9bb3@sha256:15155e3a09fd677d578583f6bd3848c991cf768997400e37bc4c27e62a918a7e
+        ports:
+            - 10102:80
         restart: on-failure
 version: "3.9"
 
@@ -25,4 +27,4 @@ x-powerlab:
         upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
         upstream_path: chatpad-ai/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:01:53Z"
+        synced_at: "2026-05-12T15:42:46Z"
