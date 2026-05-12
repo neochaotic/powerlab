@@ -3,6 +3,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { cn } from '$lib/utils';
 	import { ScrollText, Trash2, Download, Package, Settings, Pencil, Activity } from 'lucide-svelte';
+	import { detectAppSource, appSourceLabel, appSourceUpstreamURL } from '$lib/utils/app-source';
 	import { goto } from '$app/navigation';
 
 	interface Props {
@@ -86,6 +87,35 @@
 				<p class="mt-1 line-clamp-2 text-sm text-[var(--color-text-secondary)]">
 					{getTitle(info.tagline)}
 				</p>
+				<!--
+					Source badge — Apple-style discrete: text-only, muted color,
+					middle-dot separator on the metadata row. Phase 5 of #307.
+					Detection: explicit backend source field wins, else icon-URL
+					heuristic, else "store" (never empty).
+				-->
+				{#if info}
+					{@const _src = detectAppSource(info)}
+					{@const _href = appSourceUpstreamURL(info)}
+					{@const _title = info?.source?.synced_at
+						? `From ${appSourceLabel(_src)} catalog · synced ${info.source.synced_at}`
+						: `From ${appSourceLabel(_src)} catalog`}
+					<p class="mt-1 text-[11px] text-zinc-500">
+						{#if info.category}<span>{info.category}</span> ·{' '}{/if}
+						{#if _href}
+							<a
+								href={_href}
+								target="_blank"
+								rel="noopener noreferrer"
+								title={_title}
+								class="hover:text-zinc-300 transition-colors"
+								onclick={(e) => e.stopPropagation()}
+								data-testid="app-source-badge"
+							>{appSourceLabel(_src)}</a>
+						{:else}
+							<span title={_title} data-testid="app-source-badge">{appSourceLabel(_src)}</span>
+						{/if}
+					</p>
+				{/if}
 			</div>
 		</div>
 

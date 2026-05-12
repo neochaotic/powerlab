@@ -173,4 +173,109 @@ describe('AppCard', () => {
 		await fireEvent.click(screen.getByTitle('Fork as Custom App'));
 		expect(onEdit).toHaveBeenCalledWith('nginx-proxy-manager');
 	});
+
+	describe('source badge (Phase 5 of #307)', () => {
+		it('renders the badge with the explicit source.catalog label when present', () => {
+			const umbrelApp = {
+				...installedApp,
+				store_info: {
+					...installedApp.store_info,
+					source: { catalog: 'umbrel-apps' }
+				}
+			};
+			render(AppCard, { props: { app: umbrelApp } });
+			expect(screen.getByTestId('app-source-badge').textContent).toBe('umbrel');
+		});
+
+		it('falls back to icon heuristic — casaos icon URL', () => {
+			const casaosApp = {
+				...installedApp,
+				store_info: {
+					...installedApp.store_info,
+					icon: 'https://cdn.jsdelivr.net/gh/IceWhaleTech/CasaOS-AppStore@main/Apps/AdGuardHome/icon.png',
+					source: undefined
+				}
+			};
+			render(AppCard, { props: { app: casaosApp } });
+			expect(screen.getByTestId('app-source-badge').textContent).toBe('casaos');
+		});
+
+		it('renders generic "store" when no explicit source + no recognized icon', () => {
+			const genericApp = {
+				...installedApp,
+				store_info: {
+					...installedApp.store_info,
+					icon: 'https://example.com/icon.png',
+					source: undefined
+				}
+			};
+			render(AppCard, { props: { app: genericApp } });
+			expect(screen.getByTestId('app-source-badge').textContent).toBe('store');
+		});
+
+		it('badge is rendered as a clickable link when an upstream URL exists', () => {
+			const umbrelApp = {
+				...installedApp,
+				store_info: {
+					...installedApp.store_info,
+					source: {
+						catalog: 'umbrel-apps',
+						upstream_repo: 'https://github.com/getumbrel/umbrel-apps'
+					}
+				}
+			};
+			render(AppCard, { props: { app: umbrelApp } });
+			const badge = screen.getByTestId('app-source-badge') as HTMLAnchorElement;
+			expect(badge.tagName).toBe('A');
+			expect(badge.href).toBe('https://github.com/getumbrel/umbrel-apps');
+			expect(badge.target).toBe('_blank');
+		});
+
+		it('badge tooltip carries synced_at when present', () => {
+			const umbrelApp = {
+				...installedApp,
+				store_info: {
+					...installedApp.store_info,
+					source: { catalog: 'umbrel-apps', synced_at: '2026-05-12T03:00:40Z' }
+				}
+			};
+			render(AppCard, { props: { app: umbrelApp } });
+			const badge = screen.getByTestId('app-source-badge');
+			expect(badge.getAttribute('title')).toContain('2026-05-12');
+			expect(badge.getAttribute('title')).toContain('umbrel');
+		});
+
+		it('badge is wrapped in a span (not a link) when source has no upstream URL', () => {
+			const generic = {
+				...installedApp,
+				store_info: {
+					...installedApp.store_info,
+					icon: 'https://example.com/x.png',
+					source: undefined
+				}
+			};
+			render(AppCard, { props: { app: generic } });
+			const badge = screen.getByTestId('app-source-badge');
+			expect(badge.tagName).toBe('SPAN');
+		});
+
+		it('clicking the source link does NOT bubble up to the card click handler', async () => {
+			// Catalog tile may have an outer click handler in production
+			// (e.g. open install modal). The source link must NOT trigger it.
+			const umbrelApp = {
+				...installedApp,
+				store_info: {
+					...installedApp.store_info,
+					source: { catalog: 'umbrel-apps', upstream_repo: 'https://github.com/getumbrel/umbrel-apps' }
+				}
+			};
+			const onToggleStatus = vi.fn();
+			render(AppCard, { props: { app: umbrelApp, onToggleStatus } });
+			// Prevent the actual navigation
+			const badge = screen.getByTestId('app-source-badge') as HTMLAnchorElement;
+			badge.addEventListener('click', (e) => e.preventDefault(), { once: true });
+			await fireEvent.click(badge);
+			expect(onToggleStatus).not.toHaveBeenCalled();
+		});
+	});
 });
