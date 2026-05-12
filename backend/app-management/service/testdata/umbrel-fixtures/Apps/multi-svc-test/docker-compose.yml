@@ -1,0 +1,42 @@
+name: multi-svc-test
+services:
+  web:
+    image: nginx:1.27
+    restart: unless-stopped
+    ports:
+      - 8088:80
+    volumes:
+      - /DATA/PowerLabAppData/multi-svc-test/web:/usr/share/nginx/html:ro
+  worker:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - /DATA/PowerLabAppData/multi-svc-test/redis:/data
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_PASSWORD=changeme
+    volumes:
+      - /DATA/PowerLabAppData/multi-svc-test/db:/var/lib/postgresql/data
+version: "3.7"
+
+x-powerlab:
+  store_app_id: multi-svc-test
+  title:
+    en_us: Multi-Service Test
+  tagline:
+    en_us: Synthetic fixture covering 3-service Umbrel app pattern
+  icon: https://getumbrel.github.io/umbrel-apps-gallery/multi-svc-test/icon.svg
+  category: developer
+  port_map: "8088"
+  author: PowerLab Tests
+  developer: PowerLab Tests
+  source:
+    catalog: umbrel-apps
+    upstream_id: multi-svc-test
+    upstream_repo: https://github.com/getumbrel/umbrel-apps
+    upstream_commit: fixture
+    upstream_path: multi-svc-test/umbrel-app.yml
+    transform_version: "1.0"
+    synced_at: "2026-05-12T00:00:00Z"

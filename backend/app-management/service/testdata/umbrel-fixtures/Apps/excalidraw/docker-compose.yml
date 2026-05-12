@@ -1,0 +1,32 @@
+name: excalidraw
+services:
+  app:
+    image: ghcr.io/ozencb/excalidraw-persist:0.18.0-persist.7@sha256:8c86a50d299cdcd27e178e80e7567479bf9b6c5eb62d08abbbfcd5ddba60bc26
+    restart: on-failure
+    environment:
+      - PORT=4000
+      - NODE_ENV=production
+      - DB_PATH=/app/data/database.sqlite
+    volumes:
+      - /DATA/PowerLabAppData/excalidraw/data:/app/data:rw
+version: "3.7"
+
+x-powerlab:
+  store_app_id: excalidraw
+  title:
+    en_us: Excalidraw
+  tagline:
+    en_us: An open source virtual hand-drawn style whiteboard
+  icon: https://getumbrel.github.io/umbrel-apps-gallery/excalidraw/icon.svg
+  category: files
+  port_map: "4422"
+  author: Excalidraw Team
+  developer: Excalidraw Team
+  source:
+    catalog: umbrel-apps
+    upstream_id: excalidraw
+    upstream_repo: https://github.com/getumbrel/umbrel-apps
+    upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+    upstream_path: excalidraw/umbrel-app.yml
+    transform_version: "1.0"
+    synced_at: "2026-05-12T03:53:06Z"
