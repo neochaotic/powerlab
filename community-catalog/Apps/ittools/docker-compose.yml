@@ -1,0 +1,39 @@
+version: '3.7'
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: ittools_app_1
+      APP_PORT: 80
+
+  app:
+    image: corentinth/it-tools:2024.10.22-7ca5933@sha256:8b8128748339583ca951af03dfe02a9a4d7363f61a216226fc28030731a5a61f
+    restart: on-failure
+    # not working rootless yet
+    #user: 1000:1000
+    mem_limit: 2g
+    cpu_shares: 768
+    security_opt:
+      - no-new-privileges:true
+
+x-powerlab:
+    store_app_id: ittools
+    title:
+        en_us: IT-Tools
+    tagline:
+        en_us: An array of handy online tools for developers
+    description:
+        en_us: '<picture> <source srcset="./.github/logo-dark.png" media="(prefers-color-scheme: light)"> <source srcset="./.github/logo-white.png" media="(prefers-color-scheme: dark)"> <img src="./.github/logo-dark.png" alt="logo"> </picture> <p align="center"> Useful tools for developer and people working in IT. <a href="https://it-tools.tech">Try it!</a> </p> Functionalities and roadmap Please check the issues to see if some feature listed to be implemented. You have an idea of a tool? Submit a feature request! Self host Self host solutions for your homelab **From docker hub:** **From github packages:** **Other solutions:** - Cloudron - Tipi - Unraid Contribute Recommended IDE Setup VSCode with the following extensions: - Volar (and disable Vetur) - TypeScript Vue Plugin (Volar). - ESLint - i18n Ally with the following settings: Type Support for Imports in TS TypeScript cannot handle type information for imports by default, so we replace the CLI with for type checking. In editors, we need TypeScript Vue Plugin (Volar) to make the TypeScript language service aware of types. If the standalone TypeScript plugin doesn''t feel fast enough to you, Volar has also implemented a Take Over Mode that is more performant. You can enable it by the following steps: 1. Disable the built-in TypeScript Extension 1. Run from VSCode''s command palette 2. Find , right click and select 2. Reload the VSCode…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/ittools/icon.svg
+    category: developer
+    port_map: "8786"
+    author: Corentin Thomasset
+    developer: Corentin Thomasset
+    source:
+        catalog: umbrel-apps
+        upstream_id: ittools
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: ittools/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:09Z"

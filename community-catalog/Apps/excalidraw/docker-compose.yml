@@ -1,0 +1,39 @@
+version: '3.7'
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: excalidraw_app_1
+      APP_PORT: 80
+
+  app:
+    image: ghcr.io/ozencb/excalidraw-persist:0.18.0-persist.7@sha256:8c86a50d299cdcd27e178e80e7567479bf9b6c5eb62d08abbbfcd5ddba60bc26
+    restart: on-failure
+    environment:
+      - PORT=4000
+      - NODE_ENV=production
+      - DB_PATH=/app/data/database.sqlite
+    volumes:
+      - ${APP_DATA_DIR}/data:/app/data:rw
+
+x-powerlab:
+    store_app_id: excalidraw
+    title:
+        en_us: Excalidraw
+    tagline:
+        en_us: An open source virtual hand-drawn style whiteboard
+    description:
+        en_us: "Excalidraw Persist A self-hostable app with server-side persistence and multiple boards based on Excalidraw. <img width=\"1440\" height=\"790\" alt=\"Screenshot\" src=\"https://github.com/user-attachments/assets/18f0f065-58d1-42d8-94d6-b29531b4b685\" /> Features - \U0001F4BE Server-side persistence of drawings, images, library objects - \U0001F4D1 Multiple boards/tabs support - \U0001F5D1️ Trash functionality for deleted boards - \U0001F5C3️ SQLite database for simple deployment TODO - [ ] Collaboration support Development This project uses pnpm workspaces as a monorepo. Make sure to create a file with necessary values. You can take a look at as a starting point. Prerequisites - Node.js (v22 or newer) - pnpm (v10 or newer) - Git Deployment Options Option 1: Docker (Recommended) The easiest way to deploy Excalidraw Persist is using Docker and Docker Compose. Prerequisites - Docker - Docker Compose Deployment Steps 1. Clone the repository: 2. Start the containers: 3. Access the application at (or your server's IP/domain) or run 1. 2. Access the application at (or your server's IP/domain) Using npm Scripts There are some convenience scripts included in the root : - - Build the Docker images - - Start the containers in detached mode - - Stop and remove the containers - - View the container logs in follow mode Configuration The Docker setup uses…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/excalidraw/icon.svg
+    category: files
+    port_map: "4422"
+    author: Excalidraw Team
+    developer: Excalidraw Team
+    source:
+        catalog: umbrel-apps
+        upstream_id: excalidraw
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: excalidraw/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:06Z"

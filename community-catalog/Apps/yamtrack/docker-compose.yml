@@ -1,0 +1,49 @@
+version: '3.7'
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: yamtrack_web_1
+      APP_PORT: 8000
+
+  web:
+    image: ghcr.io/fuzzygrim/yamtrack:0.25.2@sha256:928df13c46c9f615b37f5ef1eb5a87fc8813f5941f28c7d8227af73d291b0d19
+    # does not work yet rootless
+    # user: "1000:1000"
+    restart: on-failure
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      - redis
+    environment:
+        SECRET: ${APP_SEED}
+        REDIS_URL: redis://yamtrack_redis_1:6379
+    volumes:
+      - ${APP_DATA_DIR}/data/db:/yamtrack/db:rw
+      
+  redis:
+    image: redis:8.0.2@sha256:b43d2dcbbdb1f9e1582e3a0f37e53bf79038522ccffb56a25858969d7a9b6c11
+    user: "1000:1000"
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/data/redis:/data:rw
+
+x-powerlab:
+    store_app_id: yamtrack
+    title:
+        en_us: Yamtrack
+    tagline:
+        en_us: A self hosted media tracker
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/yamtrack/icon.svg
+    category: media
+    port_map: "8742"
+    author: Xila Cai
+    developer: Xila Cai
+    source:
+        catalog: umbrel-apps
+        upstream_id: yamtrack
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: yamtrack/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:19Z"

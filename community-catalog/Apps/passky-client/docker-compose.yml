@@ -1,0 +1,35 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: passky-client_web_1
+      APP_PORT: 80
+      PROXY_AUTH_ADD: "false"
+
+  web:
+    image: rabbitcompany/passky-client:8.1.1@sha256:9c144ceb22920c60dc659c8635f48a92be4bffdb7dc768aba0d26a9a42c3005d
+    restart: on-failure
+    stop_grace_period: 1m
+
+x-powerlab:
+    store_app_id: passky-client
+    title:
+        en_us: Passky Client
+    tagline:
+        en_us: Simple, modern, lightweight, open source and secure password manager
+    description:
+        en_us: "<h1 align=\"center\">\U0001F512 Passky Website \U0001F512</h1> [](https://github.com/Rabbit-Company/Passky-Website/issues) [](https://github.com/Rabbit-Company/Passky-Website/stargazers) [](https://github.com/Rabbit-Company/Passky-Website/network) [](https://github.com/Rabbit-Company/Passky-Website/blob/main/LICENSE) Download from Official Website Passky Clients * Website * Browser Extension * Desktop Application * Android Application What is Passky? Passky is a simple, modern, lightweight, open source and secure password manager. [](https://www.youtube.com/watch?v=yrk6cHkgVA8 \"Click to watch!\") How Much Does it Cost? Passky is a **free**, open-source password manager that simplifies your digital life. Both the free and premium plans include advanced security features such as two-factor authentication to ensure the safety and security of your sensitive data. While the free plan allows you to store up to 100 passwords, the premium plan offers additional benefits such as the ability to store an unlimited number of passwords. Upgrade to the premium plan to gain access to all of Passky's features and take your password security to the next level. At Passky, we take your security seriously, and we don't compromise on safety when it comes to password management. Sign up now and experience the peace of mind that comes with using Passky. How it Works? Passky uses a combination of advanced encryption methods to ensure the security of your data. Passky is based on a **zero trust architecture** and uses advanced encryption…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/passky-client/icon.svg
+    category: files
+    port_map: "5052"
+    author: Rabbit Company LLC
+    developer: Rabbit Company LLC
+    source:
+        catalog: umbrel-apps
+        upstream_id: passky-client
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: passky-client/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:14Z"

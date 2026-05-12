@@ -1,0 +1,43 @@
+version: '3.7'
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: neko_web_1
+      APP_PORT: 8080
+      PROXY_AUTH_ADD: "false"
+
+  web:
+    image: ghcr.io/m1k1o/neko/firefox:3.1.4@sha256:0e0dfa8199ff4cccf95284c0c8e9dde72f740feb816302cc5e7071efe079039e
+    environment:
+      PUID: 1000
+      PGID: 1000
+      NEKO_DESKTOP_SCREEN: 1920x1080@30
+      NEKO_MEMBER_MULTIUSER_USER_PASSWORD: neko
+      NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD: $APP_PASSWORD
+      NEKO_WEBRTC_EPR: 52000-52100
+      NEKO_WEBRTC_ICELITE: 0
+    shm_size: "2gb"
+    restart: on-failure
+    ports:
+      - "52000-52100:52000-52100/udp"
+
+x-powerlab:
+    store_app_id: neko
+    title:
+        en_us: Neko
+    tagline:
+        en_us: A self-hosted virtual browser powered by WebRTC
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/neko/icon.svg
+    category: networking
+    port_map: "3880"
+    author: m1k1o
+    developer: m1k1o
+    source:
+        catalog: umbrel-apps
+        upstream_id: neko
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: neko/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:12Z"

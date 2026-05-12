@@ -1,0 +1,38 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: just-download_web_1
+      APP_PORT: 5000
+  
+  web:
+    image: codeberg.org/highghlow/just-download:v1.0.9@sha256:96d8ed20104418ca41ccc8fc7001889f827bc60235b71b8e9aa19d1f5a6e4db7
+    restart: on-failure
+    stop_grace_period: 1m
+    volumes:
+      - ${APP_DATA_DIR}/data/config:/config
+    environment:
+      LOCK_TRANSMISSION_CONFIG: 1
+      CONFIG_LOCATION: /config/config.json
+      CONFIG: '{"indexers": [], "transmission": {"host": "transmission_server_1", "port": 9091}}'
+
+x-powerlab:
+    store_app_id: just-download
+    title:
+        en_us: Just. Download.
+    tagline:
+        en_us: Download torrents. Just. Download.
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/just-download/icon.svg
+    category: media
+    port_map: "3684"
+    author: highghlow
+    developer: highghlow
+    source:
+        catalog: umbrel-apps
+        upstream_id: just-download
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: just-download/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:09Z"

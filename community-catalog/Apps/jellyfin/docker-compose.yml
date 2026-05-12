@@ -1,0 +1,42 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: jellyfin_server_1
+      APP_PORT: 8096
+      PROXY_AUTH_ADD: "false"
+
+  server:
+    image: linuxserver/jellyfin:10.11.8@sha256:e93bc100c6da07bd058678e4b634e4e71031fe840227e2ed03a1104f032bebe8
+    restart: on-failure
+    hostname: "${DEVICE_HOSTNAME}"
+    environment:
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - ${APP_DATA_DIR}/data/config:/config
+      - ${UMBREL_ROOT}/data/storage/downloads:/downloads
+    ports:
+      # Service auto-discovery
+      - 7359:7359/udp
+
+x-powerlab:
+    store_app_id: jellyfin
+    title:
+        en_us: Jellyfin
+    tagline:
+        en_us: The Free Software Media System
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/jellyfin/icon.svg
+    category: media
+    port_map: "8096"
+    author: Jellyfin
+    developer: Jellyfin
+    source:
+        catalog: umbrel-apps
+        upstream_id: jellyfin
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: jellyfin/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:09Z"

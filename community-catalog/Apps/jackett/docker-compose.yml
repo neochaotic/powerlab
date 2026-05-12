@@ -1,0 +1,39 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: jackett_server_1
+      APP_PORT: 9117
+      PROXY_AUTH_WHITELIST: "/api/* /dl/*"
+
+  server:
+    image: linuxserver/jackett:0.24.1831@sha256:e8e102c53219b0b8287b415349d843626b4384829390d355b425a4261fd71fe6
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/data:/config
+      - ${UMBREL_ROOT}/data/storage/downloads:/downloads
+    stop_grace_period: 1m
+    environment:
+      - PUID=1000
+      - PGID=1000
+
+x-powerlab:
+    store_app_id: jackett
+    title:
+        en_us: Jackett
+    tagline:
+        en_us: API support for your favorite torrent trackers
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/jackett/icon.svg
+    category: media
+    port_map: "9117"
+    author: Jackett
+    developer: Jackett
+    source:
+        catalog: umbrel-apps
+        upstream_id: jackett
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: jackett/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:09Z"

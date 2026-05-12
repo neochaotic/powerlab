@@ -1,0 +1,54 @@
+version: "3.7"
+
+services:
+
+  app_proxy:
+    environment:
+      APP_HOST: influxdb_chronograf_1
+      APP_PORT: 8888
+
+  influxdb:
+    image: influxdb:1.12.4@sha256:e9363fd88d67f8ae6f019f37a30cc136e3644f2cbaea5abd71ad63c96dc6ae08
+    user: 1000:1000
+    restart: on-failure
+    stop_grace_period: 1m
+    volumes:
+      - ${APP_DATA_DIR}/data/influxdb:/var/lib/influxdb
+    environment:
+      INFLUXDB_ADMIN_USER: admin
+      INFLUXDB_ADMIN_PASSWORD: $APP_PASSWORD
+      INFLUXDB_HTTP_AUTH_ENABLED: "true"
+
+  chronograf:
+    image: chronograf:1.11.2@sha256:a6db91a1ba1d88d19b04ca4cad6db77d90ded5d9c7bec3ef5a793a967c23c04d
+    user: "1000:1000"
+    environment:
+      INFLUXDB_URL: "http://influxdb_influxdb_1:8086"
+      INFLUXDB_USERNAME: admin
+      INFLUXDB_PASSWORD: $APP_PASSWORD
+    volumes:
+      - ${APP_DATA_DIR}/data/chronograf:/var/lib/chronograf
+    depends_on:
+      - influxdb
+
+x-powerlab:
+    store_app_id: influxdb
+    title:
+        en_us: InfluxDB
+    tagline:
+        en_us: High performance time series database
+    description:
+        en_us: 'InfluxDB 3 Core <div align="center"> <picture> <source media="(prefers-color-scheme: light)" srcset="assets/influxdb-logo.png"> <source media="(prefers-color-scheme: dark)" srcset="assets/influxdb-logo-dark.png"> <img src="assets/influxdb-logo.png" alt="InfluxDB 3 Core" width="600"> </picture> <p>Open source time series database for real-time events, analytics, and monitoring--powered by Apache Arrow, DataFusion, and Parquet.</p> [](LICENSE) [](https://discord.gg/vZe2w2Ds8B) </div> InfluxDB 3 Core is a database built to collect, process, transform, and store event and time series data. It is ideal for use cases that require real-time ingest and fast query response times to build user interfaces, monitoring, and automation solutions. Common use cases include: - Monitoring sensor data - Server monitoring - Application performance monitoring - Network monitoring - Financial market and trading analytics - Behavioral analytics InfluxDB is optimized for scenarios where near real-time data monitoring is essential and queries need to return quickly to support user experiences such as dashboards and interactive user interfaces. InfluxDB 3 Core’s feature highlights include: - Diskless architecture with object storage support (or local disk with no dependencies) - Fast query response times (under 10ms for last-value queries, or 30ms for distinct metadata) - Embedded Python VM for plugins and triggers - Parquet file persistence - Compatibility with InfluxDB 1.x and 2.x write APIs - Compatibility with InfluxDB 1.x query API…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/influxdb/icon.svg
+    category: developer
+    port_map: "8888"
+    author: InfluxData
+    developer: InfluxData
+    source:
+        catalog: umbrel-apps
+        upstream_id: influxdb
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: influxdb/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:08Z"

@@ -1,0 +1,98 @@
+version: '3.7'
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: twenty_server_1
+      APP_PORT: 3000
+      PROXY_AUTH_ADD: "false"
+
+  server:
+    image: twentycrm/twenty:v1.20.0@sha256:b3120df567a73c849a7a1ae58fa4f3d7bdd5072939312be702375960ed601557
+    user: "1000:1000"
+    volumes:
+      - ${APP_DATA_DIR}/data/server-local-data:/app/packages/twenty-server/.local-storage
+      - ${APP_DATA_DIR}/data/docker-data:/app/docker-data
+    environment:
+      NODE_PORT: 3000
+      PG_DATABASE_URL: postgres://postgres:postgres@twenty_db_1:5432/default
+      SERVER_URL: http://${DEVICE_DOMAIN_NAME}:2020
+      REDIS_URL: redis://twenty_redis_1:6379
+      APP_SECRET: 2Gn5puuVCH0SI386E9RqOqHm0hGIAyrB
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    healthcheck:
+      test: curl --fail http://localhost:3000/healthz
+      interval: 10s
+      timeout: 30s
+      retries: 10
+      start_period: 120s
+    restart: on-failure
+
+  worker:
+    image: twentycrm/twenty:v1.20.0@sha256:b3120df567a73c849a7a1ae58fa4f3d7bdd5072939312be702375960ed601557
+    user: "1000:1000"
+    volumes:
+      - ${APP_DATA_DIR}/data/server-local-data:/app/packages/twenty-server/.local-storage
+    command: ["yarn", "worker:prod"]
+    environment:
+      PG_DATABASE_URL: postgres://postgres:postgres@twenty_db_1:5432/default
+      SERVER_URL: http://${DEVICE_DOMAIN_NAME}:2020
+      REDIS_URL: redis://twenty_redis_1:6379
+      DISABLE_DB_MIGRATIONS: "true"
+      DISABLE_CRON_JOBS_REGISTRATION: "true"
+      APP_SECRET: 2Gn5puuVCH0SI386E9RqOqHm0hGIAyrB
+    depends_on:
+      db:
+        condition: service_healthy
+      server:
+        condition: service_healthy
+    restart: on-failure
+
+  db:
+    image: postgres:16.8@sha256:74e7a26f7db1d5bbce23b4132fb4855ed0987ec9dc44f6d078ba8800892dc927
+    user: "1000:1000"
+    volumes:
+      - ${APP_DATA_DIR}/data/db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: default
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: pg_isready -U postgres -h localhost -d postgres
+      interval: 10s
+      timeout: 30s
+      retries: 10
+    restart: on-failure
+
+  redis:
+    image: redis:7.4.2@sha256:bd41d55aae1ecff61b2fafd0d66761223fe94a60373eb6bb781cfbb570a84079
+    user: "1000:1000"
+    restart: on-failure
+    volumes:
+      - "${APP_DATA_DIR}/data/redis:/data"
+
+x-powerlab:
+    store_app_id: twenty
+    title:
+        en_us: Twenty
+    tagline:
+        en_us: An adaptable CRM solution for seamless team collaboration and growth
+    description:
+        en_us: '<p align="center"> <a href="https://www.twenty.com"> <img src="./packages/twenty-website-new/public/images/core/logo.svg" width="100px" alt="Twenty logo" /> </a> </p> <h2 align="center" >The #1 Open-Source CRM</h2> <p align="center"><a href="https://twenty.com"><img src="./packages/twenty-website-new/public/images/readme/globe-icon.svg" width="12" height="12"/> Website</a> · <a href="https://docs.twenty.com"><img src="./packages/twenty-website-new/public/images/readme/book-icon.svg" width="12" height="12"/> Documentation</a> · <a href="https://github.com/orgs/twentyhq/projects/1"><img src="./packages/twenty-website-new/public/images/readme/map-icon.svg" width="12" height="12"/> Roadmap </a> · <a href="https://discord.gg/cx5n4Jzs57"><img src="./packages/twenty-website-new/public/images/readme/discord-icon.svg" width="12" height="12"/> Discord</a> · <a href="https://www.figma.com/file/xt8O9mFeLl46C5InWwoMrN/Twenty"><img src="./packages/twenty-website-new/public/images/readme/figma-icon.webp" width="12" height="12"/> Figma</a></p> <p align="center"> <a href="https://www.twenty.com"> <picture> <source media="(prefers-color-scheme: dark)" srcset="./packages/twenty-website-new/public/images/readme/github-cover-dark.webp" /> <source media="(prefers-color-scheme: light)" srcset="./packages/twenty-website-new/public/images/readme/github-cover-light.webp" /> <img src="./packages/twenty-website-new/public/images/readme/github-cover-light.webp" alt="Twenty banner" /> </picture> </a> </p> <br /> Why Twenty Twenty gives technical teams the building blocks for a custom CRM that meets complex business needs and quickly adapts as the business evolves. Twenty is the CRM you build, ship, and version like the rest of your stack. <a href="https://twenty.com/resources/why-twenty"><img src="./packages/twenty-website-new/public/images/readme/star-icon.svg" width="14" height="14"/> Learn more about why we built Twenty</a> <br /> Installation <img src="./packages/twenty-website-new/public/images/readme/globe-icon.svg" width="14" height="14"/> Cloud The fastest way to get started. Sign up at twenty.com and spin up a workspace in under a minute, with no infrastructure to manage and always up to date. <img src="./packages/twenty-website-new/public/images/readme/book-icon.svg" width="14" height="14"/> Build an app Scaffold a new app with the Twenty CLI: Define objects, fields, and views as code: Then ship it to your workspace: See the app development…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/twenty/icon.svg
+    category: files
+    port_map: "2020"
+    author: Twenty.com PBC
+    developer: Twenty.com PBC
+    source:
+        catalog: umbrel-apps
+        upstream_id: twenty
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: twenty/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:18Z"

@@ -1,0 +1,37 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: heimdall_server_1
+      APP_PORT: 80
+      PROXY_AUTH_ADD: "false"
+
+  server:
+    image: linuxserver/heimdall:2.7.6@sha256:30c32fb4ebe54282b6e60cb0232f57d5fcda60d87a9b7e9a4d1ef71ad636817d
+    volumes:
+      - ${APP_DATA_DIR}/config:/config
+    environment:
+      - PUID=1000
+      - PGID=1000
+    restart: on-failure
+
+x-powerlab:
+    store_app_id: heimdall
+    title:
+        en_us: Heimdall
+    tagline:
+        en_us: Organize your most used web sites in a simple way
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/heimdall/icon.svg
+    category: files
+    port_map: "7392"
+    author: LinuxServer.io
+    developer: LinuxServer.io
+    source:
+        catalog: umbrel-apps
+        upstream_id: heimdall
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: heimdall/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:08Z"

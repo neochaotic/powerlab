@@ -1,0 +1,64 @@
+services:
+  app_proxy:
+    environment:
+      APP_HOST: kan_server_1
+      APP_PORT: 3000
+      PROXY_AUTH_ADD: "false"
+
+  migrate:
+    image: ghcr.io/kanbn/kan-migrate:0.5.6@sha256:a2460e460b70a77ad60a12a8057b2a720cb9e4037a015ea508574887c5bceca1
+    environment:
+      POSTGRES_URL: 'postgresql://kanuser:kanpassword@kan_db_1:5432/kan?sslmode=disable'
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+
+  server:
+    image: ghcr.io/kanbn/kan:0.5.6@sha256:3509af72635922b8195fc08e052f6257f8a05c50c8afcadc636f78c717667673
+    environment:
+      NEXT_PUBLIC_BASE_URL: http://${DEVICE_DOMAIN_NAME}:8373
+      BETTER_AUTH_SECRET: ${APP_SEED}
+      POSTGRES_URL: 'postgresql://kanuser:kanpassword@kan_db_1:5432/kan?sslmode=disable'
+      NEXT_PUBLIC_ALLOW_CREDENTIALS: "true"
+    depends_on:
+      - db
+    restart: on-failure
+
+  db:
+    image: postgres:17.3@sha256:0321e2252ebfeecb8bc1a899755084d29bce872953e1a5a3e25ec0860b739098
+    user: "1000:1000"
+    environment:
+      POSTGRES_DB: kan
+      POSTGRES_USER: kanuser
+      POSTGRES_PASSWORD: kanpassword
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kan -d kan"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/data/db:/var/lib/postgresql/data
+
+x-powerlab:
+    store_app_id: kan
+    title:
+        en_us: kan
+    tagline:
+        en_us: The open source Trello alternative
+    description:
+        en_us: "<div align=\"center\"> <h3 align=\"center\">Kan</h3> <p>The open-source project management alternative to Trello.</p> </div> <p align=\"center\"> <a href=\"https://kan.bn/kan/roadmap\">Roadmap</a> · <a href=\"https://kan.bn\">Website</a> · <a href=\"https://docs.kan.bn\">Docs</a> · <a href=\"https://discord.gg/e6ejRb6CmT\">Discord</a> </p> <div align=\"center\"> <a href=\"https://github.com/kanbn/kan/blob/main/LICENSE\"><img alt=\"License\" src=\"https://img.shields.io/badge/license-AGPLv3-purple\"></a> </div> Features \U0001F4AB - \U0001F441️ **Board Visibility**: Control who can view and edit your boards - \U0001F91D **Workspace Members**: Invite members and collaborate with your team - \U0001F680 **Trello Imports**: Easily import your Trello boards - \U0001F50D **Labels & Filters**: Organise and find cards quickly - \U0001F4AC **Comments**: Discuss and collaborate with your team - \U0001F4DD **Activity Log**: Track all card changes with detailed activity history - \U0001F3A8 **Templates** : Save time with reusable custom board templates - ⚡️ **Integrations (coming soon)** : Connect your favourite tools See our roadmap for upcoming features. Screenshot \U0001F441️ <img width=\"1507\" alt=\"hero-dark\" src=\"https://github.com/user-attachments/assets/8490104a-cd5d-49de-afc2-152fd8a93119\" /> Made With \U0001F6E0️ - Next.js - tRPC - Better Auth - Tailwind CSS - Drizzle ORM - React Email Self Hosting \U0001F433 One-click Deployments The easiest way to deploy Kan is through Railway. We've partnered with Railway to maintain an official template that supports the development of the project. <a href=\"https://railway.com/deploy/kan?referralCode=bZPsr2&utm_medium=integration&utm_source=template&utm_campaign=generic\"> <img src=\"https://railway.app/button.svg\" alt=\"Deploy on Railway\" height=\"40\" /> </a> Docker Compose Alternatively, you can self-host Kan with Docker…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/kan/icon.svg
+    category: files
+    port_map: "8373"
+    author: kanbn
+    developer: kanbn
+    source:
+        catalog: umbrel-apps
+        upstream_id: kan
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: kan/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:09Z"

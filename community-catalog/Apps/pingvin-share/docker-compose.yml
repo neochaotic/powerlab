@@ -1,0 +1,38 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: pingvin-share_web_1
+      APP_PORT: 3000
+      PROXY_AUTH_ADD: "false"
+  
+  web:
+    image: stonith404/pingvin-share:v1.13.0@sha256:6bf2bcd3043ee68cb61264f0857511ccf7f212fdb984382b7f2d491635184ad6
+    user: "1000:1000"
+    restart: on-failure
+    volumes:
+      - "${APP_DATA_DIR}/data/backend:/opt/app/backend/data"
+      - "${APP_DATA_DIR}/data/images:/opt/app/frontend/public/img"
+
+x-powerlab:
+    store_app_id: pingvin-share
+    title:
+        en_us: Pingvin Share
+    tagline:
+        en_us: Self-hosted file sharing platform
+    description:
+        en_us: "> ## ⚠️ Project Archived > > After much consideration, I've chosen to focus my limited time and energy on my other project, Pocket ID. As a solo developer, I've found it difficult to actively maintain multiple open source projects with the care and attention they deserve. > > If you're interested in continuing this work through a fork, I'd be happy to link to it here in the README. > > Thanks to all the contributors and users who have supported Pingvin Share over the years :) <div align=\"center\"><img src=\"https://user-images.githubusercontent.com/58886915/166198400-c2134044-1198-4647-a8b6-da9c4a204c68.svg\" width=\"40\"/> </br>Pingvin Share</div> [](https://discord.gg/wHRQ9nFRcK) [](https://crowdin.com/project/pingvin-share) [](https://github.com/sponsors/stonith404) Pingvin Share is a self-hosted file sharing platform and an alternative for WeTransfer. ✨ Features - Share files using a link - Unlimited file size (restricted only by disk space) - Set an expiration date for shares - Secure shares with visitor limits and passwords - Email recipients - Reverse shares - OIDC and LDAP authentication - Integration with ClamAV for security scans - Different file providers: local storage and S3 \U0001F427 Get to know Pingvin Share - Demo - Review by DB Tech <img src=\"https://user-images.githubusercontent.com/58886915/225038319-b2ef742c-3a74-4eb6-9689-4207a36842a4.png\" width=\"700\"/> ⌨️ Setup Installation with Docker (recommended) 1. Download the file 2. Run The website is now…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/pingvin-share/icon.svg
+    category: files
+    port_map: "6453"
+    author: Elias Schneider
+    developer: Elias Schneider
+    source:
+        catalog: umbrel-apps
+        upstream_id: pingvin-share
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: pingvin-share/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:14Z"

@@ -1,0 +1,55 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: route96_server_1
+      APP_PORT: 8002
+      PROXY_AUTH_ADD: "false"
+
+  server:
+    image: voidic/route96:v0.7.0@sha256:5ab6064f18ca191dd5836487505607122ef3bfeba6e6ccc5b28eef5c604cf4cc
+    user: "1000:1000"
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/data/uploads:/app/data
+      - ${APP_DATA_DIR}/data/config.yaml:/app/config.yaml
+    environment:
+      RUST_LOG: "info"
+      APP_PUBLIC_URL: "http://${APP_DOMAIN}:8002"
+    depends_on:
+      - db
+
+  db:
+    image: mariadb:11.2.4@sha256:e9ea1dbab6783ff0281e41e3357d950a5f598b2033559b8443e03b181807910b
+    user: "1000:1000"
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/data/db:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "moneyprintergobrrr"
+      MYSQL_USER: "route96"
+      MYSQL_PASSWORD: "moneyprintergobrrr"
+      MYSQL_DATABASE: "route96"
+
+x-powerlab:
+    store_app_id: route96
+    title:
+        en_us: Route96
+    tagline:
+        en_us: Blossom/NIP-96 media server for Nostr
+    description:
+        en_us: 'Route96 Decentralized blob storage server with Nostr integration, supporting multiple protocols and advanced media processing capabilities. [](https://apps.umbrel.com/app/route96) Core Features Protocol Support - **NIP-96** - Nostr file storage with media processing - **Blossom Protocol** - Complete BUD specification compliance: - BUD-01 - Blob retrieval (GET/HEAD) - BUD-02 - Upload, delete, list operations - BUD-04 - Blob mirroring from remote servers - BUD-05 - Media optimization endpoints - BUD-06 - Upload requirement validation - BUD-08 - NIP-94 metadata support - BUD-09 - Content reporting system Media Processing - **Image & Video Compression** - Automatic WebP conversion and optimization - **Thumbnail Generation** - Auto-generated thumbnails for images and videos - **Blurhash Calculation** - Progressive image loading with blur previews - **AI Content Labeling** - Automated tagging using configurable HuggingFace ViT models - **Media Metadata** - Automatic extraction of dimensions, duration, bitrate - **Range Request Support** - RFC 7233 compliant partial content delivery Content Moderation - **Automated Flagging** - Files are automatically flagged () when AI labels match configured terms - **User Reports** - Community-driven reporting via NIP-56; flagged files get state - **Review Queue** - Admin API to list all files pending review ( or ) - **Admin Actions** - Mark files as…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/route96/icon.svg
+    category: social
+    port_map: "8002"
+    author: v0l
+    developer: v0l
+    source:
+        catalog: umbrel-apps
+        upstream_id: route96
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: route96/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:15Z"

@@ -1,0 +1,37 @@
+version: "3.7"
+services:
+  app_proxy:
+    environment:
+      APP_HOST: fossflow_web_1
+      APP_PORT: "80"
+
+  web:
+    image: stnsmith/fossflow:master-4426d08@sha256:9709d727bf15c96b32860744ddeef3be693362bbea136574dc7685b61744298b
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/data/diagrams:/data/diagrams
+    environment:
+      - NODE_ENV=production
+      - ENABLE_SERVER_STORAGE=true
+      - STORAGE_PATH=/data/diagrams
+      - ENABLE_GIT_BACKUP=false
+
+x-powerlab:
+    store_app_id: fossflow
+    title:
+        en_us: FossFLOW
+    tagline:
+        en_us: Make beautiful isometric infrastructure diagrams
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/fossflow/icon.svg
+    category: networking
+    port_map: "8176"
+    author: stan-smith
+    developer: stan-smith
+    source:
+        catalog: umbrel-apps
+        upstream_id: fossflow
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: fossflow/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:07Z"

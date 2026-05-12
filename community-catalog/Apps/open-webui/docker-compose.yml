@@ -1,0 +1,40 @@
+version: '3.7'
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: open-webui_web_1
+      APP_PORT: 8080
+      PROXY_AUTH_ADD: "false"
+
+  web:
+    image: ghcr.io/open-webui/open-webui:v0.9.2@sha256:a7e4796ae894d1e2a0c1824860ade472f35c507608a01c3581377b5c19b0ed49
+    volumes:
+      - ${APP_DATA_DIR}/data/open-webui:/app/backend/data
+    environment:
+      # Exported from ollama app, which is currently a required dependency.
+      # This will need to change once optional dependencies are supported.
+      OLLAMA_BASE_URL: $APP_OLLAMA_URL
+    restart: on-failure
+
+x-powerlab:
+    store_app_id: open-webui
+    title:
+        en_us: Open WebUI
+    tagline:
+        en_us: Chat with Ollama models like DeepSeek-R1 and LLama, or use an OpenAI API key
+    description:
+        en_us: "Open WebUI \U0001F44B [](https://discord.gg/5rJgQTnV4s) [](https://github.com/sponsors/tjbck) **Open WebUI is an extensible, feature-rich, and user-friendly self-hosted AI platform designed to operate entirely offline.** It supports various LLM runners like **Ollama** and **OpenAI-compatible APIs**, with **built-in inference engine** for RAG, making it a **powerful AI deployment solution**. Passionate about open-source AI? Join our team → > [!TIP] > **Looking for an Enterprise Plan?** – **Speak with Our Sales Team Today!** > > Get **enhanced capabilities**, including **custom theming and branding**, **Service Level Agreement (SLA) support**, **Long-Term Support (LTS) versions**, and **more!** For more information, be sure to check out our Open WebUI Documentation. Key Features of Open WebUI ⭐ - \U0001F680 **Effortless Setup**: Install seamlessly using Docker or Kubernetes (kubectl, kustomize or helm) for a hassle-free experience with support for both and tagged images. - \U0001F91D **Ollama/OpenAI API Integration**: Effortlessly integrate OpenAI-compatible APIs for versatile conversations alongside Ollama models. Customize the OpenAI API URL to link with **LMStudio, GroqCloud, Mistral, OpenRouter, and more**. - \U0001F6E1️ **Granular Permissions and User Groups**: By allowing administrators to create detailed user roles and permissions, we ensure a secure user environment. This granularity not only enhances security but also allows for customized user experiences, fostering a sense of…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/open-webui/icon.svg
+    category: ai
+    port_map: "2876"
+    author: Open WebUI
+    developer: Open WebUI
+    source:
+        catalog: umbrel-apps
+        upstream_id: open-webui
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: open-webui/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:13Z"

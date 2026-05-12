@@ -1,0 +1,33 @@
+version: "3.7"
+
+services:
+  server:
+    image: homeassistant/home-assistant:2026.4.4@sha256:c1e5f0147f4cb51ccb05bb30b62a1269cc1bd48a6274792d3b38a77ab274dfd2
+    network_mode: host
+    # UI at default port 8123
+    privileged: true
+    volumes:
+      - ${APP_DATA_DIR}/data:/config
+      - ${UMBREL_ROOT}/data/storage/downloads:/media
+      - /dev:/dev
+      - /run/dbus:/run/dbus:ro
+
+x-powerlab:
+    store_app_id: home-assistant
+    title:
+        en_us: Home Assistant
+    tagline:
+        en_us: Home automation that puts local control & privacy first
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/home-assistant/icon.svg
+    category: automation
+    port_map: "8123"
+    author: Home Assistant
+    developer: Home Assistant
+    source:
+        catalog: umbrel-apps
+        upstream_id: home-assistant
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: home-assistant/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:08Z"

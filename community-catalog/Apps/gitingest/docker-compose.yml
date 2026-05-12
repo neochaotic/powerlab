@@ -1,0 +1,37 @@
+version: '3.7'
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: gitingest_app_1
+      APP_PORT: 8000
+
+  app:
+    image: ghcr.io/coderamp-labs/gitingest:v0.3.1@sha256:0107c1e389d9e5e86dc3052defe024bd2439b776a1904ae4ee14f1cfb16e3b77
+    restart: on-failure
+    user: "1000:1000"
+    environment:
+      # Allows main .local address, tailscale magicDNS, and IP addresses of the host machine
+      - ALLOWED_HOSTS=${DEVICE_DOMAIN_NAME},${DEVICE_HOSTNAME},${APP_GITINGEST_LOCAL_IPS}
+
+x-powerlab:
+    store_app_id: gitingest
+    title:
+        en_us: Gitingest
+    tagline:
+        en_us: An effortless way to make Git repositories LLM-friendly
+    description:
+        en_us: "Gitingest [](https://gitingest.com) <!-- Badges --> <!-- markdownlint-disable MD033 --> <p align=\"center\"> <!-- row 1 — install & compat --> <a href=\"https://pypi.org/project/gitingest\"><img src=\"https://img.shields.io/pypi/v/gitingest.svg\" alt=\"PyPI\"></a> <a href=\"https://pypi.org/project/gitingest\"><img src=\"https://img.shields.io/pypi/pyversions/gitingest.svg\" alt=\"Python Versions\"></a> <br> <!-- row 2 — quality & community --> <a href=\"https://github.com/coderamp-labs/gitingest/actions/workflows/ci.yml?query=branch%3Amain\"><img src=\"https://github.com/coderamp-labs/gitingest/actions/workflows/ci.yml/badge.svg?branch=main\" alt=\"CI\"></a> <a href=\"https://github.com/astral-sh/ruff\"><img src=\"https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json\" alt=\"Ruff\"></a> <a href=\"https://scorecard.dev/viewer/?uri=github.com/coderamp-labs/gitingest\"><img src=\"https://api.scorecard.dev/projects/github.com/coderamp-labs/gitingest/badge\" alt=\"OpenSSF Scorecard\"></a> <br> <a href=\"https://github.com/coderamp-labs/gitingest/blob/main/LICENSE\"><img src=\"https://img.shields.io/github/license/coderamp-labs/gitingest.svg\" alt=\"License\"></a> <a href=\"https://pepy.tech/project/gitingest\"><img src=\"https://pepy.tech/badge/gitingest\" alt=\"Downloads\"></a> <a href=\"https://github.com/coderamp-labs/gitingest\"><img src=\"https://img.shields.io/github/stars/coderamp-labs/gitingest\" alt=\"GitHub Stars\"></a> <a href=\"https://discord.com/invite/zerRaGK9EC\"><img src=\"https://img.shields.io/badge/Discord-Join_chat-5865F2?logo=discord&logoColor=white\" alt=\"Discord\"></a> <br> <a href=\"https://trendshift.io/repositories/13519\"><img src=\"https://trendshift.io/api/badge/repositories/13519\" alt=\"Trendshift\" height=\"50\"></a> </p> <!-- markdownlint-enable MD033 --> Turn any Git repository into a prompt-friendly text ingest for LLMs. You can also replace with in any GitHub URL to access the corresponding digest. <!-- Extensions --> gitingest.com · Chrome Extension · Firefox Add-on <!-- Languages --> Deutsch | Español | Français | 日本語 | 한국어 | Português | Русский | 中文 \U0001F680 Features - **Easy code context**: Get a text digest from a Git repository URL or a directory - **Smart Formatting**: Optimized output format for LLM prompts - **Statistics about**: - File and directory structure - Size of the extract - Token count - **CLI tool**: Run it as a shell command - **Python package**: Import it in your code \U0001F4DA Requirements - Python 3.8+ - For private…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/gitingest/icon.svg
+    category: developer
+    port_map: "8895"
+    author: Romain Courtois
+    developer: Romain Courtois
+    source:
+        catalog: umbrel-apps
+        upstream_id: gitingest
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: gitingest/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:07Z"

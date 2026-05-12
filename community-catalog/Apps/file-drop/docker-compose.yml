@@ -1,0 +1,36 @@
+version: "3.7"
+services:
+  app_proxy:
+    environment:
+      APP_HOST: file-drop_app_1
+      APP_PORT: 3232
+
+  app:
+    image: ghcr.io/besoeasy/file-drop:1.1.1@sha256:672d05e260c88bd6d923b2b0b3b845bd80b35e0255cec35b2f047aa7a6525e5f
+    user: "1000:1000"
+    restart: on-failure
+    stop_grace_period: 5m
+    environment:
+      - NODE_ENV=production
+
+x-powerlab:
+    store_app_id: file-drop
+    title:
+        en_us: File Drop
+    tagline:
+        en_us: Decentralized, Anonymous, and Secure File Sharing
+    description:
+        en_us: "<div align=\"center\"> \U0001F310 Originless **Private, decentralized file sharing for Nostr and the web** [](https://github.com/besoeasy/Originless/pkgs/container/originless) [](https://ipfs.tech) [](https://opensource.org/licenses/ISC) **One storage backend to rule them all** — Drop into apps, screenshot tools, pastebin-style pastes, Nostr clients, Reddit posts, forum embeds. Durable, anonymous file hosting that keeps you private. <img width=\"1536\" src=\"https://github.com/user-attachments/assets/5014810c-cc51-4ad4-a1b8-6e4db510c09f\" alt=\"Originless Banner\" /> </div> \U0001F680 Quick Start Open http://localhost:3232 Public Gateways | Gateway | URL | | -------- | -------------------------------- | | besoeasy | https://originless.besoeasy.com/ | | gupt.app | https://originless.gupt.app/ | | 0xchat | https://originless.0xchat.com/ | \U0001F31F Use Cases - **\U0001F30D Decentralized Apps** — Build your frontend and upload the folder to host your live DApp on IPFS - **\U0001F5BC️ Screenshot Tools** — Anonymous image hosting for screenshots and screen recordings - **\U0001F4DD Pastebin Alternative** — Decentralized paste and snippet sharing - **\U0001F4AC Nostr Clients** — Media attachments for decentralized social apps - **\U0001F3A8 Portfolio Hosting** — Permanent galleries and portfolios that survive link rot - **\U0001F4E6 Package Distribution** — Resilient software and asset distribution - **\U0001F3B5 Podcast Hosting** — Decentralized RSS feed media hosting - **\U0001F4BE Backup Storage** — Self-healing backup infrastructure \U0001F504 How It Works 1. **Upload** — Files stream to your local IPFS node (unpinned by default) 2. **Propagate**…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/file-drop/icon.svg
+    category: files
+    port_map: "3232"
+    author: besoeasy
+    developer: besoeasy
+    source:
+        catalog: umbrel-apps
+        upstream_id: file-drop
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: file-drop/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:06Z"

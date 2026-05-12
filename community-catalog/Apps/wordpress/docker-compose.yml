@@ -1,0 +1,53 @@
+version: "3.7"
+services:
+  app_proxy:
+    environment:
+      APP_HOST: wordpress_app_1
+      APP_PORT: 80
+      PROXY_AUTH_ADD: "false"
+
+  app:
+    image: wordpress:6.9.4@sha256:ee74dc0ebbe7ec43b7f473c0fb4f1dfb6b211d7785f0a95bcdfa10e628c2e67f
+    user: "1000:1000"
+    environment:
+      - WORDPRESS_DB_HOST=wordpress_db_1
+      - WORDPRESS_DB_NAME=wordpress
+      - WORDPRESS_DB_USER=umbrel
+      - WORDPRESS_DB_PASSWORD=umbrelwordpress
+    volumes:
+      - ${APP_DATA_DIR}/data/wordpress:/var/www/html
+    restart: on-failure
+    depends_on:
+      - db
+
+  db:
+    image: mariadb:11.5.2@sha256:2d50fe0f77dac919396091e527e5e148a9de690e58f32875f113bef6506a17f5
+    user: "1000:1000"
+    environment:
+      - MYSQL_ROOT_PASSWORD=umbrelwordpressroot
+      - MYSQL_DATABASE=wordpress
+      - MYSQL_USER=umbrel
+      - MYSQL_PASSWORD=umbrelwordpress
+    volumes:
+      - ${APP_DATA_DIR}/data/db:/var/lib/mysql
+    restart: on-failure
+
+x-powerlab:
+    store_app_id: wordpress
+    title:
+        en_us: WordPress
+    tagline:
+        en_us: The open source publishing platform of choice for millions of websites worldwide
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/wordpress/icon.svg
+    category: social
+    port_map: "8567"
+    author: WordPress
+    developer: WordPress
+    source:
+        catalog: umbrel-apps
+        upstream_id: wordpress
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: wordpress/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:19Z"

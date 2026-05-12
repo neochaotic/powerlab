@@ -1,0 +1,33 @@
+version: '3.7'
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: threema_web_1
+      APP_PORT: 80
+
+  web:
+    image: dennysubke/threema-web:v2.6.3@sha256:8c65ceb537a7a85bb98ef38263860dc6bede8faef620143ec01a584dec26878d
+    # cannot run rootless
+    #user: "1000:1000"
+    restart: on-failure
+
+x-powerlab:
+    store_app_id: threema
+    title:
+        en_us: Threema Web
+    tagline:
+        en_us: An intuitive and secure web client for Threema users
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/threema/icon.svg
+    category: files
+    port_map: "8855"
+    author: Threema GmbH
+    developer: Threema GmbH
+    source:
+        catalog: umbrel-apps
+        upstream_id: threema
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: threema/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:17Z"

@@ -1,0 +1,39 @@
+services:
+
+  app_proxy:
+    environment:
+      APP_HOST: zigbee2mqtt_app_1
+      APP_PORT: 8080
+
+  app:
+    image: koenkk/zigbee2mqtt:2.10.1@sha256:67c26dcf8346aced02fe1380a6afd1b57268bcef10faae3f6057c13d5d3dfa80
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/data:/app/data:rw
+      - /run/udev:/run/udev:ro
+    privileged: true
+    environment:
+      ZIGBEE2MQTT_CONFIG_FRONTEND_ENABLED: "true"
+      ZIGBEE2MQTT_CONFIG_FRONTEND_PORT: 8080
+      ZIGBEE2MQTT_CONFIG_MQTT_SERVER: "mqtt://mosquitto_broker_1:1883"
+      Z2M_ONBOARD_NO_REDIRECT: 1
+
+x-powerlab:
+    store_app_id: zigbee2mqtt
+    title:
+        en_us: Zigbee2MQTT
+    tagline:
+        en_us: Zigbee to MQTT bridge, get rid of your proprietary Zigbee bridges
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/zigbee2mqtt/icon.svg
+    category: automation
+    port_map: "60082"
+    author: '@Koenkk'
+    developer: '@Koenkk'
+    source:
+        catalog: umbrel-apps
+        upstream_id: zigbee2mqtt
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: zigbee2mqtt/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:19Z"

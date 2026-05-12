@@ -1,0 +1,41 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: memos_main_1
+      APP_PORT: 5230
+      PROXY_AUTH_ADD: "false"
+
+  main:
+    image: neosmemo/memos:0.28.0@sha256:06066de94333c091ee67c2ad5dec5f15bf5f35b31498c90092f9915dd05e9f92
+    user: "1000:1000"
+    environment:
+      - MEMOS_MODE=prod
+      - MEMOS_PORT=5230
+    restart: on-failure
+    stop_grace_period: 1m
+    volumes:
+      - ${APP_DATA_DIR}/data:/var/opt/memos
+
+x-powerlab:
+    store_app_id: memos
+    title:
+        en_us: Memos
+    tagline:
+        en_us: Easily capture and share your great thoughts
+    description:
+        en_us: "<div align=\"center\"> <p> <span>Featured Sponsor:</span> <a href=\"https://go.warp.dev/memos\" target=\"_blank\" rel=\"noopener\"> <b>Warp</b> <span>— The AI-powered terminal built for speed and collaboration</span> </a> </p> <a href=\"https://go.warp.dev/memos\" target=\"_blank\" rel=\"noopener\"> <img alt=\"Warp sponsorship\" height=\"196\" src=\"https://raw.githubusercontent.com/warpdotdev/brand-assets/refs/heads/main/Github/Sponsor/Warp-Github-LG-03.png\"> </a> </div> Memos <img align=\"right\" height=\"96px\" src=\"https://raw.githubusercontent.com/usememos/.github/refs/heads/main/assets/logo-rounded.png\" alt=\"Memos\" /> Open-source, self-hosted note-taking tool built for quick capture. Markdown-native, lightweight, and fully yours. [](https://usememos.com) [](https://demo.usememos.com/) [](https://usememos.com/docs) [](https://discord.gg/tfPJa4UmAv) [](https://hub.docker.com/r/neosmemo/memos) <img src=\"https://raw.githubusercontent.com/usememos/.github/refs/heads/main/assets/demo.png\" alt=\"Memos Demo Screenshot\" height=\"512\" /> \U0001F48E Featured Sponsors **Warp** — The AI-powered terminal built for speed and collaboration <a href=\"https://go.warp.dev/memos\" target=\"_blank\" rel=\"noopener\"> <img src=\"https://raw.githubusercontent.com/warpdotdev/brand-assets/refs/heads/main/Logos/Warp-Wordmark-Black.png\" alt=\"Warp - The AI-powered terminal built for speed and collaboration\" height=\"44\" /> </a> <p></p> **TestMu AI** - The world’s first full-stack Agentic AI Quality Engineering platform <a href=\"https://www.testmuai.com/?utm_medium=sponsor&utm_source=memos\" target=\"_blank\" rel=\"noopener\"> <img src=\"https://usememos.com/sponsors/testmu.svg\" alt=\"TestMu AI\" height=\"36\" /> </a> <p></p> **SSD Nodes** - Affordable VPS hosting for self-hosters <a href=\"https://ssdnodes.com/?utm_source=memos&utm_medium=sponsor\" target=\"_blank\" rel=\"noopener\"> <img src=\"https://usememos.com/sponsors/ssd-nodes.svg\" alt=\"SSD Nodes\" height=\"72\" /> </a> <p></p> **InstaPods** - Get your app online in seconds • Deploy Memos in 30 Seconds <a href=\"https://instapods.com/?utm_source=memos&utm_medium=sponsor\" target=\"_blank\" rel=\"noopener\"> <img src=\"https://raw.githubusercontent.com/usememos/dotcom/main/public/sponsors/instapods.svg\" alt=\"InstaPods\" height=\"72\" /> </a> Features - **Instant Capture** — Timeline-first UI. Open, write, done — no folders to navigate. - **Total Data Ownership** — Self-hosted on your infrastructure. Notes stored in Markdown, always portable. Zero telemetry. - **Radical Simplicity**…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/memos/icon.svg
+    category: files
+    port_map: "5230"
+    author: Memos
+    developer: Memos
+    source:
+        catalog: umbrel-apps
+        upstream_id: memos
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: memos/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:11Z"

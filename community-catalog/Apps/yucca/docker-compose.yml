@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: yucca_yucca_1
+      APP_PORT: 9910
+      PROXY_AUTH_WHITELIST: "/v1/*"
+
+  yucca:
+    image: yuccastream/yucca:0.12.0@sha256:815909dda5241cc56bf856967bd12c1aa7f44c35831574fae758b849851632ab
+    restart: on-failure
+    shm_size: "128mb"
+    working_dir: /opt/yucca
+    volumes:
+      - "${APP_DATA_DIR}/data/data:/opt/yucca/data"
+      - "${APP_DATA_DIR}/data/ffmpeg:/opt/yucca/ffmpeg"
+    ports:
+      - 10925:10925 # SMTP server
+      - 9912:9912 # telemetry (prometheus)
+    environment: # Read more about configuration here https://docs.yucca.app/en/configuration/
+      YUCCA_SERVER_DATA_DIR: "/opt/yucca/data"
+      YUCCA_SMTP_SERVER_LISTEN_ADDRESS: ":10925"
+
+x-powerlab:
+    store_app_id: yucca
+    title:
+        en_us: Yucca
+    tagline:
+        en_us: Simple NVR video surveillance solution
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/yucca/icon.svg
+    category: automation
+    port_map: "9910"
+    author: Yucca Stream
+    developer: Yucca Stream
+    source:
+        catalog: umbrel-apps
+        upstream_id: yucca
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: yucca/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:19Z"

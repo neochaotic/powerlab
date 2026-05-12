@@ -1,0 +1,59 @@
+version: '3.7'
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: habitica_server_1
+      APP_PORT: 3000
+
+  server:
+    image: awinterstein/habitica-server:5.47.2@sha256:3827aeb8246fd4f4630b738944164d38b00f54a3d55a966eedeced4eddb2aa1d
+    restart: on-failure
+    depends_on:
+      - mongo
+    environment:
+      - NODE_DB_URI=mongodb://habitica_mongo_1/habitica
+      - BASE_URL=http://${DEVICE_DOMAIN_NAME}:3944
+      - INVITE_ONLY=false
+      # EMAIL_SERVER_URL=mail.example.com
+      # EMAIL_SERVER_PORT=587
+      # EMAIL_SERVER_AUTH_USER=mail_user
+      # EMAIL_SERVER_AUTH_PASSWORD=mail_password
+      # ADMIN_EMAIL=mail@example.com
+
+  mongo:
+    image: mongo:8.0.11@sha256:5941949d3887e40be5175787aade07dc052f2cddb8ce21b740c3948eba6a3ed0
+    restart: on-failure
+    command: ["--replSet", "rs", "--bind_ip_all", "--port", "27017"]
+    healthcheck:
+      test: >
+        echo "try { rs.status() } catch (err) { rs.initiate({ _id: 'rs', members: [{ _id: 0, host: 'habitica_mongo_1:27017' }] }) }"
+        | mongosh --port 27017 --quiet
+      interval: 10s
+      timeout: 30s
+      start_period: 0s
+      start_interval: 1s
+      retries: 30
+    volumes:
+      - ${APP_DATA_DIR}/data/db:/data/db:rw
+      - ${APP_DATA_DIR}/data/dbconf:/data/configdb
+
+x-powerlab:
+    store_app_id: habitica
+    title:
+        en_us: Habitica
+    tagline:
+        en_us: An RPG for your life
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/habitica/icon.svg
+    category: files
+    port_map: "3944"
+    author: HabitRPG, Inc.
+    developer: HabitRPG, Inc.
+    source:
+        catalog: umbrel-apps
+        upstream_id: habitica
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: habitica/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:08Z"

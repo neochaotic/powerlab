@@ -1,0 +1,44 @@
+version: '3.7'
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: zoraxy_server_1
+      APP_PORT: 8000
+
+  server:
+    image: zoraxydocker/zoraxy:v3.3.2@sha256:2d4bcfb9fe4073c33242b452374017f61e1e4be2f8dc59d963c0359b6e02d3b5
+    restart: on-failure
+    ports:
+      - 41080:80
+      - 41443:443
+    volumes:
+      - ${APP_DATA_DIR}/data/config/:/opt/zoraxy/config
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      FASTGEOIP: "false"
+      ZEROTIER: "false"
+      DOCKER: "false"
+      NOAUTH: "true"
+
+x-powerlab:
+    store_app_id: zoraxy
+    title:
+        en_us: Zoraxy
+    tagline:
+        en_us: An efficient reverse proxy server with automated SSL management
+    description:
+        en_us: Zoraxy A general purpose HTTP reverse proxy and forwarding tool. Now written in Go! Features - Simple to use interface with detail in-system instructions - Reverse Proxy (HTTP/2) - Virtual Directory - WebSocket Proxy (automatic, no set-up needed) - Basic Auth - Alias Hostnames - Custom Headers - Load Balancing - Redirection Rules - TLS / SSL setup and deploy - ACME features like auto-renew to serve your sites in http**s** - SNI support (and SAN certs) - DNS Challenge for Let's Encrypt and these DNS providers - Blacklist / Whitelist by country or IP address (single IP, CIDR or wildcard for beginners) - Stream Proxy (TCP & UDP) - Integrated Up-time Monitor - Web-SSH Terminal - Plugin System - Utilities - CIDR IP converters - mDNS Scanner - Wake-On-Lan - Debug Forward Proxy - IP Scanner - Port Scanner - Community Contributed Features - Forward-Auth Support (e.g. Authelia, Authentik) - Oauth2 Support - reCAPTCHA - Others - Basic single-admin management mode - External permission management system for easy system integration - SMTP config for password reset - Dark Theme Mode Downloads Windows / Linux (amd64) / Linux (arm64) For other systems or architectures, please see Releases Getting Started Installing…
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/zoraxy/icon.svg
+    category: networking
+    port_map: "8400"
+    author: Toby Chui
+    developer: Toby Chui
+    source:
+        catalog: umbrel-apps
+        upstream_id: zoraxy
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: zoraxy/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:19Z"

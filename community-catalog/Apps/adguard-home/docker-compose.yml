@@ -1,0 +1,35 @@
+version: "3.7"
+
+services:
+  server:
+    image: adguard/adguardhome:v0.107.74@sha256:f29c58a91f79387cbbbb042e140814f58e830d457d44af03d662c8df43db9dea
+    # override the default command to set the web address to port 8095 to avoid conflict with Thunderhub
+    # command from Dockerfile: https://github.com/AdguardTeam/AdGuardHome/blob/master/docker/Dockerfile
+    command: ["--no-check-update", "-c", "/opt/adguardhome/conf/AdGuardHome.yaml", "-w", "/opt/adguardhome/work", "--web-addr", "0.0.0.0:8095"]
+    restart: on-failure
+    network_mode: host
+    volumes:
+      - ${APP_DATA_DIR}/data/work:/opt/adguardhome/work
+      - ${APP_DATA_DIR}/data/conf:/opt/adguardhome/conf
+    cap_add:
+      - NET_ADMIN
+
+x-powerlab:
+    store_app_id: adguard-home
+    title:
+        en_us: AdGuard Home
+    tagline:
+        en_us: Network-wide software for blocking ads and tracking
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/adguard-home/icon.svg
+    category: networking
+    port_map: "8095"
+    author: Adguard
+    developer: Adguard
+    source:
+        catalog: umbrel-apps
+        upstream_id: adguard-home
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: adguard-home/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:03Z"

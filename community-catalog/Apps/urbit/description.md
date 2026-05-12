@@ -1,0 +1,1 @@
+Urbit on Umbrel This is a repository for running an Urbit Pier on Umbrel Install on Umbrel To install on umbrel for testing 1. Make a directory for the yaml script: 2. cd into the umbrel directory: 3. Run the install app script: 4. Navigate to http://umbrel.local:8090/launch to view the control screen. Once your pier is booted landscape is acessible at http://umbrel.local:8090

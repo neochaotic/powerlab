@@ -1,0 +1,84 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: paperless_webserver_1
+      APP_PORT: 8000
+      PROXY_AUTH_ADD: 'false'
+
+  broker:
+    image: docker.io/library/redis:7@sha256:d6ecc832969a4827645a083da38345327b3447772fe907e7d4311c79b4e3a06e
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/data/redisdata:/data
+
+  db:
+    image: docker.io/library/postgres:16@sha256:46aa2ee5d664b275f05d1a963b30fff60fb422b4b594d509765c42db46d48881
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/data/pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: paperless
+      POSTGRES_USER: paperless
+      POSTGRES_PASSWORD: paperless
+
+  webserver:
+    image: ghcr.io/paperless-ngx/paperless-ngx:2.20.15@sha256:6c86cad803970ea782683a8e80e7403444c5bf3cf70de63b4d3c8e87500db92f
+    restart: on-failure
+    depends_on:
+      - db
+      - broker
+      - gotenberg
+      - tika
+    volumes:
+      - ${APP_DATA_DIR}/data/data:/usr/src/paperless/data
+      - ${APP_DATA_DIR}/data/media:/usr/src/paperless/media
+      # TODO: move these inside the paperless app data dir once umbrelOS supports navigating to it via the UI
+      - ${UMBREL_ROOT}/data/storage/paperless/export:/usr/src/paperless/export
+      - ${UMBREL_ROOT}/data/storage/paperless/consume:/usr/src/paperless/consume
+    environment:
+      PAPERLESS_REDIS: redis://paperless_broker_1:6379
+      PAPERLESS_DBHOST: paperless_db_1
+      PAPERLESS_TIKA_ENABLED: 1
+      PAPERLESS_TIKA_GOTENBERG_ENDPOINT: http://paperless_gotenberg_1:3000
+      PAPERLESS_TIKA_ENDPOINT: http://paperless_tika_1:9998
+      PAPERLESS_ADMIN_USER: admin
+      PAPERLESS_ADMIN_PASSWORD: $APP_PASSWORD
+
+  gotenberg:
+    image: docker.io/gotenberg/gotenberg:7.10@sha256:d03b8a04c6e6c5e568b38f57352266dee4674849b71818774025f8f48d869a9a
+    restart: on-failure
+
+    # The gotenberg chromium route is used to convert .eml files. We do not
+    # want to allow external content like tracking pixels or even javascript.
+    command:
+      - "gotenberg"
+      - "--chromium-disable-javascript=true"
+      - "--chromium-allow-list=file:///tmp/.*"
+
+  tika:
+    image: apache/tika:3.2.3.0@sha256:c0154cb95587cde64be74f35ada1a2bd7892219f3f0ac3c9dc6cab34046b3573
+    restart: on-failure
+
+x-powerlab:
+    store_app_id: paperless
+    title:
+        en_us: Paperless-ngx
+    tagline:
+        en_us: Transform your physical documents into a searchable online archive
+    description:
+        en_us: '[](https://github.com/paperless-ngx/paperless-ngx/actions) [](https://crowdin.com/project/paperless-ngx) [](https://docs.paperless-ngx.com) [](https://codecov.io/gh/paperless-ngx/paperless-ngx) [](https://matrix.to/#/%23paperlessngx%3Amatrix.org) [](https://demo.paperless-ngx.com) <p align="center"> <picture> <source media="(prefers-color-scheme: dark)" srcset="https://github.com/paperless-ngx/paperless-ngx/blob/main/resources/logo/web/png/White%20logo%20-%20no%20background.png" width="50%"> <source media="(prefers-color-scheme: light)" srcset="https://github.com/paperless-ngx/paperless-ngx/raw/main/resources/logo/web/png/Black%20logo%20-%20no%20background.png" width="50%"> <img src="https://github.com/paperless-ngx/paperless-ngx/raw/main/resources/logo/web/png/Black%20logo%20-%20no%20background.png" width="50%"> </picture> </p> <!-- omit in toc --> Paperless-ngx Paperless-ngx is a document management system that transforms your physical documents into a searchable online archive so you can keep, well, _less paper_. Paperless-ngx is the official successor to the original Paperless & Paperless-ng projects and is designed to distribute the responsibility of advancing and supporting the project among a team of people. Consider joining us! Thanks to the generous folks at DigitalOcean, a demo is available at demo.paperless-ngx.com using login / . _Note: demo content is reset frequently and confidential information should not be uploaded._ - Features - Getting started - Contributing - Community Support - Translation - Feature Requests - Bugs - Related Projects - Important Note <p align="right">This project is supported by:<br/> <a href="https://m.do.co/c/8d70b916d462" style="padding-top: 4px; display: block;"> <picture> <source media="(prefers-color-scheme: dark)" srcset="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_horizontal_white.svg" width="140px"> <source media="(prefers-color-scheme: light)" srcset="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_horizontal_blue.svg" width="140px"> <img src="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_horizontal_black_.svg" width="140px"> </picture> </a> </p> Features <picture> <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/paperless-ngx/paperless-ngx/main/docs/assets/screenshots/documents-smallcards-dark.png"> <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/paperless-ngx/paperless-ngx/main/docs/assets/screenshots/documents-smallcards.png"> <img src="https://raw.githubusercontent.com/paperless-ngx/paperless-ngx/main/docs/assets/screenshots/documents-smallcards.png"> </picture> A full list of features and screenshots are available in the documentation. Getting started The easiest way to deploy…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/paperless/icon.svg
+    category: files
+    port_map: "2349"
+    author: Paperless-ngx Community
+    developer: Paperless-ngx Community
+    source:
+        catalog: umbrel-apps
+        upstream_id: paperless
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: paperless/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:13Z"

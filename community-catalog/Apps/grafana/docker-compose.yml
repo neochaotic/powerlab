@@ -1,0 +1,38 @@
+version: "3.7"
+
+services:
+  
+  app_proxy:
+    environment:
+      APP_HOST: grafana_web_1
+      APP_PORT: 3000
+      PROXY_AUTH_WHITELIST: "/api/*"
+      
+  web:
+    image: grafana/grafana:13.0.1@sha256:0f86bada30d65ef9d0183b90c1e2682ac92d53d95da8bed322b984ea78a4a73a
+    user: 1000:1000
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/data:/var/lib/grafana
+
+x-powerlab:
+    store_app_id: grafana
+    title:
+        en_us: Grafana
+    tagline:
+        en_us: The open-source platform for monitoring and observability
+    description:
+        en_us: 'The open-source platform for monitoring and observability [](LICENSE) [](https://goreportcard.com/report/github.com/grafana/grafana) Grafana allows you to query, visualize, alert on and understand your metrics no matter where they are stored. Create, explore, and share dashboards with your team and foster a data-driven culture: - **Visualizations:** Fast and flexible client side graphs with a multitude of options. Panel plugins offer many different ways to visualize metrics and logs. - **Dynamic Dashboards:** Create dynamic & reusable dashboards with template variables that appear as dropdowns at the top of the dashboard. - **Explore Metrics:** Explore your data through ad-hoc queries and dynamic drilldown. Split view and compare different time ranges, queries and data sources side by side. - **Explore Logs:** Experience the magic of switching from metrics to logs with preserved label filters. Quickly search through all your logs or streaming them live. - **Alerting:** Visually define alert rules for your most important metrics. Grafana will continuously evaluate and send notifications to systems like Slack, PagerDuty, VictorOps, OpsGenie. - **Mixed Data Sources:** Mix different data sources in the same graph! You can specify a data source on a per-query basis. This works for even custom datasources. Get started - Get Grafana - Installation guides Unsure if…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/grafana/icon.svg
+    category: networking
+    port_map: "3030"
+    author: Grafana Labs
+    developer: Grafana Labs
+    source:
+        catalog: umbrel-apps
+        upstream_id: grafana
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: grafana/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:07Z"

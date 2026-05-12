@@ -1,0 +1,39 @@
+version: '3.7'
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: ollama_ollama_1
+      APP_PORT: 11434
+      PROXY_AUTH_ADD: "false"
+
+  ollama:
+    image: ollama/ollama:0.23.0@sha256:5600a652d1081050f398152127c584222546354491f27fe47ccbc6351bc870bd
+    environment:
+      OLLAMA_ORIGINS: "*"
+      OLLAMA_CONTEXT_LENGTH: 8192
+    volumes:
+      - ${APP_DATA_DIR}/data:/root/.ollama
+    restart: on-failure
+
+x-powerlab:
+    store_app_id: ollama
+    title:
+        en_us: Ollama
+    tagline:
+        en_us: Self-host open source AI models like DeepSeek-R1, Llama, and more
+    description:
+        en_us: "<p align=\"center\"> <a href=\"https://ollama.com\"> <img src=\"https://github.com/ollama/ollama/assets/3325447/0d0b44e2-8f4a-4e99-9b52-a5c1c741c8f7\" alt=\"ollama\" width=\"200\"/> </a> </p> Ollama Start building with open models. Download macOS or download manually Windows or download manually Linux Manual install instructions Docker The official Ollama Docker image is available on Docker Hub. Libraries - ollama-python - ollama-js Community - Discord - \U0001D54F (Twitter) - Reddit Get started You'll be prompted to run a model or connect Ollama to your existing agents or applications such as , , , , , and more. Coding To launch a specific integration: Supported integrations include Claude Code, Codex, Copilot CLI, Droid, and OpenCode. AI assistant Use OpenClaw to turn Ollama into a personal AI assistant across WhatsApp, Telegram, Slack, Discord, and more: Chat with a model Run and chat with Gemma 3: See ollama.com/library for the full list. See the quickstart guide for more details. REST API Ollama has a REST API for running and managing models. See the API documentation for all endpoints. Python JavaScript Supported backends - llama.cpp project founded by Georgi Gerganov. Documentation - CLI reference - REST API reference - Importing models - Modelfile reference - Building from source Community Integrations > Want to add your project? Open a pull request. Chat…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/ollama/icon.svg
+    category: ai
+    port_map: "11434"
+    author: Ollama
+    developer: Ollama
+    source:
+        catalog: umbrel-apps
+        upstream_id: ollama
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: ollama/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:13Z"

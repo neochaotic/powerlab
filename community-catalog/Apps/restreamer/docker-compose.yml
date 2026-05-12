@@ -1,0 +1,42 @@
+version: '3.7'
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: restreamer_web_1
+      APP_PORT: 8080
+
+  web:
+    image: datarhei/restreamer:2.12.0@sha256:813acc9d41d2953b1e7fbb5b281f9a1f68d07fef4e1b30e34472b12d3db9426a
+    environment:
+      - PUID=1000
+      - PGID=1000
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/config:/core/config
+      - ${APP_DATA_DIR}/data:/core/data
+    ports:
+      - 8181:8181
+      - 1935:1935
+      - 1936:1936
+      - 6000:6000/udp
+
+x-powerlab:
+    store_app_id: restreamer
+    title:
+        en_us: Restreamer
+    tagline:
+        en_us: An easy to use open source video server
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/restreamer/icon.svg
+    category: files
+    port_map: "8135"
+    author: datarhei
+    developer: datarhei
+    source:
+        catalog: umbrel-apps
+        upstream_id: restreamer
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: restreamer/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:15Z"

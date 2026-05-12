@@ -1,0 +1,61 @@
+version: "3.7"
+
+services:
+
+  app_proxy:
+    environment:
+      APP_HOST: akaunting_app_1
+      APP_PORT: 80
+
+  app:
+    image: akaunting/akaunting:3.1.21@sha256:918bbc77981e5b96ab6aa6838491cfa7c98cb4ee7bbf9532ee083e7e66d04255
+    # does not work rootless
+    #user: "1000:1000"
+    restart: on-failure
+    environment:
+      AKAUNTING_SETUP: "true"
+      LOCALE: en-US
+      DB_HOST: akaunting_db_1
+      DB_PORT: 3306
+      DB_NAME: akaunting
+      DB_USERNAME: admin
+      DB_PASSWORD: akaunting_password
+      DB_PREFIX: asd_
+      COMPANY_NAME: "My Company"
+      COMPANY_EMAIL: my@company.com
+      ADMIN_EMAIL: umbrel@umbrel.local
+      ADMIN_PASSWORD: ${APP_PASSWORD}
+    depends_on:
+      - db
+
+  db:
+    image: mariadb:11.8.2@sha256:2bcbaec92bd9d4f6591bc8103d3a8e6d0512ee2235506e47a2e129d190444405
+    user: "1000:1000"
+    restart: on-failure
+    environment:
+      MYSQL_DATABASE: akaunting
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: akaunting_password
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+    volumes:
+      - ${APP_DATA_DIR}/db:/var/lib/mysql
+
+x-powerlab:
+    store_app_id: akaunting
+    title:
+        en_us: Akaunting
+    tagline:
+        en_us: An intuitive accounting solution for small businesses and freelancers
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/akaunting/icon.svg
+    category: finance
+    port_map: "8773"
+    author: Akaunting Inc.
+    developer: Akaunting Inc.
+    source:
+        catalog: umbrel-apps
+        upstream_id: akaunting
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: akaunting/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:04Z"

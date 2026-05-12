@@ -1,0 +1,37 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: enclosed_web_1
+      APP_PORT: 8787
+  
+  web:
+    image: corentinth/enclosed:1.16.0-rootless@sha256:0631baee489b974cf16ffe3884c814e7bcc75df7bd36662b8ded76443b768d06
+    user: 1000:1000
+    restart: on-failure
+    stop_grace_period: 1m
+    volumes:
+      - ${APP_DATA_DIR}/data:/app/.data
+
+x-powerlab:
+    store_app_id: enclosed
+    title:
+        en_us: Enclosed
+    tagline:
+        en_us: Send private and secure notes
+    description:
+        en_us: '<p align="center"> <picture> <source srcset="./.github/icon-dark.png" media="(prefers-color-scheme: light)"> <source srcset="./.github/icon-light.png" media="(prefers-color-scheme: dark)"> <img src="./.github/icon-dark.png" alt="Header banner"> </picture> </p> <h1 align="center"> Enclosed - Send private and secure notes </h1> <p align="center"> Minimalistic web application designed for sending end-to-end encrypted notes and files. </p> <p align="center"> <a href="https://enclosed.cc">Demo</a> <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span> <a href="https://docs.enclosed.cc">Docs</a> <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span> <a href="https://www.npmjs.com/package/@enclosed/cli">CLI</a> <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span> <a href="https://docs.enclosed.cc/self-hosting/docker">Self-hosting</a> </p> Introduction **Enclosed** is a minimalistic web application designed for sending private and secure notes. All notes are end-to-end encrypted, ensuring that the server and storage have zero knowledge of the content. Users can set a password, define an expiration period (TTL), and choose to have the note self-destruct after being read. A live instance is available at enclosed.cc. [](https://enclosed.cc) Features - **End-to-End Encryption**: Your notes are encrypted on the client side, using AES-GCM with a 256-bit key derived using PBKDF2. - **File Attachments**: Share files securely with your notes. - **Zero Knowledge**: The server does not have access to the content of the notes or files. - **Configurable Security Options**: Set a password, expiration time, and choose self-destruction after the note is read. - **Minimalistic UI**: Simple and intuitive user interface for quick note sharing. - **i18n Support**: Available in multiple languages. - **Authentication**: Optional…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/enclosed/icon.svg
+    category: files
+    port_map: "8788"
+    author: Corentin Thomasset
+    developer: Corentin Thomasset
+    source:
+        catalog: umbrel-apps
+        upstream_id: enclosed
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: enclosed/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:06Z"

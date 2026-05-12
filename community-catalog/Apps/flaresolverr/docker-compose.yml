@@ -1,0 +1,43 @@
+services:
+  app_proxy:
+    environment:
+      APP_HOST: flaresolverr_web_1
+      APP_PORT: 8000
+
+  web:
+    image: mrsunglasses/flaresolverr-status:0.0.2@sha256:5a12b6ee183b64b87546b5f30537abaf333f7b2cd83856e6e2bcca874d165dc9
+    environment:
+      - URL=http://flaresolverr_server_1:8191/v1
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  server:
+    image: ghcr.io/flaresolverr/flaresolverr:v3.4.6@sha256:7962759d99d7e125e108e0f5e7f3cdbcd36161776d058d1d9b7153b92ef1af9e
+    environment:
+      LOG_LEVEL: info
+    restart: on-failure
+
+x-powerlab:
+    store_app_id: flaresolverr
+    title:
+        en_us: flaresolverr
+    tagline:
+        en_us: Proxy server to bypass Cloudflare and DDoS-GUARD protection
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/flaresolverr/icon.svg
+    category: networking
+    port_map: "8191"
+    author: FlareSolverr
+    developer: FlareSolverr
+    source:
+        catalog: umbrel-apps
+        upstream_id: flaresolverr
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 0299c400450d07fee62d3dcb0e6c24b00f359b51
+        upstream_path: flaresolverr/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-12T03:53:07Z"
