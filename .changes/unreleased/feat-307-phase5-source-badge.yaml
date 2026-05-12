@@ -1,0 +1,11 @@
+kind: Added
+body: 'AppCard now shows a discrete **source badge** in the metadata row indicating
+  which upstream catalog the app came from (#307 Phase 5). Apple-style: tiny muted
+  text after the category, never a colored pill or brand chip. Source is detected
+  from `store_info.source.catalog` when the backend populates it (Umbrel-synced
+  apps), otherwise inferred from the icon URL: `getumbrel.github.io` → umbrel,
+  `IceWhaleTech/CasaOS-AppStore` → casaos, `bigbeartechworld/big-bear` → big-bear.
+  Apps with no recognized source show the generic label "store" so every tile
+  surfaces some provenance. The badge is a click-through link to the upstream
+  repository when known (opens in a new tab; click does NOT bubble to the outer
+  card handler). Native `title` tooltip carries the synced_at date when present.'

@@ -44,6 +44,20 @@ export interface ComposeAppStoreInfo {
 	main?: string;
 	tips?: AppTips;
 	is_uncontrolled?: boolean;
+	// Provenance block — populated by the umbrel-catalog sync pipeline
+	// (#307 Phase 1+). Absent for apps loaded from CasaOS-AppStore /
+	// Big-Bear / local-store — the UI falls back to an icon-URL
+	// heuristic in `lib/utils/app-source.ts` so every app surfaces
+	// SOME source label, never empty.
+	source?: {
+		catalog: string;
+		upstream_id?: string;
+		upstream_repo?: string;
+		upstream_commit?: string;
+		upstream_path?: string;
+		transform_version?: string;
+		synced_at?: string;
+	};
 }
 
 export interface ComposeAppWithStoreInfo {
