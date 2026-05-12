@@ -176,7 +176,7 @@ func main() {
 			UpstreamRepo:     *upstreamRepo,
 			UpstreamCommit:   upstreamCommit,
 			TransformVersion: CurrentTransformVersion,
-		}, manifest, desc)
+		}, manifest, composeData, desc)
 		if err != nil {
 			log.Printf("[err]   %-40s — emit: %v", appID, err)
 			counts.parseError++

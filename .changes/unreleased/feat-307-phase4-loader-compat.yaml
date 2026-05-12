@@ -1,0 +1,13 @@
+kind: Internal
+body: 'Umbrel-catalog sync pipeline — Phase 4 (#307) — refactors emit.go to
+  CasaOS-compatible output shape so `backend/app-management/service.BuildCatalog`
+  picks up the synced apps without further wiring. Layout changes from
+  `apps/<id>/appfile.json` (custom format I''d invented in Phase 1 based on a
+  misread of ADR-0021) to `Apps/<id>/docker-compose.yml` (verbatim upstream
+  YAML with a top-level `x-powerlab:` block appended containing store_app_id,
+  title, tagline, icon URL, category, port_map, author + the `source` provenance
+  sub-block). 6 emit tests updated; dry-run against 330 upstream apps unchanged
+  (241/44/45/0/0). The legal posture in ADR-0024 still holds — the upstream
+  docker-compose.yml is functional config (factual: image refs, ports, env
+  names), the only expressive content (descriptions, screenshots) was already
+  dropped at the parser stage.'
