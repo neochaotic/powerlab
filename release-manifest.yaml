@@ -31,6 +31,41 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
+  Sprint 12 — Umbrel catalogue apps now **actually open** when clicked.
+  v0.6.3 surfaced the apps in the store + launchpad, but every Umbrel
+  app's tile click "opened a new window that never loaded" because the
+  compose's host port (substituted to 18000+) didn't match the
+  `x-powerlab.port_map` value (the manifest's `port:`) that the
+  launchpad uses to build the URL. v0.6.4 ships the Phase 8 fix
+  + 3 new APP_HOST resolution strategies + a proactive CI gate
+  against future Umbrel pattern surprises.
+
+  1. **Port substitution aligned with `port_map`.** First `${APP_*_PORT}`
+     in a service maps to `manifest.Port` (== `x-powerlab.port_map`),
+     subsequent placeholders to `port + 1, +2, …`. Launchpad URL
+     `http://host:<port_map>/` now hits the container.
+
+  2. **Synthesize `ports:` for app_proxy-only apps.** Apps like
+     `enclosed` had no `ports:` section — Umbrel's runtime relies on
+     `app_proxy` to route external traffic. After we strip app_proxy,
+     the container would be internal-only. Fix: extract
+     `app_proxy.environment.APP_HOST` / `APP_PORT` BEFORE the strip,
+     synthesize a `ports: ["<port_map>:<APP_PORT>"]` mapping on the
+     target service. 4 fallback strategies for resolving APP_HOST →
+     service name: hostname match, container_name match, the standard
+     `<storeAppID>_<svcName>_<replica>` form, shell-var (first-svc
+     fallback).
+
+  3. **CI gate vs future upstream surprises.**
+     `TestProductionCatalog_NoUnknownPlaceholdersInDangerousPositions`
+     walks every emitted compose's volumes + ports positions and fails
+     if any `${VAR}` or `$VAR` shell placeholder remains — with the
+     offending pattern in the error so the fix lands in
+     `transform.go` deterministically. If Umbrel adds a new variable
+     kind next week, CI red-fails before the broken catalog ships.
+
+  Sprint 12 framing (preserved for context):
+
   Sprint 12 — Umbrel catalogue actually loads, **on upgrade too**.
   v0.6.3 ships the rebuilt tarball with the Phase 7.5 transform applied
   to every YAML in `community-catalog/`, plus a CI gate that walks the
