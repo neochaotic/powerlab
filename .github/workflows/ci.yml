@@ -77,6 +77,30 @@ jobs:
         working-directory: ui
         run: npm install
 
+      # ─── Defense-in-depth gates (v0.6.6 retro, see docs/UPDATE_MANIFEST.md
+      # "Defense in depth" section). The v0.6.6 cycle shipped a UI bundle
+      # stamped with __APP_VERSION__ = "0.3.1" (pkg.json fallback from
+      # the v0.3.1 era, never bumped across 30+ tags). The script gates
+      # below fail-fast if either:
+      #   L2 — ui/package.json version != latest git tag
+      #   L1+L3 — package-linux.sh missing the `npm version` sync or
+      #           the built-bundle sanity grep
+      # ────────────────────────────────────────────────────────────────────
+      - name: L2 — ui/package.json version freshness
+        run: bash scripts/check-ui-package-version-fresh_test.sh
+
+      - name: L1+L3 — package-linux.sh defense-in-depth wiring
+        run: bash scripts/check-package-linux-ui-version_test.sh
+
+      - name: L3 — injection test (gate detects wrong-version bundle)
+        run: bash scripts/check-built-ui-version_test.sh
+
+      - name: Cut-script structural + sandboxed behavioral tests
+        run: bash scripts/prepare-release_test.sh
+
+      - name: release-manifest summary ≤ 250 chars
+        run: bash scripts/check-manifest-summary-size_test.sh
+
       - name: Type check (svelte-check)
         working-directory: ui
         run: npx svelte-check --tsconfig ./tsconfig.json --threshold error
