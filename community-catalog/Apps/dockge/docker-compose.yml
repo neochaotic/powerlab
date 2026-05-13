@@ -44,11 +44,12 @@ x-powerlab:
     port_map: "5005"
     author: Louis Lam
     developer: Louis Lam
+    main: dockge
     source:
         catalog: umbrel-apps
         upstream_id: dockge
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
+        upstream_commit: 931a2146a30e8398b127434cf4fd2f20ae77bb4f
         upstream_path: dockge/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:42:51Z"
+        synced_at: "2026-05-13T17:26:35Z"

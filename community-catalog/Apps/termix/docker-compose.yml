@@ -1,7 +1,7 @@
 name: termix
 services:
     web:
-        image: ghcr.io/lukegus/termix:release-2.1.0@sha256:52e45c1ea3fb85be5b3ade5ff42eed0946fe81131cbd834f6960e00797f17f86
+        image: ghcr.io/lukegus/termix:release-2.2.1@sha256:577c0e7024fa7767ffbd00e19a1e0ce28fb0027aab37c3f7d49e2c18bc001210
         ports:
             - 6444:8080
         restart: on-failure
@@ -22,11 +22,12 @@ x-powerlab:
     port_map: "6444"
     author: LukeGus
     developer: LukeGus
+    main: web
     source:
         catalog: umbrel-apps
         upstream_id: termix
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
+        upstream_commit: 931a2146a30e8398b127434cf4fd2f20ae77bb4f
         upstream_path: termix/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:43:47Z"
+        synced_at: "2026-05-13T17:27:02Z"

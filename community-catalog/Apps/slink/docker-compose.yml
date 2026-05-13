@@ -12,7 +12,7 @@ services:
             USER_APPROVAL_REQUIRED: "false"
             USER_PASSWORD_MIN_LENGTH: 8
             USER_PASSWORD_REQUIREMENTS: 15
-        image: anirdev/slink:v1.11.1@sha256:4f74ed25da4290ea30d5041b3adc2e563609f4a81590b0164ce9681b63a7f698
+        image: anirdev/slink:v1.11.2@sha256:bd8d41b3a5bd1f73e85921695d3b9de7aa39492ae53d7c0e8f01d4d0e318eafc
         ports:
             - 8811:3000
         restart: on-failure
@@ -35,11 +35,12 @@ x-powerlab:
     port_map: "8811"
     author: Andrii Kryvoviaz
     developer: Andrii Kryvoviaz
+    main: web
     source:
         catalog: umbrel-apps
         upstream_id: slink
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
+        upstream_commit: 931a2146a30e8398b127434cf4fd2f20ae77bb4f
         upstream_path: slink/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:43:44Z"
+        synced_at: "2026-05-13T17:27:00Z"

@@ -150,6 +150,18 @@ func Emit(ctx EmitContext, manifest UmbrelManifest, upstreamCompose []byte, desc
 		return "", fmt.Errorf("transform upstream compose for %s: %w", manifest.ID, err)
 	}
 
+	// Sprint 13.4.x audit finding: 89 multi-service apps had no
+	// `x-powerlab.main` set, so the backend fell back to "first
+	// service alphabetically" — wrong for apps like `agora` (svcs:
+	// agora/filebrowser/nginx, real entry is `agora`). The transform
+	// already detected the target service via app_proxy's APP_HOST;
+	// we re-run the same extraction on the UN-transformed upstream
+	// to fill `info.Main` so backend's compose-app-query routing
+	// hits the right container.
+	if mainSvc, _, ok := extractAppProxyTargetFromUpstream(upstreamCompose, manifest.ID); ok {
+		info.Main = mainSvc
+	}
+
 	// Marshal the x-powerlab block separately and append. The
 	// upstream compose has been YAML-round-tripped by transform
 	// (formatting + comments lost — acceptable since the file is
