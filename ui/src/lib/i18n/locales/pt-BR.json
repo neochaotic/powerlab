@@ -339,6 +339,7 @@
   "apps.appRunningDesc": "Seu app está rodando e pronto para usar.",
   "apps.installInBackground": "Instalar em segundo plano",
   "apps.installLog": "Log da instalação",
+  "apps.preparing": "Preparando…",
   "apps.stayInStore": "Continuar na loja",
   "apps.retry": "Tentar novamente",
   "apps.checkLaunchpad": "Verificar Launchpad",
