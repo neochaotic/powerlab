@@ -436,15 +436,14 @@ services:
 	// checkInstallResult.
 	async function finalizeDeploy(id: string) {
 		try {
-			const resp = await fetch(`${ENDPOINTS.APP_COMPOSE_LIST}`, {
-				headers: { Authorization: getAuthToken() ?? '' }
-			});
-			let installed: { id: string }[] = [];
-			if (resp.ok) {
-				const j = await resp.json();
-				installed = (j?.data ?? []) as { id: string }[];
-			}
-			const found = installed.some((a) => a.id === id);
+			// Use the api client (handles auth header per UI convention
+			// — raw token, no Bearer prefix). Vanilla fetch with manual
+			// Authorization: getAuthToken() did NOT include the proper
+			// header shape and returned 401, leaving the modal stuck.
+			const installed = (await api.get<{ id: string }[]>(
+				ENDPOINTS.APP_COMPOSE_LIST
+			)) as { id: string }[] | undefined;
+			const found = (installed ?? []).some((a) => a.id === id);
 			if (found) {
 				deployResult = {
 					success: true,
@@ -452,7 +451,8 @@ services:
 				};
 			} else {
 				// Pull the most informative line from the SSE logs to
-				// surface as the error context.
+				// surface as the error context — matches Community
+				// Install's checkInstallResult error-extraction pattern.
 				const lastErr = deployLogs
 					.slice()
 					.reverse()
@@ -471,6 +471,26 @@ services:
 			isDeploying = false;
 		}
 	}
+
+	// Safety net: if event:end never fires within 10 min, drop out of
+	// 'deploying' state with a timeout surface (mirrors the existing
+	// deployTimedOut path used by stopLogStreaming-on-error). Without
+	// this, a broken SSE leaves the modal hostage indefinitely.
+	$effect(() => {
+		if (!isDeploying) return;
+		const timer = setTimeout(() => {
+			if (isDeploying && !deployResult) {
+				untrack(() => {
+					deployResult = {
+						success: false,
+						message: t('orchestrator.deployTimedOut')
+					};
+					isDeploying = false;
+				});
+			}
+		}, 600_000);
+		return () => clearTimeout(timer);
+	});
 
 	function handleFormChange() {
 		syncFormToYaml();

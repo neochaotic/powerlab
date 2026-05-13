@@ -379,6 +379,7 @@
   "apps.minimizeProgress": "Minimizar (la instalación continúa en segundo plano)",
   "apps.clickToExpand": "Haga clic para expandir",
   "apps.takingLonger": "Tardando más de lo esperado",
+  "orchestrator.deployTimedOut": "El despliegue tardó demasiado — revise el launchpad o intente nuevamente",
   "metrics.realtimePerformance": "Rendimiento en Tiempo Real",
   "metrics.connectingDocker": "Conectando con Docker...",
   "metrics.processor": "Procesador",

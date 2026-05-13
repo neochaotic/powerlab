@@ -1270,9 +1270,18 @@
 		{#if installPhase === 'installing' || installPhase === 'starting'}
 			<button
 				class="absolute right-6 top-6 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-zinc-400 transition-colors hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
-				onclick={() => installModalMinimized = true}
+				onclick={() => {
+					// v0.6.8 #341: minimize navigates to the launchpad so
+					// the user can SEE the ghost tile (#330) carrying the
+					// progress arc, instead of being stranded back on
+					// the empty-feeling store page. The install state
+					// store keeps the in-flight install addressable, so
+					// the modal can be restored from the ghost tile.
+					installModalMinimized = true;
+					goto('/');
+				}}
 				aria-label="Minimize install progress"
-				title="Minimize (install continues in background)"
+				title="Minimize (install continues in background — view in launchpad)"
 			>
 				<Minimize2 class="h-4 w-4" />
 			</button>
