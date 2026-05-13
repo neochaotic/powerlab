@@ -283,6 +283,49 @@ Phases 1–3 are the survivability + diagnostic baseline. Phases 4–5
 are the polished UI surface; absence of them does not block the
 "diagnose a broken host" use case (Surface A covers it).
 
+## Wire format — HTTP+SSE+JSON, not protobuf
+
+All log endpoints (`/v1/logs/journal`, `/v1/logs/app/:name`,
+`/v1/logs/install`, `/v1/logs/audit`, `/v1/logs/frontend`) speak
+plain HTTP + Server-Sent Events with JSON payloads. The OpenAPI
+contract lives alongside the other v1 paths; `oapi-codegen` emits
+the typed Go client used by the `powerlab-logs` CLI when it talks
+to a remote PowerLab (see "Future: remote-PowerLab log access"
+below).
+
+Why not protobuf/gRPC: the project's standing convention
+(memory `feedback_no_protobuf_yet`) is that protobuf only buys us
+something over `oapi-codegen`-generated JSON contracts when (a) a
+non-Go consumer joins the roadmap, or (b) we need bidirectional
+streaming. Neither applies here: Surface A is read-only over
+files and Unix sockets; Surface B is server→client SSE; remote
+access (if it lands) is the same SSE over the wire. JSON keeps
+ad-hoc debugging trivial (`curl http://host:8765/v1/logs/journal`)
+and the browser consumes SSE natively without a gRPC-Web shim.
+
+If multi-box observability ever becomes a real requirement, the
+right move is OTLP (OpenTelemetry Protocol) as an additional
+export mode (`powerlab-logs journal --otlp-endpoint=…`), not a
+roll-our-own protobuf schema. OTLP IS protobuf-based, but it is
+an industry standard with broad tooling (Loki, Tempo, Grafana,
+Datadog, Jaeger all consume it). Reinventing it is a worse use
+of energy than emitting it when needed.
+
+### Future: remote-PowerLab log access
+
+The CLI can take a `--remote` flag to point at another PowerLab
+host:
+
+```
+powerlab-logs journal --remote https://box-a.local:8765 \
+  --auth-token $TOKEN
+```
+
+Internally that is HTTP+SSE+JSON against the same `/v1/logs/*`
+endpoints the local UI uses. No new protocol, no new infra. Out
+of scope for Sprint 14 — listed here so the architecture stays
+forward-compatible.
+
 ## Trade-offs and what we are not doing
 
 - **No centralized log shipping** (Loki, ELK, journald-remote).
