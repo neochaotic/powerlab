@@ -214,6 +214,81 @@ jobs:
           retention-days: 14
 
   # ─────────────────────────────────────────────────────────────────────
+  # Backend integration tests (Phase 3 of #150 — Sprint 13.5). Build
+  # tag `integration` keeps these out of the default `go test ./...`
+  # so dev machines without Docker don't fail them on every commit.
+  # GitHub-hosted ubuntu-latest runners have Docker available by
+  # default — `docker ps` works without further setup.
+  #
+  # Currently exercises: Docker daemon ping, image-list API. Future
+  # additions: real install round-trip (Pull + Up + container check),
+  # secret-substitution → docker compose up against a test catalog
+  # entry. The minimal pair here proves the wiring works.
+  # ─────────────────────────────────────────────────────────────────────
+  backend-integration:
+    name: Backend integration (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    needs: backend # only run if unit tests pass
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - app-management
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: backend/${{ matrix.service }}/go.sum
+
+      - name: Run go generate
+        working-directory: backend/${{ matrix.service }}
+        run: go generate ./...
+
+      - name: Verify Docker is available
+        run: docker version
+
+      - name: Integration tests
+        working-directory: backend/${{ matrix.service }}
+        run: go test -tags=integration -race -timeout=2m ./service/...
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Local-storage fuse build-tag tests (Phase 4 of #150 — Sprint 13.5).
+  # Mount-syscall lives on Linux only; the `fuse` tag also gates these
+  # so dev machines without libfuse don't get broken builds.
+  # GitHub-hosted ubuntu runners support FUSE in privileged steps;
+  # an unprivileged actual mount would need user-namespace fiddling
+  # we're not doing in this PR. The scaffolded test exercises the
+  # bazil.org/fuse API surface without mounting — Sprint 14 adds
+  # the actual mount → r/w → unmount round trip with the priv setup.
+  # ─────────────────────────────────────────────────────────────────────
+  backend-fuse:
+    name: Backend fuse (local-storage)
+    runs-on: ubuntu-latest
+    needs: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: backend/local-storage/go.sum
+
+      - name: Install fuse
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libfuse-dev fuse pkg-config
+
+      - name: Run go generate
+        working-directory: backend/local-storage
+        run: go generate ./...
+
+      - name: Fuse-tagged tests
+        working-directory: backend/local-storage
+        run: go test -tags=fuse -race -timeout=2m ./service/...
+
+  # ─────────────────────────────────────────────────────────────────────
   # Smoke build for the production tarballs the release pipeline will
   # produce. Confirms cross-compilation works for both target archs.
   #
