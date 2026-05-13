@@ -1,0 +1,20 @@
+kind: Added
+body: 'Full-screen "PowerLab atualizando" overlay during an in-flight
+  in-UI upgrade. When the user clicks "Upgrade to vX.Y.Z" in
+  settings → AboutPane, the overlay covers the entire UI while
+  install.sh runs on the host (~1 min window). Polls
+  /v1/powerlab/version every 3 seconds; suppresses the transient
+  502/503 errors gateway produces while restarting (previously these
+  surfaced as a "500 Internal Error" toast / dashboard noise during
+  the v0.6.5 → v0.6.6 manual upgrade test). When the polled version
+  equals the target version, transitions to a success state and
+  auto-reloads after 2 seconds so the user lands on the new bundle.
+  5-minute timeout falls back to a manual-intervention error message.
+  State machine in `lib/stores/upgradeProgress.svelte.ts` is
+  test-covered (10 cases): idle/starting/restarting/success/error
+  transitions, POST 202 → restarting, non-202 → error, timeout,
+  network-error suppression during restart, reset(), isOverlayActive
+  gate. New UpgradeProgressOverlay.svelte mounted in the root layout.
+  pt-BR / en / es i18n added.'
+custom:
+  Issue: ""
