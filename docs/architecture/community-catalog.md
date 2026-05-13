@@ -205,6 +205,20 @@ If Umbrel adds a clear license to `umbrel-apps` or `umbrel-apps-gallery`, the po
 | Weekly sync | Monday 06:00 UTC | Automatic; opens a PR |
 | Manual sync | Any time | GH Actions UI → `workflow_dispatch` |
 | Local dev | Any time | `make sync-catalog` (writes to repo) or `make sync-catalog-dry` (scan + summary, no writes) |
+| **Post-install (v0.6.5+)** | Every install / upgrade | `install.sh` runs `/usr/bin/powerlab-sync-catalog` best-effort, 60s timeout. Catalog auto-refreshes against upstream HEAD on every install. |
+
+### Tarball + binary architecture (v0.6.5+)
+
+Up to v0.6.4 the release tarball carried a snapshot of `community-catalog/Apps/` from the repo at build time. Between releases the in-repo catalog kept drifting from the transform logic in the binary — v0.6.2 binary fixed Phase 7 transform but the tarball still had v0.6.1 broken YAMLs, etc. v0.6.5 closes this gap structurally:
+
+- `scripts/package-linux.sh` cross-compiles `backend/sync-catalog` alongside the 6 backend services, ships it at `/usr/bin/powerlab-sync-catalog` (~9 MB Go binary)
+- Tarball size goes from ~64 MB → ~70 MB on amd64 (similar on arm64)
+- Bundled `install.sh` runs the binary post-install: `command -v git` guard + `timeout 60s` envelope + soft-dep failure (install never fails because of catalog sync)
+- If git is missing / GitHub unreachable / sync times out → bundled catalog from tarball is the fallback
+
+Net result: the binary's transform logic and the on-disk catalog content can never get out of step for more than the time it takes to upgrade. Regression test at `scripts/check-package-linux-sync-catalog_test.sh` locks the wiring.
+
+For users on hosts with no `git` installed: run `apt install git` (or distro equivalent) and re-run `/usr/bin/powerlab-sync-catalog --output /var/lib/powerlab/community-catalog` on demand.
 
 ### Files on disk after a sync
 
