@@ -9,6 +9,8 @@
   "app.stalebundle.persistent.title": "Stale bundle on the server",
   "app.stalebundle.persistent.help": "Reloading isn't fixing it — the server is serving an old UI bundle. Re-run the release's install.sh or contact your admin.",
   "action.close": "Close",
+  "about.showMore": "Show more",
+  "about.showLess": "Show less",
   "auth.signInDesc": "Sign in with your computer username and password",
   "auth.username": "Username",
   "auth.password": "Password",

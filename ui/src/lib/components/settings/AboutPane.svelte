@@ -7,12 +7,19 @@
 	import { t } from '$lib/i18n/index.svelte';
 	import { updaterStore } from '$lib/stores/updater.svelte';
 	import { upgradeProgress } from '$lib/stores/upgradeProgress.svelte';
+	import { summarizeReleaseNotes } from '$lib/utils/release-notes-summary';
+
+	let summaryExpanded = $state(false);
+	const summary = $derived(
+		summarizeReleaseNotes(updaterStore.check?.release_summary ?? '')
+	);
 
 	function startUpgrade() {
 		const target = updaterStore.check?.available;
 		if (!target) return;
 		upgradeProgress.start(target);
 	}
+
 </script>
 
 <div class="space-y-8">
@@ -75,10 +82,29 @@
 			<div class="space-y-3">
 				<p class="text-[13px] leading-relaxed text-zinc-300">
 					<span class="font-mono text-emerald-400">v{updaterStore.check.available}</span> is available.
-					{#if updaterStore.check.release_summary}
-						<span class="block mt-1 text-[12px] text-zinc-500">{updaterStore.check.release_summary}</span>
-					{/if}
 				</p>
+				{#if updaterStore.check.release_summary}
+					<div
+						data-testid="release-summary"
+						class="rounded-lg border border-white/[0.04] bg-white/[0.02] p-3 text-[12px] leading-relaxed text-zinc-400"
+					>
+						{#if summaryExpanded}
+							<p class="whitespace-pre-wrap">{summary.full}</p>
+						{:else}
+							<p>{summary.text}</p>
+						{/if}
+						{#if summary.truncated}
+							<button
+								type="button"
+								data-testid="release-summary-toggle"
+								class="mt-2 text-[11px] font-semibold text-emerald-400 hover:text-emerald-300"
+								onclick={() => (summaryExpanded = !summaryExpanded)}
+							>
+								{summaryExpanded ? t('about.showLess') : t('about.showMore')}
+							</button>
+						{/if}
+					</div>
+				{/if}
 				{#if updaterStore.check.changelog_url}
 					<a
 						href={updaterStore.check.changelog_url}

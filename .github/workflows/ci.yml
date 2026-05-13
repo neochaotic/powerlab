@@ -95,6 +95,9 @@ jobs:
       - name: Cut-script structural + sandboxed behavioral tests
         run: bash scripts/prepare-release_test.sh
 
+      - name: release-manifest summary ≤ 250 chars
+        run: bash scripts/check-manifest-summary-size_test.sh
+
       - name: Type check (svelte-check)
         working-directory: ui
         run: npx svelte-check --tsconfig ./tsconfig.json --threshold error

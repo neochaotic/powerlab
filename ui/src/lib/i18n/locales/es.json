@@ -9,6 +9,8 @@
   "app.stalebundle.persistent.title": "Bundle desactualizado en el servidor",
   "app.stalebundle.persistent.help": "Recargar no lo resuelve. El servidor está sirviendo un bundle de UI antiguo — ejecute el install.sh del release nuevamente o contacte al admin.",
   "action.close": "Cerrar",
+  "about.showMore": "Mostrar más",
+  "about.showLess": "Mostrar menos",
   "auth.signInDesc": "Inicie sesión con su usuario y contraseña del equipo",
   "auth.username": "Usuario",
   "auth.password": "Contraseña",
