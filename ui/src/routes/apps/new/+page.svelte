@@ -9,6 +9,9 @@
 	import { readPowerLabExt, writePowerLabExt, deletePowerLabExtProperty } from '$lib/utils/compose-extension';
 	import ComposeForm, { type ComposeModel } from '$lib/components/orchestrator/ComposeForm.svelte';
 	import LogStreamer from '$lib/components/apps/LogStreamer.svelte';
+	import { useAppStore } from '$lib/stores/apps.svelte';
+
+	const appStore = useAppStore();
 	import { page } from '$app/stores';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { goto } from '$app/navigation';
@@ -436,23 +439,20 @@ services:
 	// checkInstallResult.
 	async function finalizeDeploy(id: string) {
 		try {
-			// Use the api client (handles auth header per UI convention
-			// — raw token, no Bearer prefix). Vanilla fetch with manual
-			// Authorization: getAuthToken() did NOT include the proper
-			// header shape and returned 401, leaving the modal stuck.
-			const installed = (await api.get<{ id: string }[]>(
-				ENDPOINTS.APP_COMPOSE_LIST
-			)) as { id: string }[] | undefined;
-			const found = (installed ?? []).some((a) => a.id === id);
+			// Reuse the same store flow Community Install uses
+			// (checkInstallResult in apps/+page.svelte). `fetchInstalledApps`
+			// shapes the response as a Record<string, app>; `installedApps`
+			// getter returns the derived list with `id` field on each
+			// entry. Sharing the path eliminates the divergence that
+			// surfaced in v0.6.7.
+			await appStore.fetchInstalledApps();
+			const found = appStore.installedApps.find((a) => a.id === id);
 			if (found) {
 				deployResult = {
 					success: true,
 					message: t('orchestrator.serviceRunning')
 				};
 			} else {
-				// Pull the most informative line from the SSE logs to
-				// surface as the error context — matches Community
-				// Install's checkInstallResult error-extraction pattern.
 				const lastErr = deployLogs
 					.slice()
 					.reverse()
