@@ -115,6 +115,22 @@ for svc in "${SERVICES[@]}"; do
   fi
 done
 
+# ─── 2.5 Build sync-catalog ─────────────────────────────────────────────
+# Shipping sync-catalog as a system binary lets install.sh refresh the
+# community catalog post-install, decoupling catalog freshness from
+# tarball freshness. The class of bug v0.6.2 hit (binary fixed Phase 7,
+# tarball still had v0.6.1 broken YAMLs) closes here: even an old
+# tarball with stale catalog gets refreshed on install, as long as git
+# is on the host and GitHub is reachable. Build flags are simpler than
+# the main services (no CGO, no version-stamp ldflags — it's a
+# maintenance tool, not a long-running service).
+log "  building sync-catalog..."
+cd "$ROOT/backend/sync-catalog"
+GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
+  -trimpath \
+  -o "$STAGE/bin/powerlab-sync-catalog" \
+  .
+
 # ─── 3. Build frontend ───────────────────────────────────────────────────
 # Honour an existing ui/build/ if the caller already built it (e.g. from
 # the Mac host before invoking this script in a Linux container that
@@ -531,6 +547,36 @@ cp -R "$HERE/www" /usr/share/powerlab/www
 if [[ -d "$HERE/community-catalog" ]]; then
   echo "[powerlab-install] Installing community catalog..."
   cp -R "$HERE/community-catalog"/. /var/lib/powerlab/community-catalog/
+fi
+
+# Post-install catalog refresh — closes the v0.6.x class of bugs where a
+# released tarball carried a stale community-catalog vs the binary's
+# current transform logic (#321 fixed Phase 7 transform; #322 re-emit
+# merged after v0.6.2 tagged; v0.6.3 upgrade overwrote user's working
+# catalog with stale bundled YAMLs from the v0.6.2 tarball). Now that
+# powerlab-sync-catalog ships in /usr/bin, install.sh runs it ONCE
+# best-effort to refresh the on-disk catalog against current upstream.
+#
+# Best-effort means: if git is missing, or GitHub is unreachable, or
+# the sync errors for any reason — we DON'T fail the install. The
+# bundled catalog from the tarball above is the fallback; the user can
+# re-run /usr/bin/powerlab-sync-catalog later via cron / by hand.
+#
+# Timeout: 60s. If sync takes longer (slow network), skip. The next
+# weekly GH-Action sync PR will refresh the in-repo catalog anyway.
+if command -v git &>/dev/null && command -v /usr/bin/powerlab-sync-catalog &>/dev/null; then
+  echo "[powerlab-install] Refreshing community catalog from upstream (best-effort, 60s timeout)..."
+  if timeout 60 /usr/bin/powerlab-sync-catalog \
+       --output /var/lib/powerlab/community-catalog \
+       >/dev/null 2>&1; then
+    echo "[powerlab-install]   community catalog refreshed."
+  else
+    echo "[powerlab-install]   sync skipped — bundled catalog will be used (GitHub unreachable or timeout)."
+  fi
+else
+  if ! command -v git &>/dev/null; then
+    echo "[powerlab-install] Skipping catalog refresh — git not installed. Run 'apt install git' (or equivalent) + '/usr/bin/powerlab-sync-catalog --output /var/lib/powerlab/community-catalog' to refresh on demand."
+  fi
 fi
 
 # Install the PAM service policy at /etc/pam.d/powerlab. PowerLab's

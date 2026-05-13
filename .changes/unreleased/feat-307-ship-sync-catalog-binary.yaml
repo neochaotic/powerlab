@@ -1,0 +1,19 @@
+kind: Added
+body: 'Ship `powerlab-sync-catalog` binary in `/usr/bin` (Sprint 13.3, #248,
+  refs #307). `scripts/package-linux.sh` cross-compiles the sync-catalog
+  tool alongside the 6 backend services and the bundled `install.sh`
+  runs it post-install (best-effort, 60s timeout, git as soft-dep) to
+  refresh `/var/lib/powerlab/community-catalog` against current upstream.
+  This closes the v0.6.x bug class permanently: through v0.6.1→v0.6.4
+  the catalog kept being stale because the in-repo `community-catalog/`
+  used to bake into the release tarball was fixed AFTER the binary fix
+  shipped — leaving upgrades with a binary that knew how to transform
+  Umbrel YAMLs but a tarball that carried un-transformed YAMLs from the
+  previous sync. Now the binary refreshes the catalog on install,
+  decoupling catalog freshness from tarball freshness entirely. If git
+  is missing OR GitHub is unreachable OR the sync errors for any reason,
+  the install completes with the bundled catalog as fallback — never
+  fails the install path. Regression test
+  `scripts/check-package-linux-sync-catalog_test.sh` locks the wiring.'
+custom:
+  Issue: "248"
