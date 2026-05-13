@@ -36,8 +36,7 @@ echo "Test: L1 npm version sync wired in"
 assert_grep "npm version pre-build" "npm version \"\$VERSION\" --no-git-tag-version --allow-same-version"
 
 echo "Test: L3 sanity grep wired in"
-assert_grep "expected version literal var" "EXPECTED_VERSION_LITERAL=\"\\\"\$VERSION\\\"\""
-assert_grep "grep against built chunks"    "grep -rqF \"\$EXPECTED_VERSION_LITERAL\" build/_app/immutable/chunks/ build/_app/immutable/nodes/"
+assert_grep "grep against built chunks"    "grep -rqF -- \"\$VERSION\" build/_app/immutable/chunks/ build/_app/immutable/nodes/"
 assert_grep "abort message"                "Aborting before sealing tarball"
 
 echo

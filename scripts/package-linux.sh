@@ -173,19 +173,17 @@ if (( SKIP_OK == 0 )); then
 fi
 
 # L3 (defense-in-depth, v0.6.6 retro): sanity-grep the built JS for
-# the version literal. Vite stamps __APP_VERSION__ as a quoted string
-# into the bundle (`"<version>"`); if for any reason the build picked
-# up the wrong value (env var lost, pkg.json stale and POWERLAB_VERSION
-# not set, cached build path bypassed the version refresh), this final
-# check aborts BEFORE the tarball is sealed.
-#
-# We grep all chunk JS for the version literal — version handshake
-# imports __APP_VERSION__ into a top-level identifier, so the literal
-# must appear in at least one JS file. If it doesn't, the bundle is
-# broken regardless of stamp-file claims.
-EXPECTED_VERSION_LITERAL="\"$VERSION\""
-if ! grep -rqF "$EXPECTED_VERSION_LITERAL" build/_app/immutable/chunks/ build/_app/immutable/nodes/ 2>/dev/null; then
-  log "ERROR: Built UI bundle does not contain expected version literal $EXPECTED_VERSION_LITERAL."
+# the version literal. Vite stamps __APP_VERSION__ from JSON.stringify
+# into the bundle, but Rollup's minifier may strip the surrounding
+# quotes (we observed `0.0.0-ci` bare in the chunks under CI). The
+# semver-shaped string itself is what we need to find — quoting around
+# it is implementation-detail of whichever pass last touched the
+# bundle. If the literal version string doesn't appear, the build
+# stamped a different value (env var lost, pkg.json stale and
+# POWERLAB_VERSION not set, cached build path bypassed the version
+# refresh) — abort BEFORE sealing the tarball.
+if ! grep -rqF -- "$VERSION" build/_app/immutable/chunks/ build/_app/immutable/nodes/ 2>/dev/null; then
+  log "ERROR: Built UI bundle does not contain expected version literal '$VERSION'."
   log "       This means __APP_VERSION__ was stamped with a different value (probably stale pkg.json"
   log "       or POWERLAB_VERSION env got lost). Aborting before sealing tarball — see"
   log "       docs/UPDATE_MANIFEST.md 'Defense in depth' section."
