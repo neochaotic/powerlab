@@ -343,16 +343,73 @@ forward-compatible.
   but cannot fill disk. Rate-limit middleware (100 req/min per
   authenticated user) is sufficient.
 
-## Open questions to resolve during Sprint 14
+## Open questions — resolved
 
-1. Should the `powerlab-logs` CLI accept a `--follow` flag and
-   stream live (a thin wrapper over `journalctl -f` + `docker
-   logs -f` + `tail -f`)? Lean yes; cheap to add.
-2. Should the audit table also capture GET requests for sensitive
-   paths (`/v1/users`, `/v1/conf`)? Lean no for MVP — adds noise.
-3. Where exactly does the "Restart all powerlab services" button
-   live? Probably NOT on the logs page (too dangerous as one
-   click). Probably Settings → Power → Restart services subsection.
+1. **`powerlab-logs --follow` flag — YES.** Thin wrapper over
+   `journalctl -f` + `docker logs -f` + `tail -f`. Confirmed during
+   Sprint 14 planning.
+2. **Audit captures only mutating ops (POST/PUT/PATCH/DELETE) —
+   GETs OUT.** Confirmed Sprint 14 planning. Keeps audit table
+   small (mutating ops ~10-50/day vs GETs at hundreds/day from
+   dashboard polling). GET-on-sensitive-paths can be added in a
+   follow-up if a real compliance ask materializes.
+3. **"Restart all services" button lives in Settings → Power.**
+   The /logs page only has **per-service** Restart buttons — each
+   one isolated, each one writes to audit trail. Restart-all is
+   power-level (alongside Reboot/Shutdown) and behind a
+   confirmation modal.
+4. **Per-app log override in compose `x-powerlab.log.*` is
+   POST-MVP.** Default rotation (`max-size=10m, max-file=3`)
+   applies to all apps in Sprint 14.
+
+## Testing discipline (matches user feedback + memory rules)
+
+Per `feedback_tdd_strict`, `feedback_release_coverage_gate`, and
+`feedback_bug_regression_discipline`:
+
+- **Every behaviour landed via failing test first.** No exceptions.
+- **Branch coverage on conditionals**, not just line coverage.
+  Branch budget: 100% of known branches except documented
+  exclusions (e.g. `os.Exit` paths that cannot be unit-tested
+  without process control — exclusions commented inline).
+- **Coverage target**: ≥ 95% line coverage on every new file in
+  `backend/logs/`, `backend/core/middleware/audit.go`,
+  `backend/core/route/v1/logs.go`,
+  `backend/core/service/frontend_log_buffer.go`, and the new
+  UI components (`LogsPane.svelte`, `routes/logs/+page.svelte`).
+- **Integration tests for every boundary**:
+  - Docker socket — testcontainers-style integration test under
+    `//go:build integration` (extends the pattern from PR #336
+    Sprint 13.5)
+  - journalctl exec — table-driven test against captured fixtures
+    of real `journalctl -o json` output, plus a live integration
+    run on the CI ubuntu runner
+  - SQLite audit DB — open/insert/prune cycle test + concurrent
+    write test (the async batch writer is the high-risk piece)
+  - sudoers exec — privileged-runner integration test under
+    `//go:build privileged`; skipped on macOS dev, enforced in CI
+- **E2E (Playwright)** covers the /logs page user flow: open
+  tab, see entries, grep, toggle live tail, expand/collapse.
+  At least one test per tab.
+- **Manual E2E on user's box before tag** — see
+  `feedback_release_coverage_gate`: unit + count delta + E2E
+  manual + integration — all four must be green before requesting
+  cut authorisation.
+- **No weakening of tests to pass** (`feedback_no_apagar_test_
+  para_passar`). Fix root cause; if a test is genuinely wrong,
+  fix the test with documentation of why it was wrong (matches
+  the L3-grep-relaxation discipline used during PR #338 review).
+
+### Coverage report integration
+
+The CI `Frontend (svelte-check + vitest + build)` job already
+uploads coverage artifacts. Sprint 14 adds:
+
+- New backend coverage upload for `backend/logs/` and
+  `backend/core/middleware` packages
+- A coverage delta check: any drop in line coverage on these
+  packages relative to the previous merge fails CI. (Hard gate,
+  not a comment.)
 
 ## References
 
