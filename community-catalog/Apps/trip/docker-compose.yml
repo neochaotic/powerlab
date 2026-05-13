@@ -7,7 +7,7 @@ services:
             - /app/trip/main.py
             - --host
             - 0.0.0.0
-        image: ghcr.io/itskovacs/trip:1.43.2@sha256:9e63c48d8c11b681d67e1a4178ca9b1818a2aba53e8541df30fcd8bdb40c3ad5
+        image: ghcr.io/itskovacs/trip:1.44.0@sha256:19dd24aec6347a66521e34c14ae04daa2a69757933c4dffcc45cdc41a085786d
         ports:
             - 8980:8000
         restart: on-failure
@@ -29,11 +29,12 @@ x-powerlab:
     port_map: "8980"
     author: itskovacs
     developer: itskovacs
+    main: app
     source:
         catalog: umbrel-apps
         upstream_id: trip
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
+        upstream_commit: 931a2146a30e8398b127434cf4fd2f20ae77bb4f
         upstream_path: trip/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:43:49Z"
+        synced_at: "2026-05-13T17:27:03Z"

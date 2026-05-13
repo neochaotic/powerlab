@@ -35,7 +35,7 @@ services:
             SUPERTOKENS_API_KEY: ""
             SUPERTOKENS_CONNECTION_URI: http://bffless_supertokens_1:3567
             SUPERTOKENS_MODE: local
-        image: ghcr.io/bffless/ce-backend:umbrel@sha256:7c4d4c15a186d5bb3b9e916aaadbe9602a0701db1ff2e3c47b9e7f3814967e61
+        image: ghcr.io/bffless/ce-backend:umbrel@sha256:fe74728afe8fd0c5a21d3a8c03c39ca19142045f56f8d8e1b28f70963271f5bc
         restart: on-failure
         stop_grace_period: 30s
         volumes:
@@ -45,7 +45,7 @@ services:
     frontend:
         depends_on:
             - backend
-        image: ghcr.io/bffless/ce-frontend:umbrel@sha256:9b02e77aec76a5abeaa45f07f64ec6add565b124bbb37a639fb4d633a774f1d9
+        image: ghcr.io/bffless/ce-frontend:umbrel@sha256:92ebbf3b45a758c09bed43bb8ee5f0903d6fc12b06201ce7490b24a322b3db1e
         restart: on-failure
         stop_grace_period: 30s
         volumes:
@@ -56,7 +56,7 @@ services:
             - frontend
         environment:
             DEVICE_DOMAIN_NAME: ${DEVICE_DOMAIN_NAME:-umbrel.local}
-        image: ghcr.io/bffless/ce-nginx:umbrel@sha256:40b8f8dd37dd1483a08e687b1f0efe6061c62fcd73013fb46749c74407dbdf84
+        image: ghcr.io/bffless/ce-nginx:umbrel@sha256:ec260bef4370c6ca1c1b67b3df4f17616ef1cac06234d74a976222b873e675ab
         ports:
             - 5537:5537
         restart: on-failure
@@ -124,11 +124,12 @@ x-powerlab:
     port_map: "5537"
     author: BFFless
     developer: BFFless
+    main: nginx
     source:
         catalog: umbrel-apps
         upstream_id: bffless
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
+        upstream_commit: 931a2146a30e8398b127434cf4fd2f20ae77bb4f
         upstream_path: bffless/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:42:43Z"
+        synced_at: "2026-05-13T17:26:31Z"

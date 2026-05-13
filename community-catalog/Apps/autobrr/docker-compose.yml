@@ -1,7 +1,7 @@
 name: autobrr
 services:
     web:
-        image: ghcr.io/autobrr/autobrr:v1.77.1@sha256:26796bb64ad4cd5956def3e171d485daf7353e952b603f9602d44836e4c9b314
+        image: ghcr.io/autobrr/autobrr:v1.78.0@sha256:5641009f9d83b602bb455426e28a67d928960d26f173bccc886cbbb024cbfbab
         ports:
             - 7474:7474
         restart: on-failure
@@ -22,11 +22,12 @@ x-powerlab:
     port_map: "7474"
     author: autobrr
     developer: autobrr
+    main: web
     source:
         catalog: umbrel-apps
         upstream_id: autobrr
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
+        upstream_commit: 931a2146a30e8398b127434cf4fd2f20ae77bb4f
         upstream_path: autobrr/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:42:42Z"
+        synced_at: "2026-05-13T17:26:31Z"

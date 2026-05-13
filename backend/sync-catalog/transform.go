@@ -3,10 +3,27 @@ package main
 import (
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 
 	"gopkg.in/yaml.v3"
 )
+
+// envHostValidationRE matches Umbrel runtime-substituted host-validation
+// placeholders that the container sees as literal strings in PowerLab.
+// 59 upstream apps (gitingest, nextcloud, owncloud, …) include env
+// values like `ALLOWED_HOSTS=${DEVICE_DOMAIN_NAME},${DEVICE_HOSTNAME},${APP_FOO_LOCAL_IPS}`
+// which the underlying app interprets as a literal list with `${...}`
+// in it, doesn't match the browser's Host header (e.g. `192.168.18.86:8895`),
+// and rejects with "Invalid host header". Substituting these with `*`
+// (permissive wildcard) lets the app accept any host. Volumes and ports
+// are NOT touched by this regex — their own handlers own those.
+//
+// Matched names:
+//   - DEVICE_DOMAIN_NAME       (umbrel's mDNS .local)
+//   - DEVICE_HOSTNAME          (umbrel's host name)
+//   - APP_<NAME>_LOCAL_IPS     (sibling-detected LAN IPs)
+var envHostValidationRE = regexp.MustCompile(`\$\{(DEVICE_DOMAIN_NAME|DEVICE_HOSTNAME|APP_[A-Z0-9_]*_LOCAL_IPS)\}`)
 
 // volumePlaceholderRE matches any Umbrel-ecosystem placeholder that
 // appears inside a service's volume reference. Three flavors land here:
@@ -118,12 +135,26 @@ func transformUpstreamCompose(upstream []byte, storeAppID string, basePort int) 
 	substituteAppDataDir(doc, storeAppID)
 	dropEnvFileFromServices(doc)
 	substitutePortPlaceholders(doc, basePort)
+	substituteHostValidationEnvVars(doc)
 
 	out, err := yaml.Marshal(doc)
 	if err != nil {
 		return nil, fmt.Errorf("marshal transformed compose: %w", err)
 	}
 	return out, nil
+}
+
+// extractAppProxyTargetFromUpstream is a thin wrapper that parses the
+// upstream YAML and calls extractAppProxyTarget. Used by emit.go to
+// resolve the "main" service name for the x-powerlab.main field —
+// see audit comment in emit.go. Returns ok=false on parse error so
+// the caller can skip setting Main when extraction isn't reliable.
+func extractAppProxyTargetFromUpstream(upstream []byte, storeAppID string) (svcName, appPort string, ok bool) {
+	var doc map[string]any
+	if err := yaml.Unmarshal(upstream, &doc); err != nil {
+		return "", "", false
+	}
+	return extractAppProxyTarget(doc, storeAppID)
 }
 
 // extractAppProxyTarget reads Umbrel's `services.app_proxy.environment`
@@ -219,12 +250,31 @@ func extractAppProxyTarget(doc map[string]any, storeAppID string) (svcName, appP
 		return svcName, appPort, svcName != "" && appPort != ""
 	}
 
-	// (D) Shell-var fallback: pick first non-proxy service.
+	// (D) Shell-var fallback: APP_HOST can't be resolved at sync
+	// time. Pick deterministically: first the service whose name
+	// matches the storeAppID (agora's "agora" service in a
+	// 3-service compose), else the first non-proxy service in
+	// alphabetical order. Go's `for k := range map` iteration is
+	// randomized — if we don't sort, the `main` field flips
+	// between sync runs, which causes confusing diffs in the
+	// weekly catalog PR. Audit on 2026-05-13 caught this:
+	// agora's main was filebrowser one run and agora the next.
 	if strings.HasPrefix(host, "$") || host == "" {
+		// Prefer the service whose name matches the storeAppID.
+		if svc, ok := services[storeAppID]; ok && svc != nil {
+			return storeAppID, appPort, appPort != ""
+		}
+		// Otherwise alphabetical fallback.
+		names := make([]string, 0, len(services))
 		for sName := range services {
-			if sName != "app_proxy" {
-				return sName, appPort, appPort != ""
+			if sName == "app_proxy" {
+				continue
 			}
+			names = append(names, sName)
+		}
+		sort.Strings(names)
+		if len(names) > 0 {
+			return names[0], appPort, appPort != ""
 		}
 	}
 
@@ -375,6 +425,78 @@ func replacePlaceholderPort(spec string, counter *int) string {
 	})
 }
 
+
+// pureHostListRE detects an env value that is purely a list of one or
+// more host-validation placeholders separated by commas (with optional
+// whitespace). Examples that MATCH:
+//
+//   ${DEVICE_DOMAIN_NAME}
+//   ${DEVICE_DOMAIN_NAME},${DEVICE_HOSTNAME}
+//   ${DEVICE_DOMAIN_NAME}, ${DEVICE_HOSTNAME}, ${APP_FOO_LOCAL_IPS}
+//
+// Examples that DO NOT match (URL-embedded, mixed text):
+//
+//   http://${DEVICE_DOMAIN_NAME}:8015       (adventurelog ORIGIN)
+//   redis://${DEVICE_HOSTNAME}:6379         (cache URLs)
+//
+// Substituting `*` is only safe inside list-mode; substituting inside
+// a URL produces broken URLs like `http://*:8015` (adventurelog
+// "bad request"). For URL-embedded cases we have no good sync-time
+// answer — Sprint 14 install-time substitution can do better.
+var pureHostListRE = regexp.MustCompile(`^\s*\$\{(DEVICE_DOMAIN_NAME|DEVICE_HOSTNAME|APP_[A-Z0-9_]*_LOCAL_IPS)\}\s*(,\s*\$\{(DEVICE_DOMAIN_NAME|DEVICE_HOSTNAME|APP_[A-Z0-9_]*_LOCAL_IPS)\}\s*)*$`)
+
+// substituteHostValidationEnvVars walks every service's `environment:`
+// (both list-of-"K=V" form AND map form) and replaces references to
+// `${DEVICE_DOMAIN_NAME}` / `${DEVICE_HOSTNAME}` / `${APP_*_LOCAL_IPS}`
+// with `*` — but ONLY when the env value is purely a comma-separated
+// list of those placeholders (host-validation list semantics). Values
+// that embed the placeholder inside a URL or other complex string are
+// left untouched: substituting there produces invalid output (e.g.
+// adventurelog's `ORIGIN=http://${DEVICE_DOMAIN_NAME}:8015` would turn
+// into `http://*:8015` and SvelteKit returns "bad request").
+//
+// Affected apps that DO benefit (host-list use): gitingest, nextcloud,
+// owncloud, +56 others. Apps with URL-embedded refs (adventurelog
+// ORIGIN, forgejo FORGEJO__server__DOMAIN, etc.) still need manual
+// env override or the future install-time substitution layer.
+func substituteHostValidationEnvVars(doc map[string]any) {
+	services, ok := doc["services"].(map[string]any)
+	if !ok {
+		return
+	}
+	rewrite := func(s string) string {
+		if !pureHostListRE.MatchString(s) {
+			return s
+		}
+		return envHostValidationRE.ReplaceAllString(s, "*")
+	}
+	for _, svc := range services {
+		svcMap, ok := svc.(map[string]any)
+		if !ok {
+			continue
+		}
+		switch env := svcMap["environment"].(type) {
+		case []any:
+			for i, item := range env {
+				if s, ok := item.(string); ok {
+					// list shape is "K=V"; split on first `=` so we
+					// match against the value only.
+					if eq := strings.Index(s, "="); eq >= 0 {
+						k := s[:eq]
+						v := s[eq+1:]
+						env[i] = k + "=" + rewrite(v)
+					}
+				}
+			}
+		case map[string]any:
+			for k, v := range env {
+				if s, ok := v.(string); ok {
+					env[k] = rewrite(s)
+				}
+			}
+		}
+	}
+}
 
 // substituteAppDataDir walks every service's `volumes:` list and
 // replaces literal `${APP_DATA_DIR}` substrings with PowerLab's

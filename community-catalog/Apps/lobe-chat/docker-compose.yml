@@ -27,7 +27,7 @@ services:
             S3_SECRET_ACCESS_KEY: ${APP_PASSWORD}
             S3_SET_ACL: "0"
             SEARXNG_URL: http://lobe-chat_searxng_1:8080
-        image: lobehub/lobehub:2.1.57@sha256:40374f3cac77f82f3810a0634e89b946188034983f61ad216d9e09a7d20d0394
+        image: lobehub/lobehub:2.1.58@sha256:059dd5e8f0682c1507a788b70adaa16708932777e98c6db02fc4737fd92b2008
         ports:
             - 7455:3210
         restart: on-failure
@@ -123,11 +123,12 @@ x-powerlab:
     port_map: "7455"
     author: LobeHub
     developer: LobeHub
+    main: app
     source:
         catalog: umbrel-apps
         upstream_id: lobe-chat
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
+        upstream_commit: 931a2146a30e8398b127434cf4fd2f20ae77bb4f
         upstream_path: lobe-chat/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:43:16Z"
+        synced_at: "2026-05-13T17:26:44Z"

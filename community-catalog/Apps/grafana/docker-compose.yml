@@ -1,7 +1,7 @@
 name: grafana
 services:
     web:
-        image: grafana/grafana:13.0.1@sha256:0f86bada30d65ef9d0183b90c1e2682ac92d53d95da8bed322b984ea78a4a73a
+        image: grafana/grafana:13.0.1-security-01@sha256:2d1f9ae67c1778d33e291d4c3c759cd8b650e67491f02533499eb950e075eeb5
         ports:
             - 3030:3000
         restart: on-failure
@@ -23,11 +23,12 @@ x-powerlab:
     port_map: "3030"
     author: Grafana Labs
     developer: Grafana Labs
+    main: web
     source:
         catalog: umbrel-apps
         upstream_id: grafana
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
+        upstream_commit: 931a2146a30e8398b127434cf4fd2f20ae77bb4f
         upstream_path: grafana/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:43:01Z"
+        synced_at: "2026-05-13T17:26:39Z"

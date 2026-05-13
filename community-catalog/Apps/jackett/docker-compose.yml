@@ -4,7 +4,7 @@ services:
         environment:
             - PUID=1000
             - PGID=1000
-        image: linuxserver/jackett:0.24.1846@sha256:9e8c40423e92d1f4dfaa6d0b63f9b44953a788f60a18fed7756d5a837f9ce966
+        image: linuxserver/jackett:0.24.1849@sha256:749a5163457c233bd7e202294937cc6705eebc6209a697520736f1567cee8498
         ports:
             - 9117:9117
         restart: on-failure
@@ -25,11 +25,12 @@ x-powerlab:
     port_map: "9117"
     author: Jackett
     developer: Jackett
+    main: server
     source:
         catalog: umbrel-apps
         upstream_id: jackett
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
+        upstream_commit: 931a2146a30e8398b127434cf4fd2f20ae77bb4f
         upstream_path: jackett/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:43:07Z"
+        synced_at: "2026-05-13T17:26:42Z"

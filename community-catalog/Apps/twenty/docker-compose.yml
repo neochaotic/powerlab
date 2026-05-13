@@ -39,7 +39,7 @@ services:
             start_period: 120s
             test: curl --fail http://localhost:3000/healthz
             timeout: 30s
-        image: twentycrm/twenty:v1.20.0@sha256:b3120df567a73c849a7a1ae58fa4f3d7bdd5072939312be702375960ed601557
+        image: twentycrm/twenty:v2.2.0@sha256:fb82dc757bd9eea6b8f4d765275e1eb58efbd5c1ae3d4d6245be807770c87e79
         ports:
             - 2020:3000
         restart: on-failure
@@ -63,7 +63,7 @@ services:
             PG_DATABASE_URL: postgres://postgres:postgres@twenty_db_1:5432/default
             REDIS_URL: redis://twenty_redis_1:6379
             SERVER_URL: http://${DEVICE_DOMAIN_NAME}:2020
-        image: twentycrm/twenty:v1.20.0@sha256:b3120df567a73c849a7a1ae58fa4f3d7bdd5072939312be702375960ed601557
+        image: twentycrm/twenty:v2.2.0@sha256:fb82dc757bd9eea6b8f4d765275e1eb58efbd5c1ae3d4d6245be807770c87e79
         restart: on-failure
         user: 1000:1000
         volumes:
@@ -83,11 +83,12 @@ x-powerlab:
     port_map: "2020"
     author: Twenty.com PBC
     developer: Twenty.com PBC
+    main: server
     source:
         catalog: umbrel-apps
         upstream_id: twenty
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
+        upstream_commit: 931a2146a30e8398b127434cf4fd2f20ae77bb4f
         upstream_path: twenty/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:43:49Z"
+        synced_at: "2026-05-13T17:27:04Z"

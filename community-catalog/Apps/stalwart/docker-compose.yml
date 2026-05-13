@@ -1,7 +1,10 @@
 name: stalwart
 services:
     server:
-        image: stalwartlabs/stalwart:v0.15.5@sha256:dcf575db2d53d9ef86d6ced8abe4ba491984659a0f8862cc6079ee7b41c3c568
+        environment:
+            - STALWART_RECOVERY_ADMIN=admin:${APP_PASSWORD}
+            - STALWART_PUBLIC_URL=http://${DEVICE_DOMAIN_NAME}:8745
+        image: stalwartlabs/stalwart:v0.16.3@sha256:5d75cff4e9c6d75e64636e9ef9674b1d877f8f6fb2e11ee8176fbad3faaa5289
         ports:
             - 10443:443
             - "10025:25"
@@ -15,7 +18,8 @@ services:
         restart: on-failure
         user: 1000:1000
         volumes:
-            - /DATA/PowerLabAppData/stalwart/data:/opt/stalwart
+            - /DATA/PowerLabAppData/stalwart/data/etc:/etc/stalwart
+            - /DATA/PowerLabAppData/stalwart/data/server:/var/lib/stalwart
 version: "3.9"
 
 x-powerlab:
@@ -31,11 +35,12 @@ x-powerlab:
     port_map: "8745"
     author: Stalwart Labs
     developer: Stalwart Labs
+    main: server
     source:
         catalog: umbrel-apps
         upstream_id: stalwart
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
+        upstream_commit: 931a2146a30e8398b127434cf4fd2f20ae77bb4f
         upstream_path: stalwart/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:43:45Z"
+        synced_at: "2026-05-13T17:27:01Z"

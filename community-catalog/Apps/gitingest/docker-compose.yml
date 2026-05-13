@@ -2,7 +2,7 @@ name: gitingest
 services:
     app:
         environment:
-            - ALLOWED_HOSTS=${DEVICE_DOMAIN_NAME},${DEVICE_HOSTNAME},${APP_GITINGEST_LOCAL_IPS}
+            - ALLOWED_HOSTS=*,*,*
         image: ghcr.io/coderamp-labs/gitingest:v0.3.1@sha256:0107c1e389d9e5e86dc3052defe024bd2439b776a1904ae4ee14f1cfb16e3b77
         ports:
             - 8895:8000
@@ -23,11 +23,12 @@ x-powerlab:
     port_map: "8895"
     author: Romain Courtois
     developer: Romain Courtois
+    main: app
     source:
         catalog: umbrel-apps
         upstream_id: gitingest
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
+        upstream_commit: 931a2146a30e8398b127434cf4fd2f20ae77bb4f
         upstream_path: gitingest/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:43:00Z"
+        synced_at: "2026-05-13T17:26:39Z"

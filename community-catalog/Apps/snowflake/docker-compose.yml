@@ -2,7 +2,7 @@ name: snowflake
 services:
     proxy:
         command: -log /data/snowflake.log -verbose
-        image: thetorproject/snowflake-proxy:v2.12.1@sha256:53658adcf8183ed387a8abce383536f45d72b4688638e078d6c1686970199feb
+        image: thetorproject/snowflake-proxy:v2.13.1@sha256:82f80dd23899d07ead4069c7b94b65636b6757586bf5d7d65f5ec45b05d554df
         restart: on-failure
         stop_grace_period: 1m
         volumes:
@@ -29,11 +29,12 @@ x-powerlab:
     port_map: "3800"
     author: The Tor Project, Inc.
     developer: The Tor Project, Inc.
+    main: web
     source:
         catalog: umbrel-apps
         upstream_id: snowflake
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
+        upstream_commit: 931a2146a30e8398b127434cf4fd2f20ae77bb4f
         upstream_path: snowflake/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:43:45Z"
+        synced_at: "2026-05-13T17:27:00Z"

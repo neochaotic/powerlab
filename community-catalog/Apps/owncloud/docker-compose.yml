@@ -49,7 +49,7 @@ services:
             - redis
         environment:
             - OWNCLOUD_DOMAIN=${DEVICE_DOMAIN_NAME}:8080
-            - OWNCLOUD_TRUSTED_DOMAINS=${DEVICE_DOMAIN_NAME},${DEVICE_HOSTNAME},${APP_OWNCLOUD_LOCAL_IPS}
+            - OWNCLOUD_TRUSTED_DOMAINS=*,*,*
             - OWNCLOUD_DB_TYPE=mysql
             - OWNCLOUD_DB_NAME=owncloud
             - OWNCLOUD_DB_USERNAME=owncloud
@@ -68,7 +68,7 @@ services:
                 - CMD
                 - /usr/bin/healthcheck
             timeout: 10s
-        image: owncloud/server:10.16.0@sha256:62c93574d2bd0f98d17ac1a541f703653822e4572a628dcf993a8e65b2400e97
+        image: owncloud/server:10.16.2@sha256:6dc52267f5c4843da9404ca643ce892f43bb406a540c5233ae1ae1e3826749ea
         ports:
             - 8666:8080
         restart: on-failure
@@ -88,11 +88,12 @@ x-powerlab:
     port_map: "8666"
     author: ownCloud GmbH
     developer: ownCloud GmbH
+    main: server
     source:
         catalog: umbrel-apps
         upstream_id: owncloud
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
+        upstream_commit: 931a2146a30e8398b127434cf4fd2f20ae77bb4f
         upstream_path: owncloud/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:43:32Z"
+        synced_at: "2026-05-13T17:26:53Z"

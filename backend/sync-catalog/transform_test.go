@@ -98,11 +98,13 @@ services:
 }
 
 func TestTransformEnvVarsLeftAlone(t *testing.T) {
-	// We deliberately do NOT touch ${APP_*} references in environment
-	// vars — compose-go's strict validator only cares about volume
-	// references. Leaving env-var placeholders means a future install-
-	// time substitution layer can still resolve them with Umbrel-style
-	// semantics; touching them now would lose information.
+	// We do NOT touch most ${APP_*} references in environment vars —
+	// compose-go's strict validator only cares about volume references.
+	// EXCEPT for the host-validation kinds (DEVICE_DOMAIN_NAME,
+	// DEVICE_HOSTNAME, APP_*_LOCAL_IPS) which we substitute with `*`
+	// per the Sprint 13.4.x gitingest fix (#253). This test locks the
+	// "most env vars preserved" contract; the host-validation cases
+	// have their own dedicated tests.
 	in := []byte(`version: '3.7'
 services:
   web:
@@ -117,9 +119,13 @@ services:
 		t.Fatalf("transform: %v", err)
 	}
 	s := string(out)
+	// DEVICE_DOMAIN_NAME is URL-EMBEDDED here (http://${...}:${...}) so
+	// post-refinement it's PRESERVED — substituting would produce
+	// invalid URLs (adventurelog "bad request" regression).
 	if !strings.Contains(s, "${DEVICE_DOMAIN_NAME}") {
-		t.Errorf("env var DEVICE_DOMAIN_NAME should be preserved, got:\n%s", s)
+		t.Errorf("URL-embedded DEVICE_DOMAIN_NAME should be preserved (substituting breaks URL syntax — adventurelog regression), got:\n%s", s)
 	}
+	// APP_FOO_PORT in env-side stays — port substitution is volumes/ports only
 	if !strings.Contains(s, "${APP_FOO_PORT}") {
 		t.Errorf("env var APP_FOO_PORT should be preserved, got:\n%s", s)
 	}
@@ -206,6 +212,143 @@ services:
 	}
 	if string(first) != string(second) {
 		t.Errorf("transform is not idempotent:\nfirst:\n%s\nsecond:\n%s", first, second)
+	}
+}
+
+// ─── Host-validation env var substitution ───
+// Sprint 13.4.x: 59 Umbrel apps include env vars like
+// `ALLOWED_HOSTS=${DEVICE_DOMAIN_NAME},${DEVICE_HOSTNAME},${APP_FOO_LOCAL_IPS}`
+// that Umbrel substitutes at install time. In PowerLab they stay
+// literal — container sees the placeholder strings and rejects browser
+// requests as "Invalid host header" (gitingest, nextcloud, owncloud
+// + 56 others). Fix: substitute these specific placeholders with `*`
+// (permissive wildcard) inside environment values only.
+
+func TestSubstituteDeviceDomainNameInEnv(t *testing.T) {
+	in := []byte(`version: '3.7'
+services:
+  app:
+    image: example:1
+    environment:
+      - ALLOWED_HOSTS=${DEVICE_DOMAIN_NAME},${DEVICE_HOSTNAME}
+`)
+	out, err := transformUpstreamCompose(in, "foo", 0)
+	if err != nil {
+		t.Fatalf("transform: %v", err)
+	}
+	s := string(out)
+	if strings.Contains(s, "${DEVICE_DOMAIN_NAME}") || strings.Contains(s, "${DEVICE_HOSTNAME}") {
+		t.Errorf("DEVICE_* env placeholders should be substituted, got:\n%s", s)
+	}
+	if !strings.Contains(s, "ALLOWED_HOSTS=*,*") {
+		t.Errorf("expected ALLOWED_HOSTS=*,*, got:\n%s", s)
+	}
+}
+
+func TestSubstituteAppLocalIPsInEnv(t *testing.T) {
+	in := []byte(`version: '3.7'
+services:
+  app:
+    image: example:1
+    environment:
+      - ALLOWED_HOSTS=${APP_GITINGEST_LOCAL_IPS}
+`)
+	out, err := transformUpstreamCompose(in, "gitingest", 0)
+	if err != nil {
+		t.Fatalf("transform: %v", err)
+	}
+	if strings.Contains(string(out), "${APP_GITINGEST_LOCAL_IPS}") {
+		t.Errorf("APP_*_LOCAL_IPS should be substituted, got:\n%s", out)
+	}
+	if !strings.Contains(string(out), "ALLOWED_HOSTS=*") {
+		t.Errorf("expected ALLOWED_HOSTS=*, got:\n%s", out)
+	}
+}
+
+func TestPreservesUnrelatedEnvVars(t *testing.T) {
+	// Counter-test: ${APP_*_PORT}, ${APP_DATA_DIR}, and other non-
+	// host-validation placeholders MUST NOT be touched by env-var
+	// substitution. Their handlers already own them; double-handling
+	// would regress.
+	in := []byte(`version: '3.7'
+services:
+  app:
+    image: example:1
+    environment:
+      - PORT_REF=${APP_FOO_PORT}
+      - DATA_REF=${APP_DATA_DIR}/x
+      - URL=http://${DEVICE_DOMAIN_NAME}:${APP_FOO_PORT}/
+`)
+	out, err := transformUpstreamCompose(in, "foo", 8080)
+	if err != nil {
+		t.Fatalf("transform: %v", err)
+	}
+	s := string(out)
+	if !strings.Contains(s, "${APP_FOO_PORT}") {
+		t.Errorf("env-side APP_*_PORT placeholder should be preserved, got:\n%s", s)
+	}
+	if !strings.Contains(s, "${APP_DATA_DIR}") {
+		t.Errorf("env-side APP_DATA_DIR placeholder should be preserved, got:\n%s", s)
+	}
+	// URL-embedded DEVICE_DOMAIN_NAME is preserved (URL substitution
+	// would break adventurelog and similar). Pure-list values are
+	// covered by TestSubstituteDeviceDomainNameInEnv.
+	if !strings.Contains(s, "${DEVICE_DOMAIN_NAME}") {
+		t.Errorf("URL-embedded DEVICE_DOMAIN_NAME should be preserved (URL syntax breaks otherwise), got:\n%s", s)
+	}
+}
+
+func TestPreservesURLEmbeddedPlaceholders(t *testing.T) {
+	// Critical counter-test: adventurelog had ORIGIN="http://${DEVICE_DOMAIN_NAME}:8015".
+	// Substituting `*` blindly produces ORIGIN="http://*:8015" which is
+	// an invalid URL; SvelteKit returns "bad request" on POST. The
+	// substitution must ONLY fire when the entire value is a
+	// comma-separated list of host-validation placeholders.
+	in := []byte(`version: '3.7'
+services:
+  web:
+    image: example:1
+    environment:
+      ORIGIN: "http://${DEVICE_DOMAIN_NAME}:8015"
+      ALLOWED_HOSTS: "${DEVICE_DOMAIN_NAME},${DEVICE_HOSTNAME}"
+      DB_URL: "postgres://user:pass@${DEVICE_HOSTNAME}:5432/db"
+`)
+	out, err := transformUpstreamCompose(in, "adventurelog", 0)
+	if err != nil {
+		t.Fatalf("transform: %v", err)
+	}
+	s := string(out)
+	// URL-embedded must stay
+	if !strings.Contains(s, "http://${DEVICE_DOMAIN_NAME}:8015") {
+		t.Errorf("ORIGIN URL with embedded placeholder should be preserved, got:\n%s", s)
+	}
+	if !strings.Contains(s, "postgres://user:pass@${DEVICE_HOSTNAME}:5432") {
+		t.Errorf("DB_URL with embedded placeholder should be preserved, got:\n%s", s)
+	}
+	// Pure host-list IS substituted
+	if !strings.Contains(s, "ALLOWED_HOSTS: '*,*'") && !strings.Contains(s, `ALLOWED_HOSTS: "*,*"`) {
+		t.Errorf("pure host-list ALLOWED_HOSTS should be substituted to '*,*', got:\n%s", s)
+	}
+}
+
+func TestEnvAsMapShape(t *testing.T) {
+	// compose accepts `environment:` as list of "K=V" OR map of K: V.
+	// gitingest hit the list shape; nextcloud uses map. Both work.
+	in := []byte(`version: '3.7'
+services:
+  app:
+    image: example:1
+    environment:
+      ALLOWED_HOSTS: "${DEVICE_DOMAIN_NAME},${DEVICE_HOSTNAME}"
+      NEXTCLOUD_TRUSTED_DOMAINS: "${APP_NEXTCLOUD_LOCAL_IPS}"
+`)
+	out, err := transformUpstreamCompose(in, "nextcloud", 0)
+	if err != nil {
+		t.Fatalf("transform: %v", err)
+	}
+	s := string(out)
+	if strings.Contains(s, "${DEVICE_") || strings.Contains(s, "_LOCAL_IPS}") {
+		t.Errorf("map-shape env values should be substituted, got:\n%s", s)
 	}
 }
 

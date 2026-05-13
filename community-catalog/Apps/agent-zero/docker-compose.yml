@@ -3,7 +3,7 @@ services:
     web:
         environment:
             - ALLOWED_ORIGINS=http://${DEVICE_DOMAIN_NAME}:${APP_AGENTZERO_PORT},http://${DEVICE_HOSTNAME}:${APP_AGENTZERO_PORT},${APP_AGENTZERO_LOCAL_URLS}
-        image: agent0ai/agent-zero:v1.13@sha256:7eace75109567ed0ed5fca3470ab4a4c8e5809931a2163975c4204492336a5b1
+        image: agent0ai/agent-zero:v1.14@sha256:4c5a2ce1a8bf7b02615454a5f81b24d3a8987be7073423285f98d75d0554b210
         ports:
             - 3015:80
         restart: on-failure
@@ -24,11 +24,12 @@ x-powerlab:
     port_map: "3015"
     author: Agent Zero AI
     developer: Agent Zero AI
+    main: web
     source:
         catalog: umbrel-apps
         upstream_id: agent-zero
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
+        upstream_commit: 931a2146a30e8398b127434cf4fd2f20ae77bb4f
         upstream_path: agent-zero/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:42:39Z"
+        synced_at: "2026-05-13T17:26:29Z"

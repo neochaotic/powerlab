@@ -1,7 +1,7 @@
 name: element
 services:
     web:
-        image: vectorim/element-web:v1.12.17@sha256:f4a81a24d49a9c5b97e02e77a3013ec799873e500e69041078a28be98e4f1280
+        image: vectorim/element-web:v1.12.18@sha256:c21772a1eabeededa19be591343f548995e458ec34ba8f27425ae923c10af82e
         ports:
             - 8088:80
         restart: on-failure
@@ -20,11 +20,12 @@ x-powerlab:
     port_map: "8088"
     author: New Vector Ltd
     developer: New Vector Ltd
+    main: web
     source:
         catalog: umbrel-apps
         upstream_id: element
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
+        upstream_commit: 931a2146a30e8398b127434cf4fd2f20ae77bb4f
         upstream_path: element/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:42:53Z"
+        synced_at: "2026-05-13T17:26:36Z"

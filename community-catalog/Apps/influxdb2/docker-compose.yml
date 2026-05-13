@@ -1,7 +1,7 @@
 name: influxdb2
 services:
     app:
-        image: influxdb:2.9.0-alpine@sha256:20c190638610b37cf296e4c2751d276862adaeb76909529ebe5f49b44008ac4b
+        image: influxdb:2.9.1-alpine@sha256:1cb8fa92ff9d13518d8198dae872b7ea523757a03c655d12a67175b1ab7a72f0
         ports:
             - 8886:8086
         restart: on-failure
@@ -23,11 +23,12 @@ x-powerlab:
     port_map: "8886"
     author: InfluxData
     developer: InfluxData
+    main: app
     source:
         catalog: umbrel-apps
         upstream_id: influxdb2
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
+        upstream_commit: 931a2146a30e8398b127434cf4fd2f20ae77bb4f
         upstream_path: influxdb2/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:43:05Z"
+        synced_at: "2026-05-13T17:26:41Z"

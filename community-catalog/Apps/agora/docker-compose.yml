@@ -12,6 +12,8 @@ services:
         networks:
             default:
                 ipv4_address: $APP_AGORA_SERVER_IP
+        ports:
+            - 12080:80
         restart: on-failure
         stop_grace_period: 1m
         user: 1000:1000
@@ -26,8 +28,6 @@ services:
         networks:
             default:
                 ipv4_address: $APP_AGORA_FILEBROWSER_IP
-        ports:
-            - 12080:80
         restart: on-failure
         stop_grace_period: 1m
         user: 1000:1000
@@ -66,11 +66,12 @@ x-powerlab:
     port_map: "12080"
     author: Casey Rodarmor & Sönke Hahn
     developer: Casey Rodarmor & Sönke Hahn
+    main: agora
     source:
         catalog: umbrel-apps
         upstream_id: agora
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 8a60bdaddda5062fa19b2b13a47966de5af986cf
+        upstream_commit: 931a2146a30e8398b127434cf4fd2f20ae77bb4f
         upstream_path: agora/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-12T15:42:39Z"
+        synced_at: "2026-05-13T17:26:29Z"
