@@ -31,19 +31,43 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Sprint 13 partial — UX polish + self-healing catalogue.
-  Three Sprint 13 items shipped together: source badge in launchpad
-  and store tiles (you can now tell at a glance which catalog an app
-  came from — umbrel / casaos / big-bear), `powerlab-sync-catalog`
-  binary shipped in `/usr/bin` with post-install refresh (closes the
-  v0.6.x bug class where the bundled catalog kept being stale vs the
-  binary's transform logic), and CasaOS-curated apps with
-  `scheme: https` or the `?token=casaos` legacy auth-proxy query
-  finally open correctly from the launchpad (affects 6 apps —
-  crafty, mineos-node, netbird, obsidian, openclaw,
-  unifi-network-application). Sprint 13 still has the Custom App ↔
-  Community App parity polish (#247) pending — that's the next
-  release's scope and waits on the tab-vs-panel UX decision.
+  Sprint 13 closeout — install UX parity + runtime catalogue fixes.
+  Six PRs bundled, finishing Sprint 13: (a) the install progress bar
+  now appears immediately when an install starts instead of late after
+  the first SSE phase marker arrived; (b) closing the install modal
+  leaves an iOS-style ghost tile on the launchpad at the app's future
+  position — faded icon + animated progress ring, click to restore
+  the modal; (c) a comprehensive catalog audit closed two runtime
+  bugs that v0.6.5 testing surfaced: gitingest's "Invalid host
+  header" (ALLOWED_HOSTS placeholders stayed literal; 59 apps
+  affected) and 89 multi-service apps whose backend "main service"
+  fell back to alphabetical-first (wrong for agora, affine,
+  adventurelog and others) — main is now resolved via the upstream
+  app_proxy.APP_HOST hint; (d) install-time secret substitution for
+  ${APP_SEED} / ${APP_PASSWORD} / sibling DB creds — per-app random
+  64-char hex secrets generated on first install and persisted at
+  /var/lib/powerlab/apps/secrets/<id>.env (0600 in 0700 dir), so
+  encrypted user data + JWT sessions survive upgrades and one
+  app's secret doesn't compromise another's; (e) shared LogStreamer
+  component extracted (live install log with auto-scroll +
+  pause-on-manual-scroll, dropped the redundant MinimizeBanner
+  pill); (f) Sprint 13.5 #150 Phase 3+4 backend coverage scaffold —
+  //go:build integration tag for Docker socket tests in
+  app-management, //go:build linux && fuse tag for local-storage,
+  plus two new CI jobs (backend-integration, backend-fuse) that
+  apt-install the deps and run the tagged tests after the unit job
+  is green. Bug backlog spilling to Sprint 14: Custom App fork
+  volumes form rendering [object Object] (#332), postgres
+  bind-mount perms on blinko-db (#334).
+
+  Sprint 13 partial framing (preserved for context):
+
+  v0.6.5 shipped three Sprint 13 items: source badge in launchpad
+  + store tiles (which catalog an app came from at a glance),
+  powerlab-sync-catalog binary in /usr/bin with post-install
+  refresh (closes the bundled-catalog-stale bug class permanently),
+  and the CasaOS scheme:https + ?token=casaos handling (6 apps
+  unlocked from launchpad).
 
   Sprint 12 framing (preserved for context):
 
