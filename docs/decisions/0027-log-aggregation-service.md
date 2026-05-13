@@ -343,6 +343,57 @@ forward-compatible.
   but cannot fill disk. Rate-limit middleware (100 req/min per
   authenticated user) is sufficient.
 
+## Severity coloring
+
+Visual differentiation by log level on BOTH surfaces. Severity is
+the standard set `DEBUG | INFO | WARN | ERROR | FATAL`. Each
+source maps to severity differently:
+
+| Source | Severity field |
+|---|---|
+| systemd journal (slog) | `level` key on the JSON record |
+| Docker container logs | parsed from common prefixes (`[ERROR]`, `level=warn`, `WARN:`, etc.) with INFO fallback |
+| install/upgrade logs | parsed from `[powerlab-install] ERROR:` prefix, INFO fallback |
+| audit | always INFO (mutating ops carry status code separately) |
+| frontend errors | always ERROR (only kind captured) |
+
+### CLI coloring
+
+ANSI escape codes by severity, applied only when stdout is a TTY
+(auto-detect via `isatty`). Suppressed under pipe, redirect, or
+`--no-color` flag for clean machine-readable output.
+
+| Severity | ANSI |
+|---|---|
+| FATAL | `\e[1;31m` (bold red) |
+| ERROR | `\e[31m` (red) |
+| WARN | `\e[33m` (yellow) |
+| INFO | default |
+| DEBUG | `\e[2m` (dim) |
+
+The `--json` output is never colored regardless of TTY — JSON
+piped through `jq` needs to stay structured.
+
+### UI coloring
+
+Each log row gets a left border + subtle bg tint matching the
+severity. Following the existing PowerLab palette
+(`tailwind.config.css`):
+
+| Severity | Border | Bg tint |
+|---|---|---|
+| FATAL / ERROR | `border-l-red-500` | `bg-red-500/[0.04]` |
+| WARN | `border-l-amber-500` | `bg-amber-500/[0.04]` |
+| INFO | `border-l-zinc-700` | none |
+| DEBUG | `border-l-zinc-800` | `opacity-60` |
+
+Severity badge to the left of the timestamp:
+`text-[10px] uppercase tracking-widest` matching the existing
+"Pre-release" badge in AboutPane. Color follows the same palette.
+
+A filter dropdown lets the user hide INFO/DEBUG to see only the
+interesting rows (defaults to "all", remembered in localStorage).
+
 ## Open questions — resolved
 
 1. **`powerlab-logs --follow` flag — YES.** Thin wrapper over
