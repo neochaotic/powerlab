@@ -11,6 +11,7 @@
 	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import { detectAppSource, appSourceLabel } from '$lib/utils/app-source';
 	import InstallProgressBar from '$lib/components/apps/InstallProgressBar.svelte';
+	import LogStreamer from '$lib/components/apps/LogStreamer.svelte';
 	import { useInstallState } from '$lib/stores/install-state.svelte';
 
 	const installState = useInstallState();
@@ -63,7 +64,6 @@
 	let installError = $state<string | null>(null);
 	let installedProjectId = $state<string | null>(null);
 	let installLogs = $state('');
-	let installLogEl = $state<HTMLPreElement | null>(null);
 	let activeSSE = $state<EventSource | null>(null);
 
 	// Visual progress derived from "Phase N/M" markers the backend
@@ -509,9 +509,7 @@
 
 		sse.onmessage = (e) => {
 			installLogs += e.data + '\n';
-			requestAnimationFrame(() => {
-				if (installLogEl) installLogEl.scrollTop = installLogEl.scrollHeight;
-			});
+			// Auto-scroll moved into LogStreamer.svelte (Sprint 13.2.3).
 		};
 
 		// Backend sends `event: end` when docker pull+start finished (success or failure)
@@ -1231,42 +1229,15 @@
 	onConfirm={() => handleUninstall(confirmingUninstall!)}
 />
 
-{#if installPhase !== 'idle' && installPhase !== 'confirm' && installModalMinimized}
-	<!-- Minimized: small floating pill bottom-right. Click to expand. -->
-	<button
-		class="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl border border-white/10 bg-zinc-900/95 px-4 py-3 text-left shadow-2xl backdrop-blur-xl hover:border-white/20 transition-all"
-		onclick={() => installModalMinimized = false}
-		aria-label="Expand install progress"
-		transition:scale={{ duration: 200, start: 0.9 }}
-	>
-		{#if installingApp?.icon}
-			<img src={installingApp.icon} alt="" class="h-9 w-9 rounded-lg" />
-		{:else}
-			<div class="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-800">
-				<Package class="h-5 w-5 text-zinc-500" />
-			</div>
-		{/if}
-		<div class="min-w-0">
-			<div class="flex items-center gap-2">
-				{#if installPhase === 'installing' || installPhase === 'starting'}
-					<Loader2 class="h-3 w-3 animate-spin text-emerald-500" />
-					<span class="text-[11px] font-bold text-white truncate max-w-[160px]">
-						{t('apps.installingApp')} {getTitle(installingApp?.title ?? {})}…
-					</span>
-				{:else if installPhase === 'success'}
-					<CheckCircle2 class="h-3 w-3 text-emerald-500" />
-					<span class="text-[11px] font-bold text-emerald-400">{t('apps.success')}</span>
-				{:else if installPhase === 'error'}
-					<AlertCircle class="h-3 w-3 text-red-500" />
-					<span class="text-[11px] font-bold text-red-400">{t('apps.error')}</span>
-				{:else}
-					<span class="text-[11px] font-bold text-amber-400">{t('apps.takingLonger')}</span>
-				{/if}
-			</div>
-			<div class="text-[10px] text-zinc-500">{t('apps.clickToExpand')}</div>
-		</div>
-	</button>
-{/if}
+<!--
+	MinimizeBanner removed in Sprint 13.2.3. The launchpad's
+	`InstallingTile` ghost tile (Sprint 13.2.2 / #251) now plays the
+	role this pill played: when the user minimizes the install
+	modal, the install state is visible at the future icon position
+	on the launchpad with the progress ring, no separate corner pill
+	needed. Click the ghost tile to restore the modal at
+	`/apps?install=<id>`. Less visual noise + one place to look.
+-->
 
 {#if installPhase !== 'idle' && installPhase !== 'confirm' && !installModalMinimized}
 	<!-- Install progress overlay -->
@@ -1378,15 +1349,7 @@ docker network prune -f</pre>
 						progress={installProgress}
 					/>
 					{#if installLogs}
-						<div class="flex items-center gap-2 border-b border-white/[0.06] px-3 py-2">
-							<div class="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500"></div>
-							<span class="font-mono text-[10px] text-zinc-500">{t('apps.installLog')}</span>
-						</div>
-						<pre
-							bind:this={installLogEl}
-							class="h-40 overflow-y-auto p-3 font-mono text-[11px] leading-relaxed text-zinc-400 scrollbar-none"
-							style="scrollbar-width:none"
-						>{installLogs}</pre>
+						<LogStreamer logs={installLogs} />
 					{/if}
 				</div>
 			{/if}
