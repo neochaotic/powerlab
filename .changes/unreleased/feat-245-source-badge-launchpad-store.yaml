@@ -1,0 +1,18 @@
+kind: Added
+body: 'Source badge surfaces in the **launchpad** and the **store**
+  tiles (#245). v0.6.x Phase 5 (#313) only added the badge to the
+  standalone `AppCard.svelte` component, which neither
+  `routes/+page.svelte` (launchpad) nor `routes/apps/+page.svelte`
+  (store) actually use — both pages render tiles inline. Result: the
+  badge was effectively invisible in production. This change adds the
+  same `detectAppSource()` + `appSourceLabel()` calls to both pages
+  inline tile templates: launchpad shows the source as a low-contrast
+  uppercase tag below the icon (mirroring the existing "CUSTOM" tag
+  style for visual consistency); store list view shows it inline with
+  the developer name via middle-dot separator; store card view shows
+  it as a chip next to the category. Lets the user tell at a glance
+  which catalog (umbrel / casaos / big-bear / store) each app came
+  from — addresses the "fico na duvida ao testar" feedback from the
+  v0.6.4 cycle.'
+custom:
+  Issue: "245"

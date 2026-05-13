@@ -9,6 +9,7 @@
 	import ContainerLogs from '$lib/components/apps/ContainerLogs.svelte';
 	import AppMetrics from '$lib/components/apps/AppMetrics.svelte';
 	import Markdown from '$lib/components/ui/Markdown.svelte';
+	import { detectAppSource, appSourceLabel } from '$lib/utils/app-source';
 	import { Button } from '$lib/components/ui/button';
 	import {
 		ArrowLeft, Search, X, Package, Pencil, ArrowUpCircle,
@@ -795,9 +796,10 @@
 					{#each filteredCatalog as app (app.store_app_id)}
 						{@const appTitle = getTitle(app.title)}
 						{@const appTagline = getTitle(app.tagline)}
+						{@const _src = detectAppSource(app)}
 						<!-- svelte-ignore a11y_click_events_have_key_events -->
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<div 
+						<div
 							class="group flex cursor-pointer items-center gap-3.5 py-3 pr-1"
 							onclick={() => detailApp = app}
 						>
@@ -818,7 +820,12 @@
 
 							<div class="min-w-0 flex-1">
 								<p class="truncate text-sm font-semibold text-white">{appTitle}</p>
-								<p class="truncate text-xs text-zinc-500">{app.developer || app.author || ''}</p>
+								<!-- Source badge inline with developer name (list view). Same
+									 idea as the card-view badge — middle-dot separator, low-
+									 contrast text. Discreet but always-present. #245. -->
+								<p class="truncate text-xs text-zinc-500">
+									{app.developer || app.author || ''}{#if app.developer || app.author}<span class="text-zinc-700"> · </span>{/if}<span class="text-zinc-600">{appSourceLabel(_src)}</span>
+								</p>
 								{#if appTagline && appTagline !== t('apps.unknown')}
 									<p class="mt-0.5 line-clamp-1 text-[11px] text-zinc-600">{appTagline}</p>
 								{/if}
@@ -841,9 +848,10 @@
 					{#each filteredCatalog as app (app.store_app_id)}
 						{@const appTitle = getTitle(app.title)}
 						{@const appTagline = getTitle(app.tagline)}
+						{@const _src = detectAppSource(app)}
 						<!-- svelte-ignore a11y_click_events_have_key_events -->
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<div 
+						<div
 							class="group relative flex cursor-pointer flex-col gap-3 rounded-2xl border border-white/[0.04] bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.04]"
 							onclick={() => detailApp = app}
 						>
@@ -886,11 +894,16 @@
 								<div class="h-[2.4em]"></div>
 							{/if}
 
-							{#if app.category}
-								<div class="flex items-center gap-1.5">
+							<!-- Category + source row (Phase 5 sequel #245). Source badge
+								 in the same row as category so users know which catalog the
+								 app came from while browsing. Discreet: same chip style as
+								 category, low-contrast. -->
+							<div class="flex items-center gap-1.5">
+								{#if app.category}
 									<span class="rounded-full bg-white/[0.04] px-2 py-px text-[9px] font-bold uppercase tracking-wider text-zinc-500">{app.category}</span>
-								</div>
-							{/if}
+								{/if}
+								<span class="rounded-full bg-white/[0.04] px-2 py-px text-[9px] font-bold uppercase tracking-wider text-zinc-500">{appSourceLabel(_src)}</span>
+							</div>
 						</div>
 					{/each}
 				</div>

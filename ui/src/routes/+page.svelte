@@ -23,6 +23,7 @@
 	import { t } from "$lib/i18n/index.svelte";
 	import ContainerLogs from "$lib/components/apps/ContainerLogs.svelte";
 	import { Button } from "$lib/components/ui/button";
+	import { detectAppSource, appSourceLabel } from "$lib/utils/app-source";
 
 	const appStore = useAppStore();
 	const systemStore = useSystemStore();
@@ -633,6 +634,17 @@
 									class="text-[7px] font-bold uppercase tracking-[0.15em] text-amber-500/60"
 								>
 									{t('launchpad.custom')}
+								</span>
+							{:else}
+								<!-- Source badge — same shape as Custom tag (uppercase, 7px, low
+									 contrast) for visual consistency. Lets the user identify which
+									 catalog the app came from while testing (#245). Zinc for catalog
+									 sources keeps the amber slot reserved for "user-authored". -->
+								{@const _src = detectAppSource(info)}
+								<span
+									class="text-[7px] font-bold uppercase tracking-[0.15em] text-zinc-500/70"
+								>
+									{appSourceLabel(_src)}
 								</span>
 							{/if}
 						</div>
