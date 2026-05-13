@@ -564,7 +564,16 @@ fi
 #
 # Timeout: 60s. If sync takes longer (slow network), skip. The next
 # weekly GH-Action sync PR will refresh the in-repo catalog anyway.
-if command -v git &>/dev/null && command -v /usr/bin/powerlab-sync-catalog &>/dev/null; then
+#
+# Escape hatch: POWERLAB_SKIP_SYNC=1 in the env skips this step entirely.
+# Useful for: (a) fast offline upgrades — the bundled catalog from the
+# tarball is good enough until the next manual sync; (b) air-gapped
+# boxes where git clone of upstream isn't reachable. The user can run
+# `/usr/bin/powerlab-sync-catalog --output /var/lib/powerlab/community-catalog`
+# at any later time to refresh on demand.
+if [[ "${POWERLAB_SKIP_SYNC:-0}" == "1" ]]; then
+  echo "[powerlab-install] Skipping community catalog refresh (POWERLAB_SKIP_SYNC=1). Run /usr/bin/powerlab-sync-catalog manually to refresh later."
+elif command -v git &>/dev/null && command -v /usr/bin/powerlab-sync-catalog &>/dev/null; then
   echo "[powerlab-install] Refreshing community catalog from upstream (best-effort, 60s timeout)..."
   if timeout 60 /usr/bin/powerlab-sync-catalog \
        --output /var/lib/powerlab/community-catalog \
