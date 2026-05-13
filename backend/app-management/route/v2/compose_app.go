@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 
 	"github.com/neochaotic/powerlab/backend/app-management/codegen"
 	"github.com/neochaotic/powerlab/backend/app-management/common"
@@ -20,6 +21,24 @@ import (
 )
 
 var ErrComposeAppIDNotProvided = errors.New("compose AppID (compose project name) is not provided")
+
+// extractStoreAppID pulls the top-level `name:` from a compose YAML.
+// Used by InstallComposeApp's pre-parse secret substitution step
+// (needs the app id BEFORE compose-go parses, because the parse may
+// fail when unresolved secret placeholders are present). Returns ""
+// if the YAML doesn't have a top-level name — the caller falls back
+// to skipping substitution. Lightweight regex; we're not full-parsing.
+func extractStoreAppID(buf []byte) string {
+	// `name: <id>` must be the FIRST top-level key (column 0). YAML
+	// allows it anywhere but the catalog convention from sync-catalog
+	// emits it first. Regex matches `^name:\s*([^\s\n]+)` in MULTILINE.
+	re := regexp.MustCompile(`(?m)^name:\s*([A-Za-z0-9_-]+)`)
+	m := re.FindSubmatch(buf)
+	if len(m) < 2 {
+		return ""
+	}
+	return string(m[1])
+}
 
 func (a *AppManagement) MyComposeAppList(ctx echo.Context) error {
 	composeAppsWithStoreInfo, err := composeAppsWithStoreInfo(ctx.Request().Context(), composeAppsWithStoreInfoOpts{
@@ -270,6 +289,29 @@ func (a *AppManagement) InstallComposeApp(ctx echo.Context, params codegen.Insta
 		return ctx.JSON(http.StatusBadRequest, codegen.ResponseBadRequest{
 			Message: &message,
 		})
+	}
+
+	// Sprint 13.4.x: Substitute install-time secret placeholders
+	// (${APP_SEED}, ${APP_PASSWORD}, sibling-app DB credentials) with
+	// per-app random values persisted to /var/lib/powerlab/apps/secrets/.
+	// MUST run BEFORE NewComposeAppFromYAML — compose-go's interpolation
+	// step would either fail or substitute empty strings into the
+	// project, breaking cryptographic invariants (NextAuth signing,
+	// JWT secrets, postgres passwords). See install_secrets.go for
+	// the full design + audit doc.
+	//
+	// Best-effort: if substitution fails, log + proceed with un-
+	// substituted YAML rather than blocking the install. Most apps
+	// (159 of 241) have no secret placeholders, so failures here
+	// shouldn't gate the catalog-wide install path.
+	if probeID := extractStoreAppID(buf); probeID != "" {
+		secretsDir := "/var/lib/powerlab/apps/secrets"
+		if substituted, sErr := service.SubstituteSecrets(buf, probeID, secretsDir); sErr == nil {
+			buf = substituted
+		}
+		// On error we silently fall through to the original buf; the
+		// app may then fail to start, which is the same outcome as
+		// without this layer at all (v0.6.5 behavior).
 	}
 
 	// validate new compose yaml
