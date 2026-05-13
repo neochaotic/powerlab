@@ -31,6 +31,22 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
+  Sprint 13 partial — UX polish + self-healing catalogue.
+  Three Sprint 13 items shipped together: source badge in launchpad
+  and store tiles (you can now tell at a glance which catalog an app
+  came from — umbrel / casaos / big-bear), `powerlab-sync-catalog`
+  binary shipped in `/usr/bin` with post-install refresh (closes the
+  v0.6.x bug class where the bundled catalog kept being stale vs the
+  binary's transform logic), and CasaOS-curated apps with
+  `scheme: https` or the `?token=casaos` legacy auth-proxy query
+  finally open correctly from the launchpad (affects 6 apps —
+  crafty, mineos-node, netbird, obsidian, openclaw,
+  unifi-network-application). Sprint 13 still has the Custom App ↔
+  Community App parity polish (#247) pending — that's the next
+  release's scope and waits on the tab-vs-panel UX decision.
+
+  Sprint 12 framing (preserved for context):
+
   Sprint 12 — Umbrel catalogue apps now **actually open** when clicked.
   v0.6.3 surfaced the apps in the store + launchpad, but every Umbrel
   app's tile click "opened a new window that never loaded" because the
