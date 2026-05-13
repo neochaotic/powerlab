@@ -115,8 +115,18 @@ services:
 			stopLogStreaming();
 		};
 
-		eventSource.addEventListener('end', () => {
+		// SSE close marker. Mirrors apps/+page.svelte's checkInstallResult:
+		// the install ACTUALLY finished here, so transition the modal
+		// to its terminal state by fetching the installed-app list
+		// and deciding success/error from whether our app appears.
+		// v0.6.8 fix #341: unifies Custom App with Community Install
+		// terminal-state behaviour (#247 carry-over). Before this, the
+		// `event: end` handler only closed the stream — deployResult
+		// had been pre-set to success on POST 2xx, surfacing
+		// "Service running" before any image had been pulled.
+		eventSource.addEventListener('end', async () => {
 			stopLogStreaming();
+			await finalizeDeploy(id);
 		});
 
 		// Safety timeout: matches native-app install (apps/+page.svelte
@@ -404,21 +414,59 @@ services:
 				? await applyComposeAppSettings(editingId, yamlText)
 				: await api.postYaml<any>(ENDPOINTS.APP_COMPOSE_DEPLOY, yamlText);
 			
-			// User now picks the next step explicitly via the success
-			// modal ("Open Launchpad" / "Stay Here") instead of being
-			// auto-redirected after a fixed timeout. The auto-redirect
-			// hid the deploy log right when the user wanted to read it,
-			// and forced a context switch the user might not want.
-			deployResult = {
-				success: true,
-				message: response?.message || t('orchestrator.deploymentStarted')
-			};
+			// v0.6.8 fix #341: do NOT set deployResult here. POST 2xx
+			// means install STARTED, not completed. The terminal state
+			// gets decided by finalizeDeploy() in the SSE `end`
+			// handler. This brings Custom App lifecycle to parity with
+			// Community Install (apps/+page.svelte) — #247 carry-over.
 		} catch (e) {
 			deployResult = {
 				success: false,
 				message: (e as Error).message || t('orchestrator.deploymentStartFailed')
 			};
 			error = (e as Error).message;
+			isDeploying = false;
+		}
+	}
+
+	// Called when the SSE stream emits `event: end` (the backend
+	// PullAndInstall goroutine completed). Fetches the installed-app
+	// list and sets deployResult to success / error based on whether
+	// the app actually appeared. Mirrors apps/+page.svelte
+	// checkInstallResult.
+	async function finalizeDeploy(id: string) {
+		try {
+			const resp = await fetch(`${ENDPOINTS.APP_COMPOSE_LIST}`, {
+				headers: { Authorization: getAuthToken() ?? '' }
+			});
+			let installed: { id: string }[] = [];
+			if (resp.ok) {
+				const j = await resp.json();
+				installed = (j?.data ?? []) as { id: string }[];
+			}
+			const found = installed.some((a) => a.id === id);
+			if (found) {
+				deployResult = {
+					success: true,
+					message: t('orchestrator.serviceRunning')
+				};
+			} else {
+				// Pull the most informative line from the SSE logs to
+				// surface as the error context.
+				const lastErr = deployLogs
+					.slice()
+					.reverse()
+					.find((l) => /error|fail|denied|not found|permitted/i.test(l));
+				deployResult = {
+					success: false,
+					message: lastErr ?? t('orchestrator.deployFailed')
+				};
+			}
+		} catch (e) {
+			deployResult = {
+				success: false,
+				message: (e as Error).message || t('orchestrator.deployFailed')
+			};
 		} finally {
 			isDeploying = false;
 		}
