@@ -143,6 +143,17 @@ GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
 log "Building frontend (static SPA)..."
 cd "$ROOT/ui"
 export POWERLAB_VERSION="$VERSION"
+
+# L1 (defense-in-depth, v0.6.6 retro): sync ui/package.json `version`
+# field with the release VERSION so the Vite fallback path (when
+# POWERLAB_VERSION env is somehow lost) cannot stamp a stale literal.
+# `--allow-same-version` makes this a no-op on idempotent re-runs;
+# `--no-git-tag-version` keeps npm from creating its own tag (we
+# create release tags ourselves). `|| true` because npm version
+# exits non-zero on a same-version run on some npm releases — we
+# don't care, the result is still the right number.
+npm version "$VERSION" --no-git-tag-version --allow-same-version > /dev/null 2>&1 || true
+
 BUILD_STAMP_FILE="build/.powerlab-version"
 SKIP_OK=0
 if [[ "${POWERLAB_SKIP_FRONTEND_BUILD:-}" == "1" ]] && [[ -f "build/index.html" ]] && [[ -f "$BUILD_STAMP_FILE" ]] && [[ "$(cat "$BUILD_STAMP_FILE")" == "$VERSION" ]]; then
@@ -160,6 +171,27 @@ if (( SKIP_OK == 0 )); then
   npm run build > /dev/null
   echo "$VERSION" > "$BUILD_STAMP_FILE"
 fi
+
+# L3 (defense-in-depth, v0.6.6 retro): sanity-grep the built JS for
+# the version literal. Vite stamps __APP_VERSION__ as a quoted string
+# into the bundle (`"<version>"`); if for any reason the build picked
+# up the wrong value (env var lost, pkg.json stale and POWERLAB_VERSION
+# not set, cached build path bypassed the version refresh), this final
+# check aborts BEFORE the tarball is sealed.
+#
+# We grep all chunk JS for the version literal — version handshake
+# imports __APP_VERSION__ into a top-level identifier, so the literal
+# must appear in at least one JS file. If it doesn't, the bundle is
+# broken regardless of stamp-file claims.
+EXPECTED_VERSION_LITERAL="\"$VERSION\""
+if ! grep -rqF "$EXPECTED_VERSION_LITERAL" build/_app/immutable/chunks/ build/_app/immutable/nodes/ 2>/dev/null; then
+  log "ERROR: Built UI bundle does not contain expected version literal $EXPECTED_VERSION_LITERAL."
+  log "       This means __APP_VERSION__ was stamped with a different value (probably stale pkg.json"
+  log "       or POWERLAB_VERSION env got lost). Aborting before sealing tarball — see"
+  log "       docs/UPDATE_MANIFEST.md 'Defense in depth' section."
+  exit 1
+fi
+
 cp -R build/* "$STAGE/www/"
 
 # ─── 3.5. Bundle community catalog (Umbrel-sync output) ──────────────────

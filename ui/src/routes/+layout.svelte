@@ -152,11 +152,15 @@
 		{/if}
 	</div>
 
-	{#if versionHandshake.mismatch}
-		<!-- Non-dismissible banner. The JS bundle in this browser is
-			 older than the backend; the user MUST reload to get a UI
-			 that speaks the current API. -->
+	{#if versionHandshake.mismatch && !versionHandshake.dismissed}
+		<!-- Dismissable banner. The JS bundle in this browser does not
+			 match the backend. First attempts: offer a cache-busted
+			 force-reload (?powerlab_v=<ts>) since plain reload often
+			 hits a cached bundle. After 2 attempts that didn't fix it,
+			 the message changes to "the deployed bundle on the server
+			 is wrong" — at that point reloading more won't help. -->
 		<div
+			data-testid="version-mismatch-banner"
 			class="fixed top-0 left-0 right-0 z-[200] border-b border-amber-500/30 bg-amber-500/95 px-6 py-3 text-zinc-950 shadow-lg backdrop-blur-xl"
 			transition:slide={{ axis: 'y' }}
 		>
@@ -164,19 +168,40 @@
 				<div class="flex items-center gap-3">
 					<AlertTriangle class="h-5 w-5 shrink-0" />
 					<div class="text-sm font-semibold leading-tight">
-						<div>{t('app.updateAvailable')}</div>
-						<div class="text-[11px] font-medium opacity-80">
-							{t('app.uiVersion')}: v{versionHandshake.uiVersion} · {t('app.serverVersion')}: v{versionHandshake.backendVersion}
-						</div>
+						{#if versionHandshake.persistentFailure}
+							<div>{t('app.stalebundle.persistent.title')}</div>
+							<div class="text-[11px] font-medium opacity-80">
+								{t('app.stalebundle.persistent.help')}
+							</div>
+						{:else}
+							<div>{t('app.stalebundle.title')}</div>
+							<div class="text-[11px] font-medium opacity-80">
+								{t('app.uiVersion')}: v{versionHandshake.uiVersion} · {t('app.serverVersion')}: v{versionHandshake.backendVersion}
+							</div>
+						{/if}
 					</div>
 				</div>
-				<button
-					class="flex items-center gap-2 rounded-xl bg-zinc-950 px-4 py-2 text-xs font-bold text-amber-300 hover:bg-zinc-800 transition-colors"
-					onclick={() => location.reload()}
-				>
-					<RefreshCw class="h-3.5 w-3.5" />
-					{t('action.reloadNow')}
-				</button>
+				<div class="flex items-center gap-2">
+					{#if !versionHandshake.persistentFailure}
+						<button
+							data-testid="version-mismatch-force-reload"
+							class="flex items-center gap-2 rounded-xl bg-zinc-950 px-4 py-2 text-xs font-bold text-amber-300 hover:bg-zinc-800 transition-colors"
+							onclick={() => versionHandshake.forceReload()}
+						>
+							<RefreshCw class="h-3.5 w-3.5" />
+							{t('app.stalebundle.action.forceReload')}
+						</button>
+					{/if}
+					<button
+						data-testid="version-mismatch-dismiss"
+						aria-label={t('action.close')}
+						title={t('action.close')}
+						class="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-950/70 hover:bg-zinc-950/10 hover:text-zinc-950 transition-colors"
+						onclick={() => versionHandshake.dismiss()}
+					>
+						<X class="h-4 w-4" />
+					</button>
+				</div>
 			</div>
 		</div>
 	{/if}
