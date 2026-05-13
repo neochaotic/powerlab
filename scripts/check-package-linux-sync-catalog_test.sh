@@ -37,6 +37,7 @@ assert_grep "command -v git guard"          "command -v git"
 assert_grep "command -v sync-catalog guard" "command -v /usr/bin/powerlab-sync-catalog"
 assert_grep "timeout-bounded sync"          "timeout 60 /usr/bin/powerlab-sync-catalog"
 assert_grep "best-effort fallback message"  "bundled catalog will be used"
+assert_grep "POWERLAB_SKIP_SYNC env escape"  "POWERLAB_SKIP_SYNC:-0"
 
 echo "Test: backend/sync-catalog package compiles"
 if (cd "$REPO_ROOT/backend/sync-catalog" && go build -o /dev/null . 2>/dev/null); then
