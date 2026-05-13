@@ -8,6 +8,7 @@
 	import yaml from 'js-yaml';
 	import { readPowerLabExt, writePowerLabExt, deletePowerLabExtProperty } from '$lib/utils/compose-extension';
 	import ComposeForm, { type ComposeModel } from '$lib/components/orchestrator/ComposeForm.svelte';
+	import LogStreamer from '$lib/components/apps/LogStreamer.svelte';
 	import { page } from '$app/stores';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { goto } from '$app/navigation';
@@ -69,7 +70,6 @@ services:
 	// Deploy log streaming state
 	let deployLogs = $state<string[]>([]);
 	let deployAppId = $state<string | null>(null);
-	let logScrollEl = $state<HTMLElement | null>(null);
 	let eventSource: EventSource | null = null;
 	let sseTimeoutId: ReturnType<typeof setTimeout> | null = null;
 	let deployTimedOut = $state(false);
@@ -104,10 +104,10 @@ services:
 
 		eventSource.onmessage = (event) => {
 			if (event.data) {
+				// LogStreamer owns scroll behaviour now (auto-scroll +
+				// pause-on-manual-scroll) — see #335 / v0.6.6. The
+				// manual scrollTop manipulation here is gone.
 				deployLogs = [...deployLogs, event.data];
-				setTimeout(() => {
-					if (logScrollEl) logScrollEl.scrollTop = logScrollEl.scrollHeight;
-				}, 10);
 			}
 		};
 
@@ -575,27 +575,14 @@ services:
 						</div>
 					{/if}
 
-					<!-- Terminal Area -->
-					<div class="mt-6 flex flex-col overflow-hidden rounded-xl border border-white/5 bg-black/40 text-left shadow-inner">
-						<div class="flex h-6 items-center gap-1.5 border-b border-white/5 bg-white/[0.02] px-3">
-							<Terminal class="h-3 w-3 text-zinc-500" />
-							<span class="text-[9px] font-bold uppercase tracking-widest text-zinc-600">{t('orchestrator.installLogs')}</span>
-						</div>
-						<div 
-							bind:this={logScrollEl}
-							class="h-48 overflow-y-auto p-3 font-mono text-[10px] leading-relaxed custom-scrollbar"
-						>
-							{#each deployLogs as log}
-								<div class="flex gap-2">
-									<span class="text-emerald-500/40 select-none">›</span>
-									<span class="text-zinc-300 break-all">{log}</span>
-								</div>
-							{:else}
-								<div class="flex h-full items-center justify-center text-zinc-700 animate-pulse">
-									{t('orchestrator.waitingForLogs')}
-								</div>
-							{/each}
-						</div>
+					<!-- Install log surface — shared LogStreamer for parity
+						 with the Community Install modal (PR #335 / v0.6.8). -->
+					<div class="mt-6 overflow-hidden rounded-xl border border-white/5 bg-black/40 text-left shadow-inner">
+						<LogStreamer
+							logs={deployJoinedLogs}
+							label={t('orchestrator.installLogs')}
+							heightClass="h-48"
+						/>
 					</div>
 				{:else if deployResult}
 					<div class="mb-6 flex justify-center">
