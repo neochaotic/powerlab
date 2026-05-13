@@ -6,6 +6,13 @@
 	import { cn } from '$lib/utils';
 	import { t } from '$lib/i18n/index.svelte';
 	import { updaterStore } from '$lib/stores/updater.svelte';
+	import { upgradeProgress } from '$lib/stores/upgradeProgress.svelte';
+
+	function startUpgrade() {
+		const target = updaterStore.check?.available;
+		if (!target) return;
+		upgradeProgress.start(target);
+	}
 </script>
 
 <div class="space-y-8">
@@ -86,10 +93,10 @@
 				<div class="flex flex-wrap items-center gap-2 pt-1">
 					<button
 						class="rounded-lg bg-emerald-500 px-3 py-1.5 text-[11px] font-bold text-zinc-950 transition-colors hover:bg-emerald-400 disabled:opacity-50"
-						onclick={() => updaterStore.install()}
-						disabled={updaterStore.installing}
+						onclick={startUpgrade}
+						disabled={upgradeProgress.isOverlayActive}
 					>
-						{updaterStore.installing ? 'Upgrading…' : `Upgrade to v${updaterStore.check.available}`}
+						{upgradeProgress.isOverlayActive ? 'Upgrading…' : `Upgrade to v${updaterStore.check.available}`}
 					</button>
 				</div>
 				{#if updaterStore.installError}

@@ -6,6 +6,7 @@
 	import ToastContainer from '$lib/components/ui/Toast.svelte';
 	import HttpBanner from '$lib/components/security/HttpBanner.svelte';
 	import TrustStateChecker from '$lib/components/security/TrustStateChecker.svelte';
+	import UpgradeProgressOverlay from '$lib/components/system/UpgradeProgressOverlay.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { ui } from '$lib/stores/ui.svelte';
 	import { versionHandshake } from '$lib/stores/versionHandshake.svelte';
@@ -102,6 +103,7 @@
 
 <ToastContainer />
 <HttpBanner />
+<UpgradeProgressOverlay />
 <TrustStateChecker />
 
 <!-- Root Container — same ambient wallpaper as the login screen.
