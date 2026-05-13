@@ -24,6 +24,7 @@
 	import ContainerLogs from "$lib/components/apps/ContainerLogs.svelte";
 	import { Button } from "$lib/components/ui/button";
 	import { detectAppSource, appSourceLabel } from "$lib/utils/app-source";
+	import { buildAppURL } from "$lib/utils/app-url";
 
 	const appStore = useAppStore();
 	const systemStore = useSystemStore();
@@ -324,12 +325,14 @@
 	}
 
 	// ── Actions (from context menu) ────────────────────────────────────────────
-	function openApp(app: { id: string; store_info: { port_map?: string } }) {
-		if (app.store_info?.port_map) {
-			window.open(
-				`http://${window.location.hostname}:${app.store_info.port_map}`,
-				"_blank",
-			);
+	function openApp(app: { id: string; store_info: { port_map?: string; scheme?: string; index?: string } }) {
+		// Use buildAppURL so the scheme + index handling stays in one
+		// testable place (`$lib/utils/app-url`). CasaOS-curated apps
+		// with `scheme: https` and the openclaw `?token=casaos` legacy
+		// query are handled there. See #244.
+		const url = buildAppURL(window.location.hostname, app.store_info);
+		if (url) {
+			window.open(url, "_blank");
 		}
 	}
 
