@@ -172,23 +172,12 @@ if (( SKIP_OK == 0 )); then
   echo "$VERSION" > "$BUILD_STAMP_FILE"
 fi
 
-# L3 (defense-in-depth, v0.6.6 retro): sanity-grep the built JS for
-# the version literal. Vite stamps __APP_VERSION__ from JSON.stringify
-# into the bundle, but Rollup's minifier may strip the surrounding
-# quotes (we observed `0.0.0-ci` bare in the chunks under CI). The
-# semver-shaped string itself is what we need to find — quoting around
-# it is implementation-detail of whichever pass last touched the
-# bundle. If the literal version string doesn't appear, the build
-# stamped a different value (env var lost, pkg.json stale and
-# POWERLAB_VERSION not set, cached build path bypassed the version
-# refresh) — abort BEFORE sealing the tarball.
-if ! grep -rqF -- "$VERSION" build/_app/immutable/chunks/ build/_app/immutable/nodes/ 2>/dev/null; then
-  log "ERROR: Built UI bundle does not contain expected version literal '$VERSION'."
-  log "       This means __APP_VERSION__ was stamped with a different value (probably stale pkg.json"
-  log "       or POWERLAB_VERSION env got lost). Aborting before sealing tarball — see"
-  log "       docs/UPDATE_MANIFEST.md 'Defense in depth' section."
-  exit 1
-fi
+# L3 (defense-in-depth, v0.6.6 retro): sanity-check the built JS for
+# the version literal via the dedicated check-built-ui-version.sh
+# script. The script is regression-tested with injected positive +
+# negative scenarios in check-built-ui-version_test.sh (proving the
+# gate actually catches the bug class, not just structurally present).
+bash "$ROOT/scripts/check-built-ui-version.sh" "$VERSION" "build"
 
 cp -R build/* "$STAGE/www/"
 

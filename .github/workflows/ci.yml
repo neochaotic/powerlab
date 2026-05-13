@@ -92,6 +92,9 @@ jobs:
       - name: L1+L3 — package-linux.sh defense-in-depth wiring
         run: bash scripts/check-package-linux-ui-version_test.sh
 
+      - name: L3 — injection test (gate detects wrong-version bundle)
+        run: bash scripts/check-built-ui-version_test.sh
+
       - name: Cut-script structural + sandboxed behavioral tests
         run: bash scripts/prepare-release_test.sh
 

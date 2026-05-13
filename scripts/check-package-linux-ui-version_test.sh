@@ -35,9 +35,8 @@ assert_grep() {
 echo "Test: L1 npm version sync wired in"
 assert_grep "npm version pre-build" "npm version \"\$VERSION\" --no-git-tag-version --allow-same-version"
 
-echo "Test: L3 sanity grep wired in"
-assert_grep "grep against built chunks"    "grep -rqF -- \"\$VERSION\" build/_app/immutable/chunks/ build/_app/immutable/nodes/"
-assert_grep "abort message"                "Aborting before sealing tarball"
+echo "Test: L3 sanity check wired via dedicated script"
+assert_grep "calls check-built-ui-version.sh" "bash \"\$ROOT/scripts/check-built-ui-version.sh\" \"\$VERSION\" \"build\""
 
 echo
 if [[ "$failures" == "0" ]]; then
