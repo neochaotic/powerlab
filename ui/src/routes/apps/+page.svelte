@@ -11,6 +11,9 @@
 	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import { detectAppSource, appSourceLabel } from '$lib/utils/app-source';
 	import InstallProgressBar from '$lib/components/apps/InstallProgressBar.svelte';
+	import { useInstallState } from '$lib/stores/install-state.svelte';
+
+	const installState = useInstallState();
 	import { Button } from '$lib/components/ui/button';
 	import {
 		ArrowLeft, Search, X, Package, Pencil, ArrowUpCircle,
@@ -442,6 +445,13 @@
 			installedProjectId = extractProjectName(yamlText) ?? app.store_app_id.toLowerCase().replace(/[^a-z0-9-]/g, '-');
 			originalPortMap = extractPortMap(yamlText);
 
+			// Sprint 13.2.2: register the install with the cross-page
+			// store so the launchpad can render the ghost tile if the
+			// user closes this modal without canceling. Keyed by the
+			// projectId so launchpad ghost ↔ /apps modal stay in sync
+			// across navigation.
+			installState.start(installedProjectId, app);
+
 			// Apply the user's chosen ports (if any) to the YAML before sending.
 			// Backend's autoRemap will still run as a safety net; the user's
 			// values are just the starting point.
@@ -461,12 +471,34 @@
 			await installComposeApp(yamlText);
 			// HTTP 200 = install started asynchronously. Stream SSE logs and poll for success.
 			installPhase = 'starting';
+			installState.update(installedProjectId, { phase: 'starting' });
 			streamInstallLogs(installedProjectId);
 		} catch (e) {
 			installError = humanizeError((e as Error).message ?? 'Installation failed');
 			installPhase = 'error';
+			if (installedProjectId) {
+				installState.update(installedProjectId, { phase: 'error', error: installError });
+			}
 		}
 	}
+
+	// Sprint 13.2.2: mirror the page-local install state into the
+	// shared store so the launchpad's ghost tile stays in sync. $effect
+	// re-runs whenever any of these reactive fields change. Idle/confirm
+	// phases never reach the store — the store is created on `installing`
+	// and finished on terminal phases.
+	$effect(() => {
+		if (!installedProjectId) return;
+		if (installPhase === 'idle' || installPhase === 'confirm') return;
+		if (!installState.get(installedProjectId)) return; // race: finish ran
+		installState.update(installedProjectId, {
+			phase: installPhase,
+			currentPhase,
+			progress: installProgress,
+			logs: installLogs,
+			error: installError ?? undefined,
+		});
+	});
 
 	function streamInstallLogs(projectId: string) {
 		// EventSource can't send Authorization header — pass JWT in URL.
@@ -560,6 +592,23 @@
 				.find(l => /error|fail|denied|not found|permitted/i.test(l));
 			installError = humanizeError(lastErrorLine ?? 'App did not appear in the installed list. It may still be starting — check your Launchpad.');
 			installPhase = 'error';
+		}
+		// Sprint 13.2.2: on terminal phases (success/error), keep the
+		// ghost tile around briefly so the launchpad shows the result
+		// badge (checkmark / X). The success path will then transition
+		// to the real installed tile via fetchInstalledApps() above.
+		// We schedule finish() after 4s — long enough to see the
+		// success badge, short enough that the user doesn't see a
+		// stale tile if they navigate away.
+		if (projectId) {
+			// finalPhase is one of success/error/timeout at this point;
+			// the type system can't narrow it from the union above, so
+			// we narrow by check rather than cast.
+			if (installPhase === 'success' || installPhase === 'error' || installPhase === 'timeout') {
+				const finalPhase = installPhase;
+				installState.update(projectId, { phase: finalPhase });
+				setTimeout(() => installState.finish(projectId), 4000);
+			}
 		}
 	}
 
