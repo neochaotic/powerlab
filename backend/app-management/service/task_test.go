@@ -217,6 +217,54 @@ func TestTask_Subscribe_BackpressureDoesNotDeadlock(t *testing.T) {
 	}
 }
 
+func TestTask_Subscribe_AfterFinish_ChannelClosesAfterReplay(t *testing.T) {
+	// REGRESSION for v0.6.7 user report: "fica preparando, bar
+	// carrega, mas modal nunca termina". Root cause: when the
+	// install completed BEFORE the UI subscribed (race typical
+	// of a fast install or a slow page-load), Subscribe replayed
+	// the buffer to the new subscriber's channel but NEVER closed
+	// the channel — Finish had already run and would not run
+	// again. The route handler then drained the replay and
+	// blocked on `<-ch` forever, never emitting `event: end`,
+	// so the UI never called checkInstallResult and the modal
+	// stayed in 'starting' state showing "Preparing…".
+	//
+	// Contract this test locks: if a Subscribe happens after
+	// Finish, the channel must close once the replay is drained.
+	svc := NewTaskService()
+	task := svc.GetOrCreate("test-after-finish")
+
+	// Simulate a quick install that completes before the UI hits
+	// the SSE endpoint.
+	task.Write([]byte("Phase 1/3: Pulling...\n"))
+	task.Write([]byte("Phase 2/3: Creating...\n"))
+	task.Write([]byte("Phase 3/3: Starting...\n"))
+	task.Write([]byte("Installation completed successfully!\n"))
+	task.Finish()
+
+	ch, cleanup := task.Subscribe()
+	defer cleanup()
+
+	got := recvAll(ch, 10, 500*time.Millisecond)
+
+	// Should have received the replay AND the channel should now be
+	// closed so the route handler can emit event:end.
+	if len(got) < 4 {
+		t.Errorf("expected ≥4 replay messages, got %d", len(got))
+	}
+
+	// Test channel-close detection: read one more — must get !ok.
+	deadline := time.After(500 * time.Millisecond)
+	select {
+	case _, ok := <-ch:
+		if ok {
+			t.Error("channel still open after replay drained — route handler will hang forever")
+		}
+	case <-deadline:
+		t.Fatal("channel still has buffered messages or never closed; route handler would block")
+	}
+}
+
 func TestTask_Subscribe_ConcurrentSubscribersGetSameStream(t *testing.T) {
 	svc := NewTaskService()
 	task := svc.GetOrCreate("test-9")

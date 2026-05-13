@@ -124,6 +124,18 @@ func (t *Task) Subscribe() (chan string, func()) {
 	}
 
 attach:
+	// If the task is already done, close the channel after the replay
+	// so the route handler can detect end-of-stream and emit
+	// `event: end`. Without this, a Subscribe that races AFTER Finish
+	// (typical of a fast install + slow page-load) would leave the
+	// handler blocked on `<-ch` forever — UI never gets `event: end`,
+	// never calls checkInstallResult, modal stays in "Preparing".
+	// Regression: see task_test.go TestTask_Subscribe_AfterFinish_*.
+	if t.isFinished {
+		close(ch)
+		return ch, func() {}
+	}
+
 	t.subscribers = append(t.subscribers, ch)
 
 	cleanup := func() {
