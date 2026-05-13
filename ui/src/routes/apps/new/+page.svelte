@@ -8,6 +8,10 @@
 	import yaml from 'js-yaml';
 	import { readPowerLabExt, writePowerLabExt, deletePowerLabExtProperty } from '$lib/utils/compose-extension';
 	import ComposeForm, { type ComposeModel } from '$lib/components/orchestrator/ComposeForm.svelte';
+	import LogStreamer from '$lib/components/apps/LogStreamer.svelte';
+	import { useAppStore } from '$lib/stores/apps.svelte';
+
+	const appStore = useAppStore();
 	import { page } from '$app/stores';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { goto } from '$app/navigation';
@@ -69,7 +73,6 @@ services:
 	// Deploy log streaming state
 	let deployLogs = $state<string[]>([]);
 	let deployAppId = $state<string | null>(null);
-	let logScrollEl = $state<HTMLElement | null>(null);
 	let eventSource: EventSource | null = null;
 	let sseTimeoutId: ReturnType<typeof setTimeout> | null = null;
 	let deployTimedOut = $state(false);
@@ -104,10 +107,10 @@ services:
 
 		eventSource.onmessage = (event) => {
 			if (event.data) {
+				// LogStreamer owns scroll behaviour now (auto-scroll +
+				// pause-on-manual-scroll) — see #335 / v0.6.6. The
+				// manual scrollTop manipulation here is gone.
 				deployLogs = [...deployLogs, event.data];
-				setTimeout(() => {
-					if (logScrollEl) logScrollEl.scrollTop = logScrollEl.scrollHeight;
-				}, 10);
 			}
 		};
 
@@ -115,8 +118,18 @@ services:
 			stopLogStreaming();
 		};
 
-		eventSource.addEventListener('end', () => {
+		// SSE close marker. Mirrors apps/+page.svelte's checkInstallResult:
+		// the install ACTUALLY finished here, so transition the modal
+		// to its terminal state by fetching the installed-app list
+		// and deciding success/error from whether our app appears.
+		// v0.6.8 fix #341: unifies Custom App with Community Install
+		// terminal-state behaviour (#247 carry-over). Before this, the
+		// `event: end` handler only closed the stream — deployResult
+		// had been pre-set to success on POST 2xx, surfacing
+		// "Service running" before any image had been pulled.
+		eventSource.addEventListener('end', async () => {
 			stopLogStreaming();
+			await finalizeDeploy(id);
 		});
 
 		// Safety timeout: matches native-app install (apps/+page.svelte
@@ -404,25 +417,80 @@ services:
 				? await applyComposeAppSettings(editingId, yamlText)
 				: await api.postYaml<any>(ENDPOINTS.APP_COMPOSE_DEPLOY, yamlText);
 			
-			// User now picks the next step explicitly via the success
-			// modal ("Open Launchpad" / "Stay Here") instead of being
-			// auto-redirected after a fixed timeout. The auto-redirect
-			// hid the deploy log right when the user wanted to read it,
-			// and forced a context switch the user might not want.
-			deployResult = {
-				success: true,
-				message: response?.message || t('orchestrator.deploymentStarted')
-			};
+			// v0.6.8 fix #341: do NOT set deployResult here. POST 2xx
+			// means install STARTED, not completed. The terminal state
+			// gets decided by finalizeDeploy() in the SSE `end`
+			// handler. This brings Custom App lifecycle to parity with
+			// Community Install (apps/+page.svelte) — #247 carry-over.
 		} catch (e) {
 			deployResult = {
 				success: false,
 				message: (e as Error).message || t('orchestrator.deploymentStartFailed')
 			};
 			error = (e as Error).message;
+			isDeploying = false;
+		}
+	}
+
+	// Called when the SSE stream emits `event: end` (the backend
+	// PullAndInstall goroutine completed). Fetches the installed-app
+	// list and sets deployResult to success / error based on whether
+	// the app actually appeared. Mirrors apps/+page.svelte
+	// checkInstallResult.
+	async function finalizeDeploy(id: string) {
+		try {
+			// Reuse the same store flow Community Install uses
+			// (checkInstallResult in apps/+page.svelte). `fetchInstalledApps`
+			// shapes the response as a Record<string, app>; `installedApps`
+			// getter returns the derived list with `id` field on each
+			// entry. Sharing the path eliminates the divergence that
+			// surfaced in v0.6.7.
+			await appStore.fetchInstalledApps();
+			const found = appStore.installedApps.find((a) => a.id === id);
+			if (found) {
+				deployResult = {
+					success: true,
+					message: t('orchestrator.serviceRunning')
+				};
+			} else {
+				const lastErr = deployLogs
+					.slice()
+					.reverse()
+					.find((l) => /error|fail|denied|not found|permitted/i.test(l));
+				deployResult = {
+					success: false,
+					message: lastErr ?? t('orchestrator.deployFailed')
+				};
+			}
+		} catch (e) {
+			deployResult = {
+				success: false,
+				message: (e as Error).message || t('orchestrator.deployFailed')
+			};
 		} finally {
 			isDeploying = false;
 		}
 	}
+
+	// Safety net: if event:end never fires within 10 min, drop out of
+	// 'deploying' state with a timeout surface (mirrors the existing
+	// deployTimedOut path used by stopLogStreaming-on-error). Without
+	// this, a broken SSE leaves the modal hostage indefinitely.
+	$effect(() => {
+		if (!isDeploying) return;
+		const timer = setTimeout(() => {
+			if (isDeploying && !deployResult) {
+				untrack(() => {
+					deployResult = {
+						success: false,
+						message: t('orchestrator.deployTimedOut')
+					};
+					isDeploying = false;
+				});
+			}
+		}, 600_000);
+		return () => clearTimeout(timer);
+	});
 
 	function handleFormChange() {
 		syncFormToYaml();
@@ -575,27 +643,14 @@ services:
 						</div>
 					{/if}
 
-					<!-- Terminal Area -->
-					<div class="mt-6 flex flex-col overflow-hidden rounded-xl border border-white/5 bg-black/40 text-left shadow-inner">
-						<div class="flex h-6 items-center gap-1.5 border-b border-white/5 bg-white/[0.02] px-3">
-							<Terminal class="h-3 w-3 text-zinc-500" />
-							<span class="text-[9px] font-bold uppercase tracking-widest text-zinc-600">{t('orchestrator.installLogs')}</span>
-						</div>
-						<div 
-							bind:this={logScrollEl}
-							class="h-48 overflow-y-auto p-3 font-mono text-[10px] leading-relaxed custom-scrollbar"
-						>
-							{#each deployLogs as log}
-								<div class="flex gap-2">
-									<span class="text-emerald-500/40 select-none">›</span>
-									<span class="text-zinc-300 break-all">{log}</span>
-								</div>
-							{:else}
-								<div class="flex h-full items-center justify-center text-zinc-700 animate-pulse">
-									{t('orchestrator.waitingForLogs')}
-								</div>
-							{/each}
-						</div>
+					<!-- Install log surface — shared LogStreamer for parity
+						 with the Community Install modal (PR #335 / v0.6.8). -->
+					<div class="mt-6 overflow-hidden rounded-xl border border-white/5 bg-black/40 text-left shadow-inner">
+						<LogStreamer
+							logs={deployJoinedLogs}
+							label={t('orchestrator.installLogs')}
+							heightClass="h-48"
+						/>
 					</div>
 				{:else if deployResult}
 					<div class="mb-6 flex justify-center">
