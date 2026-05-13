@@ -31,10 +31,10 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  In-UI updater UX polish: dismissable version-mismatch banner with
-  cache-busted reload; release notes blurb truncated with "show more"
-  expansion; defense in depth against UI bundles shipping with stale
-  __APP_VERSION__ literal.
+  In-UI updater UX polish: dismissable banner with cache-busted reload,
+  "Upgrading" overlay during gateway restart, truncated release notes
+  blurb, defense in depth against stale UI bundles, POWERLAB_SKIP_SYNC
+  env to skip post-install catalog refresh.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:

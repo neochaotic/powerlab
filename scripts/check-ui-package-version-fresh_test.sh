@@ -51,8 +51,21 @@ if [[ "$PKG_VERSION" == "$LATEST_VERSION" ]]; then
   exit 0
 fi
 
-# Mismatch — fail loud with the fix instructions.
-echo "FAIL: ui/package.json version is stale." >&2
+# `sort -V` does versionsort: stable, semver-aware. The HIGHER of the
+# two versions is the second line. If pkg.version is the highest, the
+# release-prep commit has bumped pkg.json AHEAD of the latest tag —
+# that's the expected state between the bump-and-commit step and the
+# tag-and-push step of a cut. Allow it; the tag will catch up in
+# seconds.
+HIGHER=$(printf '%s\n%s\n' "$PKG_VERSION" "$LATEST_VERSION" | sort -V | tail -1)
+if [[ "$HIGHER" == "$PKG_VERSION" ]]; then
+  echo "OK: ui/package.json version ($PKG_VERSION) is ahead of latest tag ($LATEST_TAG) — release-prep state."
+  exit 0
+fi
+
+# pkg.version is BELOW the latest tag — fail loud with the fix
+# instructions. This is the bug class the gate is designed to catch.
+echo "FAIL: ui/package.json version is behind the latest tag." >&2
 echo "      pkg.json:   $PKG_VERSION" >&2
 echo "      latest tag: $LATEST_VERSION ($LATEST_TAG)" >&2
 echo "      Fix: cd ui && npm version $LATEST_VERSION --no-git-tag-version --allow-same-version" >&2
