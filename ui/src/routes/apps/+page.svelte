@@ -10,6 +10,7 @@
 	import AppMetrics from '$lib/components/apps/AppMetrics.svelte';
 	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import { detectAppSource, appSourceLabel } from '$lib/utils/app-source';
+	import InstallProgressBar from '$lib/components/apps/InstallProgressBar.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import {
 		ArrowLeft, Search, X, Package, Pencil, ArrowUpCircle,
@@ -1314,45 +1315,30 @@ docker network prune -f</pre>
 				{/if}
 			</div>
 
-			<!-- Live install log — shown during 'starting' and on error/timeout if logs available -->
-			{#if (installPhase === 'starting' || installPhase === 'error' || installPhase === 'timeout') && installLogs}
+			<!-- Progress + log shell. v0.6.5 bug: progress bar only
+				 rendered once first Phase N/M marker arrived, so the user
+				 saw bouncing dots → silence → late 60%+ jump. Now the
+				 `InstallProgressBar` component handles both indeterminate
+				 (no phase marker yet) and determinate cases uniformly,
+				 visible from `installing` onwards. Log pre stays below. -->
+			{#if installPhase === 'installing' || installPhase === 'starting' || installPhase === 'error' || installPhase === 'timeout'}
 				<div class="w-full max-w-lg shrink overflow-hidden rounded-2xl border border-white/[0.06] bg-black/40">
-					<!-- Visual progress bar derived from "Phase N/M" markers
-						 in the log stream. Replaces the previous wall-of-
-						 [hash]-Extracting noise as the primary feedback
-						 signal — fix for bug #8. -->
-					{#if currentPhase}
-						<div class="border-b border-white/[0.06] px-3 py-2.5">
-							<div class="mb-1.5 flex items-center justify-between gap-2 text-[11px]">
-								<span class="font-mono font-bold text-emerald-300">
-									{currentPhase.step}/{currentPhase.total}
-								</span>
-								<span class="truncate text-zinc-300">{currentPhase.label || t('apps.installLog')}</span>
-								<span class="font-mono text-zinc-500 tabular-nums">{Math.round(installProgress * 100)}%</span>
-							</div>
-							<div class="h-1.5 overflow-hidden rounded-full bg-white/5">
-								<div
-									class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-300 transition-[width] duration-500 ease-out"
-									style="width: {installProgress * 100}%"
-								></div>
-							</div>
+					<InstallProgressBar
+						phase={installPhase}
+						currentPhase={currentPhase}
+						progress={installProgress}
+					/>
+					{#if installLogs}
+						<div class="flex items-center gap-2 border-b border-white/[0.06] px-3 py-2">
+							<div class="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500"></div>
+							<span class="font-mono text-[10px] text-zinc-500">{t('apps.installLog')}</span>
 						</div>
+						<pre
+							bind:this={installLogEl}
+							class="h-40 overflow-y-auto p-3 font-mono text-[11px] leading-relaxed text-zinc-400 scrollbar-none"
+							style="scrollbar-width:none"
+						>{installLogs}</pre>
 					{/if}
-					<div class="flex items-center gap-2 border-b border-white/[0.06] px-3 py-2">
-						<div class="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500"></div>
-						<span class="font-mono text-[10px] text-zinc-500">{t('apps.installLog')}</span>
-					</div>
-					<pre
-						bind:this={installLogEl}
-						class="h-40 overflow-y-auto p-3 font-mono text-[11px] leading-relaxed text-zinc-400 scrollbar-none"
-						style="scrollbar-width:none"
-					>{installLogs}</pre>
-				</div>
-			{:else if installPhase === 'installing'}
-				<div class="flex items-center gap-1.5">
-					{#each [0, 1, 2] as i}
-						<div class="h-2 w-2 animate-bounce rounded-full bg-emerald-500" style="animation-delay:{i * 150}ms"></div>
-					{/each}
 				</div>
 			{/if}
 

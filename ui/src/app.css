@@ -119,3 +119,19 @@ body {
 ::-webkit-scrollbar-thumb:hover {
 	background: var(--color-text-muted);
 }
+
+/* Indeterminate progress bar — used by InstallProgressBar.svelte
+   when an install is in flight but no `Phase N/M` SSE markers have
+   arrived yet. Stripe slides left→right inside the parent's overflow
+   so the user sees motion + knows work is happening. Replaces the
+   v0.6.5 bug where the bar only appeared once the first phase marker
+   landed, giving the wall-clock-late "bar shows only at the end"
+   impression. */
+@keyframes install-progress-indeterminate {
+	0%   { transform: translateX(-150%); }
+	100% { transform: translateX(450%); }
+}
+
+.install-progress-indeterminate {
+	animation: install-progress-indeterminate 1.4s ease-in-out infinite;
+}

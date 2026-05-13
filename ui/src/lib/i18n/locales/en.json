@@ -339,6 +339,7 @@
   "apps.appRunningDesc": "App is running and available on your Launchpad.",
   "apps.installInBackground": "The install is still running in the background. Check your Launchpad in a few minutes.",
   "apps.installLog": "install log",
+  "apps.preparing": "Preparing…",
   "apps.stayInStore": "Stay in Store",
   "apps.retry": "Retry",
   "apps.checkLaunchpad": "Check Launchpad",
