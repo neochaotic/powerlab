@@ -1,0 +1,17 @@
+kind: Added
+body: 'Install progress now visible on the launchpad as an iOS-style
+  ghost tile (#251, Sprint 13.2.2). When the user closes the install
+  modal without canceling, the install keeps running and a tile
+  appears at the position the app will occupy in the launchpad —
+  faded icon + circular progress ring around it. Indeterminate
+  spinner before the first `Phase N/M` SSE marker arrives; switches
+  to a determinate arc once `currentPhase` is set. Status badge
+  (checkmark / X) appears bottom-right on terminal phases (success /
+  error / timeout). Click the ghost tile to restore the modal at
+  `/apps?install=<id>`. New cross-page store
+  `$lib/stores/install-state.svelte` keeps the in-flight installs
+  addressable by id; both `/apps` modal (writer) and `/` launchpad
+  (reader) share it. 17 unit tests across the store + the
+  InstallingTile component lock the matrix.'
+custom:
+  Issue: "251"

@@ -25,6 +25,10 @@
 	import { Button } from "$lib/components/ui/button";
 	import { detectAppSource, appSourceLabel } from "$lib/utils/app-source";
 	import { buildAppURL } from "$lib/utils/app-url";
+	import { useInstallState } from "$lib/stores/install-state.svelte";
+	import InstallingTile from "$lib/components/launchpad/InstallingTile.svelte";
+
+	const installState = useInstallState();
 
 	const appStore = useAppStore();
 	const systemStore = useSystemStore();
@@ -546,6 +550,17 @@
 			<div
 				class="grid grid-cols-4 gap-6 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10"
 			>
+				<!-- Installing apps render BEFORE installed ones. iOS-style
+					 "ghost tile" — when the user closes the install modal
+					 without canceling, the install keeps running and shows
+					 up here with a progress ring. Sprint 13.2.2 / #251.
+					 Click navigates back to /apps where the modal restores. -->
+				{#each installState.all as entry (entry.id)}
+					<InstallingTile
+						{entry}
+						onclick={() => goto(`/apps?install=${entry.id}`)}
+					/>
+				{/each}
 				{#each displayOrder as app (app.id)}
 					{@const info = app.store_info}
 					{@const title = getTitle(app)}
