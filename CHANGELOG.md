@@ -13,6 +13,14 @@ Each PR adds a tiny YAML fragment under `.changes/unreleased/<id>.yaml`.
 At release time, `changie batch <version>` aggregates the fragments into
 a new section below this header. See `CONTRIBUTING.md` for the workflow.
 
+## [v0.6.11] — 2026-05-14
+### Added
+- ESLint flat config (``ui/eslint.config.js``) banning raw ``fetch()`` calls in stores, routes, components, and the api client folder (Sprint 15 #353). Routes through the api client at ``$lib/api/client`` so the JWT ``Authorization`` header is always injected — closes the bug class that produced the v0.6.7 → v0.6.10 upgrade-401 saga (#352). 5 intentional raw- fetch callers (the api client itself + 4 public-probe paths) are explicitly allow-listed with justification comments. New ``npm run lint`` script + ``scripts/check-eslint-fetch-ban_test.sh`` meta-test asserts the rule fires in both directions (clean main passes; contrived violator triggers exactly one error). Wired into the Frontend CI job between the manifest-size check and svelte-check.
+- Playwright E2E (``upgrade-flow.spec.ts``) for the in-UI upgrade button (Sprint 15 L2 — follow-up to #344 install-flow). Drives Settings → AboutPane, mocks the updater check + install POST + version poll, and asserts (a) the install POST carries a non-empty ``Authorization`` header — the bug-class signature that caused v0.6.7 → v0.6.10 — and (b) no ``effect_update_depth_exceeded`` console error appears. Sanity-verified by temporarily reverting the v0.6.10 ``api.post`` fix: the spec correctly FAILS with raw fetch, PASSES with the fix. Mandatory pre-tag gate.
+### Fixed
+- Backend JWT middleware now accepts the standard RFC 6750 ``Authorization: Bearer <token>`` form in addition to the legacy raw-token form (#342). Before this fix, sending the canonical Bearer prefix made the JWT validator receive the literal string "Bearer abc…" and reject it as malformed — 401. The 6 inline ``TokenLookupFuncs`` extractors across gateway, app-management, message-bus, core, and the shared ``common/utils/jwt`` helper now all call the centralised ``jwt.ExtractTokenFromRequest`` which case-insensitively strips ``Bearer ``, falls back to ``?token=`` query for EventSource, and is locked by a 12-case table test. Live-verified on .142: raw → 200, ``Bearer`` → 200 (all cases), no header → 401. Defense-in-depth alongside Sprint 15 L1 (#353 ESLint) and L2 (#355 Playwright upgrade-flow).
+
+
 ## [v0.6.10] — 2026-05-14
 ### Fixed
 - In-UI upgrade button no longer 401s. ``upgradeProgress.start()`` was calling ``fetch()`` directly against ``/v1/powerlab-update/install``, bypassing the api client and never attaching the JWT Authorization header — every click returned ``HTTP 401 Unauthorized`` from the gateway. Routed through ``api.post`` so the header is injected automatically. Locked by a contract regression test that asserts the Authorization header is present on the POST. Bug landed in v0.6.7 (PR #339) and persisted through v0.6.8 + v0.6.9.
