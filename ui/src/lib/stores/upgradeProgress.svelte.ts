@@ -21,6 +21,8 @@
  * Tested in upgradeProgress.test.ts (10 cases).
  */
 
+import { api } from '../api/client';
+
 export const UPGRADE_POLL_INTERVAL_MS = 3000;
 export const UPGRADE_TIMEOUT_MS = 5 * 60 * 1000; // 5 min
 export const UPGRADE_SUCCESS_RELOAD_DELAY_MS = 2000;
@@ -52,24 +54,23 @@ class UpgradeProgress {
 		this.state = 'starting';
 		this.targetVersion = targetVersion;
 
+		// Route POST through the shared api client so the JWT Authorization
+		// header is attached automatically. The raw fetch this replaces
+		// 401'd against the gateway for every authenticated user and was
+		// the reason the in-UI upgrade button didn't work in v0.6.9 and
+		// earlier. Regression test in upgradeProgress.test.ts.
 		try {
-			const res = await fetch('/v1/powerlab-update/install', { method: 'POST' });
-			if (res.status !== 202) {
-				let body: { message?: string } = {};
-				try {
-					body = await res.json();
-				} catch {
-					// ignore — body might be empty
-				}
-				this.state = 'error';
-				this.error = `Upgrade refused (HTTP ${res.status}): ${body.message ?? 'no message'}`;
-				return;
-			}
+			await api.post<unknown>('/v1/powerlab-update/install');
 			this.state = 'restarting';
 			this.beginPolling();
 		} catch (e) {
 			this.state = 'error';
-			this.error = (e as Error).message;
+			const err = e as { status?: number; message?: string };
+			if (typeof err?.status === 'number') {
+				this.error = `Upgrade refused (HTTP ${err.status}): ${err.message ?? 'no message'}`;
+			} else {
+				this.error = err?.message ?? String(e);
+			}
 		}
 	}
 
