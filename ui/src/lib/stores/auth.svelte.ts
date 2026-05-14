@@ -1,6 +1,7 @@
 import { browser, dev } from '$app/environment';
-import { api, setAuthToken } from '$lib/api/client';
+import { api, onAuthError, setAuthToken } from '$lib/api/client';
 import { ENDPOINTS, type SuccessResponse } from '$lib/api/endpoints';
+import { toast } from '$lib/stores/toast.svelte';
 
 /**
  * RegisterResult is the discriminated outcome of `auth.register()`.
@@ -239,5 +240,36 @@ export const auth = $state({
 
 		this.isAuthenticated = false;
 		this.user = null;
+	}
+});
+
+// Wire the centralised 401 handler. Fires once per 401 from any
+// api call, regardless of which store/component made the request.
+// Logs the user out, surfaces a single clear toast, and lets
+// +layout.svelte's auth-gate naturally show LoginScreen because
+// auth.isAuthenticated flips to false.
+//
+// Without this, an expired JWT in localStorage produced opaque
+// error messages from individual callers ("Could not reach the
+// release manifest: Unauthorized") with no hint about the real
+// cause. Hit live during v0.6.11 testing — Sprint 16 C3.
+//
+// Guard with a flag so the toast only fires once even if multiple
+// in-flight requests all 401 at the same time (typical when a
+// session expires and the dashboard's parallel polls all fail
+// together).
+let authErrorToastInflight = false;
+onAuthError(() => {
+	if (!auth.isAuthenticated) return; // already logged out — no-op
+	if (authErrorToastInflight) return;
+	authErrorToastInflight = true;
+	try {
+		auth.logout();
+		toast.warning('Session expired — please sign in again');
+	} finally {
+		// Reset on next tick so a fresh session can fire again.
+		setTimeout(() => {
+			authErrorToastInflight = false;
+		}, 0);
 	}
 });
