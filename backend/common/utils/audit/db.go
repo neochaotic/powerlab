@@ -20,9 +20,18 @@ const LoopbackSentinel = "loopback"
 
 // DB wraps a *sql.DB and exposes only the audit-table operations.
 // Callers use this instead of database/sql directly so the schema
-// stays a black box.
+// stays a black box. The path is held so Stats() can return file
+// size via os.Stat without forcing callers to pass it everywhere.
 type DB struct {
-	sql *sql.DB
+	sql  *sql.DB
+	path string
+}
+
+// Path returns the on-disk path of this audit DB. Used by Stats
+// for the file-size measurement and by the operator-facing
+// "where does the audit log live?" surface.
+func (d *DB) Path() string {
+	return d.path
 }
 
 // OpenDB opens (or creates) the SQLite audit database at path. Runs
@@ -45,7 +54,7 @@ func OpenDB(path string) (*DB, error) {
 		_ = db.Close()
 		return nil, fmt.Errorf("audit: migrate %s: %w", path, err)
 	}
-	return &DB{sql: db}, nil
+	return &DB{sql: db, path: path}, nil
 }
 
 // Close releases the underlying *sql.DB. Safe to call multiple

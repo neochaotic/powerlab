@@ -1,0 +1,15 @@
+kind: Added
+body: 'Audit read endpoints (Sprint 16 #357 B1e):
+  ``GET /v1/audit/recent`` paginated descending by timestamp with
+  optional filters (``limit`` default 100, max 1000;
+  ``user_id`` filter; ``since`` cursor as Unix µs); and
+  ``GET /v1/audit/stats`` returning row count, oldest/newest
+  timestamps, file size in bytes, and on-disk path. Both return
+  the standard ``{data: ...}`` envelope so the UI Envelope<T>
+  pattern works without per-endpoint adapter. Empty table on
+  Stats returns zero timestamps (operator opened a fresh box).
+  9 new tests across DB query layer + handler smoke. Total
+  audit pkg: 28/28 race-clean. Endpoints not yet wired to a
+  service — that happens in B1c (gateway integration).'
+custom:
+  Issue: "357"
