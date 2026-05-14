@@ -96,16 +96,13 @@ func InitV2Router() http.Handler {
 			return claims, nil
 		},
 		TokenLookupFuncs: []echo_middleware.ValuesExtractor{
+			// Header → ?token= fallback + RFC 6750 Bearer-prefix stripping
+			// is centralised in common/utils/jwt.ExtractTokenFromRequest
+			// (#342). Browser EventSource (custom-app deploy log stream,
+			// SSE task-log viewer) can't send custom headers, hence the
+			// query fallback inside the helper.
 			func(c echo.Context) ([]string, error) {
-				if h := c.Request().Header.Get(echo.HeaderAuthorization); h != "" {
-					return []string{h}, nil
-				}
-				// Fall back to ?token= query param. Browser EventSource
-				// (used by the custom-app deploy log stream and the
-				// SSE task-log viewer) cannot send custom headers, so
-				// the only way to authenticate those connections is
-				// the URL. Mirrors what the gateway already does.
-				return []string{c.QueryParam("token")}, nil
+				return []string{jwt.ExtractTokenFromRequest(c)}, nil
 			},
 		},
 	}))

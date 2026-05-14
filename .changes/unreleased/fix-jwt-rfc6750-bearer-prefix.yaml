@@ -1,0 +1,16 @@
+kind: Fixed
+body: 'Backend JWT middleware now accepts the standard RFC 6750
+  ``Authorization: Bearer <token>`` form in addition to the legacy
+  raw-token form (#342). Before this fix, sending the canonical
+  Bearer prefix made the JWT validator receive the literal string
+  "Bearer abc…" and reject it as malformed — 401. The 6 inline
+  ``TokenLookupFuncs`` extractors across gateway, app-management,
+  message-bus, core, and the shared ``common/utils/jwt`` helper
+  now all call the centralised ``jwt.ExtractTokenFromRequest``
+  which case-insensitively strips ``Bearer ``, falls back to
+  ``?token=`` query for EventSource, and is locked by a 12-case
+  table test. Live-verified on .142: raw → 200, ``Bearer`` → 200
+  (all cases), no header → 401. Defense-in-depth alongside Sprint
+  15 L1 (#353 ESLint) and L2 (#355 Playwright upgrade-flow).'
+custom:
+  Issue: "342"

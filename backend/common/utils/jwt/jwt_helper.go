@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/neochaotic/powerlab/backend/common/model"
 	"github.com/neochaotic/powerlab/backend/common/utils/common_err"
@@ -17,6 +18,31 @@ import (
 	"github.com/labstack/echo/v4"
 	echo_middleware "github.com/labstack/echo/v4/middleware"
 )
+
+// ExtractTokenFromRequest reads the JWT from an incoming request,
+// accepting both the legacy raw-token form (`Authorization: <jwt>`)
+// and the standard RFC 6750 form (`Authorization: Bearer <jwt>`,
+// case-insensitive on "Bearer"). Falls back to the `?token=` query
+// parameter when the Authorization header is empty (the EventSource
+// pattern — browser API can't set headers on SSE connections).
+//
+// This is the single source of truth for header → token extraction.
+// All JWT middleware sites in the repo (gateway, app-management,
+// message-bus, core, user-service) call this so a future "raw
+// Bearer prefix" regression can't happen in one place while the
+// others stay correct. See #342.
+func ExtractTokenFromRequest(c echo.Context) string {
+	auth := c.Request().Header.Get(echo.HeaderAuthorization)
+	if auth != "" {
+		// Case-insensitive "Bearer " prefix per RFC 6750 §2.1.
+		const prefix = "Bearer "
+		if len(auth) >= len(prefix) && strings.EqualFold(auth[:len(prefix)], prefix) {
+			return auth[len(prefix):]
+		}
+		return auth
+	}
+	return c.QueryParam("token")
+}
 
 // JWK is a single ECDSA P-256 public key in the standard JWK
 // envelope. PowerLab's JWKS only ever contains one key.
@@ -61,10 +87,7 @@ func JWT(publicKeyFunc func() (*ecdsa.PublicKey, error)) echo.MiddlewareFunc {
 			},
 			TokenLookupFuncs: []echo_middleware.ValuesExtractor{
 				func(c echo.Context) ([]string, error) {
-					if len(c.Request().Header.Get(echo.HeaderAuthorization)) > 0 {
-						return []string{c.Request().Header.Get(echo.HeaderAuthorization)}, nil
-					}
-					return []string{c.QueryParam("token")}, nil
+					return []string{ExtractTokenFromRequest(c)}, nil
 				},
 			},
 		},
