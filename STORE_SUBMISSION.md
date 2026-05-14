@@ -16,7 +16,7 @@ store/Apps/
 
 ## Docker Compose Requirements
 
-Your `docker-compose.yml` must include a valid `x-casaos` extension block with the following fields:
+Your `docker-compose.yml` must include a valid `x-powerlab` extension block with the following fields:
 
 | Field | Description | Requirement |
 |---|---|---|
@@ -33,7 +33,7 @@ Your `docker-compose.yml` must include a valid `x-casaos` extension block with t
 ### Example Block
 
 ```yaml
-x-casaos:
+x-powerlab:
   title:
     en_us: My Awesome App
   icon: https://raw.githubusercontent.com/.../icon.png
@@ -60,10 +60,10 @@ x-casaos:
 - **Network Mode:** Avoid `network_mode: host` unless absolutely necessary (e.g., Home Assistant).
 
 ### 3. Storage
-- **Persistance:** Always use `/DATA/AppData/<app-id>` for bind mounts on the host side. This ensures portability and automatic remapping on different OSs (macOS/Linux).
+- **Persistence:** Always use `/DATA/PowerLabAppData/<app-id>` for bind mounts on the host side. This ensures portability and automatic remapping on different OSs (macOS/Linux). See [ADR-0021](docs/decisions/0021-docker-label-namespace-and-appdata-path.md) for the rationale.
   ```yaml
   volumes:
-    - /DATA/AppData/my-app/config:/config
+    - /DATA/PowerLabAppData/my-app/config:/config
   ```
 
 ### 4. Resource Limits
@@ -79,6 +79,6 @@ go run scripts/validate_store.go
 
 The validator checks for:
 - YAML syntax errors.
-- Missing required `x-casaos` fields.
+- Missing required `x-powerlab` fields.
 - Image existence (optional/warning).
 - Icon URL accessibility.

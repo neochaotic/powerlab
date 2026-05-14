@@ -50,4 +50,5 @@ Logs land in `/var/log/powerlab/<service>.log`. Use `journalctl -u powerlab-<ser
 
 - **Install your first app** — Apps tab → browse the store → click install. Labeled with `io.powerlab.v1.kind=app` so it never collides with a CasaOS install.
 - **Mount external storage** — Storage tab → Disks. PowerLab discovers attached drives + offers a one-click mount.
-- **Try the AI chat** — bottom-right widget. Brings up a chat backed by your configured LLM (defaults to local Ollama if available; configurable per ADR-future).
+- **Set up backups** — See [Backup and restore](../operations/backup-restore.md) for the snapshot strategy and recovery flows.
+- **Try the AI chat** *(coming soon)* — bottom-right widget. Brings up a chat backed by your configured LLM (defaults to local Ollama if available).

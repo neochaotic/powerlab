@@ -11,7 +11,8 @@ This is the technical reference. For installation tldr, jump to **[Getting start
 - **[Getting started](getting-started/install.md)** — install, first-boot, in-app updates.
 - **[Architecture](architecture/README.md)** — service topology, request lifecycle, the foundation packages every service uses, the data persistence model.
 - **[Coexistence with CasaOS](coexistence/README.md)** — PowerLab forked from CasaOS; both can run on the same host. Here's how.
-- **[Operations](HTTPS.md)** — HTTPS setup, the update manifest contract, release checklist, troubleshooting.
+- **[Concepts](concepts/glossary.md)** — glossary of project vocabulary and the security model.
+- **[Operations](HTTPS.md)** — HTTPS setup, backup and restore, the update manifest contract, release checklist, troubleshooting.
 - **[Audits](audits/db-paths.md)** — point-in-time engineering audits used by the team to plan structural work. Useful when reading a follow-up PR or wondering "why is X built that way".
 - **[Decisions (ADRs)](decisions/README.md)** — every architectural decision recorded, with context and consequences. The first place to look when "why" matters.
 

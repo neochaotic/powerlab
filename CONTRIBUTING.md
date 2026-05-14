@@ -87,18 +87,28 @@ The script bails on the first failure and prints exactly what broke. It catches 
 
 ### Prerequisites
 
-- [Go](https://golang.org/doc/install) 1.21 or higher.
-- [Node.js](https://nodejs.org/en/download/) (v18+ recommended) and `npm`.
+- [Go](https://golang.org/doc/install) 1.25 or higher.
+- [Node.js](https://nodejs.org/en/download/) (v20+ recommended) and `npm`.
 - [Docker](https://docs.docker.com/get-docker/) installed and running.
 
-### Setting up the Backend
+### Setting up the Full Stack (recommended)
+
+The fastest way to start the entire stack:
+
+```bash
+./dev.sh
+```
+
+`dev.sh` checks prerequisites, installs UI dependencies on first run, builds and starts every backend service, then launches the Vite dev server. Stop everything with **Ctrl-C**. Pass `--no-build` to skip the backend rebuild for faster restarts, or `--stop` to shut everything down.
+
+Alternatively, you can start the backend independently:
 
 1. Navigate to the root directory.
 2. Run the start script to initialize and build all services:
    ```bash
    ./start.sh --build
    ```
-3. The gateway will start on `http://localhost:80` (or `8089` depending on config).
+3. The gateway will start on `http://localhost:8765`.
 
 ### Setting up the Frontend
 

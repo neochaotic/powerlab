@@ -14,7 +14,7 @@ out of scope.
 | **Raspberry Pi OS** (Bookworm / Bullseye) | `arm64` | ✅ Supported | tested on Raspberry Pi 4 / 5 with 4 GB+ RAM |
 | **Fedora** 38+               | `amd64`, `arm64`   | ⚠️ Untested | should work — same systemd + Docker base; please open an issue with results |
 | **Arch Linux**               | `amd64`            | ⚠️ Untested | same as Fedora — likely works |
-| **Alpine** 3.18+             | `amd64`, `arm64`   | ❌ Not supported | uses musl libc + OpenRC, not glibc/systemd. Out of scope for v0.1.x |
+| **Alpine** 3.18+             | `amd64`, `arm64`   | ❌ Not supported | uses musl libc + OpenRC, not glibc/systemd. Out of scope |
 | **macOS** Sonoma / Sequoia / Tahoe | `arm64` (Apple Silicon) | ✅ Dev mode only | run via `./dev.sh`; not packaged for distribution |
 | **Windows**                  | any                | ❌ Not planned | |
 
