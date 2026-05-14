@@ -1,0 +1,18 @@
+kind: Added
+body: 'New ``powerlab-observability`` standalone binary skeleton
+  (Sprint 17 ADR-0034 critical-path step 1). Independent module
+  at ``backend/observability/`` — no dependency on any other
+  PowerLab service. Listens on configurable address (default
+  ``:9090``, Prometheus convention). ``/healthz`` returns 200 +
+  JSON for liveness probes. Placeholder routes for
+  ``/v1/audit/recent``, ``/v1/audit/stats``, ``/v1/journal``, and
+  ``/v1/system/metrics`` return 501 with a JSON envelope naming
+  the Sprint 17 slice that fills them in (operators get an
+  honest "not yet, see ADR-0034" instead of a 404). Graceful
+  shutdown via SIGTERM/SIGINT with configurable grace window.
+  Cross-compiles CGO-free for linux/amd64 in ~8.8MB. 3 tests
+  cover healthz contract, placeholder envelope shape, and
+  unknown-route 404. Subsequent slices wire audit aggregator,
+  journal proxy, /proc reads, and the MCP transports.'
+custom:
+  Issue: "0"
