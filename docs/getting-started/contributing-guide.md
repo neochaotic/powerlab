@@ -79,5 +79,5 @@ If you modify code in the `ui/` directory, Vite provides Hot Module Replacement 
 ## Next Steps
 
 - Read the [Architecture Overview](../architecture/README.md) to understand how the services interact.
-- Read [CONTRIBUTING.md](../../CONTRIBUTING.md) for our coding standards and PR process.
+- Read [CONTRIBUTING.md](https://github.com/neochaotic/powerlab/blob/main/CONTRIBUTING.md) for our coding standards and PR process.
 - Browse the [ADRs](../decisions/README.md) to understand why certain technical choices were made.
