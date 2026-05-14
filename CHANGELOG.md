@@ -13,6 +13,11 @@ Each PR adds a tiny YAML fragment under `.changes/unreleased/<id>.yaml`.
 At release time, `changie batch <version>` aggregates the fragments into
 a new section below this header. See `CONTRIBUTING.md` for the workflow.
 
+## [v0.6.10] — 2026-05-14
+### Fixed
+- In-UI upgrade button no longer 401s. ``upgradeProgress.start()`` was calling ``fetch()`` directly against ``/v1/powerlab-update/install``, bypassing the api client and never attaching the JWT Authorization header — every click returned ``HTTP 401 Unauthorized`` from the gateway. Routed through ``api.post`` so the header is injected automatically. Locked by a contract regression test that asserts the Authorization header is present on the POST. Bug landed in v0.6.7 (PR #339) and persisted through v0.6.8 + v0.6.9.
+
+
 ## [v0.6.9] — 2026-05-14
 ### Added
 - Shared `<InstallModal>` component in `lib/components/apps/` (Sprint 14 #345, foundation). Owns the entire install-lifecycle modal surface — Preparing indeterminate, determinate progress, log streamer, success/error/timeout cards, button row, minimize. Both `/apps` (Community Install) and `/apps/new` (Custom App) will consume this in follow-up PRs; this commit lands the component + 13 unit tests covering each phase + click handlers but does not yet replace the bespoke modals. Eliminates the visual + behavioural divergence that v0.6.7 exposed once both pages migrate.

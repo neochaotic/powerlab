@@ -31,10 +31,11 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Postgres-backed apps (blinko, activepieces) install healthy on
-  first try; Custom App fork no longer shows "[object Object]";
-  install-flow Playwright E2E locks the v0.6.7 regression class.
-  BREAKING: core API prefix /v2/casaos → /v2/powerlab-core.
+  Hotfix: in-UI upgrade button no longer 401s. Bug landed in
+  v0.6.7 (PR #339) when the upgrade POST was refactored from
+  api.post into a raw fetch, dropping the JWT Authorization
+  header. Routed back through api.post. Contract regression
+  test added so the bug class can't sneak in again.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
@@ -42,14 +43,7 @@ summary: |
 # `manual_action: null` means PowerLab handles it automatically;
 # any non-null value is shown to the user as a warning modal that
 # they MUST dismiss explicitly before the upgrade button enables.
-breaking_changes:
-  - kind: api_prefix_rename
-    description: |
-      Core service API prefix moves from /v2/casaos to /v2/powerlab-core.
-      The PowerLab UI ships with the new path. Only matters for
-      external clients (custom scripts, automation) hitting /v2/casaos/*
-      directly. No fallback shim — the old prefix returns 404.
-    manual_action: null
+breaking_changes: []
 
 # Pre-install checks the host updater runs BEFORE downloading the
 # tarball. Each kind has built-in pass/warn/fail logic — the manifest
