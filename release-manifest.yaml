@@ -31,11 +31,9 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Hotfix: in-UI upgrade button no longer 401s. Bug landed in
-  v0.6.7 (PR #339) when the upgrade POST was refactored from
-  api.post into a raw fetch, dropping the JWT Authorization
-  header. Routed back through api.post. Contract regression
-  test added so the bug class can't sneak in again.
+  Hotfix: in-UI upgrade button no longer 401s. Bug from v0.6.7
+  dropped the JWT header during a refactor. Routed back through
+  api.post; contract regression test locks it.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
