@@ -88,5 +88,11 @@ comment the code.
 | [0023](./0023-socketio-origin-allowlist.md) | SocketIO CheckOrigin allowlist (close #219 CORS bypass) | accepted |
 | [0025](./0025-backend-pkg-coexistence-with-casaos-common.md) | `backend/pkg` coexists with `backend/common` during the strangler kill series (renumbered from 0011) | accepted |
 | [0026](./0026-pkg-logging-built-on-stdlib-slog.md) | `pkg/logging` built on `log/slog` (not zap, not zerolog; renumbered from 0012) | accepted |
+| [0027](./0027-uber-fx-for-gateway-di.md) | Uber `fx` is the DI framework for the gateway only | accepted |
+| [0028](./0028-echo-v4-http-framework.md) | Echo v4 as the universal HTTP framework | accepted |
+| [0029](./0029-gorm-as-orm.md) | GORM as the ORM; AutoMigrate is explicitly forbidden | accepted |
+| [0030](./0030-svelte-5-runes-lock-in.md) | Svelte 5 Runes lock-in; no Svelte 4 stores permitted | accepted |
+| [0031](./0031-oapi-codegen-for-openapi.md) | `oapi-codegen` for OpenAPI to Go; codegen output is gitignored | accepted |
+| [0032](./0032-mdns-strategy.md) | mDNS Strategy: Avahi preferred, direct multicast fallback | accepted |
 
 > **Renumber resolved 2026-05-11.** ADR-0011 and ADR-0012 originally each had **two** files because the CA series (0010–0012) and the foundation `backend/pkg/` series (originally 0011–0015) were filed in parallel branches on 2026-05-07 and 2026-05-08. The foundation pair was renumbered to **0025** (`backend-pkg-coexistence`) and **0026** (`pkg-logging`) to break the ambiguity. Historical refs to "ADR-0011 (strangler)" / "ADR-0011 (pkg coexistence)" now point at 0025; refs to "ADR-0012 (logging)" / "ADR-0012 (slog)" point at 0026. CA-context refs to 0011/0012 are unchanged. Each renumbered file carries a `Renumber history` note at the top.

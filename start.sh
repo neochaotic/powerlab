@@ -210,7 +210,7 @@ function sync_specs() {
     "backend/gateway/api/gateway/openapi.yaml:backend/gateway/api/docs/openapi_gateway.yaml"
     "backend/app-management/api/app_management/openapi.yaml:backend/gateway/api/docs/openapi_app_management.yaml"
     "backend/message-bus/api/message_bus/openapi.yaml:backend/gateway/api/docs/openapi_message_bus.yaml"
-    "backend/core/api/casaos/openapi.yaml:backend/gateway/api/docs/openapi_core.yaml"
+    "backend/core/api/core/openapi.yaml:backend/gateway/api/docs/openapi_core.yaml"
     "backend/local-storage/api/local_storage/openapi.yaml:backend/gateway/api/docs/openapi_local_storage.yaml"
     "backend/user-service/api/user-service/openapi.yaml:backend/gateway/api/docs/openapi_user_service.yaml"
   )

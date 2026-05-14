@@ -8,7 +8,7 @@ This is the technical reference. For installation tldr, jump to **[Getting start
 
 ## What's here
 
-- **[Getting started](getting-started/install.md)** — install, first-boot, in-app updates.
+- **[Getting started](getting-started/install.md)** — install, first-boot, in-app updates, contributor guide.
 - **[Architecture](architecture/README.md)** — service topology, request lifecycle, the foundation packages every service uses, the data persistence model.
 - **[Coexistence with CasaOS](coexistence/README.md)** — PowerLab forked from CasaOS; both can run on the same host. Here's how.
 - **[Concepts](concepts/glossary.md)** — glossary of project vocabulary and the security model.

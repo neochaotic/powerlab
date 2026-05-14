@@ -107,6 +107,7 @@ nav:
       - Install: getting-started/install.md
       - First boot: getting-started/first-boot.md
       - Updating: getting-started/updating.md
+      - Contributor guide: getting-started/contributing-guide.md
   - Architecture:
       - Overview: architecture/README.md
       - Service topology: architecture/topology.md
