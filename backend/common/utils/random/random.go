@@ -1,3 +1,12 @@
+// Package random provides simple pseudo-random helpers used across the
+// PowerLab backend: Docker-style two-word container names (admiring_curie)
+// and short alphanumeric strings for ephemeral identifiers (suffix on a
+// recreated container, the X-Request-Id fallback when none is given).
+//
+// All RNG calls use math/rand, NOT crypto/rand — these helpers are for
+// human-readable cosmetic identifiers, not for secrets. Code that needs
+// cryptographic randomness (passwords, tokens, salts) MUST use the
+// crypto/rand-backed helpers in pkg/auth instead.
 package random
 
 import (
@@ -439,7 +448,14 @@ var (
 	}
 )
 
-// GetRandomName generates a random name from the list of adjectives and surnames in this package formatted as "adjective_surname".
+// Name returns a Docker-style two-word identifier of the form
+// "adjective_surname" (e.g. "admiring_curie"), drawn from the embedded
+// adjective and scientist-surname tables. When suffix is non-nil, the
+// returned name is "adjective_surname_<suffix>" — used by the container
+// recreate path so the temporary name is unique within a single host.
+//
+// The original CasaOS function was `GetRandomName`; PowerLab renamed it
+// to `Name` during the rebrand but the old comment lingered until now.
 func Name(suffix *string) string {
 	name := left[rand.Intn(len(left))] + "_" + right[rand.Intn(len(right))] //nolint:gosec // G404: Use of weak random number generator (math/rand instead of crypto/rand)
 
@@ -450,11 +466,19 @@ func Name(suffix *string) string {
 	return name
 }
 
+// String returns a pseudo-random string of length n. When onlyLetters is
+// true, the alphabet is [A-Za-z]; otherwise it also includes [0-9].
+// Thin wrapper kept stable while callers migrate off the older
+// RandomString name (see ADR-0021 rebrand discipline).
 func String(n int, onlyLetters bool) string {
 	return RandomString(n, onlyLetters)
 }
 
-// Deprecated: use random.String(...) instead
+// RandomString returns a pseudo-random string of length n.
+//
+// Deprecated: use random.String(...) instead. The shorter spelling
+// avoids the `random.RandomString` stutter and matches the rebrand
+// naming convention.
 func RandomString(n int, onlyLetter bool) string { //nolint:revive
 	var letters []rune
 
