@@ -227,6 +227,14 @@ func (a *ComposeApp) PullAndInstall(ctx context.Context, logWriter io.Writer) er
 					})
 					return err
 				}
+				// #334: chown the host source to the container's `user:`
+				// field so non-root processes (postgres UID 999, blinko
+				// UID 1000) can write to their bind mounts on first init.
+				// Docker auto-creates missing source dirs as root:root,
+				// which breaks postgres initdb with "Operation not
+				// permitted". Silent no-op when user: is unset or
+				// non-numeric.
+				_ = chownBindMountSource(path, app.User)
 			}
 
 			// check if each required device exists
