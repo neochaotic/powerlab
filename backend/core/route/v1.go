@@ -74,11 +74,10 @@ func InitV1Router() http.Handler {
 			return claims, nil
 		},
 		TokenLookupFuncs: []echo_middleware.ValuesExtractor{
+			// RFC 6750 Bearer-prefix + query fallback centralised
+			// in common/utils/jwt.ExtractTokenFromRequest (#342).
 			func(ctx echo.Context) ([]string, error) {
-				if len(ctx.Request().Header.Get(echo.HeaderAuthorization)) > 0 {
-					return []string{ctx.Request().Header.Get(echo.HeaderAuthorization)}, nil
-				}
-				return []string{ctx.QueryParam("token")}, nil
+				return []string{jwt.ExtractTokenFromRequest(ctx)}, nil
 			},
 		},
 	}))

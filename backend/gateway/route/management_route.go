@@ -30,6 +30,7 @@ func NewManagementRoute(management *service.Management) *ManagementRoute {
 	}
 }
 
+// GetRoute configures and returns the HTTP handler (Echo instance) for the management API surface.
 func (m *ManagementRoute) GetRoute() http.Handler {
 	e := echo.New()
 
@@ -108,11 +109,11 @@ func (m *ManagementRoute) buildV1RouteGroup(v1Group *echo.Group) {
 					return claims, nil
 				},
 				TokenLookupFuncs: []echo_middleware.ValuesExtractor{
+					// Header → ?token= fallback + RFC 6750 Bearer-prefix
+					// stripping is centralised in
+					// common/utils/jwt.ExtractTokenFromRequest (#342).
 					func(c echo.Context) ([]string, error) {
-						if len(c.Request().Header.Get(echo.HeaderAuthorization)) > 0 {
-							return []string{c.Request().Header.Get(echo.HeaderAuthorization)}, nil
-						}
-						return []string{c.QueryParam("token")}, nil
+						return []string{jwt.ExtractTokenFromRequest(c)}, nil
 					},
 				},
 			}))
@@ -163,11 +164,11 @@ func (m *ManagementRoute) buildV1RouteGroup(v1Group *echo.Group) {
 					return claims, nil
 				},
 				TokenLookupFuncs: []echo_middleware.ValuesExtractor{
+					// Header → ?token= fallback + RFC 6750 Bearer-prefix
+					// stripping is centralised in
+					// common/utils/jwt.ExtractTokenFromRequest (#342).
 					func(c echo.Context) ([]string, error) {
-						if len(c.Request().Header.Get(echo.HeaderAuthorization)) > 0 {
-							return []string{c.Request().Header.Get(echo.HeaderAuthorization)}, nil
-						}
-						return []string{c.QueryParam("token")}, nil
+						return []string{jwt.ExtractTokenFromRequest(c)}, nil
 					},
 				},
 			}))
