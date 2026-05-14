@@ -205,9 +205,17 @@ services:
 				formModel.ports = [];
 			}
 
-			// Volumes
+			// Volumes — handle both compose forms:
+			//   short: "/host:/container[:mode]"  (string)
+			//   long:  {type, source, target, ...} (object) — #332 fix.
+			// The short-form path also tolerates a 3rd field (mode like ":ro")
+			// by ignoring it; the form has no mode column yet.
 			if (Array.isArray(service.volumes)) {
-				formModel.volumes = service.volumes.map((v: string) => {
+				formModel.volumes = service.volumes.map((v: unknown) => {
+					if (v && typeof v === 'object') {
+						const obj = v as { source?: string; target?: string };
+						return { host: obj.source ?? '', container: obj.target ?? '' };
+					}
 					const [host, container] = String(v).split(':');
 					return { host: host || '', container: container || host || '' };
 				});
@@ -215,9 +223,16 @@ services:
 				formModel.volumes = [];
 			}
 
-			// Devices
+			// Devices — same dual-form handling.
 			if (Array.isArray(service.devices)) {
-				formModel.devices = service.devices.map((d: string) => {
+				formModel.devices = service.devices.map((d: unknown) => {
+					if (d && typeof d === 'object') {
+						const obj = d as { source?: string; target?: string; path_on_host?: string; path_in_container?: string };
+						return {
+							host: obj.source ?? obj.path_on_host ?? '',
+							container: obj.target ?? obj.path_in_container ?? '',
+						};
+					}
 					const [host, container] = String(d).split(':');
 					return { host: host || '', container: container || host || '' };
 				});
