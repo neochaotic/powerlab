@@ -12,9 +12,11 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"test:e2e": "playwright test",
 		"test:e2e:ui": "playwright test --ui",
-		"test:coverage": "vitest run --coverage"
+		"test:coverage": "vitest run --coverage",
+		"lint": "eslint src/lib/stores/ src/lib/components/ src/routes/ src/lib/api/"
 	},
 	"devDependencies": {
+		"@eslint/js": "^10.0.1",
 		"@playwright/test": "^1.59.1",
 		"@sveltejs/adapter-auto": "^7.0.1",
 		"@sveltejs/adapter-static": "^3.0.10",
@@ -25,6 +27,7 @@
 		"@testing-library/svelte": "^5.3.1",
 		"@types/js-yaml": "^4.0.9",
 		"@types/node": "^25.6.0",
+		"@typescript-eslint/parser": "^8.59.3",
 		"@vitest/coverage-v8": "^4.1.6",
 		"eslint": "^10.3.0",
 		"eslint-config-prettier": "^10.1.8",
@@ -33,6 +36,7 @@
 		"prettier": "^3.8.3",
 		"svelte": "^5.55.2",
 		"svelte-check": "^4.4.6",
+		"svelte-eslint-parser": "^1.6.1",
 		"tailwindcss": "^4.2.4",
 		"typescript": "^6.0.2",
 		"vite": "^8.0.7",
