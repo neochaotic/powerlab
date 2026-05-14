@@ -1,0 +1,13 @@
+kind: Added
+body: 'Shared `<InstallModal>` component in `lib/components/apps/`
+  (Sprint 14 #345, foundation). Owns the entire install-lifecycle
+  modal surface — Preparing indeterminate, determinate progress,
+  log streamer, success/error/timeout cards, button row, minimize.
+  Both `/apps` (Community Install) and `/apps/new` (Custom App)
+  will consume this in follow-up PRs; this commit lands the
+  component + 13 unit tests covering each phase + click handlers
+  but does not yet replace the bespoke modals. Eliminates the
+  visual + behavioural divergence that v0.6.7 exposed once both
+  pages migrate.'
+custom:
+  Issue: "345"
