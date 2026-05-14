@@ -10,7 +10,7 @@ info:
     
     Source: [github.com/neochaotic/powerlab](https://github.com/neochaotic/powerlab).
 servers:
-  - url: /v2/casaos
+  - url: /v2/powerlab-core
 
 tags:
   - name: Health methods

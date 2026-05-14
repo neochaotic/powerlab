@@ -38,7 +38,7 @@ curl -fsSL https://raw.githubusercontent.com/neochaotic/powerlab/main/install-ma
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-emerald?style=flat-square)](LICENSE)
 [![AI-ready](https://img.shields.io/badge/AI-ready-blueviolet?style=flat-square&logo=openai&logoColor=white)](#built-for-ai)
 [![Built with SvelteKit](https://img.shields.io/badge/built_with-SvelteKit-FF3E00?style=flat-square&logo=svelte&logoColor=white)](https://kit.svelte.dev)
-[![Backend: Go 1.21+](https://img.shields.io/badge/backend-Go_1.21+-00ADD8?style=flat-square&logo=go&logoColor=white)](https://go.dev)
+[![Backend: Go 1.25+](https://img.shields.io/badge/backend-Go_1.25+-00ADD8?style=flat-square&logo=go&logoColor=white)](https://go.dev)
 [![CI](https://img.shields.io/github/actions/workflow/status/neochaotic/powerlab/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/neochaotic/powerlab/actions)
 [![Pre-release](https://img.shields.io/badge/status-pre--release-amber?style=flat-square)]()
 
@@ -260,7 +260,7 @@ For real production, install on Linux instead.
 
 <br>
 
-Requires **Go 1.21+**, **Node.js 20+**, **Docker Engine**.
+Requires **Go 1.25+**, **Node.js 20+**, **Docker Engine**.
 
 ```bash
 git clone https://github.com/neochaotic/powerlab.git

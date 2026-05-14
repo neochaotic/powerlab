@@ -10,7 +10,7 @@ info:
     
     Source: [github.com/neochaotic/powerlab](https://github.com/neochaotic/powerlab).
 servers:
-  - url: /v2/casaos
+  - url: /v2/powerlab-core
 
 tags:
   - name: Health methods
@@ -36,7 +36,7 @@ paths:
         - Health methods
       summary: Get service status
       description: |-
-        Get running status of each `casaos-*` service.
+        Get running status of each `powerlab-core-*` service.
       operationId: getHealthServices
       responses:
         "200":
@@ -274,12 +274,12 @@ components:
           type: array
           items:
             type: string
-            example: "casaos-gateway.service"
+            example: "powerlab-gateway.service"
         not_running:
           type: array
           items:
             type: string
-            example: "casaos.service"
+            example: "powerlab-core.service"
 
     HealthPorts:
       properties:

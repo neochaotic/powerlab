@@ -43,7 +43,7 @@ Canonical paths in the repo:
 |---|---|
 | gateway | `backend/gateway/api/gateway/openapi.yaml` |
 | app-management | `backend/app-management/api/app_management/openapi.yaml` (+ `openapi_v1.yaml` for the v1 surface) |
-| core | `backend/core/api/casaos/openapi.yaml` (rebrand pending) |
+| core | `backend/core/api/core/openapi.yaml` |
 | user-service | `backend/user-service/api/user-service/openapi.yaml` |
 | message-bus | `backend/message-bus/api/message_bus/openapi.yaml` |
 | local-storage | `backend/local-storage/api/local_storage/openapi.yaml` |

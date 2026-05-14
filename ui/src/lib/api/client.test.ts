@@ -35,11 +35,11 @@ describe('API Client', () => {
 		const mockData = { data: { running: ['casaos-gateway.service'] }, message: '' };
 		vi.stubGlobal('fetch', mockFetch(mockData));
 
-		const result = await api.get('/v2/casaos/health/services');
-
+		const result = await api.get('/v2/powerlab-core/health/services');
+		
 		expect(result).toEqual(mockData);
 		expect(fetch).toHaveBeenCalledWith(
-			'/v2/casaos/health/services',
+			'/v2/powerlab-core/health/services',
 			expect.objectContaining({ method: 'GET' })
 		);
 	});
@@ -128,10 +128,10 @@ describe('API Client', () => {
 		setAuthToken('Bearer test-jwt-token');
 		vi.stubGlobal('fetch', mockFetch({}));
 
-		await api.get('/v2/casaos/health/services');
+		await api.get('/v2/powerlab-core/health/services');
 
 		expect(fetch).toHaveBeenCalledWith(
-			'/v2/casaos/health/services',
+			'/v2/powerlab-core/health/services',
 			expect.objectContaining({
 				headers: expect.objectContaining({ Authorization: 'Bearer test-jwt-token' })
 			})
@@ -153,7 +153,7 @@ describe('API Client', () => {
 	it('throws ApiError with status and message on 401', async () => {
 		vi.stubGlobal('fetch', mockFetchError(401, 'Invalid token'));
 
-		await expect(api.get('/v2/casaos/health/services')).rejects.toMatchObject({
+		await expect(api.get('/v2/powerlab-core/health/services')).rejects.toMatchObject({
 			status: 401,
 			message: 'Invalid token'
 		});

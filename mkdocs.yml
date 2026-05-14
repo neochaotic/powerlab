@@ -107,6 +107,7 @@ nav:
       - Install: getting-started/install.md
       - First boot: getting-started/first-boot.md
       - Updating: getting-started/updating.md
+      - Contributor guide: getting-started/contributing-guide.md
   - Architecture:
       - Overview: architecture/README.md
       - Service topology: architecture/topology.md
@@ -114,16 +115,23 @@ nav:
       - Foundation interfaces: architecture/foundation-interfaces.md
       - Dependency graph: architecture/dependency-graph.md
       - Data persistence: architecture/data-persistence.md
+      - Community catalog: architecture/community-catalog.md
       - CasaOS strangler pattern: architecture/casaos-strangler.md
   - Coexistence with CasaOS:
       - Overview: coexistence/README.md
+      - Migrating from CasaOS: coexistence/migrating-from-casaos.md
       - Decision (ADR-0021): decisions/0021-docker-label-namespace-and-appdata-path.md
+  - Concepts:
+      - Glossary: concepts/glossary.md
+      - Security model: concepts/security-model.md
   - Operations:
       - HTTPS setup: HTTPS.md
+      - Backup and restore: operations/backup-restore.md
       - Update manifest: UPDATE_MANIFEST.md
       - Release checklist: release-checklist.md
       - Troubleshooting: troubleshooting.md
       - REST API reference: operations/api-reference.md
+      - App store coverage: STORE-COVERAGE.md
   - Go API reference:
       - pkg (foundation):
           - Index: api/pkg/index.md

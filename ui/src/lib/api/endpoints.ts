@@ -15,7 +15,7 @@ export interface SuccessResponse<T> extends BaseResponse {
 	data: T;
 }
 
-// ─── Health (CasaOS Core: /v2/casaos) ─────────────────────────────────
+// ─── Health (PowerLab Core: /v2/powerlab-core) ─────────────────────────────────
 
 export interface HealthServices {
 	running: string[];
@@ -127,11 +127,11 @@ export interface UserEvent {
 
 export const ENDPOINTS = {
 	// CasaOS Core
-	HEALTH_SERVICES: '/v2/casaos/health/services',
-	HEALTH_PORTS: '/v2/casaos/health/ports',
-	HEALTH_LOGS: '/v2/casaos/health/logs',
-	FILE_UPLOAD: '/v2/casaos/file/upload',
-	FILE_TEST: '/v2/casaos/file/test',
+	HEALTH_SERVICES: '/v2/powerlab-core/health/services',
+	HEALTH_PORTS: '/v2/powerlab-core/health/ports',
+	HEALTH_LOGS: '/v2/powerlab-core/health/logs',
+	FILE_UPLOAD: '/v2/powerlab-core/file/upload',
+	FILE_TEST: '/v2/powerlab-core/file/test',
 
 	// App Management
 	APP_INFO: '/v2/app_management/info',
