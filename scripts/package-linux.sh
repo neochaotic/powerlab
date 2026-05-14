@@ -131,6 +131,20 @@ GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
   -o "$STAGE/bin/powerlab-sync-catalog" \
   .
 
+# ─── 2.6 Build logs-cli (Sprint 14 #150 / ADR-0027) ─────────────────────
+# powerlab-logs is the diagnostic survival binary — surfaces systemd
+# journal, Docker container logs, and install/upgrade logs from a host
+# WITHOUT depending on any running PowerLab daemon. The operator SSH's
+# in and runs `powerlab-logs journal --follow` when something is on
+# fire. Same lean cross-compile profile as sync-catalog (no CGO, no
+# version-stamp ldflags). See backend/logs-cli/main.go.
+log "  building logs-cli..."
+cd "$ROOT/backend/logs-cli"
+GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
+  -trimpath \
+  -o "$STAGE/bin/powerlab-logs" \
+  .
+
 # ─── 3. Build frontend ───────────────────────────────────────────────────
 # Honour an existing ui/build/ if the caller already built it (e.g. from
 # the Mac host before invoking this script in a Linux container that
@@ -437,6 +451,20 @@ cat > "$STAGE/install.sh" <<'INSTALL_EOF'
 # install.sh manually never need to set it.
 set -euo pipefail
 
+# Sprint 14 #150 — capture install.sh stdout/stderr into a
+# timestamped file under /var/log/powerlab so the operator can read
+# back what happened during a previous (re)install via
+# `powerlab-logs install`. Best-effort — if /var/log/powerlab can't
+# be created (very rare), proceed without tee. Honour
+# POWERLAB_NO_INSTALL_LOG=1 to skip this entirely (debug only).
+if [[ "${POWERLAB_NO_INSTALL_LOG:-0}" != "1" ]] && mkdir -p /var/log/powerlab 2>/dev/null; then
+  __POWERLAB_INSTALL_LOG="/var/log/powerlab/install-$(date -u +%Y%m%dT%H%M%SZ).log"
+  exec > >(tee "$__POWERLAB_INSTALL_LOG") 2>&1
+  # Rotate: keep the 10 newest install logs. Older files are
+  # diagnostic-grade and not worth the disk on a small box.
+  ls -t /var/log/powerlab/install-*.log 2>/dev/null | tail -n +11 | xargs -r rm -f
+fi
+
 UPGRADE_MODE=0
 ALLOW_COEXIST=0
 for arg in "$@"; do
@@ -639,6 +667,30 @@ cp -R "$HERE/www" /usr/share/powerlab/www
 if [[ -d "$HERE/shell" ]]; then
   echo "[powerlab-install] Installing shell helpers to /usr/share/powerlab/shell..."
   install -m 0755 "$HERE/shell/"*.sh /usr/share/powerlab/shell/ 2>/dev/null || true
+fi
+
+# Docker container log rotation — without this, a chatty app container
+# can fill the host disk with unbounded json-file logs (Docker's default
+# driver has no rotation). Patches /etc/docker/daemon.json to set
+# max-size=10m, max-file=3 per container (~30 MB rolling per app).
+# Idempotent: existing operator values are preserved; skips if jq missing.
+echo "[powerlab-install] Configuring Docker container log rotation..."
+if command -v jq &>/dev/null; then
+  DAEMON_JSON=/etc/docker/daemon.json
+  mkdir -p /etc/docker
+  if [[ ! -f "$DAEMON_JSON" ]]; then
+    echo '{}' > "$DAEMON_JSON"
+  fi
+  jq '
+    if has("log-driver") then . else .["log-driver"] = "json-file" end
+    | if has("log-opts") then . else .["log-opts"] = {"max-size": "10m", "max-file": "3"} end
+  ' "$DAEMON_JSON" > "$DAEMON_JSON.new" && mv "$DAEMON_JSON.new" "$DAEMON_JSON"
+  if systemctl is-active docker &>/dev/null; then
+    systemctl reload docker 2>/dev/null || systemctl kill -s SIGHUP docker 2>/dev/null || true
+  fi
+  echo "[powerlab-install]   Docker log rotation set to max-size=10m, max-file=3."
+else
+  echo "[powerlab-install]   Skipped (jq not installed). Apt: apt install jq; then re-run."
 fi
 
 # Install/refresh community catalog at /var/lib/powerlab/community-catalog.
