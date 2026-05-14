@@ -31,10 +31,10 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  In-UI updater UX polish: dismissable banner with cache-busted reload,
-  "Upgrading" overlay during gateway restart, truncated release notes
-  blurb, defense in depth against stale UI bundles, POWERLAB_SKIP_SYNC
-  env to skip post-install catalog refresh.
+  Install modal no longer hangs on "Preparing" forever. Two latent
+  SSE bugs (multi-line block dropped Phase markers;
+  subscribe-after-finish never closed) + a UI reactivity loop.
+  12 regression tests lock the bug class.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
