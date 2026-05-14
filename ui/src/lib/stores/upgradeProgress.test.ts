@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 const { upgradeProgress, UPGRADE_POLL_INTERVAL_MS, UPGRADE_TIMEOUT_MS } = await import(
 	'./upgradeProgress.svelte'
 );
+const { setAuthToken } = await import('../api/client');
 
 const realFetch = global.fetch;
 
@@ -24,15 +25,53 @@ function mockFetchSequence(responses: Array<{ ok: boolean; status: number; body?
 		const r = responses[Math.min(i, responses.length - 1)];
 		i++;
 		if (r.throws) return Promise.reject(r.throws);
+		const text = r.body === undefined ? '' : JSON.stringify(r.body);
 		return Promise.resolve({
 			ok: r.ok,
 			status: r.status,
+			statusText: r.ok ? 'OK' : 'Error',
+			headers: new Headers({ 'content-type': 'application/json' }),
+			text: () => Promise.resolve(text),
 			json: () => Promise.resolve(r.body ?? {})
 		});
 	}) as unknown as typeof fetch;
 }
 
 describe('upgradeProgress', () => {
+	// Regression lock for the v0.6.9 "Upgrade refused (HTTP 401)" bug.
+	// The store used to call `fetch('/v1/powerlab-update/install')` directly,
+	// bypassing the API client and never attaching the Authorization header
+	// that the gateway's auth middleware demands. Users couldn't upgrade
+	// from the UI — every click 401'd. Locked here so any future raw-fetch
+	// regression trips a red.
+	it('start() sends Authorization header on the POST install call (#bug-401)', async () => {
+		setAuthToken('test-jwt-token');
+		const fetchSpy = vi.fn().mockImplementation(() =>
+			Promise.resolve({
+				ok: true,
+				status: 202,
+				text: () => Promise.resolve(''),
+				json: () => Promise.resolve({}),
+				headers: new Headers({ 'content-type': 'application/json' })
+			})
+		);
+		global.fetch = fetchSpy as unknown as typeof fetch;
+
+		await upgradeProgress.start('0.6.10');
+
+		expect(fetchSpy).toHaveBeenCalled();
+		const [, init] = fetchSpy.mock.calls[0];
+		const headers = init?.headers as Record<string, string> | Headers | undefined;
+		const auth =
+			headers instanceof Headers
+				? headers.get('Authorization')
+				: (headers ?? {})['Authorization'];
+		expect(auth, 'POST /v1/powerlab-update/install must carry the JWT or the gateway 401s').toBe(
+			'test-jwt-token'
+		);
+		setAuthToken(null);
+	});
+
 	it('starts in idle state', () => {
 		expect(upgradeProgress.state).toBe('idle');
 		expect(upgradeProgress.targetVersion).toBe(null);
