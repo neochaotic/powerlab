@@ -107,6 +107,52 @@ func (d *DB) InsertBatch(ctx context.Context, records []Record) error {
 	return tx.Commit()
 }
 
+// GetMostRecent returns the newest record by ts_unix_us. Returns
+// sql.ErrNoRows when the table is empty — callers check via
+// errors.Is. Used by middleware tests + the /v1/audit/recent
+// pagination cursor.
+func (d *DB) GetMostRecent(ctx context.Context) (Record, error) {
+	row := d.sql.QueryRowContext(ctx, `
+		SELECT id, ts_unix_us, method, path, query, status, latency_us,
+		       user_id, username, remote_ip, request_id
+		FROM audit
+		ORDER BY ts_unix_us DESC
+		LIMIT 1
+	`)
+	return scanRecord(row)
+}
+
+// rowScanner is the minimal interface satisfied by both *sql.Row
+// and *sql.Rows for the shared scan helper.
+type rowScanner interface {
+	Scan(dest ...interface{}) error
+}
+
+// scanRecord materialises a Record from a row scanner, converting
+// the NullInt64/NullString into the public-type pointers.
+func scanRecord(row rowScanner) (Record, error) {
+	var (
+		r        Record
+		uid      sql.NullInt64
+		username sql.NullString
+	)
+	err := row.Scan(&r.ID, &r.TsUnixMicros, &r.Method, &r.Path, &r.Query,
+		&r.Status, &r.LatencyMicros, &uid, &username,
+		&r.RemoteIP, &r.RequestID)
+	if err != nil {
+		return Record{}, err
+	}
+	if uid.Valid {
+		v := uid.Int64
+		r.UserID = &v
+	}
+	if username.Valid {
+		v := username.String
+		r.Username = &v
+	}
+	return r, nil
+}
+
 // Count returns the total number of audit rows. O(1) on SQLite
 // when no WHERE clause is present.
 func (d *DB) Count(ctx context.Context) (int64, error) {
