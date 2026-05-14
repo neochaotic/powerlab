@@ -1,0 +1,17 @@
+kind: Added
+body: 'ADR-0034 — standalone observability + MCP service design.
+  Locks the Sprint 17 critical-path: a new ``powerlab-observability``
+  binary that runs independently of every other PowerLab service
+  (port :9090 default), reads per-service audit DBs read-only,
+  speaks 3 transports (HTTP+SSE for browser, MCP/stdio for local
+  agents, MCP/HTTP for remote), exposes typed resources via
+  custom URI schemes (``audit://``, ``journal://``, ``apps://``,
+  ``system://``, ``containers://``), and gates actions in three
+  tiers (read / auth / admin). Companion research note
+  ``docs/research/mcp-linux-server-landscape-2026.md`` surveys 12+
+  existing OSS MCP servers for Linux/homelab management to identify
+  the unfilled gap PowerLab targets. Pivot-friendly without
+  committing — see ``project_mcp_linux_connector_vision`` memory
+  for the broader MCP-for-Linux story this design unblocks.'
+custom:
+  Issue: "0"
