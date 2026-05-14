@@ -8,7 +8,7 @@
 	import yaml from 'js-yaml';
 	import { readPowerLabExt, writePowerLabExt, deletePowerLabExtProperty } from '$lib/utils/compose-extension';
 	import ComposeForm, { type ComposeModel } from '$lib/components/orchestrator/ComposeForm.svelte';
-	import LogStreamer from '$lib/components/apps/LogStreamer.svelte';
+	import InstallModal from '$lib/components/apps/InstallModal.svelte';
 	import { useAppStore } from '$lib/stores/apps.svelte';
 
 	const appStore = useAppStore();
@@ -572,127 +572,32 @@ services:
 	{/if}
 
 	<!-- Minimized: floating pill bottom-right -->
-	{#if (isDeploying || deployResult) && deployMinimized}
-		<button
-			class="fixed bottom-6 right-6 z-[100] flex items-center gap-3 rounded-2xl border border-white/10 bg-zinc-900/95 px-4 py-3 text-left shadow-2xl backdrop-blur-xl hover:border-white/20 transition-all"
-			onclick={() => deployMinimized = false}
-			aria-label={t('orchestrator.expandProgress')}
-		>
-			<div class="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-800">
-				<Package class="h-5 w-5 text-zinc-500" />
-			</div>
-			<div class="min-w-0">
-				<div class="flex items-center gap-2">
-					{#if isDeploying}
-						<Loader2 class="h-3 w-3 animate-spin text-emerald-500" />
-						<span class="text-[11px] font-bold text-white truncate max-w-[160px]">{t('orchestrator.deploying')}</span>
-					{:else if deployResult?.success}
-						<CheckCircle2 class="h-3 w-3 text-emerald-500" />
-						<span class="text-[11px] font-bold text-emerald-400">{t('orchestrator.deployed')}</span>
-					{:else}
-						<AlertCircle class="h-3 w-3 text-red-500" />
-						<span class="text-[11px] font-bold text-red-400">{t('orchestrator.failed')}</span>
-					{/if}
-				</div>
-				<div class="text-[10px] text-zinc-500">{t('orchestrator.minimizedDesc')}</div>
-			</div>
-		</button>
-	{/if}
-
-	<!-- Deployment Overlay -->
-	{#if (isDeploying || deployResult) && !deployMinimized}
-		<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md" in:fade={{ duration: 200 }}>
-			<div class="relative w-full max-w-sm rounded-3xl border border-white/10 bg-zinc-900 p-8 text-center shadow-2xl">
-				{#if isDeploying}
-					<button
-						class="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-zinc-400 transition-colors hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
-						onclick={() => deployMinimized = true}
-						aria-label={t('apps.minimizeProgress')}
-						title={t('apps.minimizeProgress')}
-					>
-						<Minimize2 class="h-3.5 w-3.5" />
-					</button>
-					<div class="mb-6 flex justify-center">
-						<div class="relative h-16 w-16">
-							<div class="absolute inset-0 rounded-full border-2 border-emerald-500/20"></div>
-							<div class="absolute inset-0 rounded-full border-t-2 border-emerald-500 animate-spin"></div>
-						</div>
-					</div>
-					<h3 class="text-lg font-bold text-white">{t('orchestrator.deployingService')}</h3>
-					<p class="mt-1 text-[10px] text-zinc-500 uppercase tracking-[0.2em]">{t('orchestrator.orchestrating')}</p>
-
-					<!-- Phase indicator (#116 item 3 parity with native-app
-						 install). Renders only when the SSE stream has
-						 emitted at least one "Phase N/M:" line; otherwise
-						 hidden so we don't show 0% pre-Phase-1 noise. -->
-					{#if currentDeployPhase}
-						<div class="mt-4 text-left">
-							<div class="mb-1 flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-								<span>Phase {currentDeployPhase.step}/{currentDeployPhase.total} — {currentDeployPhase.label}</span>
-								<span class="tabular-nums text-zinc-400">{Math.round(deployProgress * 100)}%</span>
-							</div>
-							<div class="h-1 w-full overflow-hidden rounded-full bg-white/[0.04]">
-								<div class="h-full bg-emerald-500 transition-[width] duration-300" style="width: {deployProgress * 100}%"></div>
-							</div>
-						</div>
-					{/if}
-
-					{#if deployTimedOut}
-						<div class="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-left text-[11px] text-amber-300">
-							{t('apps.takingLonger')}
-						</div>
-					{/if}
-
-					<!-- Install log surface — shared LogStreamer for parity
-						 with the Community Install modal (PR #335 / v0.6.8). -->
-					<div class="mt-6 overflow-hidden rounded-xl border border-white/5 bg-black/40 text-left shadow-inner">
-						<LogStreamer
-							logs={deployJoinedLogs}
-							label={t('orchestrator.installLogs')}
-							heightClass="h-48"
-						/>
-					</div>
-				{:else if deployResult}
-					<div class="mb-6 flex justify-center">
-						{#if deployResult.success}
-							<div class="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-								<CheckCircle2 class="h-8 w-8" />
-							</div>
-						{:else}
-							<div class="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 text-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)]">
-								<AlertCircle class="h-8 w-8" />
-							</div>
-						{/if}
-					</div>
-					<h3 class="text-lg font-bold text-white">{deployResult.success ? t('orchestrator.serviceRunning') : t('orchestrator.deployFailed')}</h3>
-					<p class="mt-2 text-sm text-zinc-400">{deployResult.message}</p>
-					{#if deployResult.success}
-						<div class="mt-6 flex gap-3">
-							<button
-								onclick={() => goto('/')}
-								class="flex-1 rounded-xl bg-emerald-500 py-3 text-xs font-bold uppercase tracking-widest text-zinc-950 hover:bg-emerald-400 transition-colors"
-							>
-								{t('apps.checkLaunchpad')}
-							</button>
-							<button
-								onclick={() => deployResult = null}
-								class="flex-1 rounded-xl border border-white/10 bg-white/5 py-3 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/10 transition-colors"
-							>
-								{t('orchestrator.stayHere')}
-							</button>
-						</div>
-					{:else}
-						<button
-							onclick={() => deployResult = null}
-							class="mt-6 w-full rounded-xl bg-white/5 py-3 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/10 transition-colors"
-						>
-							{t('orchestrator.dismiss')}
-						</button>
-					{/if}
-				{/if}
-			</div>
-		</div>
-	{/if}
+	<!-- Deploy lifecycle modal — Sprint 14 #345 unification.
+		 The bespoke deploy modal here was replaced by the shared
+		 InstallModal component now consumed by both /apps and
+		 /apps/new. State translates: isDeploying/deployResult/
+		 deployTimedOut → install lifecycle phase. -->
+	<InstallModal
+		phase={deployTimedOut ? 'timeout' :
+			deployResult?.success ? 'success' :
+			deployResult ? 'error' :
+			isDeploying ? 'starting' :
+			'idle'}
+		currentPhase={currentDeployPhase}
+		progress={deployProgress}
+		logs={deployJoinedLogs}
+		appTitle={formModel.name || 'app'}
+		appIcon={formModel.icon}
+		error={deployResult?.success === false ? deployResult.message : null}
+		portNote={null}
+		minimized={deployMinimized}
+		onMinimize={() => { deployMinimized = true; goto('/'); }}
+		onCancel={() => { deployResult = null; isDeploying = false; }}
+		onRetry={() => { deployResult = null; }}
+		onOpen={() => { deployResult = null; goto('/'); }}
+		onStay={() => { deployResult = null; }}
+		onCheckLaunchpad={() => { deployResult = null; goto('/'); }}
+	/>
 
 	<!-- Main Content Area -->
 	<main class="flex-1 overflow-hidden">

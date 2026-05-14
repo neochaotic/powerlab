@@ -11,6 +11,7 @@
 	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import { detectAppSource, appSourceLabel } from '$lib/utils/app-source';
 	import InstallProgressBar from '$lib/components/apps/InstallProgressBar.svelte';
+	import InstallModal from '$lib/components/apps/InstallModal.svelte';
 	import LogStreamer from '$lib/components/apps/LogStreamer.svelte';
 	import { useInstallState } from '$lib/stores/install-state.svelte';
 
@@ -1261,155 +1262,29 @@
 	`/apps?install=<id>`. Less visual noise + one place to look.
 -->
 
-{#if installPhase !== 'idle' && installPhase !== 'confirm' && !installModalMinimized}
-	<!-- Install progress overlay -->
-	<div class="fixed inset-0 z-50 flex flex-col bg-zinc-950/95 backdrop-blur-xl">
-		<!-- Minimize button: top-right. Only meaningful while the install
-			 is still in flight; success/error/timeout each have their own
-			 dedicated action and shouldn't be hidden behind a minimize. -->
-		{#if installPhase === 'installing' || installPhase === 'starting'}
-			<button
-				class="absolute right-6 top-6 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-zinc-400 transition-colors hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
-				onclick={() => {
-					// v0.6.8 #341: minimize navigates to the launchpad so
-					// the user can SEE the ghost tile (#330) carrying the
-					// progress arc, instead of being stranded back on
-					// the empty-feeling store page. The install state
-					// store keeps the in-flight install addressable, so
-					// the modal can be restored from the ghost tile.
-					installModalMinimized = true;
-					goto('/');
-				}}
-				aria-label="Minimize install progress"
-				title="Minimize (install continues in background — view in launchpad)"
-			>
-				<Minimize2 class="h-4 w-4" />
-			</button>
-		{/if}
-		<div class="flex flex-1 flex-col items-center justify-center gap-5 px-6 text-center">
-
-			<!-- App icon with state ring/badge -->
-			<div class="relative shrink-0">
-				{#if installingApp?.icon}
-					<img
-						src={installingApp.icon}
-						alt=""
-						class="h-20 w-20 rounded-[20px] shadow-2xl"
-						onerror={(e) => { (e.target as HTMLImageElement).style.display='none'; }}
-					/>
-				{:else}
-					<div class="flex h-20 w-20 items-center justify-center rounded-[20px] bg-zinc-800">
-						<Package class="h-10 w-10 text-zinc-500" />
-					</div>
-				{/if}
-
-				{#if installPhase === 'installing' || installPhase === 'starting'}
-					<div class="absolute inset-0 animate-ping rounded-[20px] border-2 border-emerald-500/50" style="animation-duration:1.8s"></div>
-				{:else if installPhase === 'success'}
-					<div class="absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 shadow-lg ring-4 ring-zinc-950">
-						<CheckCircle2 class="h-5 w-5 text-white" />
-					</div>
-				{:else if installPhase === 'error' || installPhase === 'timeout'}
-					<div class="absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-600 shadow-lg ring-4 ring-zinc-950">
-						<X class="h-5 w-5 text-white" />
-					</div>
-				{/if}
-			</div>
-
-			<!-- Status text -->
-			<div class="shrink-0">
-				<p class="text-lg font-bold text-white">
-					{#if installPhase === 'success'}
-						{getTitle(installingApp?.title ?? {})} {t('apps.appRunning')}
-					{:else if installPhase === 'error'}
-						{t('apps.error')}
-					{:else if installPhase === 'timeout'}
-						{t('apps.takingLonger')}
-					{:else}
-						{t('apps.installingApp')} {getTitle(installingApp?.title ?? {})}…
-					{/if}
-				</p>
-				{#if installPhase === 'installing'}
-					<p class="mt-1 text-sm text-zinc-500">{t('apps.preparingInstallation')}</p>
-				{:else if installPhase === 'starting'}
-					<p class="mt-1 text-sm text-zinc-500">{t('apps.pullingImage')}</p>
-				{:else if installPhase === 'success'}
-					<p class="mt-1 text-sm text-zinc-500">{t('apps.appRunningDesc')}</p>
-					{#if installPortNote}
-						<p class="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-400">
-							{installPortNote}
-						</p>
-					{/if}
-				{:else if installPhase === 'timeout'}
-					<p class="mt-1 text-sm text-zinc-400">{t('apps.installInBackground')}</p>
-				{:else if installPhase === 'error'}
-					<p class="mt-2 max-w-xs rounded-xl bg-red-950/50 px-4 py-2 text-xs leading-relaxed text-red-400">{installError}</p>
-					<!-- Bug #9: when the error is Docker subnet exhaustion,
-						 add inline remediation copy + the SSH commands the
-						 user can paste. Avoids the user having to search
-						 forums for "all predefined address pools" -->
-					{#if installError && installError.toLowerCase().includes('subnet') && installError.toLowerCase().includes('docker')}
-						<div class="mt-3 max-w-md rounded-xl border border-amber-500/20 bg-amber-500/[0.05] p-3 text-left">
-							<p class="mb-2 text-[11px] font-bold uppercase tracking-wider text-amber-300">
-								{t('apps.subnetRemediationTitle')}
-							</p>
-							<p class="mb-2 text-[11px] leading-relaxed text-zinc-400">
-								{t('apps.subnetRemediationExplain')}
-							</p>
-							<pre class="mb-2 overflow-x-auto rounded-lg bg-black/40 p-2 font-mono text-[10px] leading-relaxed text-emerald-300 select-all">docker container prune -f
-docker network prune -f</pre>
-							<p class="text-[10px] leading-relaxed text-zinc-500">
-								{t('apps.subnetRemediationFollowup')}
-							</p>
-						</div>
-					{/if}
-				{/if}
-			</div>
-
-			<!-- Progress + log shell. v0.6.5 bug: progress bar only
-				 rendered once first Phase N/M marker arrived, so the user
-				 saw bouncing dots → silence → late 60%+ jump. Now the
-				 `InstallProgressBar` component handles both indeterminate
-				 (no phase marker yet) and determinate cases uniformly,
-				 visible from `installing` onwards. Log pre stays below. -->
-			{#if installPhase === 'installing' || installPhase === 'starting' || installPhase === 'error' || installPhase === 'timeout'}
-				<div class="w-full max-w-lg shrink overflow-hidden rounded-2xl border border-white/[0.06] bg-black/40">
-					<InstallProgressBar
-						phase={installPhase}
-						currentPhase={currentPhase}
-						progress={installProgress}
-					/>
-					{#if installLogs}
-						<LogStreamer logs={installLogs} />
-					{/if}
-				</div>
-			{/if}
-
-			<!-- Action buttons -->
-			<div class="flex w-full max-w-xs shrink-0 gap-2">
-				{#if installPhase === 'success'}
-					<div class="mt-8 flex gap-3">
-						<Button class="flex-1 rounded-xl bg-emerald-500 text-black font-bold hover:bg-emerald-400" onclick={() => { installPhase = 'idle'; goto('/'); }}>
-							{t('apps.backToLaunchpad')}
-						</Button>
-						<Button variant="outline" class="flex-1 rounded-xl border-white/10" onclick={() => { installPhase = 'idle'; }}>
-							{t('apps.stayInStore')}
-						</Button>
-					</div>
-				{:else if installPhase === 'error'}
-					<Button variant="ghost" class="flex-1 rounded-xl" onclick={closeInstallOverlay}>{t('action.cancel')}</Button>
-					<Button class="flex-1 rounded-xl" onclick={() => { pendingInstallApp = installingApp; closeInstallOverlay(); setTimeout(() => installPhase = 'confirm', 50); }}>
-						{t('apps.retry')}
-					</Button>
-				{:else if installPhase === 'timeout'}
-					<Button class="flex-1 rounded-xl" onclick={closeInstallOverlay}>{t('apps.checkLaunchpad')}</Button>
-				{:else}
-					<Button variant="ghost" class="flex-1 rounded-xl text-zinc-600" onclick={closeInstallOverlay}>{t('action.cancel')}</Button>
-				{/if}
-			</div>
-		</div>
-	</div>
-{/if}
+<!-- Install lifecycle modal — Sprint 14 #345 unification. The
+	 bespoke modal markup previously here was extracted into
+	 lib/components/apps/InstallModal.svelte; both this page and
+	 /apps/new now render the same component with their local state.
+	 The Docker subnet remediation case lives inside InstallModal
+	 (it's tightly coupled to the error-state rendering). -->
+<InstallModal
+	phase={installPhase === 'installing' || installPhase === 'starting' || installPhase === 'success' || installPhase === 'error' || installPhase === 'timeout' ? installPhase : 'idle'}
+	currentPhase={currentPhase}
+	progress={installProgress}
+	logs={installLogs}
+	appTitle={getTitle(installingApp?.title ?? {})}
+	appIcon={installingApp?.icon ?? ''}
+	error={installError}
+	portNote={installPortNote}
+	minimized={installModalMinimized}
+	onMinimize={() => { installModalMinimized = true; goto('/'); }}
+	onCancel={closeInstallOverlay}
+	onRetry={() => { pendingInstallApp = installingApp; closeInstallOverlay(); setTimeout(() => installPhase = 'confirm', 50); }}
+	onOpen={() => { installPhase = 'idle'; goto('/'); }}
+	onStay={() => { installPhase = 'idle'; }}
+	onCheckLaunchpad={closeInstallOverlay}
+/>
 <!-- App Detail Modal -->
 {#if detailApp}
 	{@const appTitle = getTitle(detailApp.title)}

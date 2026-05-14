@@ -131,6 +131,24 @@
 						<p class="mt-1 text-sm text-zinc-400">{t('apps.installInBackground')}</p>
 					{:else if phase === 'error' && error}
 						<p class="mt-2 max-w-xs rounded-xl bg-red-950/50 px-4 py-2 text-xs leading-relaxed text-red-400">{error}</p>
+						<!-- Docker subnet exhaustion remediation. The Community
+							 Install codepath used to render this inline; preserved
+							 here so /apps/new gets the same hint when applicable. -->
+						{#if error.toLowerCase().includes('subnet') && error.toLowerCase().includes('docker')}
+							<div class="mt-3 max-w-md rounded-xl border border-amber-500/20 bg-amber-500/[0.05] p-3 text-left">
+								<p class="mb-2 text-[11px] font-bold uppercase tracking-wider text-amber-300">
+									{t('apps.subnetRemediationTitle')}
+								</p>
+								<p class="mb-2 text-[11px] leading-relaxed text-zinc-400">
+									{t('apps.subnetRemediationExplain')}
+								</p>
+								<pre class="mb-2 overflow-x-auto rounded-lg bg-black/40 p-2 font-mono text-[10px] leading-relaxed text-emerald-300 select-all">docker container prune -f
+docker network prune -f</pre>
+								<p class="text-[10px] leading-relaxed text-zinc-500">
+									{t('apps.subnetRemediationFollowup')}
+								</p>
+							</div>
+						{/if}
 					{/if}
 				</div>
 
