@@ -1,0 +1,15 @@
+kind: Fixed
+body: 'In-UI session-expired UX: when any api call returns 401,
+  user is now logged out + sees a clear "Session expired — please
+  sign in again" toast (Sprint 16 C3). Before, the calling store''s
+  generic catch-all surfaced opaque messages like "Could not reach
+  the release manifest: Unauthorized" with no hint about the real
+  cause — hit live during v0.6.11 testing with a stale JWT in
+  localStorage. New centralised hook ``onAuthError(handler)`` in
+  ``$lib/api/client``: registers a callback fired on every 401
+  response, with a single in-flight guard so parallel failing
+  requests trigger one toast not N. The auth store subscribes
+  once on module init. 5 contract tests lock the behaviour (fires
+  on 401, NOT on 200/500, unsubscribe works, multiple subscribers).'
+custom:
+  Issue: "352"
