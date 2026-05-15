@@ -31,10 +31,10 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Defense-in-depth for the v0.6.7→v0.6.10 upgrade-401 bug class:
-  ESLint ban on raw fetch() in stores/routes (L1), Playwright
-  upgrade-flow E2E (L2), and backend now accepts RFC 6750
-  "Bearer <token>" form alongside the legacy raw token (L3).
+  Audit pipeline end-to-end: async recorder writes JSONL to
+  /var/log/powerlab/audit.jsonl (grep + tail -F friendly), new
+  Settings → Audit pane. Reinstall-after-uninstall fixed.
+  401 expired-token now shows a clear toast.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
