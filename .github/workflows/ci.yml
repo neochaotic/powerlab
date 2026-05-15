@@ -296,6 +296,33 @@ jobs:
           POWERLAB_DEADCODE_STRICT: '0' # warn-only until v0.7.0
 
   # ─────────────────────────────────────────────────────────────────────
+  # Catalog hostname lint (Sprint 20 PR 4a). Scans every
+  # community-catalog/Apps/*/docker-compose.yml for the legacy
+  # docker-compose v1 hostname pattern `<project>_<service>_<idx>` and
+  # reports findings as PR annotations. PowerLab ships docker-compose
+  # v2 which creates containers with hyphens (`<project>-<service>-
+  # <idx>`); the underscore form never resolves and the app crashes
+  # in a DNS-error loop (Sprint 20 PR 2 surfaced this against
+  # Activepieces; sweep found 67 affected apps).
+  #
+  # Phase-in: warn-only by default. After Sprint 20 PR 4b (the actual
+  # 67-app sweep) lands, flip to strict so re-introduced findings
+  # block PRs. Tracking issue: #402.
+  # ─────────────────────────────────────────────────────────────────────
+  catalog-hostnames:
+    name: Catalog hostnames
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Self-test the lint script
+        run: ./scripts/check-catalog-hostnames_test.sh
+      - name: Run catalog hostname lint
+        run: ./scripts/check-catalog-hostnames.sh
+        env:
+          POWERLAB_CATALOG_LINT_STRICT: '0' # warn-only until PR 4b lands
+
+  # ─────────────────────────────────────────────────────────────────────
   # Backend integration tests (Phase 3 of #150 — Sprint 13.5). Build
   # tag `integration` keeps these out of the default `go test ./...`
   # so dev machines without Docker don't fail them on every commit.
