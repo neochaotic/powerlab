@@ -7,4 +7,4 @@ body: >-
   service-name still matches the active service. A new best-effort sweep in
   ``Uninstall()`` catches and force-removes them after ``service.Down``.
 custom:
-  Issue: "363"
+  Issue: "365"
