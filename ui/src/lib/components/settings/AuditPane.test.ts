@@ -113,4 +113,66 @@ describe('AuditPane', () => {
 		// User cell renders the em-dash sentinel for null user.
 		expect(screen.getAllByText('—').length).toBeGreaterThan(0);
 	});
+
+	it('renders ui_error rows with the bug badge + error message', async () => {
+		vi.mocked(getAuditRecent).mockResolvedValueOnce([
+			rec({
+				kind: 'ui_error',
+				method: 'POST',
+				path: '/v1/audit/frontend-error',
+				status: 202,
+				payload: {
+					message: "TypeError: Cannot read properties of undefined (reading 'foo')",
+					stack: 'at /apps/+page.svelte:42:7\nat onMount',
+					url: '/apps',
+					ua: 'Mozilla/5.0',
+					viewport: { w: 1920, h: 1080 }
+				}
+			})
+		]);
+		vi.mocked(getAuditStats).mockResolvedValueOnce({
+			row_count: 1,
+			oldest_unix_us: 0,
+			newest_unix_us: 0,
+			file_size_bytes: 0,
+			path: ''
+		});
+
+		render(AuditPane);
+
+		// The dedicated row renders with the testid + the bug badge.
+		const row = await screen.findByTestId('audit-row-ui-error');
+		expect(row).toBeTruthy();
+		expect(row.textContent).toContain('TypeError');
+		expect(row.textContent?.toLowerCase()).toContain('ui error');
+	});
+
+	it('toggles the ui_error detail row on click (expand stack)', async () => {
+		vi.mocked(getAuditRecent).mockResolvedValueOnce([
+			rec({
+				kind: 'ui_error',
+				status: 202,
+				payload: {
+					message: 'boom',
+					stack: 'at /settings:1:1\nat doStuff'
+				}
+			})
+		]);
+		vi.mocked(getAuditStats).mockResolvedValueOnce({
+			row_count: 1,
+			oldest_unix_us: 0,
+			newest_unix_us: 0,
+			file_size_bytes: 0,
+			path: ''
+		});
+
+		render(AuditPane);
+
+		const row = await screen.findByTestId('audit-row-ui-error');
+		// Initially collapsed.
+		expect(screen.queryByTestId('audit-row-ui-error-detail')).toBeNull();
+		row.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		const detail = await screen.findByTestId('audit-row-ui-error-detail');
+		expect(detail.textContent).toContain('doStuff');
+	});
 });
