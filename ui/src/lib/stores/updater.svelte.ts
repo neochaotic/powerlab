@@ -18,6 +18,11 @@ import {
 } from '$lib/api/updater';
 import type { CheckResult, PreflightResult, LastUpgrade } from '$lib/api/updater';
 import { toast } from '$lib/stores/toast.svelte';
+import {
+	recordCheckSuccess,
+	recordCheckFailure,
+	getUpdaterFailureState
+} from './updater-failure-state';
 
 const POLL_INTERVAL_MS = 60 * 60 * 1000; // 1 h
 
@@ -47,14 +52,25 @@ class UpdaterStore {
 		this.error = null;
 		try {
 			this.check = await checkForUpdate();
+			recordCheckSuccess();
 		} catch (e) {
 			// Non-fatal — the user might be offline or behind a captive
-			// portal. Surface as an error string but don't toast,
-			// because the updater check is implicit.
+			// portal. The failure-state machine decides whether to
+			// surface a banner (3+ consecutive AND no recent success);
+			// transient failures stay silent.
+			recordCheckFailure((e as Error).message);
 			this.error = (e as Error).message;
 		} finally {
 			this.loading = false;
 		}
+	}
+
+	/**
+	 * Failure UX flags (transient vs persistent + "last checked Xm ago").
+	 * Reactive via $derived in the consumer when it polls `refresh()`.
+	 */
+	get failureState() {
+		return getUpdaterFailureState();
 	}
 
 	async runPreflight(): Promise<void> {

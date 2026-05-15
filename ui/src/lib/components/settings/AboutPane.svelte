@@ -70,9 +70,19 @@
 			</button>
 		</div>
 
-		{#if updaterStore.error}
+		{#if updaterStore.failureState.persistentFailure}
 			<p class="text-[12px] text-amber-400">
-				Could not reach the release manifest: {updaterStore.error}
+				Update check is unavailable right now{updaterStore.failureState
+					.lastCheckedHumanRelative
+					? ` — last checked ${updaterStore.failureState.lastCheckedHumanRelative}`
+					: ''}.
+			</p>
+		{:else if updaterStore.failureState.transientFailure}
+			<p class="text-[11px] text-zinc-500">
+				Background check did not complete{updaterStore.failureState
+					.lastCheckedHumanRelative
+					? ` (last success ${updaterStore.failureState.lastCheckedHumanRelative})`
+					: ''}; the system is healthy.
 			</p>
 		{:else if updaterStore.check?.decision === 'up_to_date'}
 			<p class="text-[12px] text-zinc-400">
