@@ -22,6 +22,7 @@ require (
 	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gotest.tools/v3 v3.4.0
+	modernc.org/sqlite v1.50.1
 )
 
 require (
@@ -65,6 +66,5 @@ require (
 	modernc.org/libc v1.72.3 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
-	modernc.org/sqlite v1.50.1 // indirect
 	mvdan.cc/sh/v3 v3.7.0 // indirect
 )
