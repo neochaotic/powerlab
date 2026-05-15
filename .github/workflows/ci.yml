@@ -332,9 +332,24 @@ jobs:
       - name: Verify Docker is available
         run: docker version
 
+      # Warm the Docker daemon + pull a tiny no-op image so the
+      # first containerd operation inside the tests doesn't pay the
+      # cold-start tax. The v0.6.12 release SHA hit a 2m timeout on
+      # this exact line because the test process started before
+      # containerd was ready. The pull is cheap (~5s for hello-world)
+      # and skips the network entirely on a warm runner.
+      - name: Warm Docker daemon
+        run: |
+          docker info >/dev/null
+          docker pull hello-world
+
+      # 5m timeout (was 2m). Race-detector overhead + cold daemon
+      # + testcontainer cold-start can push past 2m on a shared CI
+      # runner. The tests themselves are fast; the timeout is a
+      # safety net against runner-state pathologies, not a budget.
       - name: Integration tests
         working-directory: backend/${{ matrix.service }}
-        run: go test -tags=integration -race -timeout=2m ./service/...
+        run: go test -tags=integration -race -timeout=5m ./service/...
 
   # ─────────────────────────────────────────────────────────────────────
   # Local-storage fuse build-tag tests (Phase 4 of #150 — Sprint 13.5).
