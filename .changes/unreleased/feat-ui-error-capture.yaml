@@ -1,0 +1,17 @@
+kind: Added
+body: >-
+  Frontend JS error capture pipeline. The SvelteKit shell installs
+  ``window.onerror`` and ``unhandledrejection`` listeners on mount
+  and funnels captured events through a small reporter that does
+  noise filter (ResizeObserver loop, browser-extension stacks,
+  opaque "Script error.") + dedupe (one POST per signature per
+  5-minute window) + DoS cap (≤10 POSTs / window) + failure
+  swallow (audit cannot become a user-visible "double crash"
+  loop). Transport hits a new ``POST /v1/audit/frontend-error``
+  endpoint that builds a ``Record{Kind: "ui_error"}`` and submits
+  it to the existing audit Recorder — same JSONL file, same ring
+  buffer, same retention policy as HTTP audit. Settings → Audit
+  pane renders ui_error rows distinctly (red tint, Bug icon,
+  click-to-expand stack trace). 19 new tests (5 backend handler,
+  3 schema round-trip, 12 frontend reporter, 2 AuditPane render).
+  Closes #258.
