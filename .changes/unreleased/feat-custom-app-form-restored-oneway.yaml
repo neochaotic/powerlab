@@ -1,0 +1,16 @@
+kind: Changed
+body: >-
+  Custom App page (/apps/new) restores the full visual form +
+  3-tab view switcher (Split / Form / YAML) — same UX as v0.6.11.
+  Internally the form is now **one-way data flow** per ADR-0030:
+  ``ComposeForm`` takes ``yaml: string`` + ``onChange`` (no
+  ``$bindable``); the form's display derives from
+  ``$derived(viewFromYaml(yaml))`` and every edit emits a fresh
+  YAML through pure mutators in ``$lib/utils/compose-mutate.ts``.
+  Long-form entries (volumes/ports/devices with ``{type, source,
+  target}``) are preserved per-entry — editing one field keeps
+  the entry long-form; this is the root-cause fix for the
+  ``[object Object]`` bug class (#332). 33 unit tests in
+  ``compose-mutate.test.ts`` lock the mutation contract,
+  including a parametric guard that no edit across diverse
+  real-world YAMLs produces ``[object Object]``.

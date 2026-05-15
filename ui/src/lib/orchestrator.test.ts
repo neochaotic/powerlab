@@ -2,11 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import Page from '../routes/apps/new/+page.svelte';
 
-// Custom-app page is YAML-first (no bidirectional ComposeForm).
-// Tests below assert the page shell + YAML editor + read-only preview
-// render. The form-era cases were removed alongside ComposeForm
-// itself; YAML round-trip / shape robustness lives in
-// YAMLPreview.test.ts.
+// Custom-app page now uses a one-way form (read derived view from
+// YAML, edits emit new YAML via onChange). The 3-tab view switcher
+// (Split / Form / YAML) is back; YAML stays the sole source of
+// truth. Tests below assert the page shell + tabs + editor render.
 
 describe('Orchestrator Page', () => {
 	it('renders the custom app builder header and YAML editor', () => {
@@ -36,11 +35,21 @@ describe('Orchestrator Page', () => {
 		expect(root.className).not.toContain('max-w');
 	});
 
-	it('renders the YAML editor and the YAMLPreview panel side-by-side', () => {
+	it('renders the YAML editor and the form panel in split mode', () => {
 		const { container } = render(Page);
 
 		expect(container.querySelector('textarea[data-testid="yaml-editor"]')).toBeTruthy();
-		expect(container.querySelector('[data-testid="yaml-preview"]')).toBeTruthy();
+		expect(container.querySelector('#service-name')).toBeTruthy();
+		expect(screen.getByText(/Network Settings/i)).toBeTruthy();
+		expect(screen.getByText(/Storage & Devices/i)).toBeTruthy();
+		expect(screen.getByText(/Execution & Resources/i)).toBeTruthy();
+	});
+
+	it('displays the view switcher with Split, Form, and YAML options', () => {
+		render(Page);
+		expect(screen.getByText('Split')).toBeTruthy();
+		expect(screen.getByText('Form')).toBeTruthy();
+		expect(screen.getByText('YAML')).toBeTruthy();
 	});
 
 	it('shows the Deploy button', () => {
