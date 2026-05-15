@@ -114,6 +114,24 @@ catalogued. Each kill PR should grep before deleting.
   services. Will overlap with future PowerLab-owned auth in
   Sprint 2 (user-service kill).
 
+> **Final disposition (Sprint 19, 2026-05-15) — closes this thread.**
+>
+> | 🟡 item | Outcome | PR |
+> |---|---|---|
+> | `core/pkg/utils/file/` | ✅ KEEP — confirmed 10 importers, alive | — |
+> | `core/pkg/generic_sync/` | ❌ DEAD — verify step never ran for 15 sprints, finally removed | #394 (PR 3) |
+> | `core/pkg/utils/` | ✅ KEEP — confirmed 3 importers, alive | — |
+> | `core/internal/op/` | ❌ DEAD — sole consumer of `internal/{driver,conf}`; entire `core/internal/` island deleted | #394 (PR 3) |
+> | `common/utils/jwt/` | ✅ KEEP — became the PowerLab auth (14 importers), exactly as predicted | — |
+>
+> **Process gap diagnosed:** 3 of 5 🟡 items were correctly resolved
+> (alive), but 2 (`generic_sync` + `internal/op`) were genuinely dead
+> and the "grep before deleting" verify step was never carried out —
+> they slipped through every kill PR's reviewer fatigue. Sprint 19 PR 5
+> adds `scripts/check-deadcode.sh` + a `Backend deadcode` CI job so
+> the next miss is caught automatically. Warn-only until v0.7.0 cut,
+> then hard-fail.
+
 ### 🔴 False positive — keep
 
 No findings flagged false-positive yet. The clearest false-positive
