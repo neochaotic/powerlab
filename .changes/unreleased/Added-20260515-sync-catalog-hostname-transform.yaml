@@ -1,0 +1,5 @@
+kind: Added
+body: 'sync-catalog: auto-rewrite docker-compose v1 underscore hostnames (`<project>_<svc>_<idx>`) to the service-name alias on every upstream sync. Prevents the (#402) bug class from regressing as the catalog refreshes from Umbrel/CasaOS upstreams.'
+time: 2026-05-15T00:00:00Z
+custom:
+    Issue: "402"

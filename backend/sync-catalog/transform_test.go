@@ -849,6 +849,133 @@ services:
 	}
 }
 
+func TestSubstituteHostnameAliases_ListEnvForm(t *testing.T) {
+	// Locks Sprint 21 PR 2 (#402): docker-compose v1 hostname pattern
+	// `<storeAppID>_<svcName>_<idx>` in env values gets rewritten to
+	// the service-name alias. Compose v2 names containers with hyphens;
+	// the underscore form never resolves under v2 and crashes the app
+	// in a DNS-error loop on install.
+	//
+	// This test uses LIST env form (`- KEY=value` items).
+	in := []byte(`version: '3.7'
+name: twenty
+services:
+  server:
+    image: nginx:latest
+    environment:
+      - PG_DATABASE_URL=postgres://postgres:postgres@twenty_db_1:5432/default
+      - REDIS_URL=redis://twenty_redis_1:6379
+  db:
+    image: postgres:14
+  redis:
+    image: redis:7
+`)
+	out, err := transformUpstreamCompose(in, "twenty", 0)
+	if err != nil {
+		t.Fatalf("transform: %v", err)
+	}
+	s := string(out)
+	if strings.Contains(s, "twenty_db_1") {
+		t.Errorf("expected twenty_db_1 rewritten to db, got:\n%s", s)
+	}
+	if strings.Contains(s, "twenty_redis_1") {
+		t.Errorf("expected twenty_redis_1 rewritten to redis, got:\n%s", s)
+	}
+	if !strings.Contains(s, "postgres://postgres:postgres@db:5432/default") {
+		t.Errorf("expected db alias in postgres URL, got:\n%s", s)
+	}
+	if !strings.Contains(s, "redis://redis:6379") {
+		t.Errorf("expected redis alias in redis URL, got:\n%s", s)
+	}
+}
+
+func TestSubstituteHostnameAliases_MapEnvForm(t *testing.T) {
+	// Map env form (`KEY: value` mapping). Same rewrite must work.
+	in := []byte(`version: '3.7'
+name: solidtime
+services:
+  app:
+    image: nginx:latest
+    environment:
+      DB_HOST: solidtime_db_1
+      GOTENBERG_URL: http://solidtime_gotenberg_1:3000
+  db:
+    image: postgres:14
+  gotenberg:
+    image: gotenberg/gotenberg:7
+`)
+	out, err := transformUpstreamCompose(in, "solidtime", 0)
+	if err != nil {
+		t.Fatalf("transform: %v", err)
+	}
+	s := string(out)
+	if strings.Contains(s, "solidtime_db_1") {
+		t.Errorf("expected solidtime_db_1 rewritten to db, got:\n%s", s)
+	}
+	if strings.Contains(s, "solidtime_gotenberg_1") {
+		t.Errorf("expected solidtime_gotenberg_1 rewritten to gotenberg, got:\n%s", s)
+	}
+	if !strings.Contains(s, "DB_HOST: db") {
+		t.Errorf("expected DB_HOST: db, got:\n%s", s)
+	}
+	if !strings.Contains(s, "GOTENBERG_URL: http://gotenberg:3000") {
+		t.Errorf("expected gotenberg alias in URL, got:\n%s", s)
+	}
+}
+
+func TestSubstituteHostnameAliases_OnlyRewriteWhenSvcExists(t *testing.T) {
+	// Guard: don't substitute if the captured `<svc>` isn't an actual
+	// service in this compose. Prevents false-positives where an env
+	// value happens to match the regex but doesn't reference a sibling.
+	in := []byte(`version: '3.7'
+name: myapp
+services:
+  app:
+    image: nginx:latest
+    environment:
+      - SOME_VAR=myapp_nonexistent_1
+      - DB_HOST=myapp_db_1
+  db:
+    image: postgres:14
+`)
+	out, err := transformUpstreamCompose(in, "myapp", 0)
+	if err != nil {
+		t.Fatalf("transform: %v", err)
+	}
+	s := string(out)
+	// `db` is a real service → rewrite
+	if strings.Contains(s, "myapp_db_1") {
+		t.Errorf("expected myapp_db_1 rewritten to db, got:\n%s", s)
+	}
+	// `nonexistent` is NOT a service → leave alone
+	if !strings.Contains(s, "myapp_nonexistent_1") {
+		t.Errorf("expected myapp_nonexistent_1 PRESERVED (no matching service), got:\n%s", s)
+	}
+}
+
+func TestSubstituteHostnameAliases_NoFalsePositiveAcrossProjects(t *testing.T) {
+	// Guard: only rewrite tokens that start with THIS project's name,
+	// not tokens that share a prefix with another project. The lint
+	// has the same guard — `blink` must not match `blinko_db_1`.
+	in := []byte(`version: '3.7'
+name: blink
+services:
+  app:
+    image: nginx:latest
+    environment:
+      - REFERENCE=blinko_db_1
+  db:
+    image: postgres:14
+`)
+	out, err := transformUpstreamCompose(in, "blink", 0)
+	if err != nil {
+		t.Fatalf("transform: %v", err)
+	}
+	if !strings.Contains(string(out), "blinko_db_1") {
+		t.Errorf("expected blinko_db_1 PRESERVED (different project prefix), got:\n%s", out)
+	}
+}
+
 func TestTransformMalformedYAMLReturnsError(t *testing.T) {
 	// yaml.v3 is permissive — most "wrong-looking" inputs still parse.
 	// We use truly invalid YAML (unclosed quote at top level) to lock
