@@ -1,0 +1,12 @@
+kind: Internal
+body: >-
+  Sprint 20 PR 1/9 — real-backend Playwright regression test for #386
+  (Adventure Log install reported HTTP 400 BadRequest, then self-
+  resolved before investigation could land). Locks the current
+  "install succeeds" state with the same compose shape from the
+  catalog entry (db + server with ``container_name:`` + web). Also
+  acts as a canary for the container_name label-strip bug class
+  (#397) — the post-install lookup test skips until #397 ships its
+  tolerant fallback. Default Playwright suite still passes with
+  this spec skipped (gated on ``POWERLAB_E2E_BASE`` env var per the
+  ``realBackendTest`` harness).
