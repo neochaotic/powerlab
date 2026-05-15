@@ -291,3 +291,58 @@ func TestRecorder_DropOldestUnderBackpressure(t *testing.T) {
 		t.Errorf("expected non-zero drops with capacity 2 + 50 submits, got %d", rec.Dropped())
 	}
 }
+
+// Regression: the audit middleware wraps the ResponseWriter to
+// capture status codes. The wrapper MUST forward Flush() to the
+// underlying ResponseWriter, or any SSE / chunked-transfer handler
+// downstream silently buffers — the user sees the modal "loading"
+// forever because log chunks never reach the browser until the
+// stream closes.
+//
+// User-reported in v0.6.13-stg: "fica carregando muito tempo, depois
+// fica em instalando e nao aparece tela de logs" — root cause traced
+// to the missing Flusher interface forwarding here.
+func TestHTTPMiddleware_ResponseWriterImplementsFlusher(t *testing.T) {
+	svc := makeServiceForMW(t)
+
+	var sawFlusher bool
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+		_, sawFlusher = w.(http.Flusher)
+		w.WriteHeader(200)
+	})
+
+	mw := audit.HTTPMiddleware(svc.Recorder, audit.HTTPMiddlewareOptions{})
+	srv := httptest.NewServer(mw(mux))
+	defer srv.Close()
+
+	_, _ = http.Get(srv.URL + "/")
+	if !sawFlusher {
+		t.Error("BUG: audit middleware response wrapper does NOT implement http.Flusher. SSE handlers downstream cannot flush chunks → modal `loading` forever during install.")
+	}
+}
+
+func TestHTTPMiddleware_FlushPassesThroughToUnderlying(t *testing.T) {
+	svc := makeServiceForMW(t)
+
+	flushed := false
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(200)
+		_, _ = w.Write([]byte("data: hello\n\n"))
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+			flushed = true
+		}
+	})
+
+	mw := audit.HTTPMiddleware(svc.Recorder, audit.HTTPMiddlewareOptions{})
+	srv := httptest.NewServer(mw(mux))
+	defer srv.Close()
+
+	_, _ = http.Get(srv.URL + "/")
+	if !flushed {
+		t.Error("BUG: handler could not Flush through the audit-middleware wrapper")
+	}
+}

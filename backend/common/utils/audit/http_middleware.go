@@ -1,6 +1,8 @@
 package audit
 
 import (
+	"bufio"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -95,6 +97,27 @@ func (s *statusRecorder) Write(b []byte) (int, error) {
 		s.wroteHeader = true
 	}
 	return s.ResponseWriter.Write(b)
+}
+
+// Flush forwards to the underlying ResponseWriter. Required for
+// SSE / chunked-transfer downstream handlers — without this, the
+// type assertion `w.(http.Flusher)` in handlers and reverse proxies
+// fails and writes silently buffer until the stream closes. That
+// makes a streaming install-log endpoint appear hung.
+func (s *statusRecorder) Flush() {
+	if f, ok := s.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+// Hijack forwards to the underlying ResponseWriter when it supports
+// it. Required for WebSocket upgrades and any handler that takes
+// over the raw TCP connection.
+func (s *statusRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if h, ok := s.ResponseWriter.(http.Hijacker); ok {
+		return h.Hijack()
+	}
+	return nil, nil, http.ErrNotSupported
 }
 
 // realIP returns the client's IP. Prefers X-Forwarded-For (first hop)
