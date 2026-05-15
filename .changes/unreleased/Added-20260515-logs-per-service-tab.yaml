@@ -1,0 +1,5 @@
+kind: Added
+body: 'Settings → Logs: new "Live (per-service)" tab streams journald output for the 7 PowerLab services via the /v1/logs/services/{svc}/stream SSE endpoint, with severity coloring (error/warn/info/debug), auto-scroll-when-at-bottom, pause/resume, and clear controls. Frontend half of #259 /logs Phase 4.'
+time: 2026-05-15T00:00:00Z
+custom:
+    Issue: "259"

@@ -1,8 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { FileText, RefreshCw, AlertCircle, Download } from 'lucide-svelte';
+	import { FileText, RefreshCw, AlertCircle, Download, Activity } from 'lucide-svelte';
 	import { cn } from '$lib/utils';
 	import { listLogFiles, readLogFile, type LogFileEntry } from '$lib/api/logs';
+	import ServiceLogsTab from './ServiceLogsTab.svelte';
+
+	type Tab = 'files' | 'services';
+	let activeTab = $state<Tab>('files');
 
 	// Settings → Logs pane. Read-only viewer for the .log files
 	// under /var/log/powerlab/. Distinct from the Audit pane (HTTP
@@ -91,16 +95,49 @@
 				request audit; this one exposes raw service output.
 			</p>
 		</div>
-		<button
-			onclick={loadFiles}
-			disabled={loading}
-			class="flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 text-xs text-zinc-300 transition-colors hover:border-white/20 hover:text-white disabled:opacity-50"
-		>
-			<RefreshCw class={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
-			Refresh
-		</button>
+		{#if activeTab === 'files'}
+			<button
+				onclick={loadFiles}
+				disabled={loading}
+				class="flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 text-xs text-zinc-300 transition-colors hover:border-white/20 hover:text-white disabled:opacity-50"
+			>
+				<RefreshCw class={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
+				Refresh
+			</button>
+		{/if}
 	</header>
 
+	<!-- Tab switcher: file tail (default) vs live per-service journald. -->
+	<div class="flex gap-1 border-b border-white/[0.06]" data-testid="logs-tabs">
+		<button
+			onclick={() => (activeTab = 'files')}
+			data-testid="logs-tab-files"
+			class={cn(
+				'flex items-center gap-2 px-4 py-2 text-sm transition-colors',
+				activeTab === 'files'
+					? 'border-b-2 border-emerald-400 text-white'
+					: 'text-zinc-400 hover:text-zinc-200'
+			)}
+		>
+			<FileText class="h-3.5 w-3.5" />
+			Files
+		</button>
+		<button
+			onclick={() => (activeTab = 'services')}
+			data-testid="logs-tab-services"
+			class={cn(
+				'flex items-center gap-2 px-4 py-2 text-sm transition-colors',
+				activeTab === 'services'
+					? 'border-b-2 border-emerald-400 text-white'
+					: 'text-zinc-400 hover:text-zinc-200'
+			)}
+		>
+			<Activity class="h-3.5 w-3.5" />
+			Live (per-service)
+		</button>
+	</div>
+
+	{#if activeTab === 'files'}
 	{#if error}
 		<div
 			class="flex items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/[0.05] p-4 text-sm text-red-400"
@@ -187,4 +224,7 @@
 			</div>
 		</div>
 	</div>
+	{:else}
+		<ServiceLogsTab />
+	{/if}
 </div>
