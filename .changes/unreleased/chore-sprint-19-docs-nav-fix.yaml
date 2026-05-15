@@ -1,0 +1,11 @@
+kind: Internal
+body: >-
+  Sprint 19 follow-up — remove dead-package references from the mkdocs
+  navigation (``mkdocs.yml``) and from the godoc-style index pages
+  (``docs/api/{common,core,local-storage}/index.md``). The Sprint 19
+  deletion PRs (#393, #394, #395) removed the Go packages but the
+  docs site config still listed them, which made the mkdocs strict
+  build fail with 23 warnings on the next push to ``main``. Also
+  updates the core/index.md prose to note that the ``internal/op``
+  storage-driver runtime was removed — PowerLab uses Docker volumes
+  + bind mounts via ``app-management`` instead.
