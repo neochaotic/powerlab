@@ -117,12 +117,14 @@ func (g *GatewayRoute) GetRoute() http.Handler {
 	// the stdlib middleware (loopback-skip preserved).
 	if g.audit != nil {
 		var (
-			recent http.Handler = audit.RecentHTTPHandler(g.audit.Store)
-			stats  http.Handler = audit.StatsHTTPHandler(g.audit.Store)
+			recent     http.Handler = audit.RecentHTTPHandler(g.audit.Store)
+			stats      http.Handler = audit.StatsHTTPHandler(g.audit.Store)
+			frontError http.Handler = audit.FrontendErrorHTTPHandler(g.audit.Recorder)
 		)
 		jwtMW := jwt.HTTPJWT(g.publicKeyFunc)
 		gatewayMux.Handle("/v1/audit/recent", jwtMW(recent))
 		gatewayMux.Handle("/v1/audit/stats", jwtMW(stats))
+		gatewayMux.Handle("/v1/audit/frontend-error", jwtMW(frontError))
 	}
 
 	gatewayMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
