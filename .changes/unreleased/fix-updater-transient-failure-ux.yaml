@@ -1,0 +1,12 @@
+kind: Fixed
+body: >-
+  Settings → About update-check no longer surfaces a red error
+  banner for a single transient failure (GitHub timeout, captive
+  portal, etc.). Failure-UX state machine: ≤2 failures → silent;
+  3+ failures with last success ≥6h old → subtle amber "Update
+  check is unavailable right now — last checked Xm ago". Between
+  the two, a small grey "Background check did not complete; the
+  system is healthy" sits in place of the previous opaque
+  "Could not reach the release manifest: …" string. Closes #371.
+custom:
+  Issue: "371"

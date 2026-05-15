@@ -24,7 +24,14 @@ vi.mock('$lib/stores/updater.svelte', () => ({
 		checking: false,
 		error: null,
 		check: vi.fn(),
-		downloadProgress: 0
+		downloadProgress: 0,
+		failureState: {
+			consecutiveFailures: 0,
+			lastSuccessTs: null,
+			transientFailure: false,
+			persistentFailure: false,
+			lastCheckedHumanRelative: null
+		}
 	}
 }));
 
