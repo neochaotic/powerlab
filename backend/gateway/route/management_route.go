@@ -80,14 +80,14 @@ func (m *ManagementRoute) GetRoute() http.Handler {
 
 	m.buildV1Group(e)
 
-	// Audit read endpoints (ADR-0033 + Sprint 16 B1e).
-	// /v1/audit/recent and /v1/audit/stats — mounted at the v1
-	// level so the auth gate (gateway's JWT middleware) protects
-	// them via the existing chain on this group.
+	// Audit read endpoints (kept on management for internal
+	// service-to-service tooling). The PUBLIC mux mounts the
+	// stdlib variants per ADR-0035 so the browser can reach
+	// /v1/audit/recent through the gateway's public port.
 	if m.audit != nil {
 		auditGroup := e.Group("/v1/audit")
-		auditGroup.GET("/recent", audit.RecentHandler(m.audit.DB))
-		auditGroup.GET("/stats", audit.StatsHandler(m.audit.DB))
+		auditGroup.GET("/recent", audit.RecentHandler(m.audit.Store))
+		auditGroup.GET("/stats", audit.StatsHandler(m.audit.Store))
 	}
 
 	return e

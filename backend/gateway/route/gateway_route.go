@@ -1,35 +1,52 @@
 package route
 
 import (
+	"crypto/ecdsa"
 	"net/http"
 	"strings"
 
+	"github.com/neochaotic/powerlab/backend/common/external"
 	"github.com/neochaotic/powerlab/backend/common/pkg/security"
+	"github.com/neochaotic/powerlab/backend/common/utils/audit"
+	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
 	"github.com/neochaotic/powerlab/backend/gateway/service"
 )
 
 // GatewayRoute is the public-facing HTTP route bundle for the
 // gateway: SecurityRoute (CA download endpoints), DocsRoute (Scalar
-// API portal), and the catch-all reverse-proxy that delegates to
-// every backend service via the Management route table.
+// API portal), audit endpoints (per ADR-0035), and the catch-all
+// reverse-proxy that delegates to every backend service via the
+// Management route table.
 type GatewayRoute struct {
 	management *service.Management
 	cm         *security.CertManager
 	security   *SecurityRoute
 	docs       *DocsRoute
+	audit      *audit.Service
+	state      *service.State
 }
 
 // NewGatewayRoute wires the public-facing route bundle. Caller
 // supplies the Management service (route table source-of-truth),
-// CertManager (TLS lifecycle), and gateway State (version stamp,
-// HTTP/HTTPS port choices).
-func NewGatewayRoute(management *service.Management, cm *security.CertManager, state *service.State) *GatewayRoute {
+// CertManager (TLS lifecycle), gateway State (version stamp,
+// HTTP/HTTPS port choices, runtime path for JWT public key), and
+// the audit Service (nil disables audit endpoints + capture).
+func NewGatewayRoute(management *service.Management, cm *security.CertManager, state *service.State, auditSvc *audit.Service) *GatewayRoute {
 	return &GatewayRoute{
 		management: management,
 		cm:         cm,
 		security:   NewSecurityRoute(cm),
 		docs:       NewDocsRoute(state),
+		audit:      auditSvc,
+		state:      state,
 	}
+}
+
+// publicKeyFunc returns the gateway's JWT public-key reader used by
+// the audit endpoints' auth gate. Reads from the runtime path each
+// call so a key rotation is picked up without restart.
+func (g *GatewayRoute) publicKeyFunc() (*ecdsa.PublicKey, error) {
+	return external.GetPublicKey(g.state.GetRuntimePath())
 }
 
 // the function is to ensure the request source IP is correct.
@@ -76,7 +93,17 @@ func rewriteRequestSourceIP(r *http.Request) {
 	// So we didn't need to add it.
 }
 
-func (g *GatewayRoute) GetRoute() *http.ServeMux {
+// GetRoute returns the public-facing handler. Composition order
+// (outermost last):
+//   - audit middleware (captures every request reaching the gateway,
+//     skipper drops /ping + /v1/audit/* recursion)
+//   - mux with: security, docs, audit endpoints, catch-all proxy
+//
+// Audit endpoints (/v1/audit/recent, /v1/audit/stats) are wrapped
+// with the stdlib JWT middleware that mirrors Echo's loopback-skip
+// behaviour — local clients (the gateway proxying to itself) skip
+// auth, browser clients must present a valid token.
+func (g *GatewayRoute) GetRoute() http.Handler {
 	gatewayMux := http.NewServeMux()
 
 	// Security routes (CA download, mobileconfig, trust-confirmed) —
@@ -84,6 +111,19 @@ func (g *GatewayRoute) GetRoute() *http.ServeMux {
 	// specific paths win. Handlers live in security_route.go.
 	g.security.Register(gatewayMux)
 	g.docs.Register(gatewayMux)
+
+	// Audit read endpoints (ADR-0035). Mounted on the public mux so
+	// the browser can reach them through :8765. JWT validates via
+	// the stdlib middleware (loopback-skip preserved).
+	if g.audit != nil {
+		var (
+			recent http.Handler = audit.RecentHTTPHandler(g.audit.Store)
+			stats  http.Handler = audit.StatsHTTPHandler(g.audit.Store)
+		)
+		jwtMW := jwt.HTTPJWT(g.publicKeyFunc)
+		gatewayMux.Handle("/v1/audit/recent", jwtMW(recent))
+		gatewayMux.Handle("/v1/audit/stats", jwtMW(stats))
+	}
 
 	gatewayMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/ping" {
@@ -108,6 +148,18 @@ func (g *GatewayRoute) GetRoute() *http.ServeMux {
 		proxy.ServeHTTP(w, r)
 	})
 
+	// Audit middleware wraps the WHOLE public mux per ADR-0035 so
+	// user traffic (which hits :8765) is captured. Skips /ping and
+	// /v1/audit/* (the latter prevents the audit pane's own polling
+	// from filling the log with noise).
+	if g.audit != nil {
+		return audit.HTTPMiddleware(g.audit.Recorder, audit.HTTPMiddlewareOptions{
+			Skipper: func(r *http.Request) bool {
+				p := r.URL.Path
+				return p == "/ping" || strings.HasPrefix(p, "/v1/audit/")
+			},
+		})(gatewayMux)
+	}
 	return gatewayMux
 }
 

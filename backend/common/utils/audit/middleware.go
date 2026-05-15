@@ -59,8 +59,7 @@ func Middleware(rec *Recorder, opts MiddlewareOptions) echo.MiddlewareFunc {
 				remote = LoopbackSentinel
 			}
 
-			rec.Submit(Record{
-				TsUnixMicros:  start.UnixMicro(),
+			r := Record{
 				Method:        req.Method,
 				Path:          req.URL.Path,
 				Query:         stripTokenParam(req.URL.RawQuery),
@@ -70,7 +69,9 @@ func Middleware(rec *Recorder, opts MiddlewareOptions) echo.MiddlewareFunc {
 				Username:      usernamePtr,
 				RemoteIP:      remote,
 				RequestID:     req.Header.Get(echo.HeaderXRequestID),
-			})
+			}
+			r.FillTimestamps(start)
+			rec.Submit(r)
 
 			return err
 		}

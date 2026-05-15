@@ -16,27 +16,29 @@ import { api } from './client';
 
 /**
  * AuditRecord mirrors `backend/common/utils/audit/types.go::Record`.
- * Field names use JSON tag form so the backend's standard
- * `encoding/json` marshal matches without per-field adapters.
+ * Field names use JSON tag form (snake_case) so the backend's
+ * standard `encoding/json` marshal matches without adapters.
  *
  * Nullable fields (user_id, username) arrive as null when the
- * request was loopback / pre-auth — the recorder writes NULL into
- * the SQLite column for those.
+ * request was loopback / pre-auth.
+ *
+ * Per ADR-0035 the storage is JSONL — there is no DB-assigned id;
+ * `ts_us + request_id` is the natural row identity for UI keying.
  */
 export interface AuditRecord {
-	id: number;
-	// Microseconds since the Unix epoch — convert via
-	// `new Date(record.ts_unix_us / 1000)` for display.
-	ts_unix_us: number;
+	/** RFC 3339 timestamp string with microsecond precision. */
+	ts: string;
+	/** Microseconds since the Unix epoch — sortable integer form. */
+	ts_us: number;
 	method: string;
 	path: string;
-	query: string;
+	query?: string;
 	status: number;
 	latency_us: number;
 	user_id: number | null;
 	username: string | null;
 	remote_ip: string;
-	request_id: string;
+	request_id?: string;
 }
 
 /**

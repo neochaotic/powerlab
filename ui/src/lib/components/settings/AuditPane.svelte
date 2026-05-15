@@ -177,10 +177,10 @@
 						</tr>
 					</thead>
 					<tbody class="divide-y divide-white/[0.03]">
-						{#each records as r (r.id)}
+						{#each records as r (r.ts_us + (r.request_id ?? ''))}
 							<tr class="hover:bg-white/[0.02]">
 								<td class="whitespace-nowrap px-4 py-2 font-mono text-zinc-400">
-									{formatTs(r.ts_unix_us)}
+									{formatTs(r.ts_us)}
 								</td>
 								<td class="px-4 py-2 font-mono text-zinc-300">{r.method}</td>
 								<td class="max-w-[280px] truncate px-4 py-2 font-mono text-zinc-200" title={r.path}>
