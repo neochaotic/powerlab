@@ -1,0 +1,13 @@
+kind: Fixed
+body: >-
+  Audit recorder no longer stalls after an empty-batch tick.
+  The internal flush() ran the timer.Reset path only when there
+  was something to write — so a single Submit followed by a quiet
+  period would surface the first record fine, but the next one sat
+  in the channel waiting for BatchSize (50) to accumulate. Real-
+  world symptom discovered via real-backend Playwright: POST
+  ``/v1/audit/frontend-error`` returned 202 but the record never
+  appeared in ``/v1/audit/recent`` until 49 more were submitted.
+  One-line fix: always reset the timer at the end of flush(),
+  even when the batch was empty. 2 unit regression tests with
+  the race detector lock the contract.
