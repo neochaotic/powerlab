@@ -241,6 +241,61 @@ jobs:
           retention-days: 14
 
   # ─────────────────────────────────────────────────────────────────────
+  # Backend deadcode gate (Sprint 19 PR 5). Runs
+  # `golang.org/x/tools/cmd/deadcode` per service. Sprint 1 ran this
+  # tool once and flagged 5 packages "verify before deletion" — 2 of
+  # them were never followed up and sat dead through 15 sprints. This
+  # gate ensures the next miss is caught at PR time.
+  #
+  # Phase-in: warn-only by default (POWERLAB_DEADCODE_STRICT=0). After
+  # Sprint 19 lands and the existing dead code is gone, flip to strict
+  # for v0.7.0 (memory feedback_no_v1_without_alignment — major bumps
+  # require explicit user approval).
+  # ─────────────────────────────────────────────────────────────────────
+  backend-deadcode:
+    name: Backend deadcode (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    needs: backend
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - common
+          - gateway
+          - core
+          - user-service
+          - message-bus
+          - app-management
+          - local-storage
+          - sync-catalog
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: backend/${{ matrix.service }}/go.sum
+
+      - name: Install fuse (local-storage only)
+        if: matrix.service == 'local-storage'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libfuse-dev fuse pkg-config
+
+      - name: Install libpam (user-service only)
+        if: matrix.service == 'user-service'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libpam0g-dev
+
+      - name: Run go generate
+        if: matrix.service != 'gateway' && matrix.service != 'common'
+        working-directory: backend/${{ matrix.service }}
+        run: go generate ./...
+
+      - name: Run deadcode
+        run: ./scripts/check-deadcode.sh ${{ matrix.service }}
+        env:
+          POWERLAB_DEADCODE_STRICT: '0' # warn-only until v0.7.0
+
+  # ─────────────────────────────────────────────────────────────────────
   # Backend integration tests (Phase 3 of #150 — Sprint 13.5). Build
   # tag `integration` keeps these out of the default `go test ./...`
   # so dev machines without Docker don't fail them on every commit.

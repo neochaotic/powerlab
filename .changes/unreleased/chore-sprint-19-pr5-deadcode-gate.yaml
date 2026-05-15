@@ -1,0 +1,14 @@
+kind: Internal
+body: >-
+  Add CI gate ``scripts/check-deadcode.sh`` + ``Backend deadcode``
+  matrix job per Sprint 19 PR 5/5. Runs ``golang.org/x/tools/cmd/
+  deadcode`` against every service and reports unreachable symbols.
+  Phase-in: warn-only by default (``POWERLAB_DEADCODE_STRICT=0``) —
+  prints findings without failing PRs. Flipped to strict for v0.7.0
+  once Sprint 19's existing dead code is gone (per
+  ``feedback_no_v1_without_alignment`` — major bumps require explicit
+  user approval). Closes the 15-sprint regression where Sprint 1
+  flagged 5 packages "verify before deletion" but 2 (``generic_sync``,
+  ``internal/op``) were never followed up — both deleted in PR 3 of
+  this sprint. ``docs/audits/dead-code.md`` annotated with the final
+  disposition table.
