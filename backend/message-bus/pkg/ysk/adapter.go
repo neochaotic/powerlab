@@ -165,13 +165,3 @@ func ToCodegenYSKCard(card YSKCard) (codegen.YSKCard, error) {
 	return yskCard, err
 }
 
-func FromCodegenYSKCard(card codegen.YSKCard) (YSKCard, error) {
-	jsonBody, err := json.Marshal(card)
-	if err != nil {
-		return YSKCard{}, err
-	}
-	var yskCard YSKCard
-	err = json.Unmarshal(jsonBody, &yskCard)
-
-	return yskCard, err
-}

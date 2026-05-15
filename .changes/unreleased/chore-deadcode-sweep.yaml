@@ -1,0 +1,18 @@
+kind: Internal
+body: >-
+  Function-level dead-code sweep across all services using the
+  ``Backend deadcode`` gate (warn-only since Sprint 19 PR 5). Total
+  findings dropped from 139 → 86 (~38% reduction, ~600 LOC removed)
+  by deleting whole files of orphan code rather than chasing 1-line
+  functions: ``core/model/{obj,object,args,stream,setting,storage}.go``
+  (alist storage runtime — the consumer ``internal/op`` was removed
+  in Sprint 19 but these model types were left behind),
+  ``message-bus/pkg/ysk/{ysk,ysk_test}.go`` (Sprint 1 audit's 🟢
+  flag finally actioned), ``user-service/pkg/utils/file/image.go``
+  + most of ``file.go`` (only ``MkDir`` + ``IsNotExistMkDir`` are
+  actually called), ``app-management/common/appdata.go``'s helper
+  functions (only the directory-name constants are used).
+  Remaining 86 findings are 1-line individual functions that will
+  surface on every PR via the warn-only gate; targeted sweeps in
+  future patch releases. Race-detector + build green across all
+  affected services.
