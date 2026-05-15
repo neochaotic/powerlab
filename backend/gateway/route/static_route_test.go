@@ -274,3 +274,61 @@ func TestPathInsideRoot_ResolvesSymlinkedRoot(t *testing.T) {
 		t.Errorf("served wrong content: %q", body)
 	}
 }
+
+// Sprint 18 P0 regression — locks the bug class that bit the v0.6.12
+// cut on 2026-05-15: gateway runs with `-w /usr/share/powerlab/www`,
+// but a hot-swap update wrote the new UI bundle to a DIFFERENT path
+// (`/var/lib/powerlab/www`). Gateway kept serving the stale bundle
+// silently — the AuditPane "disappeared" from the user's view even
+// though the new code was on disk in the wrong directory.
+//
+// This test pins the contract: the static route MUST serve files
+// EXCLUSIVELY from the path the caller passes (here `wwwRoot`).
+// There is no implicit fallback / lookup chain. If the future
+// introduces one, this test catches it.
+func TestServeSPAPath_NoSilentFallbackToAlternateRoot(t *testing.T) {
+	// Two distinct fixture roots with DIFFERENT content for the same
+	// route name. If the handler ever falls back from A → B, the
+	// served body would match B's content even though we passed A.
+	rootA := makeFixture(t)
+
+	rootB, err := os.MkdirTemp("", "powerlab-static-alt")
+	if err != nil {
+		t.Fatalf("mktmp alt: %v", err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(rootB) })
+	altIndex := "<!doctype html><html><body>WRONG ROOT — DO NOT SERVE</body></html>"
+	if err := os.WriteFile(filepath.Join(rootB, "index.html"), []byte(altIndex), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Serve from rootA — the body MUST contain rootA's content, not rootB's.
+	code, _, body := callServeSPA(t, rootA, "/")
+	if code != http.StatusOK {
+		t.Fatalf("status: %d", code)
+	}
+	if strings.Contains(body, "WRONG ROOT") {
+		t.Errorf("BUG: handler served from alternate root %s instead of the configured one %s", rootB, rootA)
+	}
+	if !strings.Contains(body, "SPA SHELL") {
+		t.Errorf("expected rootA's index content; got %q", body)
+	}
+}
+
+// Sprint 18 P0 — when the configured wwwRoot does NOT exist, the
+// handler must NOT 200 a fake page. Either:
+//   - returns 404 (acceptable — caller can fail-fast at boot)
+//   - returns a 5xx (acceptable — surfaces the misconfiguration)
+//
+// A silent fallback to an empty body / "ok" response would mask
+// the operator error that hit on v0.6.12 cut.
+func TestServeSPAPath_NonExistentRootDoesNotSilentlySucceed(t *testing.T) {
+	nonexistent := filepath.Join(os.TempDir(), "powerlab-static-this-does-not-exist-xyz")
+	// Make sure it really doesn't exist.
+	_ = os.RemoveAll(nonexistent)
+
+	code, _, _ := callServeSPA(t, nonexistent, "/")
+	if code >= 200 && code < 300 {
+		t.Errorf("BUG: handler returned %d for nonexistent www root %s — should signal failure (404/5xx), not silently 2xx", code, nonexistent)
+	}
+}
