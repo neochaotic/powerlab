@@ -77,7 +77,19 @@ func InitV2Router() http.Handler {
 		AllowCredentials: true,
 	})))
 
-	e.Use(echo_middleware.Gzip())
+	// SSE endpoints must NEVER be gzip-compressed — Echo's Gzip wraps
+	// the response writer in a deflate stream that batches bytes
+	// before emitting, so the browser's EventSource sees the install
+	// modal "fica travado na tela de progresso" while events pile up
+	// on the wire. Skipper bypasses any path ending in "/logs" (the
+	// compose task SSE endpoint). Sister fix to the audit middleware
+	// Flusher forwarding in this same PR — both required for
+	// end-to-end SSE streaming.
+	e.Use(echo_middleware.GzipWithConfig(echo_middleware.GzipConfig{
+		Skipper: func(c echo.Context) bool {
+			return strings.HasSuffix(c.Request().URL.Path, "/logs")
+		},
+	}))
 
 	e.Use(echo_middleware.Logger())
 
