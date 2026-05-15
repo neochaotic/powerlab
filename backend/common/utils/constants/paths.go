@@ -25,7 +25,6 @@ var (
 	// unit emitted by scripts/package-linux.sh. The gateway's main.go
 	// uses this as the default for the `-w` flag so a developer running
 	// the binary by hand picks up the same path the installer wrote to.
-	// Two paths used to drift (v0.6.12 cut bug, Sprint 18 #376).
 	DefaultWWWPath = ""
 )
 

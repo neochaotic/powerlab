@@ -1,0 +1,20 @@
+kind: Changed
+body: >-
+  Custom App page (``/apps/new``) is now **YAML-first**. The
+  bidirectional ``ComposeForm`` + ``ComposeModel`` round-trip that
+  was the source of the "[object Object]" bug class for long-form
+  volume / device / port objects is gone. The page is a YAML
+  editor on the left + a read-only summary panel
+  (``YAMLPreview.svelte``) on the right, derived via ``$derived``
+  from the live YAML. Single source of truth, one-way data flow,
+  Svelte 5 best-practice (ADR-0030). Install now calls the unified
+  ``installComposeApp(yamlText)`` helper (same path as Community
+  Install) instead of bypassing it with a raw ``api.postYaml``.
+  Page LOC dropped from 676 → ~360. ``ComposeForm.svelte``,
+  ``ComposeModel`` interface, ``orchestrator.sync.test.ts`` and
+  ``fork-volume-shape.test.ts`` removed; replaced by 8 new
+  ``YAMLPreview.test.ts`` cases including parametric "[object
+  Object]" guards against diverse real-world compose shapes.
+  Closes #374.
+custom:
+  Issue: "374"

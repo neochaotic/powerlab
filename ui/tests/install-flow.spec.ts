@@ -82,8 +82,8 @@ test.describe('install-flow E2E', () => {
 				contentType: 'application/json',
 				body: JSON.stringify({
 					data: {
-						web: {
-							store_info: { id: 'web', title: { en_us: 'Web' } },
+						'my-app': {
+							store_info: { id: 'my-app', title: { en_us: 'My App' } },
 							status: { running: true }
 						}
 					}
