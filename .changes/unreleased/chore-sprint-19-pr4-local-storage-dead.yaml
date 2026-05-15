@@ -1,0 +1,17 @@
+kind: Internal
+body: >-
+  Remove dead packages from ``backend/local-storage/pkg/`` per Sprint 19
+  PR 4/5 (~860 LOC actual after spot-check correction): the byte-
+  identical ``generic_sync`` (412 LOC) + ``singleflight`` (212 LOC)
+  copies of the ``core/pkg/`` versions already deleted in PR 3, plus
+  ``sign`` (86 LOC), ``utils/encryption`` (12 LOC, duplicates the
+  live ``user-service/encryption``), and the top-level files in
+  ``pkg/utils/`` (``slice.go``, ``time.go``, ``bool.go``, ``path.go``,
+  ``ctx.go`` — ~140 LOC). The ``utils/`` directory STAYS because its
+  subpackages ``utils/merge`` (2 importers: ``main.go`` + ``route/v2/
+  merge.go``) and ``utils/command`` (4 importers: ``disk``, ``v2/
+  merge``, ``mount``, ``partition``) are alive — a correction to the
+  source audit's claim that the whole utils tree was dead. Local-
+  storage cross-compiles cleanly on linux/amd64 with and without the
+  fuse build tag; native macOS build is impossible regardless of this
+  PR (netlink + xattr syscalls).
