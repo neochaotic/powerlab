@@ -41,6 +41,24 @@ Smallest possible warmup. Frontend has only three dead artefacts after Sprint 14
 
 **Risk:** zero. None of these is reachable from a route or another component.
 
+### PR 2 prep — Knowledge extraction pass (15 min, no code)
+
+Before deletion, skim each Section 2.5 package for patterns worth preserving. Spot-check at 2026-05-15 found **2 of 7 packages carry an idea that may outlive the code**:
+
+| Package | Lesson to extract |
+|---|---|
+| `utils/version` | `GlobalMigrationStatus` writes a per-service marker file (`/var/lib/casaos/migration/<service>`) for "last migrated version" — pattern for **file-system migrations** (config schema, file layout, label rename). We have goose for DB migrations (ADR-0018) but nothing for non-DB ones. **Action:** open a draft ADR `0036-file-system-migrations.md` capturing the marker-file pattern; reference from this PR. Code itself still deleted. |
+| `middleware/echo.go` | A shared `Cors()` helper exists but no service uses it — every service defines CORS inline (the SSE Gzip fix in v0.6.13 surfaced this duplication directly). **Action:** decide in PR 2 whether to (a) revive `common/middleware/Cors()` and migrate services, or (b) accept duplication because each service customises headers. Default (b) unless a quick audit shows the headers are byte-identical across services. |
+
+The remaining 5 packages carry no lesson:
+
+- `utils/ssh` — weak code (hardcoded localhost, `InsecureIgnoreHostKey`, unused gorilla import). Future SSH-to-host needs a clean implementation.
+- `utils/idevice` — trivial wrapper around `file.ReadOSRelease`, no abstraction value.
+- `pkg/mod_management` + `codegen/mod_management` — CasaOS "mod" plugin SDK; PowerLab replaced this architecturally with Custom App (compose YAML). **Action:** add one sentence to the README's extensibility section: "PowerLab is plugin-less by design; Custom App is the extension mechanism." No ADR — too small.
+- `model/notify` — superseded by socket.io events + Toast.
+
+This pass costs 15 minutes and prevents the institutional-knowledge loss that auto-delete causes. Each lesson lands in its proper home (ADR / README) before the package dies in PR 2.
+
 ### PR 2 — `backend/common/` dead packages (~1,950 LOC prod + ~216 test, 30 min)
 
 Highest LOC payoff per PR. All 7 packages have zero external importers; `pkg/mod_management` only imports `codegen/mod_management`, so the two get deleted atomically.
