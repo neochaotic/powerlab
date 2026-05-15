@@ -95,7 +95,7 @@ test.describe('install-flow E2E', () => {
 
 		// Default YAML defines a `web` service; the shared InstallModal
 		// owns the modal-side rendering.
-		const deployBtn = page.getByRole('button', { name: /^deploy$/i });
+		const deployBtn = page.getByTestId('deploy-button');
 		await expect(deployBtn).toBeVisible();
 
 		// Native click in browser context — Playwright's .click() can

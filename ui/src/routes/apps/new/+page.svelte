@@ -1,6 +1,14 @@
 <script lang="ts">
 	import { onMount, onDestroy, untrack } from 'svelte';
-	import { ArrowLeft, Play, AlertCircle, X, Loader2 } from 'lucide-svelte';
+	import {
+		ArrowLeft,
+		Play,
+		Code,
+		LayoutDashboard,
+		AlertCircle,
+		X,
+		Loader2
+	} from 'lucide-svelte';
 	import { cn } from '$lib/utils';
 	import { getAuthToken } from '$lib/api/client';
 	import {
@@ -11,7 +19,7 @@
 	import { ENDPOINTS } from '$lib/api/endpoints';
 	import yaml from 'js-yaml';
 	import { deletePowerLabExtProperty } from '$lib/utils/compose-extension';
-	import YAMLPreview from '$lib/components/orchestrator/YAMLPreview.svelte';
+	import ComposeForm from '$lib/components/orchestrator/ComposeForm.svelte';
 	import InstallModal from '$lib/components/apps/InstallModal.svelte';
 	import { useAppStore } from '$lib/stores/apps.svelte';
 
@@ -22,14 +30,19 @@
 	import { t } from '$lib/i18n/index.svelte';
 	import { parseLatestPhase, phaseProgress } from '$lib/utils/install-phase';
 	import { validateComposeName } from '$lib/utils/compose-name';
+	import { viewFromYaml } from '$lib/utils/compose-mutate';
 
-	// YAML-first design (ADR-0035 follow-on, supersedes the bidirectional
-	// ComposeForm + ComposeModel round-trip that was the source of the
-	// "[object Object]" bug class for long-form volumes / devices / port
-	// objects). Single source of truth is `yamlText`. The summary panel
-	// derives a read-only preview via $derived. Install button calls
-	// `installComposeApp(yamlText)` — same helper Community Install uses,
-	// so wire-level error handling stays unified.
+	/**
+	 * Custom-app builder, one-way data flow per ADR-0030.
+	 *
+	 * yamlText is the SOLE source of truth. ComposeForm renders a
+	 * `$derived(viewFromYaml(yaml))` view (read-only) and emits a NEW
+	 * YAML on every field edit via `onChange`. Long-form
+	 * volume/port/device entries keep their shape per-entry — the
+	 * mutator detects string vs object and writes back in kind.
+	 * Replaces the prior bidirectional `$bindable` model that
+	 * collapsed long-form to "[object Object]" on round-trip (#332).
+	 */
 
 	let yamlText = $state(`name: my-app
 services:
@@ -40,6 +53,7 @@ services:
     restart: always
 `);
 
+	let activeView = $state<'split' | 'form' | 'yaml'>('split');
 	let error = $state<string | null>(null);
 	let isDeploying = $state(false);
 	let deployResult = $state<{ success: boolean; message: string } | null>(null);
@@ -55,45 +69,16 @@ services:
 	const currentDeployPhase = $derived.by(() => parseLatestPhase(deployJoinedLogs));
 	const deployProgress = $derived.by(() => phaseProgress(currentDeployPhase));
 
-	// Service-name validation derived from the YAML's parsed `name`
-	// field (top-level, where compose-spec puts the project name) or
-	// falls back to the first service key.
-	const parsedNameForValidation = $derived.by<string>(() => {
-		try {
-			const parsed = yaml.load(yamlText) as Record<string, unknown> | null;
-			if (parsed && typeof parsed === 'object') {
-				if (typeof parsed.name === 'string') return parsed.name;
-				const services = parsed.services as Record<string, unknown> | undefined;
-				if (services && typeof services === 'object') {
-					const first = Object.keys(services)[0];
-					if (first) return first;
-				}
-			}
-		} catch {
-			// fall through
-		}
-		return '';
-	});
+	const view = $derived(viewFromYaml(yamlText));
 
 	const nameValidationError = $derived.by<string | null>(() => {
-		const err = validateComposeName(parsedNameForValidation);
+		// Validate the SERVICE key (services.<key>) — the original
+		// form's `name` field bound to this. Project name (top-level
+		// `name:`) is informational and may be absent / different.
+		const err = validateComposeName(view.serviceName);
 		if (err === 'empty') return t('form.nameRequired');
 		if (err === 'invalid_chars') return t('form.nameInvalidChars');
 		return null;
-	});
-
-	// Title for the InstallModal — derived from yaml, no formModel.
-	const appTitleForModal = $derived(parsedNameForValidation || 'app');
-	const appIconForModal = $derived.by<string>(() => {
-		try {
-			const parsed = yaml.load(yamlText) as Record<string, unknown> | null;
-			if (parsed && typeof parsed['x-icon'] === 'string') {
-				return parsed['x-icon'] as string;
-			}
-		} catch {
-			// ignore
-		}
-		return '';
 	});
 
 	function clearSseTimeout() {
@@ -113,13 +98,9 @@ services:
 		eventSource = new EventSource(url);
 
 		eventSource.onmessage = (event) => {
-			if (event.data) {
-				deployLogs = [...deployLogs, event.data];
-			}
+			if (event.data) deployLogs = [...deployLogs, event.data];
 		};
-		eventSource.onerror = () => {
-			stopLogStreaming();
-		};
+		eventSource.onerror = () => stopLogStreaming();
 		eventSource.addEventListener('end', async () => {
 			stopLogStreaming();
 			await finalizeDeploy(id);
@@ -154,9 +135,6 @@ services:
 			let yamlContent = await getComposeApp(appId);
 
 			if (fork) {
-				// Strip store_app_id so the forked app is treated as a Custom App.
-				// Append "-custom" suffix to the project name so the user
-				// gets a distinct identity on the next install.
 				try {
 					const parsed = yaml.load(yamlContent) as Record<string, unknown>;
 					deletePowerLabExtProperty(parsed, 'store_app_id');
@@ -165,8 +143,7 @@ services:
 					}
 					yamlContent = yaml.dump(parsed, { indent: 2, lineWidth: -1 });
 				} catch {
-					// If parsing fails, use the YAML as-is and let the
-					// user fix it before deploy.
+					// If parsing fails, use the YAML as-is and let the user fix it.
 				}
 			}
 
@@ -200,12 +177,6 @@ services:
 
 			startLogStreaming(id);
 
-			// Edit-mode (URL has ?id=X without &fork=1) MUST use the
-			// PUT applyComposeAppSettings endpoint — only that path
-			// runs the backend's skip-self port-conflict logic. POST
-			// (install) flags the app's own running ports as
-			// conflicts and the deploy fails with "ports in use".
-			// Closes #65.
 			const editingId = $page.url.searchParams.get('id');
 			const fork = $page.url.searchParams.get('fork') === '1';
 			if (editingId && !fork) {
@@ -213,12 +184,6 @@ services:
 			} else {
 				await installComposeApp(yamlText);
 			}
-
-			// v0.6.8 fix #341: do NOT set deployResult here. POST 2xx
-			// means install STARTED, not completed. The terminal state
-			// gets decided by finalizeDeploy() in the SSE `end`
-			// handler. This brings Custom App lifecycle to parity with
-			// Community Install (apps/+page.svelte) — #247 carry-over.
 		} catch (e) {
 			deployResult = {
 				success: false,
@@ -234,10 +199,7 @@ services:
 			await appStore.fetchInstalledApps();
 			const found = appStore.installedApps.find((a) => a.id === id);
 			if (found) {
-				deployResult = {
-					success: true,
-					message: t('orchestrator.serviceRunning')
-				};
+				deployResult = { success: true, message: t('orchestrator.serviceRunning') };
 			} else {
 				const lastErr = deployLogs
 					.slice()
@@ -258,17 +220,12 @@ services:
 		}
 	}
 
-	// Safety net: if event:end never fires within 10 min, drop out of
-	// 'deploying' state with a timeout surface.
 	$effect(() => {
 		if (!isDeploying) return;
 		const timer = setTimeout(() => {
 			if (isDeploying && !deployResult) {
 				untrack(() => {
-					deployResult = {
-						success: false,
-						message: t('orchestrator.deployTimedOut')
-					};
+					deployResult = { success: false, message: t('orchestrator.deployTimedOut') };
 					isDeploying = false;
 				});
 			}
@@ -306,20 +263,64 @@ services:
 			</div>
 		</div>
 
-		<button
-			onclick={handleDeploy}
-			disabled={isDeploying || !!nameValidationError}
-			title={nameValidationError ?? undefined}
-			data-testid="deploy-button"
-			class="flex h-9 items-center gap-2 rounded-xl bg-white px-4 text-xs font-bold text-black transition-transform hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:scale-100 disabled:opacity-50"
-		>
-			{#if isDeploying}
-				<Loader2 class="h-3.5 w-3.5 animate-spin" />
-			{:else}
-				<Play class="h-3.5 w-3.5 fill-black" />
-			{/if}
-			{t('orchestrator.deploy')}
-		</button>
+		<div class="flex items-center gap-3">
+			<!-- View switcher -->
+			<div class="mr-4 flex items-center gap-1 rounded-xl bg-white/5 p-1">
+				<button
+					onclick={() => (activeView = 'split')}
+					aria-label={t('orchestrator.viewSplit')}
+					class={cn(
+						'flex h-7 items-center gap-2 rounded-lg px-3 text-[10px] font-bold uppercase tracking-widest transition-all',
+						activeView === 'split'
+							? 'bg-white text-black shadow-lg'
+							: 'text-zinc-500 hover:text-white'
+					)}
+				>
+					<LayoutDashboard class="h-3 w-3" />
+					{t('orchestrator.viewSplit')}
+				</button>
+				<button
+					onclick={() => (activeView = 'form')}
+					aria-label={t('orchestrator.viewForm')}
+					class={cn(
+						'flex h-7 items-center gap-2 rounded-lg px-3 text-[10px] font-bold uppercase tracking-widest transition-all',
+						activeView === 'form'
+							? 'bg-white text-black shadow-lg'
+							: 'text-zinc-500 hover:text-white'
+					)}
+				>
+					{t('orchestrator.viewForm')}
+				</button>
+				<button
+					onclick={() => (activeView = 'yaml')}
+					aria-label={t('orchestrator.viewYaml')}
+					class={cn(
+						'flex h-7 items-center gap-2 rounded-lg px-3 text-[10px] font-bold uppercase tracking-widest transition-all',
+						activeView === 'yaml'
+							? 'bg-white text-black shadow-lg'
+							: 'text-zinc-500 hover:text-white'
+					)}
+				>
+					<Code class="h-3 w-3" />
+					{t('orchestrator.viewYaml')}
+				</button>
+			</div>
+
+			<button
+				onclick={handleDeploy}
+				disabled={isDeploying || !!nameValidationError}
+				title={nameValidationError ?? undefined}
+				data-testid="deploy-button"
+				class="flex h-9 items-center gap-2 rounded-xl bg-white px-4 text-xs font-bold text-black transition-transform hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:scale-100 disabled:opacity-50"
+			>
+				{#if isDeploying}
+					<Loader2 class="h-3.5 w-3.5 animate-spin" />
+				{:else}
+					<Play class="h-3.5 w-3.5 fill-black" />
+				{/if}
+				{t('orchestrator.deploy')}
+			</button>
+		</div>
 	</header>
 
 	{#if error}
@@ -351,8 +352,8 @@ services:
 		currentPhase={currentDeployPhase}
 		progress={deployProgress}
 		logs={deployJoinedLogs}
-		appTitle={appTitleForModal}
-		appIcon={appIconForModal}
+		appTitle={view.serviceName || view.projectName || 'app'}
+		appIcon={view.icon}
 		error={deployResult?.success === false ? deployResult.message : null}
 		portNote={null}
 		minimized={deployMinimized}
@@ -382,44 +383,73 @@ services:
 
 	<main class="flex-1 overflow-hidden">
 		<div class="flex h-full">
-			<!-- YAML editor -->
-			<div class="flex h-full w-1/2 flex-col bg-[#08080a]">
-				<div class="flex h-10 items-center justify-between border-b border-white/5 bg-white/[0.02] px-4">
-					<div class="flex items-center gap-1.5">
-						<button
-							onclick={() => goto('/')}
-							aria-label={t('orchestrator.exitToApps')}
-							class="group relative h-3 w-3 rounded-full bg-red-500/80 transition-colors hover:bg-red-500"
-						>
-							<X class="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 text-black opacity-0 transition-opacity group-hover:opacity-100" />
-						</button>
-						<span class="h-3 w-3 rounded-full bg-amber-500 opacity-50"></span>
-						<span class="h-3 w-3 rounded-full bg-emerald-500 opacity-50"></span>
+			<!-- Form panel -->
+			{#if activeView === 'split' || activeView === 'form'}
+				<div
+					class={cn(
+						'h-full overflow-y-auto border-r border-white/5 custom-scrollbar transition-all duration-500',
+						activeView === 'split' ? 'w-1/2' : 'w-full'
+					)}
+				>
+					<div class="mx-auto max-w-2xl p-8">
+						<ComposeForm
+							yaml={yamlText}
+							onChange={(newYaml) => (yamlText = newYaml)}
+							nameError={nameValidationError}
+						/>
 					</div>
-					<div class="text-[10px] font-bold uppercase tracking-widest text-zinc-600">
-						docker-compose.yml
+				</div>
+			{/if}
+
+			<!-- YAML editor panel -->
+			{#if activeView === 'split' || activeView === 'yaml'}
+				<div
+					class={cn(
+						'h-full flex flex-col bg-[#08080a] transition-all duration-500',
+						activeView === 'split' ? 'w-1/2' : 'w-full'
+					)}
+				>
+					<div
+						class="flex h-10 items-center justify-between border-b border-white/5 bg-white/[0.02] px-4"
+					>
+						<div class="flex items-center gap-1.5">
+							<button
+								onclick={() => goto('/')}
+								aria-label={t('orchestrator.exitToApps')}
+								class="group relative h-3 w-3 rounded-full bg-red-500/80 transition-colors hover:bg-red-500"
+							>
+								<X
+									class="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 text-black opacity-0 transition-opacity group-hover:opacity-100"
+								/>
+							</button>
+							<button
+								onclick={() => (activeView = activeView === 'split' ? 'yaml' : 'split')}
+								aria-label={t('orchestrator.toggleSplit')}
+								class="h-3 w-3 rounded-full bg-amber-500"
+							></button>
+							<button
+								onclick={() => (activeView = 'form')}
+								aria-label={t('orchestrator.switchToForm')}
+								class="h-3 w-3 rounded-full bg-emerald-500"
+							></button>
+						</div>
+						<div class="text-[10px] font-bold uppercase tracking-widest text-zinc-600">
+							docker-compose.yml
+						</div>
+						<div class="w-12"></div>
 					</div>
-					<div class="w-12"></div>
-				</div>
 
-				<div class="flex-1 overflow-hidden">
-					<textarea
-						bind:value={yamlText}
-						spellcheck="false"
-						aria-label={t('orchestrator.yamlEditor')}
-						data-testid="yaml-editor"
-						class={cn(
-							'h-full w-full resize-none bg-transparent p-8 font-mono text-sm text-emerald-500/90 outline-none selection:bg-emerald-500/20 selection:text-white custom-scrollbar'
-						)}
-					></textarea>
+					<div class="flex-1 overflow-hidden">
+						<textarea
+							bind:value={yamlText}
+							spellcheck="false"
+							aria-label={t('orchestrator.yamlEditor')}
+							data-testid="yaml-editor"
+							class="h-full w-full resize-none bg-transparent p-8 font-mono text-sm text-emerald-500/90 outline-none selection:bg-emerald-500/20 selection:text-white custom-scrollbar"
+						></textarea>
+					</div>
 				</div>
-			</div>
-
-			<!-- Read-only summary derived from yamlText. Replaces the
-				 bidirectional ComposeForm. -->
-			<div class="h-full w-1/2 overflow-y-auto border-l border-white/5 bg-zinc-950/40 custom-scrollbar">
-				<YAMLPreview yaml={yamlText} />
-			</div>
+			{/if}
 		</div>
 	</main>
 </div>
