@@ -31,10 +31,13 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Audit pipeline end-to-end: async recorder writes JSONL to
-  /var/log/powerlab/audit.jsonl (grep + tail -F friendly), new
-  Settings → Audit pane. Reinstall-after-uninstall fixed.
-  401 expired-token now shows a clear toast.
+  Install logs + progress bar stream live again — two stacked SSE
+  buffering bugs (missing Flusher forwarding in audit middleware +
+  Echo Gzip applied to text/event-stream) are now fixed end-to-end.
+  Custom App page (/apps/new) restores the full visual form + 3-tab
+  Split / Form / YAML switcher with one-way data flow per ADR-0030 —
+  same UX as v0.6.11. New SSE acceptance gate prevents this
+  regression class from shipping again.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
