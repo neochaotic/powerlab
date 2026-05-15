@@ -10,6 +10,8 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { ui } from '$lib/stores/ui.svelte';
 	import { versionHandshake } from '$lib/stores/versionHandshake.svelte';
+	import { api } from '$lib/api/client';
+	import { captureFrontendError, createErrorReporter } from '$lib/utils/error-reporter';
 	import { onMount } from 'svelte';
 	import { fade, slide, scale } from 'svelte/transition';
 	import { Button } from '$lib/components/ui/button';
@@ -79,7 +81,29 @@
 		};
 
 		window.addEventListener('keydown', handleKeydown);
-		return () => window.removeEventListener('keydown', handleKeydown);
+
+		// Frontend error capture → /v1/audit/frontend-error. The
+		// reporter handles noise filter + dedupe + DoS cap so the
+		// listener stays trivial. Audit failures swallow inside
+		// reporter.report so a broken endpoint can never re-throw
+		// into a user-visible "double crash" loop.
+		const errorReporter = createErrorReporter(async (body) => {
+			return api.post('/v1/audit/frontend-error', body);
+		});
+		const onErr = (e: ErrorEvent) => {
+			void captureFrontendError(e, errorReporter);
+		};
+		const onRej = (e: PromiseRejectionEvent) => {
+			void captureFrontendError(e, errorReporter);
+		};
+		window.addEventListener('error', onErr);
+		window.addEventListener('unhandledrejection', onRej);
+
+		return () => {
+			window.removeEventListener('keydown', handleKeydown);
+			window.removeEventListener('error', onErr);
+			window.removeEventListener('unhandledrejection', onRej);
+		};
 	});
 
 	async function installApp() {

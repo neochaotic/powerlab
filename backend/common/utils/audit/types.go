@@ -80,6 +80,27 @@ type Record struct {
 	// caller set one; empty otherwise. Useful for correlating with
 	// systemd journal entries that carry the same id via slog.
 	RequestID string `json:"request_id,omitempty"`
+
+	// Kind is the record-type discriminator. Empty string (the JSON
+	// `omitempty` keeps it out of legacy records) means an HTTP
+	// request audit captured by the middleware — the original record
+	// type and the overwhelming majority of records. Non-empty values
+	// signal records produced outside the middleware path:
+	//
+	//   - "ui_error": a frontend window.onerror / unhandledrejection
+	//     captured by the SvelteKit shell and posted to
+	//     /v1/audit/frontend-error. Payload carries message + stack +
+	//     url + ua + viewport.
+	//
+	// Storage stays a single JSONL file with a single ring buffer;
+	// readers switch on Kind to render differently.
+	Kind string `json:"kind,omitempty"`
+
+	// Payload holds Kind-specific fields. Empty for HTTP requests
+	// (`omitempty` keeps it out of the wire). For "ui_error" the
+	// shape is {message, stack, url, ua, viewport: {w, h}} — see
+	// ADR-0033 for the contract.
+	Payload map[string]any `json:"payload,omitempty"`
 }
 
 // Time returns the record's timestamp as a time.Time in UTC.

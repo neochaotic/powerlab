@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { ClipboardList, RefreshCw, Database, AlertCircle } from 'lucide-svelte';
+	import { ClipboardList, RefreshCw, Database, AlertCircle, Bug, ChevronRight } from 'lucide-svelte';
 	import { cn } from '$lib/utils';
 	import {
 		getAuditRecent,
@@ -76,6 +76,32 @@
 		if (status >= 300 && status < 400) return 'text-blue-400';
 		if (status >= 400 && status < 500) return 'text-amber-400';
 		return 'text-red-400';
+	}
+
+	// Per-row expansion state for ui_error records (keyed by ts_us).
+	let expandedRow = $state<number | null>(null);
+
+	function rowKey(r: AuditRecord): number {
+		return r.ts_us;
+	}
+
+	function isUIError(r: AuditRecord): boolean {
+		return r.kind === 'ui_error';
+	}
+
+	function uiErrorMessage(r: AuditRecord): string {
+		const m = r.payload?.message;
+		return typeof m === 'string' ? m : '';
+	}
+
+	function uiErrorStack(r: AuditRecord): string {
+		const s = r.payload?.stack;
+		return typeof s === 'string' ? s : '';
+	}
+
+	function uiErrorURL(r: AuditRecord): string {
+		const u = r.payload?.url;
+		return typeof u === 'string' ? u : '';
 	}
 </script>
 
@@ -178,27 +204,77 @@
 					</thead>
 					<tbody class="divide-y divide-white/[0.03]">
 						{#each records as r (r.ts_us + (r.request_id ?? ''))}
-							<tr class="hover:bg-white/[0.02]">
-								<td class="whitespace-nowrap px-4 py-2 font-mono text-zinc-400">
-									{formatTs(r.ts_us)}
-								</td>
-								<td class="px-4 py-2 font-mono text-zinc-300">{r.method}</td>
-								<td class="max-w-[280px] truncate px-4 py-2 font-mono text-zinc-200" title={r.path}>
-									{r.path}
-								</td>
-								<td class={cn('px-4 py-2 text-right font-mono', statusTone(r.status))}>
-									{r.status}
-								</td>
-								<td class="whitespace-nowrap px-4 py-2 text-right font-mono text-zinc-400">
-									{formatLatency(r.latency_us)}
-								</td>
-								<td class="px-4 py-2 text-zinc-300">
-									{r.username ?? (r.user_id !== null ? `#${r.user_id}` : '—')}
-								</td>
-								<td class="whitespace-nowrap px-4 py-2 font-mono text-zinc-500">
-									{r.remote_ip}
-								</td>
-							</tr>
+							{#if isUIError(r)}
+								<tr
+									class="cursor-pointer bg-red-500/[0.04] hover:bg-red-500/[0.08]"
+									data-testid="audit-row-ui-error"
+									onclick={() => (expandedRow = expandedRow === rowKey(r) ? null : rowKey(r))}
+								>
+									<td class="whitespace-nowrap px-4 py-2 font-mono text-zinc-400">
+										{formatTs(r.ts_us)}
+									</td>
+									<td colspan="2" class="px-4 py-2">
+										<div class="flex items-center gap-2">
+											<ChevronRight
+												class={cn(
+													'h-3.5 w-3.5 shrink-0 text-red-400 transition-transform',
+													expandedRow === rowKey(r) && 'rotate-90'
+												)}
+											/>
+											<Bug class="h-3.5 w-3.5 shrink-0 text-red-400" />
+											<span class="truncate font-mono text-red-300" title={uiErrorMessage(r)}>
+												{uiErrorMessage(r)}
+											</span>
+										</div>
+									</td>
+									<td class="px-4 py-2 text-right">
+										<span
+											class="rounded-md border border-red-500/30 bg-red-500/10 px-1.5 py-0.5 font-mono text-[10px] uppercase text-red-300"
+										>
+											ui error
+										</span>
+									</td>
+									<td class="whitespace-nowrap px-4 py-2 text-right font-mono text-zinc-500">
+										{uiErrorURL(r) || '—'}
+									</td>
+									<td class="px-4 py-2 text-zinc-300">
+										{r.username ?? (r.user_id !== null ? `#${r.user_id}` : '—')}
+									</td>
+									<td class="whitespace-nowrap px-4 py-2 font-mono text-zinc-500">
+										{r.remote_ip}
+									</td>
+								</tr>
+								{#if expandedRow === rowKey(r)}
+									<tr data-testid="audit-row-ui-error-detail">
+										<td colspan="7" class="bg-red-500/[0.02] px-4 py-3">
+											<pre class="whitespace-pre-wrap break-all font-mono text-xs text-zinc-400">{uiErrorStack(r) ||
+													'(no stack)'}</pre>
+										</td>
+									</tr>
+								{/if}
+							{:else}
+								<tr class="hover:bg-white/[0.02]">
+									<td class="whitespace-nowrap px-4 py-2 font-mono text-zinc-400">
+										{formatTs(r.ts_us)}
+									</td>
+									<td class="px-4 py-2 font-mono text-zinc-300">{r.method}</td>
+									<td class="max-w-[280px] truncate px-4 py-2 font-mono text-zinc-200" title={r.path}>
+										{r.path}
+									</td>
+									<td class={cn('px-4 py-2 text-right font-mono', statusTone(r.status))}>
+										{r.status}
+									</td>
+									<td class="whitespace-nowrap px-4 py-2 text-right font-mono text-zinc-400">
+										{formatLatency(r.latency_us)}
+									</td>
+									<td class="px-4 py-2 text-zinc-300">
+										{r.username ?? (r.user_id !== null ? `#${r.user_id}` : '—')}
+									</td>
+									<td class="whitespace-nowrap px-4 py-2 font-mono text-zinc-500">
+										{r.remote_ip}
+									</td>
+								</tr>
+							{/if}
 						{/each}
 					</tbody>
 				</table>

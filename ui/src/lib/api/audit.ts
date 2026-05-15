@@ -39,6 +39,17 @@ export interface AuditRecord {
 	username: string | null;
 	remote_ip: string;
 	request_id?: string;
+	/**
+	 * Record-type discriminator. Absent / empty → HTTP request audit
+	 * (the original record type). "ui_error" → frontend error captured
+	 * by the SvelteKit shell and POSTed to /v1/audit/frontend-error.
+	 */
+	kind?: string;
+	/**
+	 * Kind-specific fields. For "ui_error":
+	 *   { message, stack?, url?, ua?, viewport?: { w, h } }.
+	 */
+	payload?: Record<string, unknown>;
 }
 
 /**
