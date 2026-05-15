@@ -5,7 +5,7 @@ services:
             - db
         environment:
             DATABASE_DRIVER: mysql
-            DATABASE_HOST: pastefy_db_1
+            DATABASE_HOST: db
             DATABASE_NAME: pastefy
             DATABASE_PASSWORD: tyooe
             DATABASE_PORT: "3306"

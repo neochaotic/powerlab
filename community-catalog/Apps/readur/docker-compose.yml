@@ -9,7 +9,7 @@ services:
             ALLOWED_FILE_TYPES: pdf,png,jpg,jpeg,tiff,bmp,gif,txt,rtf,doc,docx
             CONCURRENT_OCR_JOBS: 4
             CPU_PRIORITY: normal
-            DATABASE_URL: postgresql://readur:readur_password@readur_postgres_1:5432/readur
+            DATABASE_URL: postgresql://readur:readur_password@postgres:5432/readur
             FILE_STABILITY_CHECK_MS: 500
             JWT_SECRET: ${APP_SEED}
             MAX_FILE_AGE_HOURS: 168

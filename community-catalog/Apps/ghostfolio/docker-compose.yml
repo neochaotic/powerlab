@@ -23,7 +23,7 @@ services:
     server:
         environment:
             ACCESS_TOKEN_SALT: $APP_GHOSTFOLIO_ACCESS_TOKEN_SALT
-            DATABASE_URL: postgresql://${APP_GHOSTFOLIO_DB_USERNAME}:${APP_GHOSTFOLIO_DB_PASSWORD}@ghostfolio_postgres_1:5432/${APP_GHOSTFOLIO_DB_DATABASE_NAME}
+            DATABASE_URL: postgresql://${APP_GHOSTFOLIO_DB_USERNAME}:${APP_GHOSTFOLIO_DB_PASSWORD}@postgres:5432/${APP_GHOSTFOLIO_DB_DATABASE_NAME}
             HOST: 0.0.0.0
             JWT_SECRET_KEY: ${APP_SEED}
             NODE_ENV: production
@@ -31,7 +31,7 @@ services:
             POSTGRES_DB: ${APP_GHOSTFOLIO_DB_DATABASE_NAME}
             POSTGRES_PASSWORD: ${APP_GHOSTFOLIO_DB_PASSWORD}
             POSTGRES_USER: ${APP_GHOSTFOLIO_DB_USERNAME}
-            REDIS_HOST: ghostfolio_redis_1
+            REDIS_HOST: redis
             REDIS_PASSWORD: ${APP_GHOSTFOLIO_REDIS_PASSWORD}
             REDIS_PORT: 6379
         image: ghostfolio/ghostfolio:3.2.0@sha256:bc734d99774c2e168d8f3241c816ae3df2851d2014b7a0bf241bc7df412e01ab

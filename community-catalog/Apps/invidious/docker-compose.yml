@@ -34,11 +34,11 @@ services:
                   dbname: invidious
                   user: umbrel
                   password: moneyprintergobrrr
-                  host: invidious_postgres_1
+                  host: postgres
                   port: 5432
                 check_tables: true
                 invidious_companion:
-                - private_url: "http://invidious_companion_1:8282/companion"
+                - private_url: "http://companion:8282/companion"
                 invidious_companion_key: ${APP_INV_SECRET_KEY}
                 hmac_key: ${APP_SEED}
                 default_user_preferences:

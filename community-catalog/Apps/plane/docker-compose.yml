@@ -9,9 +9,9 @@ services:
             AWS_S3_ENDPOINT_URL: http://plane-minio-1:9000
             AWS_SECRET_ACCESS_KEY: $APP_PASSWORD
             BUCKET_NAME: uploads
-            CELERY_BROKER_URL: amqp://plane:umbrelplane@plane_rabbitmq_1:5672/plane
+            CELERY_BROKER_URL: amqp://plane:umbrelplane@rabbitmq:5672/plane
             CSRF_COOKIE_SECURE: 0
-            DATABASE_URL: postgresql://plane:umbrelplane@plane_db_1:5432/plane
+            DATABASE_URL: postgresql://plane:umbrelplane@db:5432/plane
             FILE_SIZE_LIMIT: 52428800
             GUNICORN_WORKERS: 2
             LISTEN_HTTP_PORT: 8762
@@ -26,7 +26,7 @@ services:
             RABBITMQ_DEFAULT_PASS: umbrelplane
             RABBITMQ_DEFAULT_USER: plane
             RABBITMQ_DEFAULT_VHOST: plane
-            REDIS_URL: redis://plane_redis_1:6379/0
+            REDIS_URL: redis://redis:6379/0
             SECRET_KEY: $APP_SEED
             SECURE_SSL_REDIRECT: 0
             SESSION_COOKIE_SECURE: 0
@@ -48,9 +48,9 @@ services:
             AWS_S3_ENDPOINT_URL: http://plane-minio-1:9000
             AWS_SECRET_ACCESS_KEY: $APP_PASSWORD
             BUCKET_NAME: uploads
-            CELERY_BROKER_URL: amqp://plane:umbrelplane@plane_rabbitmq_1:5672/plane
+            CELERY_BROKER_URL: amqp://plane:umbrelplane@rabbitmq:5672/plane
             CSRF_COOKIE_SECURE: 0
-            DATABASE_URL: postgresql://plane:umbrelplane@plane_db_1:5432/plane
+            DATABASE_URL: postgresql://plane:umbrelplane@db:5432/plane
             FILE_SIZE_LIMIT: 52428800
             GUNICORN_WORKERS: 2
             LISTEN_HTTP_PORT: 8762
@@ -65,7 +65,7 @@ services:
             RABBITMQ_DEFAULT_PASS: umbrelplane
             RABBITMQ_DEFAULT_USER: plane
             RABBITMQ_DEFAULT_VHOST: plane
-            REDIS_URL: redis://plane_redis_1:6379/0
+            REDIS_URL: redis://redis:6379/0
             SECRET_KEY: $APP_SEED
             SECURE_SSL_REDIRECT: 0
             SESSION_COOKIE_SECURE: 0
@@ -94,9 +94,9 @@ services:
             AWS_S3_ENDPOINT_URL: http://plane-minio-1:9000
             AWS_SECRET_ACCESS_KEY: $APP_PASSWORD
             BUCKET_NAME: uploads
-            CELERY_BROKER_URL: amqp://plane:umbrelplane@plane_rabbitmq_1:5672/plane
+            CELERY_BROKER_URL: amqp://plane:umbrelplane@rabbitmq:5672/plane
             CSRF_COOKIE_SECURE: 0
-            DATABASE_URL: postgresql://plane:umbrelplane@plane_db_1:5432/plane
+            DATABASE_URL: postgresql://plane:umbrelplane@db:5432/plane
             FILE_SIZE_LIMIT: 52428800
             GUNICORN_WORKERS: 2
             LISTEN_HTTP_PORT: 8762
@@ -111,7 +111,7 @@ services:
             RABBITMQ_DEFAULT_PASS: umbrelplane
             RABBITMQ_DEFAULT_USER: plane
             RABBITMQ_DEFAULT_VHOST: plane
-            REDIS_URL: redis://plane_redis_1:6379/0
+            REDIS_URL: redis://redis:6379/0
             SECRET_KEY: $APP_SEED
             SECURE_SSL_REDIRECT: 0
             SESSION_COOKIE_SECURE: 0
@@ -127,9 +127,9 @@ services:
             AWS_S3_ENDPOINT_URL: http://plane-minio-1:9000
             AWS_SECRET_ACCESS_KEY: $APP_PASSWORD
             BUCKET_NAME: uploads
-            CELERY_BROKER_URL: amqp://plane:umbrelplane@plane_rabbitmq_1:5672/plane
+            CELERY_BROKER_URL: amqp://plane:umbrelplane@rabbitmq:5672/plane
             CSRF_COOKIE_SECURE: 0
-            DATABASE_URL: postgresql://plane:umbrelplane@plane_db_1:5432/plane
+            DATABASE_URL: postgresql://plane:umbrelplane@db:5432/plane
             FILE_SIZE_LIMIT: 52428800
             GUNICORN_WORKERS: 2
             LISTEN_HTTP_PORT: 8762
@@ -144,7 +144,7 @@ services:
             RABBITMQ_DEFAULT_PASS: umbrelplane
             RABBITMQ_DEFAULT_USER: plane
             RABBITMQ_DEFAULT_VHOST: plane
-            REDIS_URL: redis://plane_redis_1:6379/0
+            REDIS_URL: redis://redis:6379/0
             SECRET_KEY: $APP_SEED
             SECURE_SSL_REDIRECT: 0
             SESSION_COOKIE_SECURE: 0
@@ -171,9 +171,9 @@ services:
             AWS_S3_ENDPOINT_URL: http://plane-minio-1:9000
             AWS_SECRET_ACCESS_KEY: $APP_PASSWORD
             BUCKET_NAME: uploads
-            CELERY_BROKER_URL: amqp://plane:umbrelplane@plane_rabbitmq_1:5672/plane
+            CELERY_BROKER_URL: amqp://plane:umbrelplane@rabbitmq:5672/plane
             CSRF_COOKIE_SECURE: 0
-            DATABASE_URL: postgresql://plane:umbrelplane@plane_db_1:5432/plane
+            DATABASE_URL: postgresql://plane:umbrelplane@db:5432/plane
             FILE_SIZE_LIMIT: 52428800
             GUNICORN_WORKERS: 2
             LISTEN_HTTP_PORT: 8762
@@ -188,7 +188,7 @@ services:
             RABBITMQ_DEFAULT_PASS: umbrelplane
             RABBITMQ_DEFAULT_USER: plane
             RABBITMQ_DEFAULT_VHOST: plane
-            REDIS_URL: redis://plane_redis_1:6379/0
+            REDIS_URL: redis://redis:6379/0
             SECRET_KEY: $APP_SEED
             SECURE_SSL_REDIRECT: 0
             SESSION_COOKIE_SECURE: 0
@@ -211,9 +211,9 @@ services:
             AWS_S3_ENDPOINT_URL: http://plane-minio-1:9000
             AWS_SECRET_ACCESS_KEY: $APP_PASSWORD
             BUCKET_NAME: uploads
-            CELERY_BROKER_URL: amqp://plane:umbrelplane@plane_rabbitmq_1:5672/plane
+            CELERY_BROKER_URL: amqp://plane:umbrelplane@rabbitmq:5672/plane
             CSRF_COOKIE_SECURE: 0
-            DATABASE_URL: postgresql://plane:umbrelplane@plane_db_1:5432/plane
+            DATABASE_URL: postgresql://plane:umbrelplane@db:5432/plane
             FILE_SIZE_LIMIT: 52428800
             GUNICORN_WORKERS: 2
             LISTEN_HTTP_PORT: 8762
@@ -228,7 +228,7 @@ services:
             RABBITMQ_DEFAULT_PASS: umbrelplane
             RABBITMQ_DEFAULT_USER: plane
             RABBITMQ_DEFAULT_VHOST: plane
-            REDIS_URL: redis://plane_redis_1:6379/0
+            REDIS_URL: redis://redis:6379/0
             SECRET_KEY: $APP_SEED
             SECURE_SSL_REDIRECT: 0
             SESSION_COOKIE_SECURE: 0
@@ -246,9 +246,9 @@ services:
             AWS_S3_ENDPOINT_URL: http://plane-minio-1:9000
             AWS_SECRET_ACCESS_KEY: $APP_PASSWORD
             BUCKET_NAME: uploads
-            CELERY_BROKER_URL: amqp://plane:umbrelplane@plane_rabbitmq_1:5672/plane
+            CELERY_BROKER_URL: amqp://plane:umbrelplane@rabbitmq:5672/plane
             CSRF_COOKIE_SECURE: 0
-            DATABASE_URL: postgresql://plane:umbrelplane@plane_db_1:5432/plane
+            DATABASE_URL: postgresql://plane:umbrelplane@db:5432/plane
             FILE_SIZE_LIMIT: 52428800
             GUNICORN_WORKERS: 2
             LISTEN_HTTP_PORT: 8762
@@ -263,7 +263,7 @@ services:
             RABBITMQ_DEFAULT_PASS: umbrelplane
             RABBITMQ_DEFAULT_USER: plane
             RABBITMQ_DEFAULT_VHOST: plane
-            REDIS_URL: redis://plane_redis_1:6379/0
+            REDIS_URL: redis://redis:6379/0
             SECRET_KEY: $APP_SEED
             SECURE_SSL_REDIRECT: 0
             SESSION_COOKIE_SECURE: 0
@@ -292,9 +292,9 @@ services:
             AWS_S3_ENDPOINT_URL: http://plane-minio-1:9000
             AWS_SECRET_ACCESS_KEY: $APP_PASSWORD
             BUCKET_NAME: uploads
-            CELERY_BROKER_URL: amqp://plane:umbrelplane@plane_rabbitmq_1:5672/plane
+            CELERY_BROKER_URL: amqp://plane:umbrelplane@rabbitmq:5672/plane
             CSRF_COOKIE_SECURE: 0
-            DATABASE_URL: postgresql://plane:umbrelplane@plane_db_1:5432/plane
+            DATABASE_URL: postgresql://plane:umbrelplane@db:5432/plane
             FILE_SIZE_LIMIT: 52428800
             GUNICORN_WORKERS: 2
             LISTEN_HTTP_PORT: 8762
@@ -309,7 +309,7 @@ services:
             RABBITMQ_DEFAULT_PASS: umbrelplane
             RABBITMQ_DEFAULT_USER: plane
             RABBITMQ_DEFAULT_VHOST: plane
-            REDIS_URL: redis://plane_redis_1:6379/0
+            REDIS_URL: redis://redis:6379/0
             SECRET_KEY: $APP_SEED
             SECURE_SSL_REDIRECT: 0
             SESSION_COOKIE_SECURE: 0
@@ -334,9 +334,9 @@ services:
             AWS_S3_ENDPOINT_URL: http://plane-minio-1:9000
             AWS_SECRET_ACCESS_KEY: $APP_PASSWORD
             BUCKET_NAME: uploads
-            CELERY_BROKER_URL: amqp://plane:umbrelplane@plane_rabbitmq_1:5672/plane
+            CELERY_BROKER_URL: amqp://plane:umbrelplane@rabbitmq:5672/plane
             CSRF_COOKIE_SECURE: 0
-            DATABASE_URL: postgresql://plane:umbrelplane@plane_db_1:5432/plane
+            DATABASE_URL: postgresql://plane:umbrelplane@db:5432/plane
             FILE_SIZE_LIMIT: 52428800
             GUNICORN_WORKERS: 2
             LISTEN_HTTP_PORT: 8762
@@ -351,7 +351,7 @@ services:
             RABBITMQ_DEFAULT_PASS: umbrelplane
             RABBITMQ_DEFAULT_USER: plane
             RABBITMQ_DEFAULT_VHOST: plane
-            REDIS_URL: redis://plane_redis_1:6379/0
+            REDIS_URL: redis://redis:6379/0
             SECRET_KEY: $APP_SEED
             SECURE_SSL_REDIRECT: 0
             SESSION_COOKIE_SECURE: 0
@@ -377,9 +377,9 @@ services:
             AWS_S3_ENDPOINT_URL: http://plane-minio-1:9000
             AWS_SECRET_ACCESS_KEY: $APP_PASSWORD
             BUCKET_NAME: uploads
-            CELERY_BROKER_URL: amqp://plane:umbrelplane@plane_rabbitmq_1:5672/plane
+            CELERY_BROKER_URL: amqp://plane:umbrelplane@rabbitmq:5672/plane
             CSRF_COOKIE_SECURE: 0
-            DATABASE_URL: postgresql://plane:umbrelplane@plane_db_1:5432/plane
+            DATABASE_URL: postgresql://plane:umbrelplane@db:5432/plane
             FILE_SIZE_LIMIT: 52428800
             GUNICORN_WORKERS: 2
             LISTEN_HTTP_PORT: 8762
@@ -394,7 +394,7 @@ services:
             RABBITMQ_DEFAULT_PASS: umbrelplane
             RABBITMQ_DEFAULT_USER: plane
             RABBITMQ_DEFAULT_VHOST: plane
-            REDIS_URL: redis://plane_redis_1:6379/0
+            REDIS_URL: redis://redis:6379/0
             SECRET_KEY: $APP_SEED
             SECURE_SSL_REDIRECT: 0
             SESSION_COOKIE_SECURE: 0
@@ -420,9 +420,9 @@ services:
             AWS_S3_ENDPOINT_URL: http://plane-minio-1:9000
             AWS_SECRET_ACCESS_KEY: $APP_PASSWORD
             BUCKET_NAME: uploads
-            CELERY_BROKER_URL: amqp://plane:umbrelplane@plane_rabbitmq_1:5672/plane
+            CELERY_BROKER_URL: amqp://plane:umbrelplane@rabbitmq:5672/plane
             CSRF_COOKIE_SECURE: 0
-            DATABASE_URL: postgresql://plane:umbrelplane@plane_db_1:5432/plane
+            DATABASE_URL: postgresql://plane:umbrelplane@db:5432/plane
             FILE_SIZE_LIMIT: 52428800
             GUNICORN_WORKERS: 2
             LISTEN_HTTP_PORT: 8762
@@ -437,7 +437,7 @@ services:
             RABBITMQ_DEFAULT_PASS: umbrelplane
             RABBITMQ_DEFAULT_USER: plane
             RABBITMQ_DEFAULT_VHOST: plane
-            REDIS_URL: redis://plane_redis_1:6379/0
+            REDIS_URL: redis://redis:6379/0
             SECRET_KEY: $APP_SEED
             SECURE_SSL_REDIRECT: 0
             SESSION_COOKIE_SECURE: 0
@@ -453,9 +453,9 @@ x-environment:
     AWS_S3_ENDPOINT_URL: http://plane-minio-1:9000
     AWS_SECRET_ACCESS_KEY: $APP_PASSWORD
     BUCKET_NAME: uploads
-    CELERY_BROKER_URL: amqp://plane:umbrelplane@plane_rabbitmq_1:5672/plane
+    CELERY_BROKER_URL: amqp://plane:umbrelplane@rabbitmq:5672/plane
     CSRF_COOKIE_SECURE: 0
-    DATABASE_URL: postgresql://plane:umbrelplane@plane_db_1:5432/plane
+    DATABASE_URL: postgresql://plane:umbrelplane@db:5432/plane
     FILE_SIZE_LIMIT: 52428800
     GUNICORN_WORKERS: 2
     LISTEN_HTTP_PORT: 8762
@@ -470,7 +470,7 @@ x-environment:
     RABBITMQ_DEFAULT_PASS: umbrelplane
     RABBITMQ_DEFAULT_USER: plane
     RABBITMQ_DEFAULT_VHOST: plane
-    REDIS_URL: redis://plane_redis_1:6379/0
+    REDIS_URL: redis://redis:6379/0
     SECRET_KEY: $APP_SEED
     SECURE_SSL_REDIRECT: 0
     SESSION_COOKIE_SECURE: 0

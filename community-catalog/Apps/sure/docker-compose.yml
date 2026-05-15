@@ -36,14 +36,14 @@ services:
             redis:
                 condition: service_healthy
         environment:
-            DB_HOST: sure_db_1
+            DB_HOST: db
             DB_PORT: 5432
             POSTGRES_DB: sure_production
             POSTGRES_PASSWORD: sure_password
             POSTGRES_USER: sure_user
             RAILS_ASSUME_SSL: "false"
             RAILS_FORCE_SSL: "false"
-            REDIS_URL: redis://sure_redis_1:6379/1
+            REDIS_URL: redis://redis:6379/1
             SECRET_KEY_BASE: $APP_SEED
             SELF_HOSTED: "true"
         image: ghcr.io/we-promise/sure:0.7.0-hotfix.1@sha256:f49fc95b95706fcb7752466edef3c902ba9a746ed6b8ae1206ff22e180ac5006
@@ -61,14 +61,14 @@ services:
             redis:
                 condition: service_healthy
         environment:
-            DB_HOST: sure_db_1
+            DB_HOST: db
             DB_PORT: 5432
             POSTGRES_DB: sure_production
             POSTGRES_PASSWORD: sure_password
             POSTGRES_USER: sure_user
             RAILS_ASSUME_SSL: "false"
             RAILS_FORCE_SSL: "false"
-            REDIS_URL: redis://sure_redis_1:6379/1
+            REDIS_URL: redis://redis:6379/1
             SECRET_KEY_BASE: $APP_SEED
             SELF_HOSTED: "true"
         image: ghcr.io/we-promise/sure:0.7.0-hotfix.1@sha256:f49fc95b95706fcb7752466edef3c902ba9a746ed6b8ae1206ff22e180ac5006

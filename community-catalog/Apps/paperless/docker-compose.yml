@@ -33,11 +33,11 @@ services:
         environment:
             PAPERLESS_ADMIN_PASSWORD: $APP_PASSWORD
             PAPERLESS_ADMIN_USER: admin
-            PAPERLESS_DBHOST: paperless_db_1
-            PAPERLESS_REDIS: redis://paperless_broker_1:6379
+            PAPERLESS_DBHOST: db
+            PAPERLESS_REDIS: redis://broker:6379
             PAPERLESS_TIKA_ENABLED: 1
-            PAPERLESS_TIKA_ENDPOINT: http://paperless_tika_1:9998
-            PAPERLESS_TIKA_GOTENBERG_ENDPOINT: http://paperless_gotenberg_1:3000
+            PAPERLESS_TIKA_ENDPOINT: http://tika:9998
+            PAPERLESS_TIKA_GOTENBERG_ENDPOINT: http://gotenberg:3000
         image: ghcr.io/paperless-ngx/paperless-ngx:2.20.15@sha256:6c86cad803970ea782683a8e80e7403444c5bf3cf70de63b4d3c8e87500db92f
         ports:
             - 2349:8000

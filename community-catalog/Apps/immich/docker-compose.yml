@@ -3,7 +3,7 @@ services:
     machine-learning:
         environment:
             DB_DATABASE_NAME: immich
-            DB_HOSTNAME: immich_postgres_1
+            DB_HOSTNAME: postgres
             DB_PASSWORD: moneyprintergobrrr
             DB_USERNAME: immich
             DISABLE_REVERSE_GEOCODING: "false"
@@ -12,7 +12,7 @@ services:
             LOG_LEVEL: log
             NODE_ENV: production
             PUBLIC_LOGIN_PAGE_MESSAGE: ""
-            REDIS_HOSTNAME: immich_redis_1
+            REDIS_HOSTNAME: redis
             REVERSE_GEOCODING_PRECISION: "3"
         image: ghcr.io/immich-app/immich-machine-learning:v2.7.5@sha256:a2501141440f10516d329fdfba2c68082e19eb9ba6016c061ac80d23beadf7f3
         restart: on-failure
@@ -21,7 +21,7 @@ services:
     postgres:
         environment:
             DB_DATABASE_NAME: immich
-            DB_HOSTNAME: immich_postgres_1
+            DB_HOSTNAME: postgres
             DB_PASSWORD: moneyprintergobrrr
             DB_USERNAME: immich
             DISABLE_REVERSE_GEOCODING: "false"
@@ -34,7 +34,7 @@ services:
             POSTGRES_PASSWORD: moneyprintergobrrr
             POSTGRES_USER: immich
             PUBLIC_LOGIN_PAGE_MESSAGE: ""
-            REDIS_HOSTNAME: immich_redis_1
+            REDIS_HOSTNAME: redis
             REVERSE_GEOCODING_PRECISION: "3"
         image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:41eacbe83eca995561fe43814fd4891e16e39632806253848efaf04d3c8a8b84
         restart: on-failure
@@ -52,7 +52,7 @@ services:
             - postgres
         environment:
             DB_DATABASE_NAME: immich
-            DB_HOSTNAME: immich_postgres_1
+            DB_HOSTNAME: postgres
             DB_PASSWORD: moneyprintergobrrr
             DB_USERNAME: immich
             DISABLE_REVERSE_GEOCODING: "false"
@@ -61,7 +61,7 @@ services:
             LOG_LEVEL: log
             NODE_ENV: production
             PUBLIC_LOGIN_PAGE_MESSAGE: ""
-            REDIS_HOSTNAME: immich_redis_1
+            REDIS_HOSTNAME: redis
             REVERSE_GEOCODING_PRECISION: "3"
         image: ghcr.io/immich-app/immich-server:v2.7.5@sha256:c15bff75068effb03f4355997d03dc7e0fc58720c2b54ad6f7f10d1bc57efaa5
         ports:
@@ -72,7 +72,7 @@ services:
 version: "3.7"
 x-environment:
     DB_DATABASE_NAME: immich
-    DB_HOSTNAME: immich_postgres_1
+    DB_HOSTNAME: postgres
     DB_PASSWORD: moneyprintergobrrr
     DB_USERNAME: immich
     DISABLE_REVERSE_GEOCODING: "false"
@@ -81,7 +81,7 @@ x-environment:
     LOG_LEVEL: log
     NODE_ENV: production
     PUBLIC_LOGIN_PAGE_MESSAGE: ""
-    REDIS_HOSTNAME: immich_redis_1
+    REDIS_HOSTNAME: redis
     REVERSE_GEOCODING_PRECISION: "3"
 
 x-powerlab:

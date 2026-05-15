@@ -13,7 +13,7 @@ services:
             start_interval: 1s
             start_period: 0s
             test: |
-                echo "try { rs.status() } catch (err) { rs.initiate({ _id: 'rs', members: [{ _id: 0, host: 'habitica_mongo_1:27017' }] }) }" | mongosh --port 27017 --quiet
+                echo "try { rs.status() } catch (err) { rs.initiate({ _id: 'rs', members: [{ _id: 0, host: 'mongo:27017' }] }) }" | mongosh --port 27017 --quiet
             timeout: 30s
         image: mongo:8.0.11@sha256:5941949d3887e40be5175787aade07dc052f2cddb8ce21b740c3948eba6a3ed0
         restart: on-failure
@@ -24,7 +24,7 @@ services:
         depends_on:
             - mongo
         environment:
-            - NODE_DB_URI=mongodb://habitica_mongo_1/habitica
+            - NODE_DB_URI=mongodb://mongo/habitica
             - BASE_URL=http://${DEVICE_DOMAIN_NAME}:3944
             - INVITE_ONLY=false
         image: awinterstein/habitica-server:5.47.2@sha256:3827aeb8246fd4f4630b738944164d38b00f54a3d55a966eedeced4eddb2aa1d

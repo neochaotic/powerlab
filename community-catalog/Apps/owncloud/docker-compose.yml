@@ -54,12 +54,12 @@ services:
             - OWNCLOUD_DB_NAME=owncloud
             - OWNCLOUD_DB_USERNAME=owncloud
             - OWNCLOUD_DB_PASSWORD=owncloud
-            - OWNCLOUD_DB_HOST=owncloud_mariadb_1
+            - OWNCLOUD_DB_HOST=mariadb
             - OWNCLOUD_ADMIN_USERNAME=admin
             - OWNCLOUD_ADMIN_PASSWORD=${APP_PASSWORD}
             - OWNCLOUD_MYSQL_UTF8MB4=true
             - OWNCLOUD_REDIS_ENABLED=true
-            - OWNCLOUD_REDIS_HOST=owncloud_redis_1
+            - OWNCLOUD_REDIS_HOST=redis
             - OWNCLOUD_LOG_LEVEL=2
         healthcheck:
             interval: 30s

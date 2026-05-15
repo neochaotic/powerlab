@@ -20,7 +20,7 @@ services:
     web:
         environment:
             - DOCS_ADDRESS=http://$DEVICE_DOMAIN_NAME:$DOCSERVER_PORT
-            - DOCS_INTERNAL_ADDRESS=http://onlyoffice-nextcloud_documentserver_1
+            - DOCS_INTERNAL_ADDRESS=http://documentserver
             - NEXTCLOUD_INTERNAL_ADDRESS=http://nextcloud_web_1
             - NEXTCLOUD_WEB_URL=http://$DEVICE_DOMAIN_NAME:$APP_NEXTCLOUD_PORT
         image: a4004/onlyoffice-nextcloud-web:1.0.4@sha256:774bd9bda641e6be49286921637840efba050fdfd022934dfd9ee9b6ec8d0a63

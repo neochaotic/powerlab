@@ -30,8 +30,8 @@ services:
         environment:
             APP_SECRET: 2Gn5puuVCH0SI386E9RqOqHm0hGIAyrB
             NODE_PORT: 3000
-            PG_DATABASE_URL: postgres://postgres:postgres@twenty_db_1:5432/default
-            REDIS_URL: redis://twenty_redis_1:6379
+            PG_DATABASE_URL: postgres://postgres:postgres@db:5432/default
+            REDIS_URL: redis://redis:6379
             SERVER_URL: http://${DEVICE_DOMAIN_NAME}:2020
         healthcheck:
             interval: 10s
@@ -60,8 +60,8 @@ services:
             APP_SECRET: 2Gn5puuVCH0SI386E9RqOqHm0hGIAyrB
             DISABLE_CRON_JOBS_REGISTRATION: "true"
             DISABLE_DB_MIGRATIONS: "true"
-            PG_DATABASE_URL: postgres://postgres:postgres@twenty_db_1:5432/default
-            REDIS_URL: redis://twenty_redis_1:6379
+            PG_DATABASE_URL: postgres://postgres:postgres@db:5432/default
+            REDIS_URL: redis://redis:6379
             SERVER_URL: http://${DEVICE_DOMAIN_NAME}:2020
         image: twentycrm/twenty:v2.2.0@sha256:fb82dc757bd9eea6b8f4d765275e1eb58efbd5c1ae3d4d6245be807770c87e79
         restart: on-failure

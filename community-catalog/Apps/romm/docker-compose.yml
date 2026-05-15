@@ -26,7 +26,7 @@ services:
             db:
                 condition: service_healthy
         environment:
-            - DB_HOST=romm_db_1
+            - DB_HOST=db
             - DB_NAME=romm
             - DB_USER=romm-user
             - DB_PASSWD=moneyprintergobrr

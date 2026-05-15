@@ -17,7 +17,7 @@ services:
         depends_on:
             - backend
         environment:
-            BACKEND_URL: http://invio_backend_1:3000
+            BACKEND_URL: http://backend:3000
             COOKIE_SECURE: "false"
             ENABLE_HSTS: "false"
             FRONTEND_SECURE_HEADERS_DISABLED: "false"

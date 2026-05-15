@@ -10,7 +10,7 @@ services:
         depends_on:
             - redis
         environment:
-            REDIS_URL: redis://yamtrack_redis_1:6379
+            REDIS_URL: redis://redis:6379
             SECRET: ${APP_SEED}
         image: ghcr.io/fuzzygrim/yamtrack:0.25.2@sha256:928df13c46c9f615b37f5ef1eb5a87fc8813f5941f28c7d8227af73d291b0d19
         ports:

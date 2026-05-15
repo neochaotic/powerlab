@@ -47,7 +47,7 @@ services:
             POSTGRES_USER: maybe
             RAILS_ASSUME_SSL: "false"
             RAILS_FORCE_SSL: "false"
-            REDIS_URL: redis://maybe_redis_1:6379/1
+            REDIS_URL: redis://redis:6379/1
             SECRET_KEY_BASE: $APP_SEED
             SELF_HOSTING_ENABLED: "true"
         image: ghcr.io/maybe-finance/maybe:0.6.0@sha256:1e791e88ecc4d124d05142d943bcec5b5a172e889f648c97d334363133384f01
@@ -71,7 +71,7 @@ services:
             POSTGRES_USER: maybe
             RAILS_ASSUME_SSL: "false"
             RAILS_FORCE_SSL: "false"
-            REDIS_URL: redis://maybe_redis_1:6379/1
+            REDIS_URL: redis://redis:6379/1
             SECRET_KEY_BASE: $APP_SEED
             SELF_HOSTING_ENABLED: "true"
         image: ghcr.io/maybe-finance/maybe:0.6.0@sha256:1e791e88ecc4d124d05142d943bcec5b5a172e889f648c97d334363133384f01

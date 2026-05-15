@@ -23,7 +23,7 @@ services:
             - db
         environment:
             DB_DRIVER: postgresql
-            DB_HOST: kitchenowl_db_1
+            DB_HOST: db
             DB_NAME: kitchenowl
             DB_PASSWORD: password
             DB_USER: kitchenowl

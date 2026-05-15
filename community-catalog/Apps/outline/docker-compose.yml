@@ -54,7 +54,7 @@ services:
             - redis
             - dex
         environment:
-            DATABASE_URL: postgres://outline:outlinepass@outline_db_1:5432/outline
+            DATABASE_URL: postgres://outline:outlinepass@db:5432/outline
             FILE_STORAGE: local
             FILE_STORAGE_LOCAL_ROOT_DIR: /var/lib/outline/data
             FILE_STORAGE_UPLOAD_MAX_SIZE: 262144000
@@ -64,12 +64,12 @@ services:
             OIDC_CLIENT_SECRET: ${APP_SEED}
             OIDC_DISPLAY_NAME: Dex
             OIDC_SCOPES: openid profile email
-            OIDC_TOKEN_URI: http://outline_dex_1:5556/dex/token
-            OIDC_USERINFO_URI: http://outline_dex_1:5556/dex/userinfo
+            OIDC_TOKEN_URI: http://dex:5556/dex/token
+            OIDC_USERINFO_URI: http://dex:5556/dex/userinfo
             OIDC_USERNAME_CLAIM: preferred_username
             PGSSLMODE: disable
             PORT: 3000
-            REDIS_URL: redis://outline_redis_1:6379
+            REDIS_URL: redis://redis:6379
             SECRET_KEY: ${APP_SEED}
             URL: http://${DEVICE_DOMAIN_NAME}:${APP_OUTLINE_PORT}
             UTILS_SECRET: ${APP_SEED}

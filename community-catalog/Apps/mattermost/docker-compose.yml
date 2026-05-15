@@ -7,7 +7,7 @@ services:
         environment:
             MM_DBNAME: mattermost
             MM_PASSWORD: admin
-            MM_SQLSETTINGS_DATASOURCE: postgres://admin:admin@mattermost_db_1:5432/mattermost?sslmode=disable&connect_timeout=10
+            MM_SQLSETTINGS_DATASOURCE: postgres://admin:admin@db:5432/mattermost?sslmode=disable&connect_timeout=10
             MM_USERNAME: admin
         image: alexlack/mattermost-app:v11.6.1@sha256:37b33b51fcf057605a00655afc92729c2348b46a172368821982526a4c1f1b7f
         ports:

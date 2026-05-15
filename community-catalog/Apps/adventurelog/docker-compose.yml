@@ -14,7 +14,7 @@ services:
         depends_on:
             - db
         environment:
-            - PGHOST=adventurelog_db_1
+            - PGHOST=db
             - PGDATABASE=database
             - PGUSER=adventure
             - PGPASSWORD=adventure

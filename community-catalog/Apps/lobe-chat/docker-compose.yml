@@ -13,12 +13,12 @@ services:
         environment:
             APP_URL: http://${DEVICE_DOMAIN_NAME}:7455
             AUTH_TRUSTED_ORIGINS: http://${DEVICE_DOMAIN_NAME}:7455
-            DATABASE_URL: postgresql://postgres:lobehubsecret@lobe-chat_postgres_1:5432/lobehub
-            INTERNAL_APP_URL: http://lobe-chat_app_1:3210
+            DATABASE_URL: postgresql://postgres:lobehubsecret@postgres:5432/lobehub
+            INTERNAL_APP_URL: http://app:3210
             LLM_VISION_IMAGE_USE_BASE64: "1"
             REDIS_PREFIX: lobechat
             REDIS_TLS: "0"
-            REDIS_URL: redis://lobe-chat_redis_1:6379
+            REDIS_URL: redis://redis:6379
             S3_ACCESS_KEY: lobehub
             S3_ACCESS_KEY_ID: lobehub
             S3_BUCKET: lobe
@@ -26,7 +26,7 @@ services:
             S3_ENDPOINT: http://${DEVICE_DOMAIN_NAME}:7458
             S3_SECRET_ACCESS_KEY: ${APP_PASSWORD}
             S3_SET_ACL: "0"
-            SEARXNG_URL: http://lobe-chat_searxng_1:8080
+            SEARXNG_URL: http://searxng:8080
         image: lobehub/lobehub:2.1.58@sha256:059dd5e8f0682c1507a788b70adaa16708932777e98c6db02fc4737fd92b2008
         ports:
             - 7455:3210
@@ -92,7 +92,7 @@ services:
         command:
             - -c
             - |
-              set -eux; mc --version; mc alias set rustfs "http://lobe-chat_rustfs_1:9000" "lobehub" "${APP_PASSWORD}"; mc ls rustfs || true; mc mb "rustfs/lobe" --ignore-existing; mc anonymous set download rustfs/lobe
+              set -eux; mc --version; mc alias set rustfs "http://rustfs:9000" "lobehub" "${APP_PASSWORD}"; mc ls rustfs || true; mc mb "rustfs/lobe" --ignore-existing; mc anonymous set download rustfs/lobe
         depends_on:
             rustfs:
                 condition: service_healthy

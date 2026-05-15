@@ -14,13 +14,13 @@ services:
             CONTAINER_MODE: http
             DB_CONNECTION: pgsql
             DB_DATABASE: solidtime
-            DB_HOST: solidtime_db_1
+            DB_HOST: db
             DB_PASSWORD: solidtime
             DB_PORT: "5432"
             DB_SSLMODE: require
             DB_USERNAME: solidtime
             FILESYSTEM_DISK: local
-            GOTENBERG_URL: http://solidtime_gotenberg_1:3000
+            GOTENBERG_URL: http://gotenberg:3000
             LOG_CHANNEL: stderr_daily
             LOG_LEVEL: debug
             MAIL_ENCRYPTION: tls
@@ -93,13 +93,13 @@ services:
             CONTAINER_MODE: worker
             DB_CONNECTION: pgsql
             DB_DATABASE: solidtime
-            DB_HOST: solidtime_db_1
+            DB_HOST: db
             DB_PASSWORD: solidtime
             DB_PORT: "5432"
             DB_SSLMODE: require
             DB_USERNAME: solidtime
             FILESYSTEM_DISK: local
-            GOTENBERG_URL: http://solidtime_gotenberg_1:3000
+            GOTENBERG_URL: http://gotenberg:3000
             LOG_CHANNEL: stderr_daily
             LOG_LEVEL: debug
             MAIL_ENCRYPTION: tls
@@ -138,13 +138,13 @@ services:
             CONTAINER_MODE: scheduler
             DB_CONNECTION: pgsql
             DB_DATABASE: solidtime
-            DB_HOST: solidtime_db_1
+            DB_HOST: db
             DB_PASSWORD: solidtime
             DB_PORT: "5432"
             DB_SSLMODE: require
             DB_USERNAME: solidtime
             FILESYSTEM_DISK: local
-            GOTENBERG_URL: http://solidtime_gotenberg_1:3000
+            GOTENBERG_URL: http://gotenberg:3000
             LOG_CHANNEL: stderr_daily
             LOG_LEVEL: debug
             MAIL_ENCRYPTION: tls

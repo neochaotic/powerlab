@@ -12,7 +12,7 @@ services:
             BACKEND_HOST: backend
             CSRF_TRUSTED_ORIGINS: ""
             DB_BACKEND: postgresql
-            DB_HOST: librephotos_db_1
+            DB_HOST: db
             DB_NAME: librephotos
             DB_PASS: librephotos
             DB_PORT: 5432

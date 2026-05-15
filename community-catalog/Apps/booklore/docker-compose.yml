@@ -17,7 +17,7 @@ services:
                 condition: service_started
         environment:
             DATABASE_PASSWORD: booklorepass
-            DATABASE_URL: jdbc:mariadb://booklore_db_1:3306/booklore
+            DATABASE_URL: jdbc:mariadb://db:3306/booklore
             DATABASE_USERNAME: bookloreuser
         image: ghcr.io/booklore-app/booklore:v2.3.0@sha256:10474742a0e704ec48540a3e5559cf27c16bcf0c021c494ba5bf3cc25b16b887
         ports:

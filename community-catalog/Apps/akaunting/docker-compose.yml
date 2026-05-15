@@ -9,7 +9,7 @@ services:
             AKAUNTING_SETUP: "true"
             COMPANY_EMAIL: my@company.com
             COMPANY_NAME: My Company
-            DB_HOST: akaunting_db_1
+            DB_HOST: db
             DB_NAME: akaunting
             DB_PASSWORD: akaunting_password
             DB_PORT: 3306
