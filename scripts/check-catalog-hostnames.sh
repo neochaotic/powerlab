@@ -90,7 +90,12 @@ main() {
     out="$(scan_file "$f")"
     if [[ -n "$out" ]]; then
       echo "$out"
-      ((files_with_findings++))
+      # NB: avoid `((x++))` here. Post-increment returns the OLD
+      # value, so when files_with_findings starts at 0 the
+      # arithmetic exits with status 1 and `set -e` kills the
+      # script before the rest of the loop runs. The assignment
+      # form always returns 0.
+      files_with_findings=$(( files_with_findings + 1 ))
       findings=$(( findings + $(echo "$out" | wc -l) ))
     fi
   done
