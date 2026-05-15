@@ -320,7 +320,11 @@ jobs:
       - name: Run catalog hostname lint
         run: ./scripts/check-catalog-hostnames.sh
         env:
-          POWERLAB_CATALOG_LINT_STRICT: '0' # warn-only until PR 4b lands
+          # Sprint 21 PR 6 flipped this to strict after PR 1 (#418) cleaned the
+          # existing 154 findings and PR 2 (#419) added the sync-catalog auto-
+          # rewrite so future upstream syncs can't regress. A non-zero finding
+          # now hard-fails the run (issue #402).
+          POWERLAB_CATALOG_LINT_STRICT: '1'
 
   # ─────────────────────────────────────────────────────────────────────
   # Backend integration tests (Phase 3 of #150 — Sprint 13.5). Build
