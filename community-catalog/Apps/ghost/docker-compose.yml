@@ -12,7 +12,7 @@ services:
         environment:
             database__client: mysql
             database__connection__database: ghost
-            database__connection__host: ghost_db_1
+            database__connection__host: db
             database__connection__password: umbrel
             database__connection__user: root
             security__staffDeviceVerification: "false"

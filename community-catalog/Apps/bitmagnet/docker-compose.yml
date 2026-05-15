@@ -12,7 +12,7 @@ services:
                 condition: service_healthy
         environment:
             HOME: /tmp
-            POSTGRES_HOST: bitmagnet_postgres_1
+            POSTGRES_HOST: postgres
             POSTGRES_NAME: bitmagnet
             POSTGRES_PASSWORD: ${APP_PASSWORD}
             POSTGRES_USER: postgres

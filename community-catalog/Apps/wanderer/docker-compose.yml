@@ -6,7 +6,7 @@ services:
                 condition: service_healthy
         environment:
             MEILI_MASTER_KEY: ${APP_SEED}
-            MEILI_URL: http://wanderer_search_1:7700
+            MEILI_URL: http://search:7700
             ORIGIN: http://${DEVICE_DOMAIN_NAME}:3111
             POCKETBASE_ENCRYPTION_KEY: ${APP_WANDERER_ENCRYPTION_KEY}
         image: flomp/wanderer-db:v0.19.0@sha256:30a8be29f118812d360166d9f9ad863f5ff7a9619d5d1e8114d61328ee610ad2
@@ -18,7 +18,7 @@ services:
         environment:
             MEILI_MASTER_KEY: ${APP_SEED}
             MEILI_NO_ANALYTICS: "true"
-            MEILI_URL: http://wanderer_search_1:7700
+            MEILI_URL: http://search:7700
         healthcheck:
             interval: 15s
             retries: 10
@@ -38,12 +38,12 @@ services:
         environment:
             BODY_SIZE_LIMIT: Infinity
             MEILI_MASTER_KEY: ${APP_SEED}
-            MEILI_URL: http://wanderer_search_1:7700
+            MEILI_URL: http://search:7700
             NOMINATIM_URL: https://nominatim.openstreetmap.org
             ORIGIN: http://${DEVICE_DOMAIN_NAME}:3111
             OVERPASS_API_URL: https://overpass-api.de
             PUBLIC_DISABLE_SIGNUP: "false"
-            PUBLIC_POCKETBASE_URL: http://wanderer_db_1:8090
+            PUBLIC_POCKETBASE_URL: http://db:8090
             UPLOAD_FOLDER: /app/uploads
             UPLOAD_PASSWORD: ${APP_PASSWORD}
             UPLOAD_USER: admin

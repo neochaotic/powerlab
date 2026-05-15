@@ -8,7 +8,7 @@ services:
             APP_ADMIN_PASSWORD: ${APP_PASSWORD}
             DB_CHARSET: utf8mb4
             DB_DATABASE: hortusfox
-            DB_HOST: hortusfox_db_1
+            DB_HOST: db
             DB_PASSWORD: password
             DB_PORT: 3306
             DB_USERNAME: user

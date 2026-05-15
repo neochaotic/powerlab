@@ -1,0 +1,5 @@
+kind: Fixed
+body: Catalog hostname sweep — 154 docker-compose v1 underscore references (`<project>_<svc>_<idx>`) rewritten to service-name network aliases (`db`, `redis`, etc.) across 65 apps. Fixes silent DNS-error crash loops on install. (#402)
+time: 2026-05-15T00:00:00Z
+custom:
+    Issue: "402"

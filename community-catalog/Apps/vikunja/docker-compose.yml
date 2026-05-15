@@ -22,7 +22,7 @@ services:
             - db
         environment:
             VIKUNJA_DATABASE_DATABASE: vikunja
-            VIKUNJA_DATABASE_HOST: vikunja_db_1
+            VIKUNJA_DATABASE_HOST: db
             VIKUNJA_DATABASE_PASSWORD: secret
             VIKUNJA_DATABASE_TYPE: mysql
             VIKUNJA_DATABASE_USER: vikunja

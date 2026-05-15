@@ -13,7 +13,7 @@ services:
             APP_URL: http://${APP_DOMAIN}:8676
             CACHE_DRIVER: redis
             DB_DATABASE: invoiceninja
-            DB_HOST: invoice-ninja_db_1
+            DB_HOST: db
             DB_PASSWORD: moneyprintergobrrr
             DB_USERNAME: invoiceninja
             FILESYSTEM_DISK: debian_docker
@@ -21,7 +21,7 @@ services:
             IN_USER_EMAIL: admin@example.com
             IS_DOCKER: "true"
             QUEUE_CONNECTION: redis
-            REDIS_HOST: invoice-ninja_redis_1
+            REDIS_HOST: redis
             REDIS_PASSWORD: null
             REDIS_PORT: 6379
             REQUIRE_HTTPS: "false"

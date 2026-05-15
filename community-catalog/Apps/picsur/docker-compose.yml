@@ -33,7 +33,7 @@ services:
         environment:
             PICSUR_ADMIN_PASSWORD: ${APP_PASSWORD}
             PICSUR_DB_DATABASE: picsur
-            PICSUR_DB_HOST: picsur_db_1
+            PICSUR_DB_HOST: db
             PICSUR_DB_PASSWORD: picsurpass
             PICSUR_DB_PORT: 5432
             PICSUR_DB_USERNAME: picsuruser

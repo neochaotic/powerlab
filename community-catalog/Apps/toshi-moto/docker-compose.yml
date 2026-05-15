@@ -4,7 +4,7 @@ services:
         depends_on:
             - mongodb
         environment:
-            MONGODB_URI: mongodb://toshi-moto_mongodb_1:27017/toshi-moto
+            MONGODB_URI: mongodb://mongodb:27017/toshi-moto
             PORT: 8121
         image: toshimoto821/toshi-moto-api:1.8.4@sha256:750927ef2d0b0bbcffcbb57632d861e567a8b7243381c0285b2b2660dc31244a
         restart: on-failure

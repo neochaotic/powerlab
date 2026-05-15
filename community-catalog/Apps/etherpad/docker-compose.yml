@@ -8,7 +8,7 @@ services:
             ALLOW_UNKNOWN_FILE_ENDS: "true"
             CI: "true"
             DB_CHARSET: utf8mb4
-            DB_HOST: etherpad_postgres_1
+            DB_HOST: postgres
             DB_NAME: etherpad
             DB_PASS: admin
             DB_PORT: 5432

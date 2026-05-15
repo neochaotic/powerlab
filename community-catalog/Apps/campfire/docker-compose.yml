@@ -29,7 +29,7 @@ services:
         environment:
             DISABLE_SSL: "true"
             RAILS_ENV: production
-            REDIS_URL: redis://campfire_redis_1:6379
+            REDIS_URL: redis://redis:6379
             SECRET_KEY_BASE: ${APP_SEED}
             SENTRY_DSN: ${SENTRY_DSN:-}
             VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}

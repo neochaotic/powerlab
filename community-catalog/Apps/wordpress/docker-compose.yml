@@ -4,7 +4,7 @@ services:
         depends_on:
             - db
         environment:
-            - WORDPRESS_DB_HOST=wordpress_db_1
+            - WORDPRESS_DB_HOST=db
             - WORDPRESS_DB_NAME=wordpress
             - WORDPRESS_DB_USER=umbrel
             - WORDPRESS_DB_PASSWORD=umbrelwordpress

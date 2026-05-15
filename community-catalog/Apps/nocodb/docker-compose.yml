@@ -5,7 +5,7 @@ services:
             postgres:
                 condition: service_healthy
         environment:
-            NC_DB: pg://nocodb_postgres_1:5432?u=nocodb&p=itworkslocally&d=nocodb
+            NC_DB: pg://postgres:5432?u=nocodb&p=itworkslocally&d=nocodb
         image: nocodb/nocodb:2026.04.5@sha256:4498ea3612227f43842468033e27661ff3db4775a5cbc40399695198329ee2b2
         ports:
             - 2183:8080

@@ -7,7 +7,7 @@ services:
         restart: on-failure
     web:
         environment:
-            - URL=http://flaresolverr_server_1:8191/v1
+            - URL=http://server:8191/v1
         healthcheck:
             interval: 30s
             retries: 3

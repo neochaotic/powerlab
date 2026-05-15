@@ -28,7 +28,7 @@ services:
         depends_on:
             - app
         environment:
-            POZNOTE_API_URL: http://poznote_app_1:80/api/v1
+            POZNOTE_API_URL: http://app:80/api/v1
             POZNOTE_DEBUG: ${POZNOTE_DEBUG:-false}
         image: ghcr.io/timothepoznanski/poznote-mcp:6.9.9@sha256:47086020356fda556fb8819d7cd48ded901543c445b540859f1b408c278f193e
         ports:
