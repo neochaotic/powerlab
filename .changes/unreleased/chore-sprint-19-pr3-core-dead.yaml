@@ -1,0 +1,17 @@
+kind: Internal
+body: >-
+  Remove 11 dead packages from ``backend/core/`` per Sprint 19 PR 3/5
+  (~1,431 LOC): the entire ``core/internal/`` island (``op``,
+  ``driver``, ``conf``, ``sign`` — ``op`` was the only user of
+  ``driver``/``conf``, and ``op`` itself had zero importers); five
+  unused ``core/pkg/*`` (``generic_sync``, ``singleflight``,
+  ``gredis``, ``github``, ``fs``); and two orphan ``core/model/*``
+  (``system_app``, ``system_model``). ``go mod tidy`` drops more
+  than the audit predicted — ``go-github/v36`` (with all its
+  transitives: ``golang.org/x/oauth2``, ``go-querystring``,
+  ``google.golang.org/appengine``, ``google.golang.org/protobuf``,
+  ``golang/protobuf``), plus ``json-iterator/go`` and its
+  ``modern-go/concurrent`` + ``modern-go/reflect2`` transitives, plus
+  ``pkg/errors``. ``redigo`` moves from direct to indirect (still
+  pulled by another transitive but no PowerLab code references it).
+  Build + test green on core; grep-proof in PR body.
