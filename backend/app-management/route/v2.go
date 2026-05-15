@@ -11,6 +11,7 @@ import (
 	"github.com/neochaotic/powerlab/backend/app-management/pkg/config"
 
 	v2Route "github.com/neochaotic/powerlab/backend/app-management/route/v2"
+	common_middleware "github.com/neochaotic/powerlab/backend/common/middleware"
 	"github.com/neochaotic/powerlab/backend/common/external"
 	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
 	"github.com/deepmap/oapi-codegen/pkg/middleware"
@@ -68,14 +69,7 @@ func InitV2Router() http.Handler {
 		})
 	}
 
-	e.Use((echo_middleware.CORSWithConfig(echo_middleware.CORSConfig{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{echo.POST, echo.GET, echo.OPTIONS, echo.PUT, echo.DELETE},
-		AllowHeaders:     []string{echo.HeaderAuthorization, echo.HeaderContentLength, echo.HeaderXCSRFToken, echo.HeaderContentType, echo.HeaderAccessControlAllowOrigin, echo.HeaderAccessControlAllowHeaders, echo.HeaderAccessControlAllowMethods, echo.HeaderConnection, echo.HeaderOrigin, echo.HeaderXRequestedWith},
-		ExposeHeaders:    []string{echo.HeaderContentLength, echo.HeaderAccessControlAllowOrigin, echo.HeaderAccessControlAllowHeaders},
-		MaxAge:           172800,
-		AllowCredentials: true,
-	})))
+	e.Use(common_middleware.Cors())
 
 	// SSE endpoints must NEVER be gzip-compressed — Echo's Gzip wraps
 	// the response writer in a deflate stream that batches bytes

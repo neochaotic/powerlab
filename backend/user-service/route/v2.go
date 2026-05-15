@@ -16,6 +16,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/labstack/echo/v4"
 	echo_middleware "github.com/labstack/echo/v4/middleware"
+	common_middleware "github.com/neochaotic/powerlab/backend/common/middleware"
 )
 
 var (
@@ -50,14 +51,7 @@ func InitV2Router() http.Handler {
 
 	e := echo.New()
 
-	e.Use((echo_middleware.CORSWithConfig(echo_middleware.CORSConfig{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{echo.POST, echo.GET, echo.OPTIONS, echo.PUT, echo.DELETE},
-		AllowHeaders:     []string{echo.HeaderAuthorization, echo.HeaderContentLength, echo.HeaderXCSRFToken, echo.HeaderContentType, echo.HeaderAccessControlAllowOrigin, echo.HeaderAccessControlAllowHeaders, echo.HeaderAccessControlAllowMethods, echo.HeaderConnection, echo.HeaderOrigin, echo.HeaderXRequestedWith},
-		ExposeHeaders:    []string{echo.HeaderContentLength, echo.HeaderAccessControlAllowOrigin, echo.HeaderAccessControlAllowHeaders},
-		MaxAge:           172800,
-		AllowCredentials: true,
-	})))
+	e.Use(common_middleware.Cors())
 
 	e.Use(echo_middleware.Gzip())
 

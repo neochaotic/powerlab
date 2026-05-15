@@ -12,19 +12,13 @@ import (
 	v1 "github.com/neochaotic/powerlab/backend/core/route/v1"
 	"github.com/labstack/echo/v4"
 	echo_middleware "github.com/labstack/echo/v4/middleware"
+	common_middleware "github.com/neochaotic/powerlab/backend/common/middleware"
 )
 
 func InitV1Router() http.Handler {
 	e := echo.New()
 
-	e.Use((echo_middleware.CORSWithConfig(echo_middleware.CORSConfig{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{echo.POST, echo.GET, echo.OPTIONS, echo.PUT, echo.DELETE},
-		AllowHeaders:     []string{echo.HeaderAuthorization, echo.HeaderContentLength, echo.HeaderXCSRFToken, echo.HeaderContentType, echo.HeaderAccessControlAllowOrigin, echo.HeaderAccessControlAllowHeaders, echo.HeaderAccessControlAllowMethods, echo.HeaderConnection, echo.HeaderOrigin, echo.HeaderXRequestedWith},
-		ExposeHeaders:    []string{echo.HeaderContentLength, echo.HeaderAccessControlAllowOrigin, echo.HeaderAccessControlAllowHeaders},
-		MaxAge:           172800,
-		AllowCredentials: true,
-	})))
+	e.Use(common_middleware.Cors())
 	e.Use(echo_middleware.Gzip())
 	e.Use(echo_middleware.Recover())
 	e.Use(echo_middleware.Logger())
