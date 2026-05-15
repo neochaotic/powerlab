@@ -75,9 +75,12 @@ func NewHealthService() HealthService {
 	return &service{lister: systemctl.ListServices}
 }
 
-// NewHealthServiceWithLister returns a HealthService that calls the
-// injected ServiceLister instead of systemctl.ListServices. Test-
-// only seam — production code uses NewHealthService.
+// NewHealthServiceWithLister is a test seam — production code wires
+// via NewHealthService. Lives in the production file (rather than a
+// _test.go) so service_test (a sibling package) can use it without
+// internal hooks. golang.org/x/tools/cmd/deadcode reports it
+// unreachable from main; that's expected — strict-mode CI handling
+// for test seams is tracked in the follow-up to Sprint 21.
 func NewHealthServiceWithLister(lister ServiceLister) HealthService {
 	return &service{lister: lister}
 }
