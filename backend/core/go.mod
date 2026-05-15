@@ -13,13 +13,10 @@ require (
 	github.com/glebarez/sqlite v1.8.0
 	github.com/go-ini/ini v1.67.0
 	github.com/go-resty/resty/v2 v2.7.0
-	github.com/gomodule/redigo v1.8.9
-	github.com/google/go-github/v36 v36.0.0
 	github.com/google/uuid v1.6.0
 	github.com/googollee/go-socket.io v1.7.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/h2non/filetype v1.1.3
-	github.com/json-iterator/go v1.1.12
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/maruel/natural v1.1.0
 	github.com/mholt/archiver/v3 v3.5.1
@@ -28,14 +25,12 @@ require (
 	github.com/neochaotic/powerlab/backend/common v0.4.11-alpha4
 	github.com/neochaotic/powerlab/backend/pkg v0.0.0-20260509194312-a9f601c6bd80
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/pkg/errors v0.9.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v3 v3.23.2
 	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/gjson v1.17.0
 	go.uber.org/goleak v1.2.1
 	go.uber.org/zap v1.24.0
-	golang.org/x/oauth2 v0.7.0
 	golang.org/x/sync v0.20.0
 	gorm.io/gorm v1.25.0
 )
@@ -61,9 +56,9 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.0.0 // indirect
 	github.com/golang/geo v0.0.0-20210211234256-740aa86cb551 // indirect
-	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/gomodule/redigo v1.8.9 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/safetext v0.0.0-20240104143208-7a7d9b3d812f // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/invopop/yaml v0.2.0 // indirect
@@ -79,8 +74,6 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.21 // indirect
 	github.com/mfridman/interpolate v0.0.2 // indirect
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/nwaples/rardecode v1.1.3 // indirect
@@ -112,8 +105,6 @@ require (
 	golang.org/x/sys v0.43.0 // indirect
 	golang.org/x/text v0.36.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
-	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
