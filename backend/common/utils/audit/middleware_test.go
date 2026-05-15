@@ -2,10 +2,12 @@ package audit_test
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -305,10 +307,11 @@ func TestRecorder_DropOldestUnderBackpressure(t *testing.T) {
 func TestHTTPMiddleware_ResponseWriterImplementsFlusher(t *testing.T) {
 	svc := makeServiceForMW(t)
 
-	var sawFlusher bool
+	var sawFlusher atomic.Bool
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-		_, sawFlusher = w.(http.Flusher)
+		_, ok := w.(http.Flusher)
+		sawFlusher.Store(ok)
 		w.WriteHeader(200)
 	})
 
@@ -316,8 +319,17 @@ func TestHTTPMiddleware_ResponseWriterImplementsFlusher(t *testing.T) {
 	srv := httptest.NewServer(mw(mux))
 	defer srv.Close()
 
-	_, _ = http.Get(srv.URL + "/")
-	if !sawFlusher {
+	resp, err := http.Get(srv.URL + "/")
+	if err != nil {
+		t.Fatalf("GET: %v", err)
+	}
+	// Drain + close so the server handler has completed before we
+	// read sawFlusher. http.Get returns when response headers are in,
+	// not when the handler exits — without draining the body the race
+	// detector flags a concurrent read/write on sawFlusher.
+	_, _ = io.Copy(io.Discard, resp.Body)
+	_ = resp.Body.Close()
+	if !sawFlusher.Load() {
 		t.Error("BUG: audit middleware response wrapper does NOT implement http.Flusher. SSE handlers downstream cannot flush chunks → modal `loading` forever during install.")
 	}
 }
@@ -325,7 +337,7 @@ func TestHTTPMiddleware_ResponseWriterImplementsFlusher(t *testing.T) {
 func TestHTTPMiddleware_FlushPassesThroughToUnderlying(t *testing.T) {
 	svc := makeServiceForMW(t)
 
-	flushed := false
+	var flushed atomic.Bool
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
@@ -333,7 +345,7 @@ func TestHTTPMiddleware_FlushPassesThroughToUnderlying(t *testing.T) {
 		_, _ = w.Write([]byte("data: hello\n\n"))
 		if f, ok := w.(http.Flusher); ok {
 			f.Flush()
-			flushed = true
+			flushed.Store(true)
 		}
 	})
 
@@ -341,8 +353,13 @@ func TestHTTPMiddleware_FlushPassesThroughToUnderlying(t *testing.T) {
 	srv := httptest.NewServer(mw(mux))
 	defer srv.Close()
 
-	_, _ = http.Get(srv.URL + "/")
-	if !flushed {
+	resp, err := http.Get(srv.URL + "/")
+	if err != nil {
+		t.Fatalf("GET: %v", err)
+	}
+	_, _ = io.Copy(io.Discard, resp.Body)
+	_ = resp.Body.Close()
+	if !flushed.Load() {
 		t.Error("BUG: handler could not Flush through the audit-middleware wrapper")
 	}
 }
