@@ -1,9 +1,11 @@
 # 0033. Audit middleware — design decisions
 
-- **Status:** proposed
+- **Status:** accepted (middleware shape); **storage section superseded by [ADR-0035](./0035-audit-storage-jsonl.md)**
 - **Date:** 2026-05-14
 - **Tracks:** [#357](https://github.com/neochaotic/powerlab/issues/357) (Sprint 16)
 - **Feeds:** [#23](https://github.com/neochaotic/powerlab/issues/23) UI /logs page consumes the records this middleware produces; [#358](https://github.com/neochaotic/powerlab/issues/358) frontend errors land in the same store
+
+> **Note (2026-05-14):** SQLite storage described below was migrated to JSONL + in-memory ring buffer per [ADR-0035](./0035-audit-storage-jsonl.md) before v0.6.12 shipped. The middleware shape (capture fields, async writer, token strip, loopback sentinel) all stays. Read-side endpoints moved from the management Echo group to the public stdlib mux.
 
 ## Context
 

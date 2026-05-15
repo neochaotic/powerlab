@@ -1,10 +1,10 @@
 # 0035. Audit storage — migrate from SQLite to JSONL + in-memory ring buffer
 
-- **Status:** proposed
+- **Status:** accepted
 - **Date:** 2026-05-14
+- **Implemented:** PR #370 (Sprint 17, v0.6.12)
 - **Supersedes (in part):** [ADR-0033](./0033-audit-middleware-design.md) — middleware shape stays; storage backend changes
-- **Tracks:** Sprint 17 / pre-ADR-0034 work
-- **Blocks:** [ADR-0034](./0034-standalone-observability-mcp-service.md) implementation — observability service should consume the new layout, not SQLite
+- **Unblocks:** [ADR-0034](./0034-standalone-observability-mcp-service.md) implementation — observability service can now consume JSONL directly
 
 ## Context
 
