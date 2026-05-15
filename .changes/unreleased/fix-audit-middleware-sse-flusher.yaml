@@ -1,0 +1,13 @@
+kind: Fixed
+body: >-
+  Install / log-streaming endpoints (Server-Sent Events) no longer
+  appear to hang. The audit middleware wraps the ResponseWriter to
+  capture status codes; the wrapper was missing the ``Flusher`` and
+  ``Hijacker`` interfaces, so downstream SSE handlers and reverse
+  proxies could not flush chunks — the install modal showed
+  "loading…" indefinitely until the stream closed at the end.
+  Caught during v0.6.13-stg manual verify: app install flow felt
+  broken because logs never appeared. Forwarding ``Flush()`` to
+  the underlying writer restores chunk delivery; ``Hijack()`` is
+  also forwarded so WebSocket upgrades behind the audit middleware
+  keep working. 2 regression tests lock the contract.
