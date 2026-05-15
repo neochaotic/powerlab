@@ -10,6 +10,7 @@ import (
 
 	"github.com/compose-spec/compose-go/types"
 	"github.com/docker/compose/v2/pkg/api"
+	dockerTypes "github.com/docker/docker/api/types"
 	"github.com/neochaotic/powerlab/backend/app-management/codegen"
 	"github.com/neochaotic/powerlab/backend/app-management/common"
 	"github.com/neochaotic/powerlab/backend/common/utils/file"
@@ -289,11 +290,24 @@ func (a *ComposeApp) PullAndInstall(ctx context.Context, logWriter io.Writer) er
 		CascadeStop: true,
 		Wait:        true,
 	}); err != nil {
-		fmt.Fprintf(logWriter, "Error during start: %v\n", err)
-		go PublishEventWrapper(ctx, common.EventTypeContainerStartError, map[string]string{
-			common.PropertyTypeMessage.Name: err.Error(),
-		})
-		return err
+		// Tolerant fallback for #397: catalog entries that set
+		// explicit `container_name:` produce containers that lose
+		// the `com.docker.compose.project` label. compose-go's
+		// Start() filter then sees zero matches and errors "no
+		// container found for project X" even though the
+		// containers ARE running. Verify directly with a
+		// ContainerList() and a project-name fallback before
+		// surfacing the failure to the user.
+		all, listErr := dockerClient.ContainerList(ctx, dockerTypes.ContainerListOptions{All: true})
+		if listErr == nil && projectHasContainers(all, a.Name) {
+			fmt.Fprintf(logWriter, "Note: compose-go reported no labeled containers for project %q; healthy containers detected via name fallback (likely explicit container_name in compose). Original: %v\n", a.Name, err)
+		} else {
+			fmt.Fprintf(logWriter, "Error during start: %v\n", err)
+			go PublishEventWrapper(ctx, common.EventTypeContainerStartError, map[string]string{
+				common.PropertyTypeMessage.Name: err.Error(),
+			})
+			return err
+		}
 	}
 
 	fmt.Fprintf(logWriter, "Installation completed successfully!\n")
