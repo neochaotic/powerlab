@@ -148,17 +148,23 @@ func (g *GatewayRoute) GetRoute() http.Handler {
 		proxy.ServeHTTP(w, r)
 	})
 
-	// Audit middleware wraps the WHOLE public mux per ADR-0035 so
-	// user traffic (which hits :8765) is captured. Skips /ping and
-	// /v1/audit/* (the latter prevents the audit pane's own polling
-	// from filling the log with noise).
+	// Composition order on the way IN:
+	//   client  →  audit middleware  →  JWT decode-only  →  mux
+	//
+	// JWT decode-only runs BEFORE the audit middleware reads the
+	// request, so when audit captures it the user_id / user_name
+	// headers are already populated. Decode-only never returns 401
+	// — auth enforcement happens at the backend services (proxied)
+	// or at HTTPJWT on /v1/audit/* (gateway-owned endpoints).
 	if g.audit != nil {
-		return audit.HTTPMiddleware(g.audit.Recorder, audit.HTTPMiddlewareOptions{
+		auditMW := audit.HTTPMiddleware(g.audit.Recorder, audit.HTTPMiddlewareOptions{
 			Skipper: func(r *http.Request) bool {
 				p := r.URL.Path
 				return p == "/ping" || strings.HasPrefix(p, "/v1/audit/")
 			},
-		})(gatewayMux)
+		})
+		decodeMW := jwt.HTTPDecodeOnly(g.publicKeyFunc)
+		return auditMW(decodeMW(gatewayMux))
 	}
 	return gatewayMux
 }

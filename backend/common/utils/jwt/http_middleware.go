@@ -54,6 +54,40 @@ func HTTPJWT(publicKeyFunc func() (*ecdsa.PublicKey, error)) func(http.Handler) 
 	}
 }
 
+// HTTPDecodeOnly is the audit-friendly variant of HTTPJWT:
+//
+//   - If a valid JWT is present (Authorization header or ?token=
+//     query), decode it and set the "user_id" and "user_name"
+//     request headers so downstream middleware (notably the audit
+//     middleware) can record the authenticated identity.
+//   - If no token is present, or the token is invalid, pass through
+//     to next with NO headers set. NEVER returns 401.
+//
+// Use this on the gateway's PUBLIC mux outer layer so the audit
+// middleware captures user_id for proxied requests. Auth enforcement
+// happens downstream — either at the backend service (which validates
+// the JWT itself) or at HTTPJWT for endpoints the gateway serves
+// directly (audit endpoints).
+func HTTPDecodeOnly(publicKeyFunc func() (*ecdsa.PublicKey, error)) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			token := extractTokenFromHTTP(r)
+			if token == "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+			valid, claims, err := Validate(token, publicKeyFunc)
+			if err == nil && valid && claims != nil {
+				r.Header.Set("user_id", strconv.Itoa(claims.ID))
+				r.Header.Set("user_name", claims.Username)
+			}
+			// Token absent / invalid / lookup error → pass through with
+			// no headers. Auth enforcement is downstream.
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // extractTokenFromHTTP mirrors ExtractTokenFromRequest (Echo) but
 // for stdlib http.Request.
 func extractTokenFromHTTP(r *http.Request) string {
