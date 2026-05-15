@@ -22,6 +22,18 @@ versioned with the code.
   of the migration off `backend/common/` (CasaOS-Common); updated each
   sprint
 
+## Extensibility model
+
+**PowerLab is plugin-less by design.** Custom App (compose YAML uploaded
+through `/apps/new`) is the extension mechanism; there is no
+in-process plugin system, no SDK for third-party modules, and no
+runtime hot-load path. The CasaOS "mod" plugin SDK was inherited as
+dead code from the fork and deleted in Sprint 19 — we replaced its
+role architecturally with the compose-YAML surface, which gives the
+operator full Docker semantics without coupling them to PowerLab's
+internal API. The community-catalog mechanism is read-only metadata
+on top of compose files; it is not a plugin runtime.
+
 ## Related references
 
 - **API reference** — Scalar portal at `/docs` (running gateway).
