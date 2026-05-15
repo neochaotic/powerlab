@@ -403,6 +403,28 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
+# ── Refuse dev / test / CI bundles ──────────────────────────────────────
+# Tarballs produced via `package-linux.sh <arch> 0.0.0-<tag>` carry the
+# tag in VERSION_NEXT. Those are test artifacts (`0.0.0-ci`, `0.0.0-e2e`,
+# `0.0.0-dev`); they MUST NOT install over a real PowerLab — the UI's
+# "About" pane would display the dev stamp and the update-check would
+# never offer a real release. Operators with a legitimate need (local
+# integration testing) can override with POWERLAB_ALLOW_DEV_BUILD=1.
+case "$VERSION_NEXT" in
+  0.0.0-*)
+    if [[ "${POWERLAB_ALLOW_DEV_BUILD:-0}" != "1" ]]; then
+      cat >&2 <<EOF
+ERROR: this tarball was built as a dev/test artifact (version "$VERSION_NEXT").
+       Refusing to install — would leave the panel reporting a non-release
+       version forever. Use a versioned tarball from a GitHub release, or
+       set POWERLAB_ALLOW_DEV_BUILD=1 to force.
+EOF
+      exit 1
+    fi
+    echo "[powerlab-install] WARNING: installing dev/test bundle $VERSION_NEXT (POWERLAB_ALLOW_DEV_BUILD=1)" >&2
+    ;;
+esac
+
 # ── Distro detection ────────────────────────────────────────────────────
 # PowerLab is mostly distro-agnostic (Go binaries, systemd units, FHS
 # paths). The only distro-specific surfaces are: error messages that
