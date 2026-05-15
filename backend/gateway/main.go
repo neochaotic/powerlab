@@ -93,7 +93,7 @@ func init() {
 	}
 
 	versionFlag := flag.Bool("v", false, "version")
-	wwwPathFlag := flag.String("w", filepath.Join(constants.DefaultDataPath, "www"), "www path")
+	wwwPathFlag := flag.String("w", constants.DefaultWWWPath, "www path")
 	flag.Parse()
 
 	if *versionFlag {

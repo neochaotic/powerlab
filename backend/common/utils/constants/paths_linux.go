@@ -13,5 +13,6 @@ func init() {
 	DefaultFilePath = "/var/lib/powerlab/files"
 	DefaultLogPath = "/var/log/powerlab"
 	DefaultRuntimePath = "/var/run/powerlab"
+	DefaultWWWPath = "/usr/share/powerlab/www"
 	maybeApplyDevSandbox()
 }

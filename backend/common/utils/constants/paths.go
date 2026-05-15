@@ -19,6 +19,14 @@ var (
 	DefaultFilePath     = ""
 	DefaultLogPath      = ""
 	DefaultRuntimePath  = ""
+	// DefaultWWWPath is the canonical path where the static UI bundle
+	// is installed. On Linux production it lives under DefaultConstantPath
+	// (/usr/share/powerlab/www) — matches the `-w` flag in the systemd
+	// unit emitted by scripts/package-linux.sh. The gateway's main.go
+	// uses this as the default for the `-w` flag so a developer running
+	// the binary by hand picks up the same path the installer wrote to.
+	// Two paths used to drift (v0.6.12 cut bug, Sprint 18 #376).
+	DefaultWWWPath = ""
 )
 
 // devProductionMarkers are well-known directories created by a real
@@ -86,4 +94,5 @@ func maybeApplyDevSandbox() {
 	DefaultFilePath = filepath.Join(backendDir, "data", "files")
 	DefaultLogPath = filepath.Join(backendDir, "logs")
 	DefaultRuntimePath = filepath.Join(backendDir, "runtime")
+	DefaultWWWPath = filepath.Join(backendDir, "share", "www")
 }
