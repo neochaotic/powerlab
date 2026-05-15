@@ -113,13 +113,18 @@ func (r *Recorder) run() {
 	defer timer.Stop()
 
 	flush := func() {
-		if len(batch) == 0 {
-			return
+		if len(batch) > 0 {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			_ = r.store.AppendBatch(ctx, batch)
+			cancel()
+			batch = batch[:0]
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		_ = r.store.AppendBatch(ctx, batch)
-		cancel()
-		batch = batch[:0]
+		// ALWAYS reset the timer, even when the batch was empty.
+		// Without this, the timer goes dead after the first
+		// empty-batch tick: subsequent Submits sit in the channel
+		// until BatchSize accumulates, sometimes forever. Real-
+		// world symptom: a single POST /v1/audit/frontend-error
+		// returned 202 but never appeared in /v1/audit/recent.
 		if !timer.Stop() {
 			select {
 			case <-timer.C:
