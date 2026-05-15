@@ -146,6 +146,15 @@ func (g *GatewayRoute) GetRoute() http.Handler {
 		// request hits readLogs, which pulls the name via
 		// lastPathSegment + validates against the strict allowlist.
 		gatewayMux.Handle("/v1/logs/files/", jwtMW(readLogs))
+
+		// Per-service journald SSE stream. The handler reads the
+		// service name from `/v1/logs/services/<service>/stream` and
+		// spawns `journalctl -u powerlab-<service>.service -o json -f`.
+		// Service name validation runs BEFORE exec; see
+		// logs.serviceNameAllowlist. Subprocess lifetime is bound to
+		// the request context, so client disconnect → SIGKILL.
+		var streamLogs http.Handler = logs.StreamJournaldHTTPHandler("powerlab-")
+		gatewayMux.Handle("/v1/logs/services/", jwtMW(streamLogs))
 	}
 
 	gatewayMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
