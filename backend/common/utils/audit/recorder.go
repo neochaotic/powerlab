@@ -6,16 +6,14 @@ import (
 	"time"
 )
 
-// RecorderOptions configures the async writer. Defaults are tuned
-// for the audit use case per ADR-0033:
+// RecorderOptions configures the async writer.
+//
 //   - Capacity 1024 — channel slots; large enough that a bursty
 //     install (many requests in 100ms) doesn't drop, small enough
 //     that a stuck writer doesn't eat unbounded memory.
-//   - BatchSize 50 — rows per transaction; amortises commit cost
-//     without holding the tx open long enough to block readers.
+//   - BatchSize 50 — records per flush; amortises file write cost.
 //   - MaxLatency 200ms — max time to wait for the channel to fill
-//     before flushing a partial batch; bounds tail latency for
-//     "single request, then quiet" scenarios.
+//     before flushing a partial batch; bounds tail latency.
 //
 // Zero values get filled in by NewRecorder so callers can pass
 // RecorderOptions{} for defaults.
@@ -26,16 +24,15 @@ type RecorderOptions struct {
 }
 
 // Recorder is the async write path. Middleware calls Submit() on the
-// hot path; a background goroutine drains the channel into batched
-// transactions. Channel-full → drop oldest with a counter (never
-// block the request).
+// hot path; a background goroutine drains the channel into batches
+// and writes them to the Store (JSONL file + ring buffer). Channel-
+// full → drop oldest with a counter (never block the request).
 type Recorder struct {
-	db   *DB
-	ch   chan Record
-	stop chan struct{}
-	done chan struct{}
+	store *Store
+	ch    chan Record
+	stop  chan struct{}
+	done  chan struct{}
 
-	// dropped is incremented atomically when Submit can't enqueue.
 	dropped atomic.Int64
 
 	opts RecorderOptions
@@ -44,7 +41,7 @@ type Recorder struct {
 // NewRecorder starts the writer goroutine. The returned Recorder
 // must be Close()d on shutdown; pending records flush before the
 // goroutine exits.
-func NewRecorder(db *DB, opts RecorderOptions) *Recorder {
+func NewRecorder(store *Store, opts RecorderOptions) *Recorder {
 	if opts.Capacity <= 0 {
 		opts.Capacity = 1024
 	}
@@ -55,11 +52,11 @@ func NewRecorder(db *DB, opts RecorderOptions) *Recorder {
 		opts.MaxLatency = 200 * time.Millisecond
 	}
 	r := &Recorder{
-		db:   db,
-		ch:   make(chan Record, opts.Capacity),
-		stop: make(chan struct{}),
-		done: make(chan struct{}),
-		opts: opts,
+		store: store,
+		ch:    make(chan Record, opts.Capacity),
+		stop:  make(chan struct{}),
+		done:  make(chan struct{}),
+		opts:  opts,
 	}
 	go r.run()
 	return r
@@ -75,30 +72,23 @@ func (r *Recorder) Submit(rec Record) {
 		// fast path — slot available
 	default:
 		// channel full. Drop the oldest by draining one slot, then
-		// retry the send. The drain may race with the writer
-		// goroutine pulling its own value; either way exactly one
-		// record is lost and the new one is in.
+		// retry the send.
 		select {
 		case <-r.ch:
 			r.dropped.Add(1)
 		default:
-			// writer drained between the full-detect and our drain;
-			// retry the original send (now has a slot).
+			// writer drained between full-detect and our drain
 		}
 		select {
 		case r.ch <- rec:
 		default:
-			// still full (rare — writer is way behind). Drop the
-			// new record; we already counted one drop above.
 			r.dropped.Add(1)
 		}
 	}
 }
 
 // Dropped returns the cumulative count of records dropped due to
-// backpressure since the Recorder was created. Surfaced in the
-// /v1/audit/stats endpoint so operators see when the audit pipe is
-// falling behind.
+// backpressure since the Recorder was created.
 func (r *Recorder) Dropped() int64 {
 	return r.dropped.Load()
 }
@@ -108,7 +98,6 @@ func (r *Recorder) Dropped() int64 {
 func (r *Recorder) Close() {
 	select {
 	case <-r.stop:
-		// already closing
 		return
 	default:
 		close(r.stop)
@@ -116,10 +105,6 @@ func (r *Recorder) Close() {
 	<-r.done
 }
 
-// run is the writer goroutine. Pulls from the channel, batches up
-// to opts.BatchSize records or opts.MaxLatency, then flushes via
-// db.InsertBatch. Exits when stop is closed and the channel has
-// drained.
 func (r *Recorder) run() {
 	defer close(r.done)
 
@@ -131,13 +116,10 @@ func (r *Recorder) run() {
 		if len(batch) == 0 {
 			return
 		}
-		// Use a fresh context per flush so a long-running shutdown
-		// doesn't block forever on a stuck DB call.
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		_ = r.db.InsertBatch(ctx, batch)
+		_ = r.store.AppendBatch(ctx, batch)
 		cancel()
 		batch = batch[:0]
-		// Reset timer for the next batch window.
 		if !timer.Stop() {
 			select {
 			case <-timer.C:
@@ -161,7 +143,6 @@ func (r *Recorder) run() {
 		case <-timer.C:
 			flush()
 		case <-r.stop:
-			// Drain whatever's still queued, then exit.
 			for {
 				select {
 				case rec := <-r.ch:

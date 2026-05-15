@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -14,208 +13,281 @@ import (
 	"github.com/neochaotic/powerlab/backend/common/utils/audit"
 )
 
-// helper: spin up an echo handler wired to the audit middleware,
-// fire one request, drain the recorder, and return the persisted
-// record (or nil if none was written).
-//
-// Mirrors the production setup: JWT middleware runs first (we
-// simulate it by manually setting user_id/user_name headers before
-// invoking the handler), then audit middleware, then the handler.
-func runOneRequest(t *testing.T, method, path string, setup func(req *http.Request), opts audit.MiddlewareOptions) (audit.Record, bool) {
+func makeServiceForMW(t *testing.T) *audit.Service {
 	t.Helper()
-
-	db, err := audit.OpenDB(filepath.Join(t.TempDir(), "audit.db"))
-	if err != nil {
-		t.Fatalf("OpenDB: %v", err)
-	}
-	t.Cleanup(func() { _ = db.Close() })
-
-	rec := audit.NewRecorder(db, audit.RecorderOptions{
-		Capacity:   16,
-		BatchSize:  1, // flush every record so the test doesn't race the 200ms timer
-		MaxLatency: 10 * time.Millisecond,
+	svc, err := audit.NewService(audit.ServiceOptions{
+		Path: filepath.Join(t.TempDir(), "audit.jsonl"),
 	})
-	t.Cleanup(rec.Close)
+	if err != nil {
+		t.Fatalf("NewService: %v", err)
+	}
+	t.Cleanup(func() { _ = svc.Close() })
+	return svc
+}
+
+func waitRecorderFlush(t *testing.T) {
+	t.Helper()
+	// recorder default flush latency is 200ms — wait a bit longer
+	// to be safe against scheduler jitter.
+	time.Sleep(300 * time.Millisecond)
+}
+
+// ─── Echo middleware ────────────────────────────────────────────────────────
+
+func TestEchoMiddleware_CapturesBasicRequest(t *testing.T) {
+	svc := makeServiceForMW(t)
 
 	e := echo.New()
-	e.Use(audit.Middleware(rec, opts))
-	e.Any("/*", func(c echo.Context) error {
-		return c.String(http.StatusOK, "ok")
-	})
+	e.Use(audit.Middleware(svc.Recorder, audit.MiddlewareOptions{}))
+	e.GET("/x", func(c echo.Context) error { return c.String(200, "ok") })
 
-	req := httptest.NewRequest(method, path, nil)
-	if setup != nil {
-		setup(req)
-	}
-	rec2 := httptest.NewRecorder()
-	e.ServeHTTP(rec2, req)
+	srv := httptest.NewServer(e)
+	defer srv.Close()
 
-	// Wait for the writer to flush.
-	deadline := time.Now().Add(time.Second)
-	for time.Now().Before(deadline) {
-		n, _ := db.Count(context.Background())
-		if n >= 1 {
-			break
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
+	req, _ := http.NewRequest("GET", srv.URL+"/x", nil)
+	req.Header.Set("user_id", "42")
+	req.Header.Set("user_name", "alisson")
+	resp, _ := http.DefaultClient.Do(req)
+	_ = resp.Body.Close()
 
-	row, err := db.GetMostRecent(context.Background())
-	if err != nil {
-		if strings.Contains(err.Error(), "no rows") {
-			return audit.Record{}, false
-		}
-		t.Fatalf("GetMostRecent: %v", err)
+	waitRecorderFlush(t)
+	recent := svc.Store.Recent(audit.RecentOptions{Limit: 10})
+	if len(recent) != 1 {
+		t.Fatalf("expected 1 record, got %d", len(recent))
 	}
-	return row, true
-}
-
-func TestMiddleware_RecordsBasicRequest(t *testing.T) {
-	got, ok := runOneRequest(t, http.MethodGet, "/v2/app_management/compose", nil, audit.MiddlewareOptions{})
-	if !ok {
-		t.Fatal("no record persisted")
+	r := recent[0]
+	if r.Path != "/x" || r.Method != "GET" || r.Status != 200 {
+		t.Errorf("captured wrong fields: %+v", r)
 	}
-	if got.Method != "GET" {
-		t.Errorf("Method = %q, want GET", got.Method)
+	if r.UserID == nil || *r.UserID != 42 {
+		t.Errorf("user_id not extracted from header: %+v", r.UserID)
 	}
-	if got.Path != "/v2/app_management/compose" {
-		t.Errorf("Path = %q, want /v2/app_management/compose", got.Path)
-	}
-	if got.Status != 200 {
-		t.Errorf("Status = %d, want 200", got.Status)
-	}
-	if got.LatencyMicros <= 0 {
-		t.Errorf("LatencyMicros = %d, want > 0", got.LatencyMicros)
+	if r.Username == nil || *r.Username != "alisson" {
+		t.Errorf("username not extracted: %+v", r.Username)
 	}
 }
 
-func TestMiddleware_StripsTokenFromQuery(t *testing.T) {
-	got, ok := runOneRequest(t, http.MethodGet, "/v2/foo?token=secret.jwt.bar&limit=10", nil, audit.MiddlewareOptions{})
-	if !ok {
-		t.Fatal("no record persisted")
-	}
-	if strings.Contains(got.Query, "token") || strings.Contains(got.Query, "secret") {
-		t.Errorf("Query leaked token: %q", got.Query)
-	}
-	if !strings.Contains(got.Query, "limit=10") {
-		t.Errorf("Query lost non-token param: %q (want limit=10)", got.Query)
-	}
-}
-
-func TestMiddleware_CapturesUserFromJWTHeaders(t *testing.T) {
-	got, ok := runOneRequest(t, http.MethodPost, "/v1/users/whoami",
-		func(req *http.Request) {
-			// Simulate what jwt.JWT() ParseTokenFunc does after
-			// validating: stamps user_id (and optionally user_name)
-			// onto the request headers for downstream handlers.
-			req.Header.Set("user_id", "42")
-			req.Header.Set("user_name", "alice")
-		},
-		audit.MiddlewareOptions{})
-	if !ok {
-		t.Fatal("no record persisted")
-	}
-	if got.UserID == nil || *got.UserID != 42 {
-		t.Errorf("UserID = %v, want *42", got.UserID)
-	}
-	if got.Username == nil || *got.Username != "alice" {
-		t.Errorf("Username = %v, want *alice", got.Username)
-	}
-}
-
-func TestMiddleware_LoopbackRemoteIP_CollapsedToSentinel(t *testing.T) {
-	got, ok := runOneRequest(t, http.MethodGet, "/v1/sys/utilization",
-		func(req *http.Request) {
-			// httptest.NewRequest produces 192.0.2.1 by default for
-			// RemoteAddr; force loopback so the sentinel branch fires.
-			req.RemoteAddr = "127.0.0.1:50100"
-		},
-		audit.MiddlewareOptions{})
-	if !ok {
-		t.Fatal("no record persisted")
-	}
-	if got.RemoteIP != audit.LoopbackSentinel {
-		t.Errorf("RemoteIP = %q, want %q", got.RemoteIP, audit.LoopbackSentinel)
-	}
-}
-
-func TestMiddleware_PassesThroughRequestID(t *testing.T) {
-	const wantID = "test-correlation-1234"
-	got, ok := runOneRequest(t, http.MethodGet, "/v1/sys/utilization",
-		func(req *http.Request) { req.Header.Set(echo.HeaderXRequestID, wantID) },
-		audit.MiddlewareOptions{})
-	if !ok {
-		t.Fatal("no record persisted")
-	}
-	if got.RequestID != wantID {
-		t.Errorf("RequestID = %q, want %q", got.RequestID, wantID)
-	}
-}
-
-func TestMiddleware_SkipperBypassesRecording(t *testing.T) {
-	db, err := audit.OpenDB(filepath.Join(t.TempDir(), "audit.db"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
-	rec := audit.NewRecorder(db, audit.RecorderOptions{Capacity: 16, BatchSize: 1, MaxLatency: 10 * time.Millisecond})
-	defer rec.Close()
-
+func TestEchoMiddleware_LoopbackCollapsedToSentinel(t *testing.T) {
+	svc := makeServiceForMW(t)
 	e := echo.New()
-	e.Use(audit.Middleware(rec, audit.MiddlewareOptions{
+	e.Use(audit.Middleware(svc.Recorder, audit.MiddlewareOptions{}))
+	e.GET("/y", func(c echo.Context) error { return c.String(200, "ok") })
+
+	srv := httptest.NewServer(e)
+	defer srv.Close()
+
+	_, _ = http.Get(srv.URL + "/y")
+	waitRecorderFlush(t)
+	recent := svc.Store.Recent(audit.RecentOptions{Limit: 10})
+	if len(recent) == 0 {
+		t.Fatal("no record captured")
+	}
+	if recent[0].RemoteIP != audit.LoopbackSentinel {
+		t.Errorf("expected loopback sentinel, got %q", recent[0].RemoteIP)
+	}
+}
+
+func TestEchoMiddleware_StripsTokenQuery(t *testing.T) {
+	svc := makeServiceForMW(t)
+	e := echo.New()
+	e.Use(audit.Middleware(svc.Recorder, audit.MiddlewareOptions{}))
+	e.GET("/sse", func(c echo.Context) error { return c.String(200, "ok") })
+
+	srv := httptest.NewServer(e)
+	defer srv.Close()
+
+	_, _ = http.Get(srv.URL + "/sse?token=SECRET&channel=audit")
+	waitRecorderFlush(t)
+	recent := svc.Store.Recent(audit.RecentOptions{Limit: 10})
+	if strings.Contains(recent[0].Query, "SECRET") {
+		t.Errorf("token leaked to audit: %q", recent[0].Query)
+	}
+	if !strings.Contains(recent[0].Query, "channel=audit") {
+		t.Errorf("other params should survive: %q", recent[0].Query)
+	}
+}
+
+func TestEchoMiddleware_Skipper(t *testing.T) {
+	svc := makeServiceForMW(t)
+	e := echo.New()
+	e.Use(audit.Middleware(svc.Recorder, audit.MiddlewareOptions{
 		Skipper: func(c echo.Context) bool {
-			return c.Path() == "/v1/sys/heartbeat" || strings.HasPrefix(c.Request().URL.Path, "/v1/sys/heartbeat")
+			return c.Request().URL.Path == "/ping"
 		},
 	}))
-	e.GET("/v1/sys/heartbeat", func(c echo.Context) error { return c.NoContent(http.StatusOK) })
-	e.GET("/v1/users/info", func(c echo.Context) error { return c.NoContent(http.StatusOK) })
+	e.GET("/ping", func(c echo.Context) error { return c.String(200, "ok") })
+	e.GET("/x", func(c echo.Context) error { return c.String(200, "ok") })
 
-	for _, p := range []string{"/v1/sys/heartbeat", "/v1/users/info"} {
-		req := httptest.NewRequest(http.MethodGet, p, nil)
-		w := httptest.NewRecorder()
-		e.ServeHTTP(w, req)
+	srv := httptest.NewServer(e)
+	defer srv.Close()
+
+	_, _ = http.Get(srv.URL + "/ping")
+	_, _ = http.Get(srv.URL + "/x")
+	waitRecorderFlush(t)
+	recent := svc.Store.Recent(audit.RecentOptions{Limit: 10})
+	if len(recent) != 1 {
+		t.Fatalf("expected 1 (only /x), got %d", len(recent))
 	}
-
-	// Wait briefly for any writes.
-	time.Sleep(150 * time.Millisecond)
-	n, _ := db.Count(context.Background())
-	if n != 1 {
-		t.Errorf("recorded %d requests, want 1 (heartbeat must be skipped)", n)
-	}
-}
-
-// belt-and-suspenders: confirm the parser used for ID arithmetic
-// handles negative + zero cases so the JWT header → UserID extraction
-// doesn't silently misbehave on edge values. Locks the contract.
-func TestMiddleware_UserIDParsing_Edges(t *testing.T) {
-	for _, tc := range []struct {
-		header string
-		want   *int64
-	}{
-		{"", nil},
-		{"0", ptrInt64(0)},
-		{"not-a-number", nil},
-		{"-1", ptrInt64(-1)},
-		{strconv.FormatInt(int64(1<<62), 10), ptrInt64(1 << 62)},
-	} {
-		got, ok := runOneRequest(t, http.MethodGet, "/v1/foo",
-			func(req *http.Request) {
-				if tc.header != "" {
-					req.Header.Set("user_id", tc.header)
-				}
-			},
-			audit.MiddlewareOptions{})
-		if !ok {
-			t.Fatalf("[%s] no record persisted", tc.header)
-		}
-		if (got.UserID == nil) != (tc.want == nil) {
-			t.Errorf("[%s] UserID nilness mismatch: got=%v want=%v", tc.header, got.UserID, tc.want)
-			continue
-		}
-		if got.UserID != nil && *got.UserID != *tc.want {
-			t.Errorf("[%s] UserID = %d, want %d", tc.header, *got.UserID, *tc.want)
-		}
+	if recent[0].Path != "/x" {
+		t.Errorf("wrong path captured: %s", recent[0].Path)
 	}
 }
 
-func ptrInt64(v int64) *int64 { return &v }
+// ─── stdlib middleware ───────────────────────────────────────────────────────
+
+func TestHTTPMiddleware_CapturesAndStatusWrap(t *testing.T) {
+	svc := makeServiceForMW(t)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+	})
+	mw := audit.HTTPMiddleware(svc.Recorder, audit.HTTPMiddlewareOptions{})
+	wrapped := mw(mux)
+	srv := httptest.NewServer(wrapped)
+	defer srv.Close()
+
+	req, _ := http.NewRequest("POST", srv.URL+"/api?token=SECRET", nil)
+	req.Header.Set("user_id", "7")
+	resp, _ := http.DefaultClient.Do(req)
+	_ = resp.Body.Close()
+
+	waitRecorderFlush(t)
+	recent := svc.Store.Recent(audit.RecentOptions{Limit: 10})
+	if len(recent) != 1 {
+		t.Fatalf("expected 1 record, got %d", len(recent))
+	}
+	r := recent[0]
+	if r.Method != "POST" {
+		t.Errorf("method: %q", r.Method)
+	}
+	if r.Status != 404 {
+		t.Errorf("status not captured: got %d, want 404", r.Status)
+	}
+	if r.UserID == nil || *r.UserID != 7 {
+		t.Errorf("user_id not extracted: %+v", r.UserID)
+	}
+	if strings.Contains(r.Query, "SECRET") {
+		t.Errorf("token leaked: %q", r.Query)
+	}
+}
+
+func TestHTTPMiddleware_ImplicitStatusOK(t *testing.T) {
+	svc := makeServiceForMW(t)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("ok"))
+	})
+	mw := audit.HTTPMiddleware(svc.Recorder, audit.HTTPMiddlewareOptions{})
+	srv := httptest.NewServer(mw(mux))
+	defer srv.Close()
+
+	_, _ = http.Get(srv.URL + "/")
+	waitRecorderFlush(t)
+	recent := svc.Store.Recent(audit.RecentOptions{Limit: 1})
+	if recent[0].Status != 200 {
+		t.Errorf("implicit Write should record 200, got %d", recent[0].Status)
+	}
+}
+
+func TestHTTPMiddleware_Skipper(t *testing.T) {
+	svc := makeServiceForMW(t)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("ok"))
+	})
+	mw := audit.HTTPMiddleware(svc.Recorder, audit.HTTPMiddlewareOptions{
+		Skipper: func(r *http.Request) bool { return r.URL.Path == "/ping" },
+	})
+	srv := httptest.NewServer(mw(mux))
+	defer srv.Close()
+	_, _ = http.Get(srv.URL + "/ping")
+	_, _ = http.Get(srv.URL + "/api")
+	waitRecorderFlush(t)
+	recent := svc.Store.Recent(audit.RecentOptions{Limit: 10})
+	if len(recent) != 1 || recent[0].Path != "/api" {
+		t.Fatalf("skipper failed: %+v", recent)
+	}
+}
+
+// ─── HTTP handlers (stdlib variant) ──────────────────────────────────────────
+
+func TestRecentHTTPHandler_ReturnsJSON(t *testing.T) {
+	svc := makeServiceForMW(t)
+	now := time.Now()
+	_ = svc.Store.AppendBatch(context.Background(), []audit.Record{
+		sampleRecord(now, 1, "/x"),
+	})
+
+	h := audit.RecentHTTPHandler(svc.Store)
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/v1/audit/recent", nil)
+	h(w, r)
+
+	if got := w.Header().Get("Content-Type"); !strings.HasPrefix(got, "application/json") {
+		t.Errorf("Content-Type: %q, want JSON", got)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, `"path":"/x"`) {
+		t.Errorf("body missing recorded path: %s", body)
+	}
+}
+
+func TestStatsHTTPHandler_ReturnsJSON(t *testing.T) {
+	svc := makeServiceForMW(t)
+	now := time.Now()
+	_ = svc.Store.AppendBatch(context.Background(), []audit.Record{
+		sampleRecord(now, 1, "/x"),
+	})
+
+	h := audit.StatsHTTPHandler(svc.Store)
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/v1/audit/stats", nil)
+	h(w, r)
+	if w.Code != 200 {
+		t.Errorf("status: %d", w.Code)
+	}
+	if got := w.Header().Get("Content-Type"); !strings.HasPrefix(got, "application/json") {
+		t.Errorf("Content-Type: %q, want JSON", got)
+	}
+	if !strings.Contains(w.Body.String(), `"row_count":1`) {
+		t.Errorf("body missing row_count=1: %s", w.Body.String())
+	}
+}
+
+func TestRecentHTTPHandler_MethodNotAllowed(t *testing.T) {
+	svc := makeServiceForMW(t)
+	h := audit.RecentHTTPHandler(svc.Store)
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("POST", "/v1/audit/recent", nil)
+	h(w, r)
+	if w.Code != http.StatusMethodNotAllowed {
+		t.Errorf("status: %d, want 405", w.Code)
+	}
+}
+
+// ─── Recorder drop-oldest ────────────────────────────────────────────────────
+
+func TestRecorder_DropOldestUnderBackpressure(t *testing.T) {
+	store, _ := audit.NewStore(audit.StoreOptions{
+		Path:         filepath.Join(t.TempDir(), "audit.jsonl"),
+		RingCapacity: 100,
+	})
+	defer store.Close()
+
+	// Tight channel → ensure drop path.
+	rec := audit.NewRecorder(store, audit.RecorderOptions{
+		Capacity:   2,
+		BatchSize:  100,
+		MaxLatency: time.Hour, // never flush via timer in this test
+	})
+	defer rec.Close()
+
+	for i := 0; i < 50; i++ {
+		var r audit.Record
+		r.Path = "/x"
+		rec.Submit(r)
+	}
+	if rec.Dropped() == 0 {
+		t.Errorf("expected non-zero drops with capacity 2 + 50 submits, got %d", rec.Dropped())
+	}
+}

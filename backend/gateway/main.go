@@ -254,19 +254,18 @@ func main() {
 		_certmgr.StartTicker(_certStop)
 	}
 
-	// Audit pipeline — ADR-0033 + Sprint 16 B1c. Init eagerly so
-	// any failure surfaces in the boot log before fx wires routes.
-	// Non-fatal on init failure: gateway still serves traffic
-	// without the audit log (matches CertManager pattern above).
+	// Audit pipeline — ADR-0033 (middleware shape) + ADR-0035
+	// (JSONL storage). Init eagerly so any failure surfaces in the
+	// boot log before fx wires routes. Non-fatal on init failure:
+	// gateway still serves traffic without the audit log (matches
+	// CertManager pattern above).
 	//
-	// Path is constants.DefaultDataPath (persistent /var/lib/powerlab
-	// on Linux), NOT _state.GetRuntimePath() — RuntimePath is /run
-	// which is tmpfs on systemd hosts and gets wiped on reboot.
-	// ADR-0033 retention contract requires the audit log to survive
-	// across restarts.
+	// Path is /var/log/powerlab/audit.jsonl — operator-friendly
+	// (grep + tail -F + jq from SSH), rotated by lumberjack into
+	// .1.gz, .2.gz, ... when MaxSize is exceeded.
 	var _auditSvc *audit.Service
 	{
-		auditPath := filepath.Join(constants.DefaultDataPath, "gateway", "audit.db")
+		auditPath := "/var/log/powerlab/audit.jsonl"
 		svc, err := audit.NewService(audit.ServiceOptions{Path: auditPath})
 		if err != nil {
 			_log.Error(context.Background(), "audit.NewService failed (audit log disabled)", err)

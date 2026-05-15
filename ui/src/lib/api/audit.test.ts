@@ -49,8 +49,8 @@ describe('audit API client', () => {
 
 	it('getAuditRecent unwraps the data envelope into the array', async () => {
 		const rec = {
-			id: 1,
-			ts_unix_us: 1234,
+			ts: '2026-05-14T01:00:00.000000Z',
+			ts_us: 1234,
 			method: 'GET',
 			path: '/v1/foo',
 			query: '',
@@ -59,7 +59,7 @@ describe('audit API client', () => {
 			user_id: 1,
 			username: 'alice',
 			remote_ip: '192.168.1.10',
-			request_id: ''
+			request_id: 'r1'
 		};
 		mockResponse([rec]);
 		const rows = await getAuditRecent();

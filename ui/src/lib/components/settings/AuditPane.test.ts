@@ -12,10 +12,10 @@ vi.mock('$lib/api/audit', () => ({
 
 import { getAuditRecent, getAuditStats } from '$lib/api/audit';
 
-function rec(overrides: Partial<Parameters<typeof getAuditRecent>[0]> & Record<string, unknown> = {}) {
+function rec(overrides: Record<string, unknown> = {}) {
 	return {
-		id: 1,
-		ts_unix_us: Date.now() * 1000,
+		ts: new Date().toISOString(),
+		ts_us: Date.now() * 1000,
 		method: 'GET',
 		path: '/v1/foo',
 		query: '',
@@ -24,7 +24,7 @@ function rec(overrides: Partial<Parameters<typeof getAuditRecent>[0]> & Record<s
 		user_id: 1,
 		username: 'alice',
 		remote_ip: '192.168.1.10',
-		request_id: '',
+		request_id: 'req-1',
 		...overrides
 	};
 }
@@ -35,7 +35,7 @@ describe('AuditPane', () => {
 	});
 
 	it('renders stats and rows on mount', async () => {
-		vi.mocked(getAuditRecent).mockResolvedValueOnce([rec({ id: 1, path: '/v1/one' }), rec({ id: 2, path: '/v1/two' })]);
+		vi.mocked(getAuditRecent).mockResolvedValueOnce([rec({ request_id: 'r1', path: '/v1/one' }), rec({ request_id: 'r2', path: '/v1/two' })]);
 		vi.mocked(getAuditStats).mockResolvedValueOnce({
 			row_count: 47329,
 			oldest_unix_us: Date.now() * 1000 - 86_400_000_000,
@@ -97,7 +97,7 @@ describe('AuditPane', () => {
 
 	it('renders nullable user_id and username gracefully', async () => {
 		vi.mocked(getAuditRecent).mockResolvedValueOnce([
-			rec({ id: 1, user_id: null, username: null, path: '/v1/probe' })
+			rec({ user_id: null, username: null, path: '/v1/probe' })
 		]);
 		vi.mocked(getAuditStats).mockResolvedValueOnce({
 			row_count: 1,

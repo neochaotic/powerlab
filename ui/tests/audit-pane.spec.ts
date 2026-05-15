@@ -13,8 +13,8 @@ const FIXED_NOW_MICROS = 1_700_000_000_000_000; // arbitrary, stable
 
 const FIXTURE_RECORDS = [
 	{
-		id: 1,
-		ts_unix_us: FIXED_NOW_MICROS,
+		ts: '2026-05-14T01:00:00.000000Z',
+		ts_us: FIXED_NOW_MICROS,
 		method: 'GET',
 		path: '/v1/audit/playwright-fixture',
 		query: '',
@@ -26,8 +26,8 @@ const FIXTURE_RECORDS = [
 		request_id: 'pw-1'
 	},
 	{
-		id: 2,
-		ts_unix_us: FIXED_NOW_MICROS - 60_000_000,
+		ts: '2026-05-14T00:59:00.000000Z',
+		ts_us: FIXED_NOW_MICROS - 60_000_000,
 		method: 'POST',
 		path: '/v1/audit/another-row',
 		query: '',
@@ -36,7 +36,7 @@ const FIXTURE_RECORDS = [
 		user_id: null,
 		username: null,
 		remote_ip: 'loopback',
-		request_id: ''
+		request_id: 'pw-2'
 	}
 ];
 
