@@ -1,0 +1,10 @@
+kind: Fixed
+body: >-
+  Uninstalling an app no longer leaves Docker auto-renamed orphan containers
+  (pattern ``<12-hex>_<project>``) that block the next reinstall with
+  ``No such container: <sha>`` errors. compose-go's ``RemoveOrphans`` misses
+  these because the renamed container keeps the project label while its
+  service-name still matches the active service. A new best-effort sweep in
+  ``Uninstall()`` catches and force-removes them after ``service.Down``.
+custom:
+  Issue: "365"

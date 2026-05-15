@@ -329,6 +329,20 @@ func (a *ComposeApp) Uninstall(ctx context.Context, deleteConfigFolder bool) err
 		return err
 	}
 
+	// Catch Docker-auto-renamed orphans that compose-go's
+	// RemoveOrphans doesn't see (Sprint 17 C1, .142 incident with
+	// 2fauth reinstall). Best-effort — failure here logs and
+	// continues; the user-visible Down already succeeded.
+	if removed, err := cleanupAutoRenamedOrphans(ctx, dockerClient, a.Name); err != nil {
+		logger.Error("orphan cleanup scan failed; continuing",
+			zap.String("project", a.Name),
+			zap.Error(err))
+	} else if removed > 0 {
+		logger.Info("removed Docker-auto-renamed orphans",
+			zap.String("project", a.Name),
+			zap.Int("count", removed))
+	}
+
 	if err := file.RMDir(a.WorkingDir); err != nil {
 		go PublishEventWrapper(ctx, common.EventTypeImageRemoveError, map[string]string{
 			common.PropertyTypeMessage.Name: err.Error(),
