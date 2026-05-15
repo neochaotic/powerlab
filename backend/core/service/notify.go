@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"encoding/json"
-	json2 "encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -18,7 +17,6 @@ import (
 	"golang.org/x/sync/syncmap"
 
 	socketio "github.com/googollee/go-socket.io"
-	"github.com/gorilla/websocket"
 	"gorm.io/gorm"
 )
 
@@ -252,71 +250,6 @@ func (i *notifyServer) DelLog(id string) {
 	i.db.Where("custom_id = ?", id).Delete(&log)
 }
 
-// SendMeg (typo preserved as it's the live function name) is the
-// legacy WebSocket broadcaster — fans every queued message out to
-// every active connection.
-func SendMeg() {
-	// for {
-	// 	mt, message, err := ws.ReadMessage()
-	// 	if err != nil {
-	// 		break
-	// 	}
-	// 	notify := model.NotifyMssage{}
-	// 	json2.Unmarshal(message, &notify)
-	// 	if notify.Type == "read" {
-	// 		service.MyService.Notify().MarkRead(notify.Data, types.NOTIFY_READ)
-	// 	}
-	// 	if notify.Type == "app" {
-	//		go func(ws *websocket.Conn) {
-
-	for {
-		list := MyService.Notify().GetList(types.NOTIFY_APP)
-		json, _ := json2.Marshal(list)
-
-		if len(list) > 0 {
-			var temp []*websocket.Conn
-			for _, v := range WebSocketConns {
-
-				err := v.WriteMessage(1, json)
-				if err == nil {
-					temp = append(temp, v)
-				}
-			}
-			WebSocketConns = temp
-			for _, v := range list {
-				MyService.Notify().MarkRead(v.Id, types.NOTIFY_READ)
-			}
-		}
-
-		if len(WebSocketConns) == 0 {
-			SocketRun = false
-		}
-		time.Sleep(time.Second * 2)
-	}
-	// 	}(ws)
-	// }
-	//	}
-}
-
-// func (i notifyServer) SendText(m model.AppNotify) {
-// 	list := []model.AppNotify{}
-// 	list = append(list, m)
-// 	json, _ := json2.Marshal(list)
-// 	var temp []*websocket.Conn
-// 	for _, v := range WebSocketConns {
-
-// 		err := v.WriteMessage(1, json)
-// 		if err == nil {
-// 			temp = append(temp, v)
-// 		}
-// 	}
-// 	WebSocketConns = temp
-
-// 	if len(WebSocketConns) == 0 {
-// 		SocketRun = false
-// 	}
-
-// }
 // GetSystemTempMap returns a pointer to the in-memory system-temperature
 // map. Returning a pointer (not a copy) is required because syncmap.Map
 // embeds a sync.Mutex — copying it loses synchronisation, which Go's

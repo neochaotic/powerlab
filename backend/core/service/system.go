@@ -454,24 +454,6 @@ func (s *systemService) GetCasaOSLogs(lineNumber int) string {
 	return string(buf)
 }
 
-// GetDeviceAllIP returns every routable IPv4 address bound to the
-// host's physical interfaces — used by the discovery beacon.
-func GetDeviceAllIP() []string {
-	var address []string
-	addrs, err := net2.InterfaceAddrs()
-	if err != nil {
-		return address
-	}
-	for _, a := range addrs {
-		if ipNet, ok := a.(*net2.IPNet); ok && !ipNet.IP.IsLoopback() {
-			if ipNet.IP.To16() != nil {
-				address = append(address, ipNet.IP.String())
-			}
-		}
-	}
-	return address
-}
-
 // find thermal_zone of cpu.
 // assertions:
 //   - thermal_zone "type" and "temp" are required fields
