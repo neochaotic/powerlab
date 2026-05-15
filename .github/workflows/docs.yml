@@ -69,9 +69,14 @@ jobs:
         run: ./scripts/gen-godoc.sh
 
       - name: Build site (strict — warnings fail the build)
-        # --strict turns missing-link / missing-page warnings into errors,
-        # so a moved file or a typo in a relative link breaks the PR
-        # build instead of silently producing a broken page.
+        # --strict turns missing-link / missing-page warnings into
+        # errors so a moved file or a typo in a relative link breaks
+        # the PR build instead of silently producing a broken page.
+        # mkdocs.yml's `validation:` block downgrades `omitted_files`
+        # to info — auto-generated godoc pages (api/*) deliberately
+        # sit outside the curated nav. Curated content (ADRs,
+        # audits, patterns, research) lives in nav per Sprint 21 PR
+        # 7.5 bulk addition.
         run: mkdocs build --strict
 
       - name: Upload Pages artifact
