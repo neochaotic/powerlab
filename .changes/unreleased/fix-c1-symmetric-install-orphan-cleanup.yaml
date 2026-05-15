@@ -1,0 +1,12 @@
+kind: Fixed
+body: >-
+  App install now also sweeps Docker-auto-renamed orphans BEFORE
+  running ``service.Up(...)`` (mirror of the Uninstall-side sweep
+  from #365). Without this, an orphan left by a previous failed /
+  interrupted install — or one created manually for debugging —
+  blocks the next install attempt with
+  ``Error response from daemon: No such container: <sha>``.
+  Symmetric guard. The cleanup is best-effort: failure to remove
+  an orphan logs and continues. Closes #372.
+custom:
+  Issue: "372"

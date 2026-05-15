@@ -189,6 +189,23 @@ func (a *ComposeApp) PullAndInstall(ctx context.Context, logWriter io.Writer) er
 
 	fmt.Fprintf(logWriter, "Starting installation of app: %s\n", a.Name)
 
+	// Sweep Docker-auto-renamed orphans from prior failed/interrupted
+	// installs of this project BEFORE the create phase. Without this,
+	// compose-go races the stale orphan during recreate and surfaces
+	// "Error response from daemon: No such container: <sha>" — same
+	// bug class fixed on the Uninstall side. Symmetric guard.
+	// Best-effort: orphan removal failure logs and continues.
+	if removed, err := cleanupAutoRenamedOrphans(ctx, dockerClient, a.Name); err != nil {
+		logger.Error("pre-install orphan cleanup scan failed; continuing",
+			zap.String("project", a.Name),
+			zap.Error(err))
+	} else if removed > 0 {
+		fmt.Fprintf(logWriter, "Pre-install cleanup: removed %d Docker-auto-renamed orphan(s)\n", removed)
+		logger.Info("pre-install removed Docker-auto-renamed orphans",
+			zap.String("project", a.Name),
+			zap.Int("count", removed))
+	}
+
 	// pull
 	fmt.Fprintf(logWriter, "Phase 1/3: Pulling images...\n")
 	if err := a.Pull(ctx, logWriter); err != nil {
