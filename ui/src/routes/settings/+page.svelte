@@ -7,7 +7,7 @@
 		SlidersHorizontal, Network, Boxes, Info, Globe, Clock, Hash,
 		Power, RefreshCw, Copy, Check, ExternalLink, ShieldCheck, KeyRound,
 		Code2, Scale, Heart, Sparkles, Container, Zap, Wifi, AlertTriangle,
-		AlertCircle, ClipboardList
+		AlertCircle, ClipboardList, FileText
 	} from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { cn } from '$lib/utils';
@@ -27,10 +27,11 @@
 	import SecurityPane from '$lib/components/settings/SecurityPane.svelte';
 	import AboutPane from '$lib/components/settings/AboutPane.svelte';
 	import AuditPane from '$lib/components/settings/AuditPane.svelte';
+	import LogsPane from '$lib/components/settings/LogsPane.svelte';
 
 	const store = useSettingsStore();
 
-	type Section = 'general' | 'network' | 'apps' | 'security' | 'audit' | 'about';
+	type Section = 'general' | 'network' | 'apps' | 'security' | 'audit' | 'logs' | 'about';
 	let activeSection = $state<Section>('general');
 	let copiedKey = $state<string | null>(null);
 
@@ -41,7 +42,7 @@
 	// Deep-link support: a URL hash like /settings#security or
 	// /settings#network jumps straight to that tab. Used by HttpBanner
 	// to bring the user here from anywhere in the app.
-	const VALID_SECTIONS: Section[] = ['general', 'network', 'apps', 'security', 'audit', 'about'];
+	const VALID_SECTIONS: Section[] = ['general', 'network', 'apps', 'security', 'audit', 'logs', 'about'];
 	function applyHash() {
 		const h = window.location.hash.replace(/^#/, '') as Section;
 		if (VALID_SECTIONS.includes(h)) activeSection = h;
@@ -463,6 +464,7 @@
 		{ id: 'apps',     label: 'Apps',     icon: Boxes,             desc: 'Storage path, app sources' },
 		{ id: 'security', label: 'Security', icon: ShieldCheck,       desc: 'Password, sessions' },
 		{ id: 'audit',    label: 'Audit',    icon: ClipboardList,     desc: 'API request log' },
+		{ id: 'logs',     label: 'Logs',     icon: FileText,          desc: 'Service stdout files' },
 		{ id: 'about',    label: 'About',    icon: Info,              desc: 'Version, license, links' }
 	];
 
@@ -574,6 +576,11 @@
 			{:else if activeSection === 'audit'}
 				<div in:fade={{ duration: 150 }}>
 					<AuditPane />
+				</div>
+
+			{:else if activeSection === 'logs'}
+				<div in:fade={{ duration: 150 }}>
+					<LogsPane />
 				</div>
 
 			{:else if activeSection === 'about'}

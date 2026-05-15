@@ -8,7 +8,9 @@ import (
 	"github.com/neochaotic/powerlab/backend/common/external"
 	"github.com/neochaotic/powerlab/backend/common/pkg/security"
 	"github.com/neochaotic/powerlab/backend/common/utils/audit"
+	"github.com/neochaotic/powerlab/backend/common/utils/constants"
 	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
+	"github.com/neochaotic/powerlab/backend/common/utils/logs"
 	"github.com/neochaotic/powerlab/backend/gateway/service"
 )
 
@@ -123,6 +125,25 @@ func (g *GatewayRoute) GetRoute() http.Handler {
 		jwtMW := jwt.HTTPJWT(g.publicKeyFunc)
 		gatewayMux.Handle("/v1/audit/recent", jwtMW(recent))
 		gatewayMux.Handle("/v1/audit/stats", jwtMW(stats))
+	}
+
+	// On-disk service log viewer. Read-only access to
+	// `<DefaultLogPath>/*.log` so operators can see past install
+	// failures, gateway routing issues, etc. without SSH. Distinct
+	// from /v1/audit/* which exposes HTTP audit JSONL; this exposes
+	// raw service stdout files. Per-service journald streaming with
+	// live follow is a separate, bigger feature.
+	{
+		var (
+			listLogs http.Handler = logs.ListFilesHTTPHandler(constants.DefaultLogPath)
+			readLogs http.Handler = logs.ReadFileHTTPHandler(constants.DefaultLogPath)
+		)
+		jwtMW := jwt.HTTPJWT(g.publicKeyFunc)
+		gatewayMux.Handle("/v1/logs/files", jwtMW(listLogs))
+		// ServeMux trailing-slash routing — every /v1/logs/files/<name>
+		// request hits readLogs, which pulls the name via
+		// lastPathSegment + validates against the strict allowlist.
+		gatewayMux.Handle("/v1/logs/files/", jwtMW(readLogs))
 	}
 
 	gatewayMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
