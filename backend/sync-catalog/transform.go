@@ -136,6 +136,7 @@ func transformUpstreamCompose(upstream []byte, storeAppID string, basePort int) 
 	dropEnvFileFromServices(doc)
 	substitutePortPlaceholders(doc, basePort)
 	substituteHostValidationEnvVars(doc)
+	substituteHostnameAliases(doc, storeAppID)
 
 	out, err := yaml.Marshal(doc)
 	if err != nil {
@@ -493,6 +494,87 @@ func substituteHostValidationEnvVars(doc map[string]any) {
 				if s, ok := v.(string); ok {
 					env[k] = rewrite(s)
 				}
+			}
+		}
+	}
+}
+
+// substituteHostnameAliases rewrites docker-compose v1 hostname
+// references of the form `<storeAppID>_<svcName>_<idx>` to the
+// service-name network alias (`<svcName>`).
+//
+// Bug class: compose v2 names containers with hyphens
+// (`<project>-<svc>-<idx>`); the legacy underscore form never
+// resolves under v2 → app DNS-error crash loop on install. Upstream
+// Umbrel / CasaOS catalogs ship with the underscore form because
+// their runtime predates compose v2's behavior.
+//
+// Guards:
+//  1. The captured `<svcName>` must be an actual service in this
+//     compose document. Prevents false-positive substitution of env
+//     values that incidentally match the regex but reference nothing.
+//  2. The prefix is anchored to the WHOLE token; `blink` won't match
+//     `blinko_db_1` (different project entirely).
+//
+// Only env-var values are walked (both list-form `- K=V` and
+// map-form `K: V`). Volumes / ports / hostnames are owned by other
+// transforms.
+func substituteHostnameAliases(doc map[string]any, storeAppID string) {
+	services, ok := doc["services"].(map[string]any)
+	if !ok {
+		return
+	}
+	serviceSet := make(map[string]bool, len(services))
+	for name := range services {
+		serviceSet[name] = true
+	}
+	if len(serviceSet) == 0 {
+		return
+	}
+
+	prefix := storeAppID + "_"
+	tokenRE := regexp.MustCompile(
+		regexp.QuoteMeta(prefix) + `[a-z][a-z0-9-]*_[0-9]+`,
+	)
+
+	rewrite := func(s string) string {
+		return tokenRE.ReplaceAllStringFunc(s, func(match string) string {
+			rest := strings.TrimPrefix(match, prefix)
+			i := strings.LastIndex(rest, "_")
+			if i <= 0 {
+				return match
+			}
+			svc := rest[:i]
+			if !serviceSet[svc] {
+				return match
+			}
+			return svc
+		})
+	}
+
+	for _, svcAny := range services {
+		svc, ok := svcAny.(map[string]any)
+		if !ok {
+			continue
+		}
+		switch env := svc["environment"].(type) {
+		case []any:
+			for i, item := range env {
+				s, ok := item.(string)
+				if !ok {
+					continue
+				}
+				if eq := strings.Index(s, "="); eq >= 0 {
+					env[i] = s[:eq+1] + rewrite(s[eq+1:])
+				}
+			}
+		case map[string]any:
+			for k, v := range env {
+				s, ok := v.(string)
+				if !ok {
+					continue
+				}
+				env[k] = rewrite(s)
 			}
 		}
 	}
