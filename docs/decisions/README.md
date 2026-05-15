@@ -94,5 +94,6 @@ comment the code.
 | [0030](./0030-svelte-5-runes-lock-in.md) | Svelte 5 Runes lock-in; no Svelte 4 stores permitted | accepted |
 | [0031](./0031-oapi-codegen-for-openapi.md) | `oapi-codegen` for OpenAPI to Go; codegen output is gitignored | accepted |
 | [0032](./0032-mdns-strategy.md) | mDNS Strategy: Avahi preferred, direct multicast fallback | accepted |
+| [0033](./0033-audit-middleware-design.md) | Audit middleware: per-service SQLite, async writer, 30d/50MB retention | proposed |
 
 > **Renumber resolved 2026-05-11.** ADR-0011 and ADR-0012 originally each had **two** files because the CA series (0010–0012) and the foundation `backend/pkg/` series (originally 0011–0015) were filed in parallel branches on 2026-05-07 and 2026-05-08. The foundation pair was renumbered to **0025** (`backend-pkg-coexistence`) and **0026** (`pkg-logging`) to break the ambiguity. Historical refs to "ADR-0011 (strangler)" / "ADR-0011 (pkg coexistence)" now point at 0025; refs to "ADR-0012 (logging)" / "ADR-0012 (slog)" point at 0026. CA-context refs to 0011/0012 are unchanged. Each renumbered file carries a `Renumber history` note at the top.

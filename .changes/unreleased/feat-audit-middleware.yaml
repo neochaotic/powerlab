@@ -1,0 +1,15 @@
+kind: Added
+body: 'Echo middleware ``audit.Middleware(rec, opts)`` (Sprint 16
+  #357 step B1b). Captures method, path, status, latency,
+  user_id/username from JWT headers, remote IP (loopback
+  collapsed to canonical "loopback" sentinel per ADR-0033 PII),
+  and X-Request-Id passthrough. Strips ``token=`` from query
+  before storage so the EventSource JWT fallback never persists.
+  Non-blocking on the hot path: ``Submit()`` is at most µs and
+  cannot block the response. Optional ``Skipper`` lets services
+  bypass recording for high-frequency health checks. 7 test
+  cases including JWT capture, query-token strip, loopback
+  sentinel, request-id passthrough, skipper bypass, and edge-case
+  user_id parsing.'
+custom:
+  Issue: "357"

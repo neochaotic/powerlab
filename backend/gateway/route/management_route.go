@@ -4,9 +4,11 @@ import (
 	"crypto/ecdsa"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/neochaotic/powerlab/backend/common/external"
 	"github.com/neochaotic/powerlab/backend/common/model"
+	"github.com/neochaotic/powerlab/backend/common/utils/audit"
 	"github.com/neochaotic/powerlab/backend/common/utils/common_err"
 	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
 	"github.com/labstack/echo/v4"
@@ -18,15 +20,24 @@ import (
 // PowerLab services call into the gateway with (e.g. registering a
 // proxied path, querying the live route table, changing the listening
 // port). NOT exposed to the public-facing HTTP listener.
+//
+// The audit field is the optional ADR-0033 audit pipeline. May be
+// nil when the audit DB failed to initialise — in that case the
+// middleware is not mounted and /v1/audit/* return 503. The gateway
+// keeps serving traffic regardless (audit is observability, not a
+// hard dependency).
 type ManagementRoute struct {
 	management *service.Management
+	audit      *audit.Service
 }
 
 // NewManagementRoute constructs the management route bundle wired to
-// the supplied Management service (the in-memory route table).
-func NewManagementRoute(management *service.Management) *ManagementRoute {
+// the supplied Management service (the in-memory route table). The
+// audit.Service is provided by fx; pass nil to disable audit recording.
+func NewManagementRoute(management *service.Management, auditSvc *audit.Service) *ManagementRoute {
 	return &ManagementRoute{
 		management: management,
+		audit:      auditSvc,
 	}
 }
 
@@ -45,6 +56,22 @@ func (m *ManagementRoute) GetRoute() http.Handler {
 
 	e.Use(echo_middleware.Gzip())
 
+	// Audit middleware (ADR-0033 + Sprint 16 B1c). Mounted AFTER
+	// JWT in the per-endpoint chain so user_id headers are
+	// populated; here at the global level we capture the request
+	// regardless and the user_id will be NULL for unauthenticated
+	// requests (loopback or pre-auth probes). Skipper drops /ping
+	// + /v1/audit/* so the audit log doesn't include the health
+	// check (every 5s) or its own read-side polling.
+	if m.audit != nil {
+		e.Use(audit.Middleware(m.audit.Recorder, audit.MiddlewareOptions{
+			Skipper: func(c echo.Context) bool {
+				p := c.Request().URL.Path
+				return p == "/ping" || strings.HasPrefix(p, "/v1/audit/")
+			},
+		}))
+	}
+
 	e.GET("/ping", func(ctx echo.Context) error {
 		return ctx.JSON(http.StatusOK, echo.Map{
 			"message": "pong from management service",
@@ -52,6 +79,16 @@ func (m *ManagementRoute) GetRoute() http.Handler {
 	})
 
 	m.buildV1Group(e)
+
+	// Audit read endpoints (ADR-0033 + Sprint 16 B1e).
+	// /v1/audit/recent and /v1/audit/stats — mounted at the v1
+	// level so the auth gate (gateway's JWT middleware) protects
+	// them via the existing chain on this group.
+	if m.audit != nil {
+		auditGroup := e.Group("/v1/audit")
+		auditGroup.GET("/recent", audit.RecentHandler(m.audit.DB))
+		auditGroup.GET("/stats", audit.StatsHandler(m.audit.DB))
+	}
 
 	return e
 }

@@ -19,6 +19,7 @@ import (
 
 	"github.com/neochaotic/powerlab/backend/common/external"
 	"github.com/neochaotic/powerlab/backend/common/model"
+	"github.com/neochaotic/powerlab/backend/common/utils/audit"
 	"github.com/neochaotic/powerlab/backend/common/utils/constants"
 	"github.com/neochaotic/powerlab/backend/common/utils/devmode"
 	http2 "github.com/neochaotic/powerlab/backend/common/utils/http"
@@ -253,9 +254,31 @@ func main() {
 		_certmgr.StartTicker(_certStop)
 	}
 
+	// Audit pipeline — ADR-0033 + Sprint 16 B1c. Init eagerly so
+	// any failure surfaces in the boot log before fx wires routes.
+	// Non-fatal on init failure: gateway still serves traffic
+	// without the audit log (matches CertManager pattern above).
+	//
+	// Path is constants.DefaultDataPath (persistent /var/lib/powerlab
+	// on Linux), NOT _state.GetRuntimePath() — RuntimePath is /run
+	// which is tmpfs on systemd hosts and gets wiped on reboot.
+	// ADR-0033 retention contract requires the audit log to survive
+	// across restarts.
+	var _auditSvc *audit.Service
+	{
+		auditPath := filepath.Join(constants.DefaultDataPath, "gateway", "audit.db")
+		svc, err := audit.NewService(audit.ServiceOptions{Path: auditPath})
+		if err != nil {
+			_log.Error(context.Background(), "audit.NewService failed (audit log disabled)", err)
+		} else {
+			_auditSvc = svc
+		}
+	}
+
 	app := fx.New(
 		fx.Provide(func() *service.State { return _state }),
 		fx.Provide(func() *security.CertManager { return _certmgr }),
+		fx.Provide(func() *audit.Service { return _auditSvc }),
 		fx.Provide(service.NewManagementService),
 		fx.Provide(route.NewManagementRoute),
 		fx.Provide(route.NewGatewayRoute),
@@ -276,7 +299,19 @@ func run(
 	managementRoute *route.ManagementRoute,
 	gatewayRoute *route.GatewayRoute,
 	staticRoute *route.StaticRoute,
+	auditSvc *audit.Service,
 ) {
+	// Audit lifecycle (Sprint 16 B1c). OnStop drains the writer
+	// goroutine, halts the retention loop, and closes the DB. Nil
+	// when audit failed to init at startup — Close is nil-safe.
+	if auditSvc != nil {
+		lifecycle.Append(fx.Hook{
+			OnStop: func(context.Context) error {
+				return auditSvc.Close()
+			},
+		})
+	}
+
 	// management server
 	lifecycle.Append(
 		fx.Hook{

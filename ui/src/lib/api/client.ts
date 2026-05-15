@@ -63,6 +63,54 @@ export function addResponseInterceptor(interceptor: ResponseInterceptor): void {
 	responseInterceptors.push(interceptor);
 }
 
+// ─── 401 Unauthorized signal (Sprint 16 C3) ──────────────────────────────────
+// Centralised hook fired on every 401 response, so the auth store can
+// log out + toast "Session expired" in one place instead of every
+// caller catching ApiError and special-casing status===401. The
+// trigger that motivated this: a user with an expired JWT in
+// localStorage hitting the updater check and seeing
+// "Could not reach the release manifest: Unauthorized" — the
+// caller's catch path showed the wrapped error message and the
+// user had no idea they just needed to re-login.
+
+export interface AuthErrorInfo {
+	status: 401;
+	url: string;
+	method: string;
+	rawBody: unknown;
+}
+
+type AuthErrorHandler = (info: AuthErrorInfo) => void;
+
+const authErrorHandlers: AuthErrorHandler[] = [];
+
+/**
+ * Register a callback that fires every time the api receives an HTTP
+ * 401 from the backend. Returns an unsubscribe function. Callbacks
+ * fire IN ADDITION TO the ApiError throw — the request still rejects
+ * normally; this hook is for cross-cutting concerns (logout, toast,
+ * redirect) that should happen regardless of which caller hit the 401.
+ */
+export function onAuthError(handler: AuthErrorHandler): () => void {
+	authErrorHandlers.push(handler);
+	return () => {
+		const i = authErrorHandlers.indexOf(handler);
+		if (i >= 0) authErrorHandlers.splice(i, 1);
+	};
+}
+
+function emitAuthError(info: AuthErrorInfo): void {
+	// Defensive: a handler throwing must not block the others, and
+	// must not change the rejected ApiError seen by the caller.
+	for (const h of authErrorHandlers) {
+		try {
+			h(info);
+		} catch (e) {
+			console.error('onAuthError handler threw:', e);
+		}
+	}
+}
+
 /**
  * Core fetch wrapper. All API calls go through here.
  */
@@ -131,6 +179,19 @@ async function request<T>(
 			}
 		} catch {
 			// fallback to raw text if it's not JSON
+		}
+
+		// Fan out the centralised 401 signal BEFORE throwing so the
+		// auth store can react (logout + toast) on the same event
+		// that the caller will see as a rejected ApiError. See
+		// onAuthError() above — Sprint 16 C3.
+		if (response.status === 401) {
+			emitAuthError({
+				status: 401,
+				url,
+				method: (config.method as string) ?? 'GET',
+				rawBody: errorBody
+			});
 		}
 
 		throw {

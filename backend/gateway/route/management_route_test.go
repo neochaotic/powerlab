@@ -35,7 +35,9 @@ func setup(t *testing.T) func(t *testing.T) {
 	}
 
 	management := service.NewManagementService(_state)
-	managementRoute := NewManagementRoute(management)
+	// Pass nil audit.Service — tests don't exercise the audit
+	// pipeline; the route degrades gracefully without it.
+	managementRoute := NewManagementRoute(management, nil)
 	_router = managementRoute.GetRoute()
 
 	return func(t *testing.T) {
