@@ -32,11 +32,10 @@ skip_release: false
 # disciplined about rewriting this on every cut.
 summary: |
   Install reliability sprint. Live per-service journald viewer
-  in Settings → Logs. 154 catalog hostname fixes (66 apps no
-  longer DNS-loop on install). Install-time host substitution
-  fixes URL crashes in 44 apps. Generic bind-mount chmod
-  unblocks containers with non-root runtime users. ADR-0037
-  delta-strict deadcode gate. No breaking changes.
+  in Settings → Logs. 154 catalog hostname fixes + install-time
+  host substitution + generic bind-mount chmod unblock crashes
+  on 44+ apps. ADR-0037 delta-strict deadcode gate. No breaking
+  changes.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
