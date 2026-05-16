@@ -106,6 +106,14 @@ func (s *ComposeService) Install(ctx context.Context, composeApp *ComposeApp) er
 
 	yamlFilePath := filepath.Join(workingDirectory, common.ComposeYAMLFileName)
 
+	// Bind-mount perms: create + chmod 0o777 every bind-mount source
+	// dir AFTER remapVolumePaths/rewriteAppDataPathsToCanonical have
+	// resolved the final on-disk paths. Without this, Laravel/Node/
+	// Postgres containers can't write to /DATA/PowerLabAppData/<id>/
+	// and crash with "Permission denied" / "Please provide a valid
+	// cache path". Sprint 21 PR 10 (#427).
+	_ = PrepareBindMountSources(composeYAMLInterpolated)
+
 	if err := os.WriteFile(yamlFilePath, composeYAMLInterpolated, 0o600); err != nil {
 		logger.Error("failed to save compose file", zap.Error(err), zap.String("path", yamlFilePath))
 
