@@ -293,7 +293,10 @@ jobs:
       - name: Run deadcode
         run: ./scripts/check-deadcode.sh ${{ matrix.service }}
         env:
-          POWERLAB_DEADCODE_STRICT: '0' # warn-only until v0.7.0
+          # delta mode: fail when the count exceeds the per-service
+          # baseline in scripts/deadcode-baseline/<svc>.txt. ADR-0037
+          # explains why we abandoned the zero-strict goal.
+          POWERLAB_DEADCODE_MODE: 'delta'
 
   # ─────────────────────────────────────────────────────────────────────
   # Catalog hostname lint (Sprint 20 PR 4a). Scans every

@@ -1,0 +1,5 @@
+kind: Changed
+body: 'CI: deadcode gate switched from warn-only to delta-strict mode (ADR-0037). Per-service baselines under `scripts/deadcode-baseline/` cap the historical count; new dead code → CI fails; reductions → developer ticks the baseline down in the same PR. Supersedes the never-shipped `POWERLAB_DEADCODE_STRICT=1` flip from Sprint 19 PR 5.'
+time: 2026-05-15T00:00:00Z
+custom:
+    Issue: ""
