@@ -324,6 +324,11 @@ func (a *AppManagement) InstallComposeApp(ctx echo.Context, params codegen.Insta
 	// non-HTTP install paths.
 	buf = service.SubstituteHostPlaceholders(buf, ctx.Request().Host)
 
+	// Note: bind-mount source chmod lives further down the pipeline,
+	// inside service.ComposeService.Install, because remapVolumePaths +
+	// rewriteAppDataPathsToCanonical rewrite volume sources AFTER this
+	// point. Running chmod here would touch the wrong paths.
+
 	// validate new compose yaml
 	composeApp, err := service.NewComposeAppFromYAML(buf, false, true)
 	if err != nil {

@@ -1,0 +1,5 @@
+kind: Fixed
+body: 'Install-time generic chmod 0o777 on every bind-mount source dir. Fixes "Permission denied" / "Please provide a valid cache path" / equivalent crashes for any container whose runtime user (Laravel www-data, Node uid 1000, Postgres uid 999, etc.) doesn''t match the bind-mount owner. Generalises Sprint 14 #334 per-app postgres fix to the whole catalog. Trade-off: world-writable per-app dirs; acceptable for home-server LAN threat model. Per-app `x-powerlab.runtime_uid` refinement tracked for Sprint 22+.'
+time: 2026-05-16T00:00:00Z
+custom:
+    Issue: ""
