@@ -1,0 +1,5 @@
+kind: Fixed
+body: 'Install-time substitution of host-identity placeholders (`${DEVICE_DOMAIN_NAME}`, `${DEVICE_HOSTNAME}`, `${APP_DOMAIN}`, `${APP_*_LOCAL_IPS}`) in URL-embedded env values. Fixes 44 catalog apps that previously crashed with "Invalid URI" / "Bad Request" because their APP_URL / BASE_URL / NEXTAUTH_URL env vars ended up as `http://:8770` after compose-time interpolation. Resolution order: request Host header → first LAN IPv4 → `<hostname>.local`.'
+time: 2026-05-16T00:00:00Z
+custom:
+    Issue: ""

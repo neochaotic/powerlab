@@ -314,6 +314,16 @@ func (a *AppManagement) InstallComposeApp(ctx echo.Context, params codegen.Insta
 		// without this layer at all (v0.6.5 behavior).
 	}
 
+	// Host-identity placeholders (${DEVICE_DOMAIN_NAME}, ${DEVICE_HOSTNAME},
+	// ${APP_DOMAIN}, ${APP_*_LOCAL_IPS}) — substitute with the operator's
+	// actual host so URL-embedded refs (`APP_URL=http://${DEVICE_DOMAIN_NAME}:8770`)
+	// resolve to a valid URL instead of `http://:8770`. 44 catalog apps
+	// hit this bug class. The Host header from THIS install request is
+	// the best hint (it's what the operator's browser used to reach
+	// PowerLab); fallback chain in install_host_substitution.go covers
+	// non-HTTP install paths.
+	buf = service.SubstituteHostPlaceholders(buf, ctx.Request().Host)
+
 	// validate new compose yaml
 	composeApp, err := service.NewComposeAppFromYAML(buf, false, true)
 	if err != nil {
