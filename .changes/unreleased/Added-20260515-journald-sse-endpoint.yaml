@@ -1,5 +1,0 @@
-kind: Added
-body: 'gateway: `/v1/logs/services/{service}/stream` SSE endpoint spawns `journalctl -u powerlab-<service>.service -o json -f` and streams parsed entries (severity + message + timestamp) as SSE events. Service name validated against strict allowlist before exec; subprocess lifetime bound to request context (client disconnect → SIGKILL). Backend half of #259 /logs Phase 4.'
-time: 2026-05-15T00:00:00Z
-custom:
-    Issue: "259"

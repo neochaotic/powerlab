@@ -31,10 +31,12 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Settings → Logs pane reveals service stdout (install errors,
-  upgrade history) without SSH. Activepieces + 2fauth installs
-  fixed. UI JS error capture lands in the audit log. CORS
-  consolidated across services. No breaking changes.
+  Install reliability sprint. Live per-service journald viewer
+  in Settings → Logs. 154 catalog hostname fixes (66 apps no
+  longer DNS-loop on install). Install-time host substitution
+  fixes URL crashes in 44 apps. Generic bind-mount chmod
+  unblocks containers with non-root runtime users. ADR-0037
+  delta-strict deadcode gate. No breaking changes.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:

@@ -1,5 +1,0 @@
-kind: Removed
-body: '35 dead Go functions removed from `backend/core/`: full packages `pkg/sign` + `pkg/utils/httper`; full files `pkg/utils/{balance,bool,ctx,path,slice,time}.go`, `pkg/utils/file/reader.go`, `service/socket.go`; trimmed `pkg/utils/ip_helper/ip.go` to only the live `GetDeviceAllIPv4`; and dropped `service/notify.go::SendMeg` + `service/system.go::GetDeviceAllIP`. Inherited CasaOS utility helpers nothing else linked to.'
-time: 2026-05-15T00:00:00Z
-custom:
-    Issue: ""

@@ -13,6 +13,21 @@ Each PR adds a tiny YAML fragment under `.changes/unreleased/<id>.yaml`.
 At release time, `changie batch <version>` aggregates the fragments into
 a new section below this header. See `CONTRIBUTING.md` for the workflow.
 
+## [v0.6.16] — 2026-05-16
+### Added
+- gateway: `/v1/logs/services/{service}/stream` SSE endpoint spawns `journalctl -u powerlab-<service>.service -o json -f` and streams parsed entries (severity + message + timestamp) as SSE events. Service name validated against strict allowlist before exec; subprocess lifetime bound to request context (client disconnect → SIGKILL). Backend half of #259 /logs Phase 4.
+- Settings → Logs: new "Live (per-service)" tab streams journald output for the 7 PowerLab services via the /v1/logs/services/{svc}/stream SSE endpoint, with severity coloring (error/warn/info/debug), auto-scroll-when-at-bottom, pause/resume, and clear controls. Frontend half of #259 /logs Phase 4.
+- sync-catalog: auto-rewrite docker-compose v1 underscore hostnames (`<project>_<svc>_<idx>`) to the service-name alias on every upstream sync. Prevents the (#402) bug class from regressing as the catalog refreshes from Umbrel/CasaOS upstreams.
+### Changed
+- CI: deadcode gate switched from warn-only to delta-strict mode (ADR-0037). Per-service baselines under `scripts/deadcode-baseline/` cap the historical count; new dead code → CI fails; reductions → developer ticks the baseline down in the same PR. Supersedes the never-shipped `POWERLAB_DEADCODE_STRICT=1` flip from Sprint 19 PR 5.
+### Removed
+- 35 dead Go functions removed from `backend/core/`: full packages `pkg/sign` + `pkg/utils/httper`; full files `pkg/utils/{balance,bool,ctx,path,slice,time}.go`, `pkg/utils/file/reader.go`, `service/socket.go`; trimmed `pkg/utils/ip_helper/ip.go` to only the live `GetDeviceAllIPv4`; and dropped `service/notify.go::SendMeg` + `service/system.go::GetDeviceAllIP`. Inherited CasaOS utility helpers nothing else linked to.
+### Fixed
+- Catalog hostname sweep — 154 docker-compose v1 underscore references (`<project>_<svc>_<idx>`) rewritten to service-name network aliases (`db`, `redis`, etc.) across 65 apps. Fixes silent DNS-error crash loops on install. (#402)
+- Install-time generic chmod 0o777 on every bind-mount source dir. Fixes "Permission denied" / "Please provide a valid cache path" / equivalent crashes for any container whose runtime user (Laravel www-data, Node uid 1000, Postgres uid 999, etc.) doesn't match the bind-mount owner. Generalises Sprint 14 #334 per-app postgres fix to the whole catalog. Trade-off: world-writable per-app dirs; acceptable for home-server LAN threat model. Per-app `x-powerlab.runtime_uid` refinement tracked for Sprint 22+.
+- Install-time substitution of host-identity placeholders (`${DEVICE_DOMAIN_NAME}`, `${DEVICE_HOSTNAME}`, `${APP_DOMAIN}`, `${APP_*_LOCAL_IPS}`) in URL-embedded env values. Fixes 44 catalog apps that previously crashed with "Invalid URI" / "Bad Request" because their APP_URL / BASE_URL / NEXTAUTH_URL env vars ended up as `http://:8770` after compose-time interpolation. Resolution order: request Host header → first LAN IPv4 → `<hostname>.local`.
+
+
 ## [v0.6.15] — 2026-05-15
 ### Added
 - Settings → Logs pane: read-only viewer for the .log files under ``/var/log/powerlab/``. Shows the last 200 KB of each service's stdout (app-management, gateway, user, upgrade, ...) so operators can debug a failed install or a routing issue without SSH-ing in. Distinct from Settings → Audit, which exposes the HTTP request JSONL; this pane exposes raw service output. Two new gateway endpoints — ``GET /v1/logs/files`` (list ``.log`` files newest- first) and ``GET /v1/logs/files/{name}`` (tail content). Filename validated against a strict allowlist before any filesystem access (path-traversal hardening). Default tail 200 KB, max 5 MB. Rotated archives (``.log.gz``) and live follow are deliberate non-goals — separate feature.
