@@ -114,6 +114,16 @@ func (s *ComposeService) Install(ctx context.Context, composeApp *ComposeApp) er
 	// cache path". Sprint 21 PR 10 (#427).
 	_ = PrepareBindMountSources(composeYAMLInterpolated)
 
+	// Image-skeleton-seed: when a bind-mount source is empty AND the
+	// image ships content at the target path, copy the image content
+	// into the source before docker compose up. Closes the "bind-
+	// mount overlay" class — Laravel apps need
+	// `storage/framework/{cache,views,sessions}` pre-seeded from
+	// their image, but an empty bind-mount source overlays the image
+	// content and the app crashes. Sprint 22 PR 3 (#428). Best-
+	// effort: docker CLI failures are swallowed, install proceeds.
+	_ = SeedBindMountsFromImage(composeYAMLInterpolated)
+
 	if err := os.WriteFile(yamlFilePath, composeYAMLInterpolated, 0o600); err != nil {
 		logger.Error("failed to save compose file", zap.Error(err), zap.String("path", yamlFilePath))
 
