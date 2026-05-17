@@ -220,9 +220,10 @@ AppsPath = /var/lib/powerlab/apps
 StoragePath = /DATA
 
 [server]
-appstore = https://cdn.jsdelivr.net/gh/IceWhaleTech/CasaOS-AppStore@gh-pages/store/main.zip
-# Local PowerLab community catalog — populated weekly by sync-umbrel-catalog
-# (see docs/architecture/community-catalog.md).
+# ADR-0038: only the local PowerLab community catalog is enabled by
+# default. The CasaOS jsdelivr zip that was seeded here historically
+# is stripped at startup by the legacy-store migration in
+# pkg/config/init.go.
 appstore = /var/lib/powerlab/community-catalog
 EOF
 

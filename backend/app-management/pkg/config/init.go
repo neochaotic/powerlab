@@ -89,6 +89,13 @@ func InitSetup(config string, sample string) {
 	mapTo("app", AppInfo)
 	mapTo("server", ServerInfo)
 
+	// ADR-0038: prune legacy catalog sources from the loaded config.
+	// Operators upgrading from <v0.7.0 may still have CasaOS jsdelivr
+	// / big-bear URLs in their on-disk conf; this migration strips
+	// them and persists the cleaned list. Idempotent — clean configs
+	// are left untouched.
+	MigrateAppStoreListLegacyRemoval()
+
 	// Dev sandbox: when there is no production install (/etc/powerlab),
 	// redirect runtime + app data into the project tree so multiple
 	// services can share a writable sandbox under `./start.sh`. In
