@@ -110,6 +110,14 @@ func InitSetup(config string, sample string) {
 	// install.sh.
 	MigrateOrphanCuratedApps()
 
+	// #437 (Sprint 23) — tag apps installed before v0.7.1 with a
+	// .installed-pre-v0.7.1 marker. The follow-up UI work will consume
+	// this marker to surface a "Legacy" badge in the apps grid.
+	// Idempotent via the .legacy-scan-complete sentinel under
+	// AppsPath — runs once on the first v0.7.1 boot, then never again.
+	// New installs (post-v0.7.1) never get the marker.
+	MigrateLegacyAppMarker()
+
 	// Dev sandbox: when there is no production install (/etc/powerlab),
 	// redirect runtime + app data into the project tree so multiple
 	// services can share a writable sandbox under `./start.sh`. In
