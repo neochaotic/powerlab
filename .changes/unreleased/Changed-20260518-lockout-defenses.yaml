@@ -1,0 +1,5 @@
+kind: Changed
+body: 'Lockout-recovery defences (#260 follow-up after maintainer flagged remote-shutdown trap). systemd units gain `StartLimitBurst=10` / `StartLimitIntervalSec=60` (vs default 5/10s) so upgrade-window flaps don''t trip the burst limit and brick the box. New `docs/operations/lockout-recovery.md` walks operators through SSH recovery paths per symptom (UI loads but spinning, gateway down, SSH dead, host unreachable, bad upgrade rollback) plus the "what to set up BEFORE an incident" checklist.'
+time: 2026-05-18T01:50:00Z
+custom:
+    Issue: "260"
