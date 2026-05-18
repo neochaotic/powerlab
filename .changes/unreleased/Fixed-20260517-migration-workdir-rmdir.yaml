@@ -1,0 +1,5 @@
+kind: Fixed
+body: '`MigrateAppStoreListLegacyRemoval` now also removes the on-disk workdir for each legacy URL it strips from `AppStoreList` (parity with `UnregisterAppStore`). Without this, an upgrade from a pre-ADR-0038 install would clean the config but leave `/var/lib/powerlab/appstore/cdn.jsdelivr.net/<md5>/` (and equivalents for big-bear / icewhaletech) lingering on disk. Best-effort + missing-dir-silent — never aborts boot. (#450)'
+time: 2026-05-17T23:30:00Z
+custom:
+    Issue: "450"
