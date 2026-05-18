@@ -1,0 +1,44 @@
+name: netbird
+services:
+    app:
+        cap_add:
+            - NET_ADMIN
+            - SYS_ADMIN
+            - SYS_RESOURCE
+        image: ghcr.io/netbirdio/netbird:0.71.2-rootless@sha256:6148cf9bb59292058359c3c630c7ffa45f3d8d2a14435719798505b305f98458
+        network_mode: host
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/netbird/data/app_data:/var/lib/netbird:rw
+    web:
+        image: nginx:1.27@sha256:124b44bfc9ccd1f3cedf4b592d4d1e8bddb78b51ec2ed5056c52d3692baebc19
+        ports:
+            - 8479:80
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/netbird/data/www:/usr/share/nginx/html:ro
+version: "3.7"
+
+x-powerlab:
+    store_app_id: netbird
+    title:
+        en_us: NetBird
+    tagline:
+        en_us: An adaptive client for Zero Trust Networking
+    description:
+        en_us: "<div align=\"center\"> <br/> <br/> <p align=\"center\"> <img width=\"234\" src=\"docs/media/logo-full.png\"/> </p> <p> <a href=\"https://img.shields.io/badge/license-BSD--3-blue)\"> <img src=\"https://sonarcloud.io/api/project_badges/measure?project=netbirdio_netbird&metric=alert_status\" /> </a> <a href=\"https://github.com/netbirdio/netbird/blob/main/LICENSE\"> <img src=\"https://img.shields.io/badge/license-BSD--3-blue\" /> </a> <br> <a href=\"https://docs.netbird.io/slack-url\"> <img src=\"https://img.shields.io/badge/slack-@netbird-red.svg?logo=slack\"/> </a> <a href=\"https://forum.netbird.io\"> <img src=\"https://img.shields.io/badge/community forum-@netbird-red.svg?logo=discourse\"/> </a> <br> <a href=\"https://gurubase.io/g/netbird\"> <img src=\"https://img.shields.io/badge/Gurubase-Ask%20NetBird%20Guru-006BFF\"/> </a> </p> </div> <p align=\"center\"> <strong> Start using NetBird at <a href=\"https://netbird.io/pricing\">netbird.io</a> <br/> See <a href=\"https://netbird.io/docs/\">Documentation</a> <br/> Join our <a href=\"https://docs.netbird.io/slack-url\">Slack channel</a> or our <a href=\"https://forum.netbird.io\">Community forum</a> <br/> </strong> <br> <strong> \U0001F680 <a href=\"https://careers.netbird.io\">We are hiring! Join us at careers.netbird.io</a> </strong> <br> <br> <a href=\"https://registry.terraform.io/providers/netbirdio/netbird/latest\"> New: NetBird terraform provider </a> </p> <br> **NetBird combines a configuration-free peer-to-peer private network and a centralized access control system in a single platform, making it easy to create secure private networks for your organization or home.** **Connect.** NetBird creates a WireGuard-based overlay network that automatically connects your machines over an encrypted tunnel, leaving behind the hassle of opening ports, complex firewall rules, VPN gateways, and so forth. **Secure.** NetBird enables secure remote access by applying granular access policies while allowing you to manage them intuitively from a single place. Works universally on any infrastructure. Open Source Network Security in a Single Platform https://github.com/user-attachments/assets/10cec749-bb56-4ab3-97af-4e38850108d2 Self-Host NetBird (Video) [](https://youtu.be/bZAgpT6nzaQ) Key features | Connectivity | Management |…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/netbird/icon.svg
+    category: networking
+    port_map: "8479"
+    author: NetBird
+    developer: NetBird
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: netbird
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: netbird/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:47Z"

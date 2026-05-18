@@ -1,0 +1,59 @@
+name: docmost
+services:
+    db:
+        environment:
+            POSTGRES_DB: docmost
+            POSTGRES_PASSWORD: docmostpass
+            POSTGRES_USER: docmostuser
+        image: postgres:17.3@sha256:0321e2252ebfeecb8bc1a899755084d29bce872953e1a5a3e25ec0860b739098
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/docmost/data/db_data:/var/lib/postgresql/data
+    redis:
+        image: redis:8.0.1@sha256:b3ad79880c88e302deb5e0fed6cee3e90c0031eb90cd936b01ef2f83ff5b3ff2
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/docmost/data/redis_data:/data
+    web:
+        depends_on:
+            - db
+            - redis
+        environment:
+            APP_SECRET: ${APP_SEED}
+            APP_URL: http://${DEVICE_DOMAIN_NAME}:8941
+            DATABASE_URL: postgresql://docmostuser:docmostpass@db:5432/docmost?sslmode=disable
+            DISABLE_TELEMETRY: "true"
+            REDIS_URL: redis://redis:6379
+        image: docmost/docmost:0.80.2@sha256:0376e0cd5b82b5f7d221a537e33886c09d1523ca54dbda29c6100106b90ce4e9
+        ports:
+            - 8941:3000
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/docmost/data/docmost_data:/app/data/storage
+version: "3.7"
+
+x-powerlab:
+    store_app_id: docmost
+    title:
+        en_us: Docmost
+    tagline:
+        en_us: An collaborative wiki and documentation software
+    description:
+        en_us: <div align="center"> <h1><b>Docmost</b></h1> <p> Open-source collaborative wiki and documentation software. <br /> <a href="https://docmost.com"><strong>Website</strong></a> | <a href="https://docmost.com/docs"><strong>Documentation</strong></a> | <a href="https://twitter.com/DocmostHQ"><strong>Twitter / X</strong></a> </p> </div> <br /> Getting started To get started with Docmost, please refer to our documentation or try our cloud version . Features - Real-time collaboration - Diagrams (Draw.io, Excalidraw and Mermaid) - Spaces - Permissions management - Groups - Comments - Page history - Search - File attachments - Embeds (Airtable, Loom, Miro and more) - Translations (10+ languages) Screenshots <p align="center"> <img alt="home" src="https://docmost.com/screenshots/home.png" width="70%"> <img alt="editor" src="https://docmost.com/screenshots/editor.png" width="70%"> </p> License Docmost core is licensed under the open-source AGPL 3.0 license. Enterprise features are available under an enterprise license (Enterprise Edition). All files in the following directories are licensed under the Docmost Enterprise license defined in . - apps/server/src/ee - apps/client/src/ee - packages/ee Contributing See the development documentation Thanks Special thanks to; <img width="100" alt="Crowdin" src="https://github.com/user-attachments/assets/a6c3d352-e41b-448d-b6cd-3fbca3109f07" /> Crowdin for providing access to their localization platform. <img width="48" alt="Algolia-mark-square-white" src="https://github.com/user-attachments/assets/6ccad04a-9589-4965-b6a1-d5cb1f4f9e94" /> Algolia for providing full-text search to the docs.
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/docmost/icon.svg
+    category: files
+    port_map: "8941"
+    author: Docmost, Inc.
+    developer: Docmost, Inc.
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: docmost
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: docmost/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:32Z"

@@ -1,0 +1,58 @@
+name: hortusfox
+services:
+    app:
+        depends_on:
+            - db
+        environment:
+            APP_ADMIN_EMAIL: umbrel@umbrel.local
+            APP_ADMIN_PASSWORD: ${APP_PASSWORD}
+            DB_CHARSET: utf8mb4
+            DB_DATABASE: hortusfox
+            DB_HOST: db
+            DB_PASSWORD: password
+            DB_PORT: 3306
+            DB_USERNAME: user
+        image: ghcr.io/danielbrendel/hortusfox-web:v5.8@sha256:62fdac133dddda643d4e533de58068dc25eef7bb70f5607a0dd7a16c01049668
+        ports:
+            - 8838:80
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/hortusfox/data/images:/var/www/html/public/img
+            - /DATA/PowerLabAppData/hortusfox/data/logs:/var/www/html/app/logs
+            - /DATA/PowerLabAppData/hortusfox/data/backup:/var/www/html/public/backup
+            - /DATA/PowerLabAppData/hortusfox/data/themes:/var/www/html/public/themes
+            - /DATA/PowerLabAppData/hortusfox/data/migrate:/var/www/html/app/migrations
+    db:
+        environment:
+            MYSQL_DATABASE: hortusfox
+            MYSQL_PASSWORD: password
+            MYSQL_ROOT_PASSWORD: my-secret-pw
+            MYSQL_USER: user
+        image: mariadb:11.4.7@sha256:c5c82ddc074b9236fda87127934a1da726ecac68e9de083fd0e0d11a7bedc077
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/hortusfox/data/db_data:/var/lib/mysql
+version: "3.7"
+
+x-powerlab:
+    store_app_id: hortusfox
+    title:
+        en_us: HortusFox
+    tagline:
+        en_us: A collaborative plant tracking and management application
+    description:
+        en_us: <h1 align="center"> <img src="public/logo.png" width="256"/><br/> HortusFox </h1> <p align="center"> A self-hosted collaborative plant management system<br/> (C) 2023 - 2026 by Daniel Brendel </p> <p align="center"> <a href="https://www.hortusfox.com/">www.hortusfox.com</a> </p> <p align="center"> <img src="https://img.shields.io/badge/web-php-orange" alt="web-php"/> <img src="https://img.shields.io/badge/db-mariadb-pink" alt="db-mariadb"/> <img src="https://img.shields.io/badge/license-MIT-blue" alt="license-mit"/> <img src="https://img.shields.io/badge/maintained-yes-green" alt="maintained-yes"/> </p> <p align="center"> <a href="https://www.hortusfox.com/support"><img src="https://img.shields.io/badge/support-00CC55?style=for-the-badge&logoColor=white" alt="support"></a> <a href="https://www.hortusfox.com/faq"><img src="https://img.shields.io/badge/faq-FFDE23?style=for-the-badge&logoColor=white" alt="faq"></a> <a href="https://www.hortusfox.com/documentation"><img src="https://img.shields.io/badge/documentation-5735FF?style=for-the-badge&logoColor=white" alt="documentation"></a> <a href="https://www.danielbrendel.com"><img src="https://img.shields.io/badge/daniel%20brendel-00A3FF?style=for-the-badge&logoColor=white" alt="Daniel Brendel"></a> </p> <p align="center"> <a href="https://github.com/sponsors/danielbrendel" target="_blank"><img height="35" style="border:0px;height:35px;" src="https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86" alt="Sponsor me on GitHub"/></a>&nbsp; <a href='https://ko-fi.com/danielbrendel' target='_blank'><img height='35' style='border:0px;height:35px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a> </p> <p align="center"> <img src="app/resources/gfx/screenshot-desktop.png"/><br/> </p> Table of Contents - Description - Features - Resources - Installation - Docker - Installer - Manual - AquaShell - Cronjobs - Application testing - System requirements - External services - App icons - Weather forecast - Plant identification - Plant information - Console commands - Maintenance scripts - Tech stack - Contributing - Security Description HortusFox is a self-hosted collaborative plant management system which you can use in your own environment to manage all your plants. You can add your plants with various details and photos and assign them to a location of your environment. There is a dashboard available that shows all important…
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/hortusfox/icon.svg
+    category: files
+    port_map: "8838"
+    author: Daniel Brendel
+    developer: Daniel Brendel
+    main: app
+    source:
+        catalog: umbrel-apps
+        upstream_id: hortusfox
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: hortusfox/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:38Z"

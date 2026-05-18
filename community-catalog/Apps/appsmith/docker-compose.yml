@@ -1,0 +1,33 @@
+name: appsmith
+services:
+    app:
+        environment:
+            APPSMITH_ENCRYPTION_PASSWORD: ${APP_PASSWORD}
+            APPSMITH_ENCRYPTION_SALT: ${APP_PASSWORD}
+        image: appsmith/appsmith-ce:v1.99@sha256:eb9c41524a4be8103666b38b437d5496cb62ead292d9642ba130d8ed37a28aca
+        ports:
+            - 8654:80
+        volumes:
+            - /DATA/PowerLabAppData/appsmith/data/app:/appsmith-stacks
+version: "3.7"
+
+x-powerlab:
+    store_app_id: appsmith
+    title:
+        en_us: Appsmith
+    tagline:
+        en_us: Platform to build admin panels, internal tools, and dashboards
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/appsmith/icon.svg
+    category: developer
+    port_map: "8654"
+    author: Appsmith
+    developer: Appsmith
+    main: app
+    source:
+        catalog: umbrel-apps
+        upstream_id: appsmith
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: appsmith/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:27Z"

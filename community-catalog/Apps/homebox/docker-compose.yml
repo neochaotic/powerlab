@@ -1,0 +1,38 @@
+name: homebox
+services:
+    web:
+        environment:
+            - HBOX_LOG_LEVEL=info
+            - HBOX_LOG_FORMAT=text
+            - HBOX_WEB_MAX_UPLOAD_SIZE=10
+        image: ghcr.io/sysadminsmedia/homebox:0.25.0@sha256:6506480a3dfadd2cc885fa97b32d11b0ee28ec58629fa34a76afdb4ac540c7fc
+        ports:
+            - 7745:7745
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/homebox/data:/data/
+version: "3.7"
+
+x-powerlab:
+    store_app_id: homebox
+    title:
+        en_us: HomeBox
+    tagline:
+        en_us: An inventory and organization system built for the home user
+    description:
+        en_us: "<div align=\"center\"> <img src=\"/docs/src/assets/lilbox.svg\" height=\"200\"/> </div> <h1 align=\"center\" style=\"margin-top: -10px;\"> HomeBox </h1> <p align=\"center\" style=\"width: 100%;\"> <a href=\"https://homebox.software/en/\">Docs</a> | <a href=\"https://demo.homebox.software\">Demo</a> | <a href=\"https://discord.gg/aY4DCkpNA9\">Discord</a> </p> <p align=\"center\" style=\"width: 100%;\"> <img src=\"https://img.shields.io/github/check-runs/sysadminsmedia/homebox/main\" alt=\"Github Checks\"/> <img src=\"https://img.shields.io/github/license/sysadminsmedia/homebox\"/> <img src=\"https://img.shields.io/github/v/release/sysadminsmedia/homebox?sort=semver&display_name=release\"/> <img src=\"https://img.shields.io/weblate/progress/homebox?server=https%3A%2F%2Ftranslate.sysadminsmedia.com\"/> </p> <p align=\"center\" style=\"width: 100%;\"> <img src=\"https://img.shields.io/reddit/subreddit-subscribers/homebox\"/> <img src=\"https://img.shields.io/mastodon/follow/110749314839831923?domain=infosec.exchange\"/> <img src=\"https://img.shields.io/lemmy/homebox%40lemmy.world?label=lemmy\"/> </p> <p align=\"center\" style=\"width: 100%;\"> <a href=\"https://www.pikapods.com/pods?run=homebox\"><img src=\"https://www.pikapods.com/static/run-button.svg\"/></a> </p> What is HomeBox HomeBox is the inventory and organization system built for the Home User! With a focus on simplicity and ease of use, Homebox is the perfect solution for your home inventory, organization, and management needs. While developing this project, We've tried to keep the following principles in mind: - \U0001F9D8 _Simple but Expandable_ - Homebox is designed to be simple and easy to use. No complicated setup or configuration required. But expandable to whatever level of infrastructure you want to put into it. - \U0001F680 _Blazingly Fast_ - Homebox is written in Go, which makes it extremely fast and requires minimal resources to deploy. In general, idle memory usage is less than 50MB for the whole container. - \U0001F4E6 _Portable_ - Homebox is designed to be portable and run on anywhere. We use SQLite and an embedded Web UI…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/homebox/icon.svg
+    category: files
+    port_map: "7745"
+    author: SysAdmins Media
+    developer: SysAdmins Media
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: homebox
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: homebox/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:38Z"

@@ -1,0 +1,30 @@
+name: chatbot-ui
+services:
+    web:
+        image: ghcr.io/mckaywrigley/chatbot-ui:main@sha256:569dffe6043136f03de86bde38453a58d05150f29476239dc1da4ce2573b4101
+        ports:
+            - 10101:3000
+version: "3.7"
+
+x-powerlab:
+    store_app_id: chatbot-ui
+    title:
+        en_us: ChatBot UI
+    tagline:
+        en_us: ChatGPT but better
+    description:
+        en_us: Chatbot UI The open-source AI chat app for everyone. <img src="./public/readme/screenshot.png" alt="Chatbot UI" width="600"> Demo View the latest demo here. Updates Hey everyone! I've heard your feedback and am working hard on a big update. Things like simpler deployment, better backend compatibility, and improved mobile layouts are on their way. Be back soon. -- Mckay Official Hosted Version Use Chatbot UI without having to host it yourself! Find the official hosted version of Chatbot UI here. Sponsor If you find Chatbot UI useful, please consider sponsoring me to support my open-source work :) Issues We restrict "Issues" to actual issues related to the codebase. We're getting excessive amounts of issues that amount to things like feature requests, cloud provider issues, etc. If you are having issues with things like setup, please refer to the "Help" section in the "Discussions" tab above. Issues unrelated to the codebase will likely be closed immediately. Discussions We highly encourage you to participate in the "Discussions" tab above! Discussions are a great place to ask questions, share ideas, and get help. Odds are if you have a question, someone else has the same question. Legacy Code Chatbot UI was recently updated to its 2.0 version.…
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/chatbot-ui/icon.svg
+    category: ai
+    port_map: "10101"
+    author: Mckay Wrigley
+    developer: Mckay Wrigley
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: chatbot-ui
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: chatbot-ui/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:30Z"

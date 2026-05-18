@@ -1,0 +1,37 @@
+name: dumbpad
+services:
+    web:
+        environment:
+            BASE_URL: http://$DEVICE_DOMAIN_NAME:3000
+            SITE_TITLE: DumbPad
+        image: dumbwareio/dumbpad:1.0.4@sha256:03e4216d7842958287bccf6c51dde1c41735b35235844fb87c70b4443143ada6
+        ports:
+            - 8255:3000
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/dumbpad/data:/app/data
+version: "3.7"
+
+x-powerlab:
+    store_app_id: dumbpad
+    title:
+        en_us: DumbPad
+    tagline:
+        en_us: A notepad with collaborative editing, fuzzy search, & markdown preview
+    description:
+        en_us: 'DumbPad A stupid simple, no auth (unless you want it!), modern notepad application with auto-save functionality and dark mode support. <p align="center"> <img src="https://img.shields.io/github/package-json/v/dumbwareio/dumbpad" alt="GitHub package.json version" /> <a href="https://hub.docker.com/r/dumbwareio/dumbpad" target="_blank"><img src="https://img.shields.io/docker/v/dumbwareio/dumbpad?logo=docker&label=Docker" alt="Docker Image Version" /></a> <img src="https://img.shields.io/docker/pulls/dumbwareio/dumbpad" alt="Docker Pulls" /> <img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="License" /> <img src="https://img.shields.io/github/actions/workflow/status/dumbwareio/dumbpad/docker-publish.yml" alt="GitHub Actions Workflow Status" /> <!-- <a href="https://dumbpad.dumbware.io/" target="_blank"> <img alt="Static Badge" src="https://img.shields.io/badge/demo-site?label=dumbpad" /> </a> --> </p> Table of Contents - Features - Quick Start - Prerequisites - Option 1: Docker - Option 2: Docker Compose - Option 3: Running Locally - Important: Docker Permissions - Configuration - Security - Technical Details - Links - Contributing - Future Features Features - Simple, clean interface - Auto-saving - Dark mode support - Responsive design - Docker support - Optional PIN protection (4-10 digits) - File-based storage - Data persistence across updates - Markdown Formatting with enhanced support - GitHub-style alert blocks (Note, Tip, Important, Warning, Caution) - Extended table formatting - Auto-expand collapsible details in print (configurable) - Code syntax highlighting in - Direct notepad linking with URL parameters - Copy shareable notepad links - Browser navigation support (back/forward buttons) - Fuzzy Search (by filename and file contents) - PWA Support with automatic cache…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/dumbpad/icon.svg
+    category: files
+    port_map: "8255"
+    author: DumbWareio
+    developer: DumbWareio
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: dumbpad
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: dumbpad/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:32Z"

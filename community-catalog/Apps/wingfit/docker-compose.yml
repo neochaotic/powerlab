@@ -1,0 +1,39 @@
+name: wingfit
+services:
+    app:
+        command:
+            - fastapi
+            - run
+            - /app/wingfit/main.py
+            - --host
+            - 0.0.0.0
+        image: ghcr.io/itskovacs/wingfit:5.3.1@sha256:fed5dcc1c8abdec6409f4272caa08f9a6f1d2a3c8e1f9a13b3459c2ffea8a360
+        ports:
+            - 8950:8000
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/wingfit/data:/app/storage
+version: "3.7"
+
+x-powerlab:
+    store_app_id: wingfit
+    title:
+        en_us: Wingfit
+    tagline:
+        en_us: An open-source minimalist fitness app
+    description:
+        en_us: "<p align=\"center\"><img width=\"120\" src=\"./src/public/favicon_square.png\"></p> <h2 align=\"center\">Wingfit</h2> <div align=\"center\"> [](https://github.com/itskovacs/wingfit/issues) [](/LICENSE) <a href=\"https://apps.umbrel.com/app/wingfit\" target=\"_blank\"><img width=\"180\" src=\"https://apps.umbrel.com/badge-light.svg\"></a> </div> <p align=\"center\">\U0001F3CB️ The wingman for your fitness </p> <br> <div align=\"center\"> </div> \U0001F4DD Table of Contents - \U0001F4E6 About - \U0001F331 Getting Started - \U0001F4F8 Demo - \U0001F6A7 Roadmap - \U0001F4DC License - \U0001F91D Contributing - \U0001F6E0️ Tech Stack \U0001F4E6 About <a name = \"about\"></a> Wingfit is a minimalist fitness app to **plan your workouts**, **track your personal records** and **leverage smartwatch data**. Demo is worth a thousand words, head to \U0001F4F8 Demo. \U0001F512 Privacy-First – No telemetry, no tracking, fully self-hostable. You own your data. Inspect, modify, and contribute freely. <br> \U0001F331 Getting Started <a name = \"getting_started\"></a> If you need help, feel free to open an issue. Deployment is designed to be simple using Docker. Option 1: Docker Compose (Recommended) Use the file provided in this repository. No changes are required, though you may customize it to suit your needs. Run the container: Option 2: Docker Run Refer to the configuration documentation to set up OIDC authentication and other settings. <br> \U0001F4F8 Demo <a name = \"demo\"></a> A demo is available at Wingfit.fr. <div align=\"center\"> | | | |:-------:|:-------:| | | |…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/wingfit/icon.svg
+    category: files
+    port_map: "8950"
+    author: Kovacs
+    developer: Kovacs
+    main: app
+    source:
+        catalog: umbrel-apps
+        upstream_id: wingfit
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: wingfit/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:14:03Z"

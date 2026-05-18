@@ -1,0 +1,36 @@
+name: emby
+services:
+    server:
+        environment:
+            GID: 1000
+            TZ: Europe/Berlin
+            UID: 1000
+        image: linuxserver/emby:version-4.9.3.0@sha256:dbd1a3c83205445d13aad13362bdfa8478a6912541a1e32d654c550baf494e5a
+        ports:
+            - 8097:8096
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/emby/data/config:/config:rw
+            - /DATA/data/storage/downloads:/downloads
+version: "3.7"
+
+x-powerlab:
+    store_app_id: emby
+    title:
+        en_us: Emby
+    tagline:
+        en_us: A personal media server
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/emby/icon.svg
+    category: media
+    port_map: "8097"
+    author: Emby LLC
+    developer: Emby LLC
+    main: server
+    source:
+        catalog: umbrel-apps
+        upstream_id: emby
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: emby/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:33Z"

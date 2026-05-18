@@ -1,0 +1,46 @@
+name: stalwart
+services:
+    server:
+        environment:
+            - STALWART_RECOVERY_ADMIN=admin:${APP_PASSWORD}
+            - STALWART_PUBLIC_URL=http://${DEVICE_DOMAIN_NAME}:8745
+        image: stalwartlabs/stalwart:v0.16.5@sha256:c435a9b97526205dd0bc46245ae97b960cf4cd7a5f1e411f14f36a9d5fc6efdb
+        ports:
+            - 10443:443
+            - "10025:25"
+            - 10465:465
+            - 10587:587
+            - 10143:143
+            - 10993:993
+            - 14190:4190
+            - 10110:110
+            - 10995:995
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/stalwart/data/etc:/etc/stalwart
+            - /DATA/PowerLabAppData/stalwart/data/server:/var/lib/stalwart
+version: "3.9"
+
+x-powerlab:
+    store_app_id: stalwart
+    title:
+        en_us: Stalwart
+    tagline:
+        en_us: All-in-one Mail & Collaboration server
+    description:
+        en_us: "<p align=\"center\"> <a href=\"https://stalw.art\"> <img src=\"./img/logo-red.svg\" height=\"150\"> </a> </p> <h3 align=\"center\"> Secure, scalable mail & collaboration server with comprehensive protocol support \U0001F6E1️ <br/>(IMAP, JMAP, SMTP, CalDAV, CardDAV, WebDAV) </h3> <br> <p align=\"center\"> <a href=\"https://github.com/stalwartlabs/stalwart/actions/workflows/ci.yml\"><img src=\"https://img.shields.io/github/actions/workflow/status/stalwartlabs/stalwart/ci.yml?style=flat-square\" alt=\"continuous integration\"></a> &nbsp; <a href=\"https://www.gnu.org/licenses/agpl-3.0\"><img src=\"https://img.shields.io/badge/License-AGPL_v3-blue.svg?label=license&style=flat-square\" alt=\"License: AGPL v3\"></a> &nbsp; <a href=\"https://stalw.art/docs/install/get-started\"><img src=\"https://img.shields.io/badge/read_the-docs-red?style=flat-square\" alt=\"Documentation\"></a> </p> <p align=\"center\"> <a href=\"https://mastodon.social/@stalwartlabs\"><img src=\"https://img.shields.io/mastodon/follow/109929667531941122?style=flat-square&logo=mastodon&color=%236364ff&label=Follow%20on%20Mastodon\" alt=\"Mastodon\"></a> &nbsp; <a href=\"https://twitter.com/stalwartlabs\"><img src=\"https://img.shields.io/twitter/follow/stalwartlabs?style=flat-square&logo=x&label=Follow%20on%20Twitter\" alt=\"Twitter\"></a> </p> <p align=\"center\"> <a href=\"https://discord.com/servers/stalwart-923615863037390889\"><img src=\"https://img.shields.io/discord/923615863037390889?label=Join%20Discord&logo=discord&style=flat-square\" alt=\"Discord\"></a> &nbsp; <a href=\"https://www.reddit.com/r/stalwartlabs/\"><img src=\"https://img.shields.io/reddit/subreddit-subscribers/stalwartlabs?label=Join%20%2Fr%2Fstalwartlabs&logo=reddit&style=flat-square\" alt=\"Reddit\"></a> </p> Features **Stalwart** is an open-source mail & collaboration server with JMAP, IMAP4, POP3, SMTP, CalDAV, CardDAV and WebDAV support and a wide range of modern features. It is written in Rust and designed to be secure, fast, robust and scalable. Key features: - **Email** server with complete protocol support: - JMAP: * JMAP for Mail server. * JMAP for Sieve Scripts. * WebSocket, Blob Management and Quotas extensions. - IMAP: * IMAP4rev2 and IMAP4rev1 server. * ManageSieve server. * Numerous extensions supported. - POP3: - POP3 server. - STLS and SASL support as well as other extensions. - SMTP: * SMTP server with built-in DMARC, DKIM, SPF and ARC support for message authentication. * Strong transport security through DANE, MTA-STS and SMTP TLS reporting. * Automated…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/stalwart/icon.svg
+    category: files
+    port_map: "8745"
+    author: Stalwart Labs
+    developer: Stalwart Labs
+    main: server
+    source:
+        catalog: umbrel-apps
+        upstream_id: stalwart
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: stalwart/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:57Z"

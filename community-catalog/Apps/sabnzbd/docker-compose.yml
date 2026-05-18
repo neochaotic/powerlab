@@ -1,0 +1,39 @@
+name: sabnzbd
+services:
+    web:
+        environment:
+            - DOCKER_MODS=linuxserver/mods:universal-package-install
+            - INSTALL_PACKAGES=ffmpeg
+            - PUID=1000
+            - PGID=1000
+            - TZ=Etc/UTC
+        image: linuxserver/sabnzbd:5.0.3@sha256:f567ed2e26b964690e93d708d9660db011fcd0a4057f927cae1b6ec23387efd5
+        ports:
+            - 9876:8080
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/sabnzbd/data/config:/config
+            - /DATA/data/storage/downloads:/downloads
+version: "3.7"
+
+x-powerlab:
+    store_app_id: sabnzbd
+    title:
+        en_us: SABnzbd
+    tagline:
+        en_us: The automated Usenet download tool
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/sabnzbd/icon.svg
+    category: networking
+    port_map: "9876"
+    author: sabnzbd
+    developer: sabnzbd
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: sabnzbd
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: sabnzbd/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:55Z"

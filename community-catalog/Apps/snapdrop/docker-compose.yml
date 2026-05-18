@@ -1,0 +1,34 @@
+name: snapdrop
+services:
+    server:
+        environment:
+            - PUID=1000
+            - PGID=1000
+        image: linuxserver/snapdrop:version-b8b78cc2@sha256:3e0af233372e6ae7ac711397d40cbe2797cefe13220d65e5e284a64252cc0c2c
+        ports:
+            - 8222:80
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/snapdrop/data/config:/config
+version: "3.7"
+
+x-powerlab:
+    store_app_id: snapdrop
+    title:
+        en_us: Snapdrop
+    tagline:
+        en_us: Opensource Airdrop Alternative
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/snapdrop/icon.svg
+    category: files
+    port_map: "8222"
+    author: RobinLinus
+    developer: RobinLinus
+    main: server
+    source:
+        catalog: umbrel-apps
+        upstream_id: snapdrop
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: snapdrop/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:57Z"

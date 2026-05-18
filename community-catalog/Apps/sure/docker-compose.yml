@@ -1,0 +1,102 @@
+name: sure
+services:
+    db:
+        environment:
+            PGDATA: /data/pgdata
+            POSTGRES_DB: sure_production
+            POSTGRES_PASSWORD: sure_password
+            POSTGRES_USER: sure_user
+        healthcheck:
+            interval: 10s
+            retries: 5
+            start_period: 30s
+            test: pg_isready -U sure_user -h localhost -d sure_production
+            timeout: 5s
+        image: postgres:18.3-alpine@sha256:52098013b4b64a746626437d38afc03cabff6cdeb4d3d92e2342aa95f0ce56ea
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/sure/data/postgres:/data
+    redis:
+        healthcheck:
+            interval: 5s
+            retries: 5
+            start_period: 30s
+            test: redis-cli ping
+            timeout: 5s
+        image: redis:8.4.2@sha256:4b0ab81cf4d84e610215d0159dcc218d4ec6180f869a9bc83c33a1945d6f3e42
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/sure/data/redis:/data
+    web:
+        depends_on:
+            db:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        environment:
+            DB_HOST: db
+            DB_PORT: 5432
+            POSTGRES_DB: sure_production
+            POSTGRES_PASSWORD: sure_password
+            POSTGRES_USER: sure_user
+            RAILS_ASSUME_SSL: "false"
+            RAILS_FORCE_SSL: "false"
+            REDIS_URL: redis://redis:6379/1
+            SECRET_KEY_BASE: $APP_SEED
+            SELF_HOSTED: "true"
+        image: ghcr.io/we-promise/sure:0.7.0-hotfix.3@sha256:55c4da94f60a6a0e1da107dd6d61bdef06661bebaed26c1cd2a5c4d3d10af4ef
+        ports:
+            - 3064:3000
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/sure/data/rails:/rails/storage
+    worker:
+        command: bundle exec sidekiq
+        depends_on:
+            db:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        environment:
+            DB_HOST: db
+            DB_PORT: 5432
+            POSTGRES_DB: sure_production
+            POSTGRES_PASSWORD: sure_password
+            POSTGRES_USER: sure_user
+            RAILS_ASSUME_SSL: "false"
+            RAILS_FORCE_SSL: "false"
+            REDIS_URL: redis://redis:6379/1
+            SECRET_KEY_BASE: $APP_SEED
+            SELF_HOSTED: "true"
+        image: ghcr.io/we-promise/sure:0.7.0-hotfix.3@sha256:55c4da94f60a6a0e1da107dd6d61bdef06661bebaed26c1cd2a5c4d3d10af4ef
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/sure/data/rails:/rails/storage
+version: "3.7"
+
+x-powerlab:
+    store_app_id: sure
+    title:
+        en_us: Sure
+    tagline:
+        en_us: The personal finance app for everyone
+    description:
+        en_us: '[](https://deepwiki.com/we-promise/sure) [](https://oss.skylight.io/app/applications/s6PEZSKwcklL) [](https://app.dosu.dev/a72bdcfd-15f5-4edc-bd85-ea0daa6c3adc/ask) [](https://github.com/we-promise/sure/actions/workflows/pipelock.yml) <img width="1270" height="1140" alt="sure_shot" src="https://github.com/user-attachments/assets/9c6e03cc-3490-40ab-9a68-52e042c51293" /> <p align="center"> <!-- Keep these links. Translations will automatically update with the README. --> <a href="https://readme-i18n.com/de/we-promise/sure">Deutsch</a> | <a href="https://readme-i18n.com/es/we-promise/sure">Español</a> | <a href="https://readme-i18n.com/fr/we-promise/sure">Français</a> | <a href="https://readme-i18n.com/ja/we-promise/sure">日本語</a> | <a href="https://readme-i18n.com/ko/we-promise/sure">한국어</a> | <a href="https://readme-i18n.com/pt/we-promise/sure">Português</a> | <a href="https://readme-i18n.com/ru/we-promise/sure">Русский</a> | <a href="https://readme-i18n.com/zh/we-promise/sure">中文</a> </p> Sure: The personal finance app for everyone <b>Get involved: Discord • Website • Issues</b> > [!IMPORTANT] > This repository is a community fork of the now-abandoned Maybe Finance project. <br /> > Learn more in their final release doc. Backstory The Maybe Finance (archived/abandoned repo) team spent most of 2021–2022 building a full-featured personal finance and wealth management app. It even included an “Ask an Advisor” feature that connected users with a real CFP/CFA — all included with your subscription. The business end of things didn''t work out, and so they stopped developing the app in mid-2023. After spending nearly $1 million on development (employees, contractors, data providers, infra, etc.), the team open-sourced the app. Their goal was to let users self-host it for free — and eventually launch a hosted version for a small fee. They actually did launch that hosted version … briefly. That also didn’t work out — at…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/sure/icon.svg
+    category: finance
+    port_map: "3064"
+    author: Sure Finances
+    developer: Sure Finances
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: sure
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: sure/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:58Z"

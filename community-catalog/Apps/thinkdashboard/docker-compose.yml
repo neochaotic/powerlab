@@ -1,0 +1,36 @@
+name: thinkdashboard
+services:
+    server:
+        environment:
+            - PORT=8080
+        image: ghcr.io/matiasdesuu/thinkdashboard:v0.7.6@sha256:3bd3ac29fcd0329673a1b4946e4e63ecc55239e6221a00bd4b407a5343c55079
+        ports:
+            - 8229:8080
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/thinkdashboard/data:/app/data
+version: "3.7"
+
+x-powerlab:
+    store_app_id: thinkdashboard
+    title:
+        en_us: ThinkDashboard
+    tagline:
+        en_us: A lightweight, bookmark dashboard with keyboard shortcuts
+    description:
+        en_us: "ThinkDashboard A lightweight, self-hosted bookmark dashboard built with Go and vanilla JavaScript. ✨ Features - **Minimalist Design**: Clean, text-based interface - **Keyboard Shortcuts**: Assign keys shortcuts to quickly open bookmarks - **Customizable Categories**: Organize bookmarks into categories - **Theme Support**: Dark and light themes - **Theme customization**: Full theme customization support with possibility to create infinite variants - **Responsive Design**: Works on desktop and mobile devices \U0001F5BC️ Screenshots | | | |--------------------------|--------------------------| | | | <p align=\"center\"> \U0001F4F1Mobile view<br> <img src=\"screenshots/5.png\" width=\"25%\"> <img src=\"screenshots/6.png\" width=\"25%\"> </p> \U0001F680 Quick Start Using Docker Compose Using Docker 1. Run the container: 3. Open your browser and navigate to Using Go 1. Clone the repository: 2. Install dependencies: 3. Run the application: 4. Open your browser and navigate to ⚙️ Configuration Access the configuration page by navigating to or clicking the \"config\" link in the top-right corner of the dashboard. *You can also access it by typing in the Search bar.* \U0001F3A8 Color Customization Access the color customization page by navigating to or clicking the \"customize colors\" in the config page. *You can also access it by typing in the Search bar.* ⌨️ Keyboard Shortcuts Assign keys shortcuts to your bookmarks for quick access.…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/thinkdashboard/icon.svg
+    category: files
+    port_map: "8229"
+    author: MatiasDesuu
+    developer: MatiasDesuu
+    main: server
+    source:
+        catalog: umbrel-apps
+        upstream_id: thinkdashboard
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: thinkdashboard/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:59Z"

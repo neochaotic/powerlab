@@ -1,0 +1,44 @@
+name: node-red
+services:
+    web:
+        environment:
+            BITCOIN_IP: $APP_BITCOIN_NODE_IP
+            BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
+            BITCOIN_RPC_PASS: $APP_BITCOIN_RPC_PASS
+            BITCOIN_RPC_PORT: $APP_BITCOIN_RPC_PORT
+            BITCOIN_RPC_USER: $APP_BITCOIN_RPC_USER
+            ELECTRUM_IP: $APP_ELECTRS_NODE_IP
+            ELECTRUM_PORT: $APP_ELECTRS_NODE_PORT
+            LND_GRPC_PORT: $APP_LIGHTNING_NODE_GRPC_PORT
+            LND_IP: $APP_LIGHTNING_NODE_IP
+            PORT: 1880
+        image: nodered/node-red:4.1.10@sha256:eaa2fa23f751581162a4ff9eebb28fcbfcca7935b1a839f63672718f3c816761
+        ports:
+            - 1880:1880
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/node-red/data:/data
+            - /DATA/PowerLabAppData/node-red:/lnd:ro
+version: "3.7"
+
+x-powerlab:
+    store_app_id: node-red
+    title:
+        en_us: Node-RED (Bitcoin)
+    tagline:
+        en_us: Wire together the Internet of Things
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/node-red/icon.svg
+    category: automation
+    port_map: "1880"
+    author: OpenJS Foundation
+    developer: OpenJS Foundation
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: node-red
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: node-red/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:48Z"

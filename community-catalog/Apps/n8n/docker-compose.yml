@@ -1,0 +1,40 @@
+name: n8n
+services:
+    server:
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - N8N_HOST=$DEVICE_DOMAIN_NAME
+            - N8N_SECURE_COOKIE=false
+            - N8N_DIAGNOSTICS_ENABLED=false
+            - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+            - N8N_RUNNERS_ENABLED=true
+        image: n8nio/n8n:2.21.3@sha256:23005738b8539e34c13986f8d2c76c2ac540a89a318cbc5481aae89265a28c93
+        ports:
+            - 5678:5678
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/n8n/data:/home/node/.n8n
+version: "3.7"
+
+x-powerlab:
+    store_app_id: n8n
+    title:
+        en_us: n8n
+    tagline:
+        en_us: Build complex workflows, really fast
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/n8n/icon.svg
+    category: automation
+    port_map: "5678"
+    author: n8n
+    developer: n8n
+    main: server
+    source:
+        catalog: umbrel-apps
+        upstream_id: n8n
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: n8n/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:46Z"

@@ -1,0 +1,32 @@
+name: firefly-iii-importer
+services:
+    importer:
+        environment:
+            - FIREFLY_III_URL=http://firefly-iii_server_1:8080
+            - VANITY_URL=http://${DEVICE_DOMAIN_NAME}:30009
+        image: fireflyiii/data-importer:version-2.3.2@sha256:4e2cbcb0d95c34850534a3772f1732c00f6412077db33b1863703a1b628bdc12
+        ports:
+            - 30010:8080
+        restart: on-failure
+version: "3.7"
+
+x-powerlab:
+    store_app_id: firefly-iii-importer
+    title:
+        en_us: Firefly III Importer
+    tagline:
+        en_us: Import your transactions into Firefly III
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/firefly-iii-importer/icon.svg
+    category: finance
+    port_map: "30010"
+    author: Firefly III
+    developer: Firefly III
+    main: importer
+    source:
+        catalog: umbrel-apps
+        upstream_id: firefly-iii-importer
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: firefly-iii-importer/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:34Z"

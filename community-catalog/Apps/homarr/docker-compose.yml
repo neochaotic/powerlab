@@ -1,0 +1,33 @@
+name: homarr
+services:
+    web:
+        environment:
+            SECRET_ENCRYPTION_KEY: ${APP_SEED}
+        image: ghcr.io/homarr-labs/homarr:v1.61.0@sha256:6a726c72b37d56a7ce271d35498712f90bfd05ee203bc81e069d718489c35b06
+        ports:
+            - 7575:7575
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/homarr/data:/appdata
+version: "3.7"
+
+x-powerlab:
+    store_app_id: homarr
+    title:
+        en_us: Homarr
+    tagline:
+        en_us: A customizable browser home page
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/homarr/icon.svg
+    category: files
+    port_map: "7575"
+    author: homarr-labs
+    developer: homarr-labs
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: homarr
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: homarr/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:37Z"

@@ -1,0 +1,32 @@
+name: myspeed
+services:
+    web:
+        image: germannewsmaker/myspeed:1.0.9@sha256:3a3e774b3f78d930a5a962d625b99bcb3d71730bfeb4a6b93e04fd38cfe7d9a9
+        ports:
+            - 5216:5216
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/myspeed/data/myspeed:/myspeed/data
+version: "3.7"
+
+x-powerlab:
+    store_app_id: myspeed
+    title:
+        en_us: MySpeed
+    tagline:
+        en_us: Speed test analysis software that shows your internet speed for up to 30 days
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/myspeed/icon.svg
+    category: networking
+    port_map: "5216"
+    author: Mathias Wagner
+    developer: Mathias Wagner
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: myspeed
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: myspeed/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:46Z"

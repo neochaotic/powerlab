@@ -1,0 +1,48 @@
+name: formicaio
+services:
+    app:
+        environment:
+            DB_PATH: /data
+            LEPTOS_SITE_ADDR: 0.0.0.0:3000
+            NODE_MGR_ROOT_DIR: /data
+        image: bochaco/formicaio:0.6.2-native-lcd-disabled@sha256:45d03ee6f65cfc294ba718e5d9e6607009b87331e9886965c4a14714de5a2148
+        network_mode: host
+        restart: on-failure
+        stop_grace_period: 5s
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/formicaio/data/formicaio:/data
+    proxy:
+        environment:
+            FORMICAIO_ADDR: host.docker.internal:3000
+            FORMICAIO_PROXY_PORT: 52100
+        extra_hosts:
+            - host.docker.internal:host-gateway
+        image: bochaco/formicaio_proxy:0.3.0@sha256:49a8f7b1787aa356c9c444fe75b90fbd09da4d9a0be00c3f753e997a3196e1f9
+        ports:
+            - 52100:52100
+        user: 1000:1000
+version: "3.7"
+
+x-powerlab:
+    store_app_id: formicaio
+    title:
+        en_us: Formicaio
+    tagline:
+        en_us: Run nodes on the Autonomi peer-to-peer (P2P) network
+    description:
+        en_us: <img src="public/formicaio.svg" width="150" /> Formicaio - Node Management for the Autonomi Network > *Le formiche sono insetti sociali che vivono in colonie e sono note per la loro organizzazione e cooperazione.* > > Ants are social insects that live in colonies and are known for their organization and cooperation. <img src="https://camo.githubusercontent.com/18b74542412f5f3d9c9f98c1ba0bdcb29da8c6a9464a14f689825010b9809311/68747470733a2f2f617070732e756d6272656c2e636f6d2f62616467652d6461726b2e737667" /> Table of Contents - Introduction - Features - Installation & Deployment - Native Executable - UmbrelOS - CasaOS - Docker - Podman - Setting up the AI Agent - Quick Setup with Ollama - Using the Agent - Autonomous Mode - AI Agent Configuration - Alternative LLM Backends - LCD Display Support - Configuration - Disclaimer - License Introduction Simplify your decentralized experience with Formicaio Formicaio is an intuitive application designed to help you run and manage nodes on the Autonomi network. This P2P network allows users to share storage and bandwidth in exchange for ANT tokens, an ERC-20 token on the Arbitrum One network. The name "Formicaio" is derived from the Italian word for "anthill", symbolizing the collaborative and structured nature of both ants and the decentralized network it supports. Just as ants work together to build and maintain their colonies, Formicaio empowers users to collaborate and…
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/formicaio/icon.svg
+    category: crypto
+    port_map: "52100"
+    author: bochaco
+    developer: bochaco
+    main: proxy
+    source:
+        catalog: umbrel-apps
+        upstream_id: formicaio
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: formicaio/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:35Z"

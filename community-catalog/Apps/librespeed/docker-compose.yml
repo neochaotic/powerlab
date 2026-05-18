@@ -1,0 +1,34 @@
+name: librespeed
+services:
+    server:
+        environment:
+            PGID: 1000
+            PUID: 1000
+        image: ghcr.io/librespeed/speedtest:6.1.0@sha256:b6b0890047e833158370d59ed5ef289b3e67a58f4a363cd37ef5c09d170d8543
+        ports:
+            - 3011:8080
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/librespeed/data/config:/config
+version: "3.7"
+
+x-powerlab:
+    store_app_id: librespeed
+    title:
+        en_us: LibreSpeed
+    tagline:
+        en_us: Free and open source speedtest
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/librespeed/icon.svg
+    category: networking
+    port_map: "3011"
+    author: LibreSpeed
+    developer: LibreSpeed
+    main: server
+    source:
+        catalog: umbrel-apps
+        upstream_id: librespeed
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: librespeed/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:42Z"

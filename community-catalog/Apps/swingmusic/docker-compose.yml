@@ -1,0 +1,36 @@
+name: swingmusic
+services:
+    app:
+        environment:
+            - PUID=1000
+            - PGID=1000
+        image: ghcr.io/swingmx/swingmusic:v2.1.4@sha256:89009c016848946c35418eb8459fee9eba044fb3a4cd6808160a510ecb8b22f6
+        ports:
+            - 1970:1970
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/swingmusic/data/config:/config
+            - /DATA/PowerLabAppData/swingmusic/data/music:/music:rw
+            - /DATA/data/storage/downloads:/downloads
+version: "3.9"
+
+x-powerlab:
+    store_app_id: swingmusic
+    title:
+        en_us: Swing Music
+    tagline:
+        en_us: Self-hosted music streaming
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/swingmusic/icon.svg
+    category: media
+    port_map: "1970"
+    author: Mungai Njoroge
+    developer: Mungai Njoroge
+    main: app
+    source:
+        catalog: umbrel-apps
+        upstream_id: swingmusic
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: swingmusic/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:58Z"

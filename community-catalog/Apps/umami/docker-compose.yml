@@ -1,0 +1,46 @@
+name: umami
+services:
+    app:
+        depends_on:
+            - db
+        environment:
+            APP_SECRET: ${APP_SEED}
+            DATABASE_TYPE: postgresql
+            DATABASE_URL: postgresql://umami:umami@db:5432/umami
+        image: ghcr.io/umami-software/umami:3.1.0@sha256:e3f80c0625aad7179b49da27d475357cabb1068b8cacd9a792cfd6966888b123
+        ports:
+            - 25727:3000
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1001:1001
+    db:
+        environment:
+            POSTGRES_DB: umami
+            POSTGRES_PASSWORD: umami
+            POSTGRES_USER: umami
+        image: postgres:15-alpine@sha256:8a8d55343d6fc456cb183453e3094ff140b984157b36b48f817dd581654f2aec
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/umami/data/db:/var/lib/postgresql/data
+version: "3.7"
+
+x-powerlab:
+    store_app_id: umami
+    title:
+        en_us: Umami
+    tagline:
+        en_us: Simple, fast, privacy-focused alternative to Google Analytics
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/umami/icon.svg
+    category: developer
+    port_map: "25727"
+    author: Umami
+    developer: Umami
+    source:
+        catalog: umbrel-apps
+        upstream_id: umami
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: umami/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:14:01Z"

@@ -1,0 +1,40 @@
+name: trip
+services:
+    app:
+        command:
+            - fastapi
+            - run
+            - /app/trip/main.py
+            - --host
+            - 0.0.0.0
+        image: ghcr.io/itskovacs/trip:1.44.0@sha256:19dd24aec6347a66521e34c14ae04daa2a69757933c4dffcc45cdc41a085786d
+        ports:
+            - 8980:8000
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/trip/data/app:/app/storage
+version: "3.7"
+
+x-powerlab:
+    store_app_id: trip
+    title:
+        en_us: Trip
+    tagline:
+        en_us: Minimalist Map Tracker and Trip Planner
+    description:
+        en_us: "<p align=\"center\"><img width=\"120\" src=\"./src/public/favicon.png\"></p> <h2 align=\"center\">TRIP</h2> <div align=\"center\"> [](https://ko-fi.com/itskovacs) [](https://github.com/itskovacs/trip/issues) </div> <div align=\"center\"> </div> \U0001F4DD Table of Contents - \U0001F4E6 About - \U0001F331 Getting Started - \U0001F4F8 Demo - \U0001F4DC License \U0001F4E6 About <a name = \"about\"></a> TRIP (*Tourism and Recreational Interest Points*) is a self-hostable **minimalist Map tracker** and **Trip planner** to visualize your points of interest (POI) and organize your next adventure details. **Core Features:** - Map and manage POIs on interactive maps - Plan multi-day trips with detailed itineraries - Collaborate and share with travel companions No telemetry. No tracking. No ads. Free, forever. See the \U0001F4F8 demo to explore TRIP in action. <br> \U0001F331 Getting Started <a name = \"getting_started\"></a> If you need help, feel free to open a discussion. Deployment is designed to be simple using Docker. Option 1: Docker Compose (Recommended) Use the file provided in this repository. No changes are required, though you may customize it to suit your needs. Run the container: Option 2: Docker Run Configuration Refer to the configuration documentation to set up OIDC authentication and other settings. > [!TIP] > See Documentation to learn more. <br> \U0001F4F8 Demo <a name = \"demo\"></a> A demo is available at itskovacs-trip.netlify.app. <div…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/trip/icon.svg
+    category: files
+    port_map: "8980"
+    author: itskovacs
+    developer: itskovacs
+    main: app
+    source:
+        catalog: umbrel-apps
+        upstream_id: trip
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: trip/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:14:00Z"

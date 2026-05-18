@@ -1,0 +1,44 @@
+name: audiobookshelf
+services:
+    web:
+        environment:
+            - CONFIG_PATH=/home/node/config
+            - METADATA_PATH=/home/node/metadata
+            - AUDIOBOOKSHELF_UID=1000
+            - AUDIOBOOKSHELF_GID=1000
+        healthcheck:
+            disable: true
+        image: ghcr.io/advplyr/audiobookshelf:2.35.0@sha256:89276ff2e0b3d2f07dd334b641f27a34ab7f02e1047c60b7b8a30126cb0813a5
+        init: true
+        ports:
+            - 13378:80
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/audiobookshelf/data/config:/home/node/config
+            - /DATA/PowerLabAppData/audiobookshelf/data/metadata:/home/node/metadata
+            - /DATA/data/storage/downloads/audiobooks:/audiobooks
+            - /DATA/data/storage/downloads/podcasts:/podcasts
+version: "3.7"
+
+x-powerlab:
+    store_app_id: audiobookshelf
+    title:
+        en_us: Audiobookshelf
+    tagline:
+        en_us: Audiobook and podcast server
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/audiobookshelf/icon.svg
+    category: media
+    port_map: "13378"
+    author: advplyr
+    developer: advplyr
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: audiobookshelf
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: audiobookshelf/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:28Z"

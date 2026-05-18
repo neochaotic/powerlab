@@ -1,0 +1,36 @@
+name: searxng
+services:
+    web:
+        container_name: searxng-web
+        environment:
+            SEARXNG_LIMITER: "false"
+            SEARXNG_SECRET: ${APP_SEED}
+        image: ghcr.io/searxng/searxng:2026.4.7-08ef7a63d@sha256:6a89a150d0163877caab1982b7a20d0a03fd4b39401a0d3f26f61ad205949442
+        ports:
+            - 8182:8080
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/searxng/data/config:/etc/searxng
+            - /DATA/PowerLabAppData/searxng/data/cache:/var/cache/searxng
+version: "3.7"
+
+x-powerlab:
+    store_app_id: searxng
+    title:
+        en_us: SearXNG
+    tagline:
+        en_us: A free internet metasearch engine
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/searxng/icon.svg
+    category: networking
+    port_map: "8182"
+    author: SearXNG
+    developer: SearXNG
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: searxng
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: searxng/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:56Z"

@@ -1,0 +1,34 @@
+name: budibase
+services:
+    budibase:
+        environment:
+            JWT_SECRET: ${APP_SEED}
+        image: budibase/budibase:3.38.4@sha256:28a2c1ab7b65482c160bc7c260d2e0e864803d0e73a6f318bbb87f327977b286
+        ports:
+            - 6733:80
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/budibase/data/budibase:/data
+version: "3.7"
+
+x-powerlab:
+    store_app_id: budibase
+    title:
+        en_us: Budibase
+    tagline:
+        en_us: The low code platform you'll enjoy using
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/budibase/icon.svg
+    category: developer
+    port_map: "6733"
+    author: Budibase
+    developer: Budibase
+    main: budibase
+    source:
+        catalog: umbrel-apps
+        upstream_id: budibase
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: budibase/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:29Z"

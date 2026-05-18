@@ -1,0 +1,39 @@
+name: duplicati
+services:
+    duplicati:
+        environment:
+            DUPLICATI__WEBSERVICE_ALLOWED_HOSTNAMES: '*'
+            DUPLICATI__WEBSERVICE_INTERFACE: any
+            DUPLICATI__WEBSERVICE_PASSWORD: ${APP_PASSWORD}
+            DUPLICATI__WEBSERVICE_PORT: "8200"
+        image: duplicati/duplicati:2.3.0.1@sha256:c5cc20fc744cce2957a61cb0b331ecdf333c9fcf28281f96cc587e11ed4536af
+        ports:
+            - 38476:8200
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/duplicati/data:/data
+            - /DATA/data/storage:/umbrel
+version: "3.7"
+
+x-powerlab:
+    store_app_id: duplicati
+    title:
+        en_us: Duplicati
+    tagline:
+        en_us: Store securely encrypted backups in the cloud
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/duplicati/icon.svg
+    category: files
+    port_map: "38476"
+    author: Duplicati
+    developer: Duplicati
+    main: duplicati
+    source:
+        catalog: umbrel-apps
+        upstream_id: duplicati
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: duplicati/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:33Z"

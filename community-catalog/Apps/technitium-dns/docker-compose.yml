@@ -1,0 +1,32 @@
+name: technitium-dns
+services:
+    dns-server:
+        environment:
+            - DNS_SERVER_DOMAIN=*
+            - DNS_SERVER_ADMIN_PASSWORD=${APP_PASSWORD}
+        image: technitium/dns-server:15.2.0@sha256:23d3b63d959e997800b095fe93009b3fae271b5258234ff2ade8535cb33682c8
+        network_mode: host
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/technitium-dns/data:/etc/dns
+version: "3.7"
+
+x-powerlab:
+    store_app_id: technitium-dns
+    title:
+        en_us: Technitium DNS Server
+    tagline:
+        en_us: Block ads & malware at the DNS level for your entire network
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/technitium-dns/icon.svg
+    category: networking
+    port_map: "5380"
+    author: Technitium
+    developer: Technitium
+    source:
+        catalog: umbrel-apps
+        upstream_id: technitium-dns
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: technitium-dns/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:59Z"

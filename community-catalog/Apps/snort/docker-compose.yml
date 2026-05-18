@@ -1,0 +1,29 @@
+name: snort
+services:
+    web:
+        image: voidic/snort:v0.5.3@sha256:410778efd4d74f001bb20e91e9f752bda8bb2e5d5f796a2020b253be8b9ca099
+        init: true
+        ports:
+            - 52027:8080
+version: "3.7"
+
+x-powerlab:
+    store_app_id: snort
+    title:
+        en_us: Snort
+    tagline:
+        en_us: Fast Nostr UI
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/snort/icon.svg
+    category: social
+    port_map: "52027"
+    author: Snort
+    developer: Snort
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: snort
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: snort/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:57Z"

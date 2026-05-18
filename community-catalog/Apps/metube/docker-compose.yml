@@ -1,0 +1,33 @@
+name: metube
+services:
+    metube:
+        environment:
+            - DELETE_FILE_ON_TRASHCAN=true
+        image: ghcr.io/alexta69/metube:2026.04.28@sha256:caf21da7d83a4003b429ef1126e9c1499f36f8401a1f8a7b158f70b94ade8edd
+        ports:
+            - 3700:8081
+        restart: on-failure
+        volumes:
+            - /DATA/data/storage/downloads/metube:/downloads
+version: "3.7"
+
+x-powerlab:
+    store_app_id: metube
+    title:
+        en_us: MeTube
+    tagline:
+        en_us: Download videos from YouTube
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/metube/icon.svg
+    category: media
+    port_map: "3700"
+    author: Alex Shnitman
+    developer: Alex Shnitman
+    main: metube
+    source:
+        catalog: umbrel-apps
+        upstream_id: metube
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: metube/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:45Z"

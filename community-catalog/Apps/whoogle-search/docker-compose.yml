@@ -1,0 +1,36 @@
+name: whoogle-search
+services:
+    web:
+        environment:
+            EXPOSE_PORT: 6420
+        image: benbusby/whoogle-search:1.2.4@sha256:6ae072238642b7e5860c8fa7f68cf06be797eb4e2278fc41d17d3b5e8a051eea
+        init: true
+        ports:
+            - 6420:6420
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 927:927
+version: "3.7"
+
+x-powerlab:
+    store_app_id: whoogle-search
+    title:
+        en_us: Whoogle Search
+    tagline:
+        en_us: A self-hosted, ad-free, privacy-respecting metasearch engine
+    description:
+        en_us: '>[!WARNING] > >**Final Release Notice 14 Apr 2026** >Since early 2025, Google has been aggressively blocking search queries performed without JavaScript enabled by continuously banning working User-Agent strings. >This is THE fundamental part of how Whoogle works. All efforts to find and build a method to continue working have failed, and as a result, this will be the **final release of Whoogle**. > >Whoogle can theoretically continue to be used by bringing your own CSE Key (Custom Search Engine Key), or if you are able to find a working UA string, you can hardcode that. However, no additional efforts will be placed into finding a fix or maintaining workarounds unless someone stumbles upon a method that will work reliably and maintains a small, simple footprint. [](https://github.com/benbusby/shoogle/releases) [](https://opensource.org/licenses/MIT) [](https://github.com/benbusby/whoogle-search/actions/workflows/tests.yml) [](https://github.com/benbusby/whoogle-search/actions/workflows/buildx.yml) [](https://hub.docker.com/r/benbusby/whoogle-search) <table> <tr> <td><a href="https://sr.ht/~benbusby/whoogle-search">SourceHut</a></td> <td><a href="https://github.com/benbusby/whoogle-search">GitHub</a></td> </tr> </table> Get Google search results, but without any ads, JavaScript, AMP links, cookies, or IP address tracking. Easily deployable in one click as a Docker app, and customizable with a single config file. Quick and simple to implement as a primary search engine replacement on both desktop and mobile. Contents 1. Features 3. Install/Deploy Options 1. Heroku Quick Deploy 1. Render.com 1. Repl.it…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/whoogle-search/icon.svg
+    category: networking
+    port_map: "6420"
+    author: Ben Busby
+    developer: Ben Busby
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: whoogle-search
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: whoogle-search/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:14:03Z"

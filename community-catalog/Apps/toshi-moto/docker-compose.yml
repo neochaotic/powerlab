@@ -1,0 +1,56 @@
+name: toshi-moto
+services:
+    api_web:
+        depends_on:
+            - mongodb
+        environment:
+            MONGODB_URI: mongodb://mongodb:27017/toshi-moto
+            PORT: 8121
+        image: toshimoto821/toshi-moto-api:1.8.4@sha256:750927ef2d0b0bbcffcbb57632d861e567a8b7243381c0285b2b2660dc31244a
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+    mongodb:
+        command: mongod --noauth
+        image: mongo:8.0.10@sha256:15fb53a5160ebabff5ecade8f8b5d48721b68ea190957a7f35b5b38e8340e62b
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/toshi-moto/data/db:/data/db
+    web:
+        depends_on:
+            - api_web
+        environment:
+            PORT: 8021
+        image: toshimoto821/toshi-moto:1.37.2@sha256:fe70d9d6dfbfb198e37d17ccece01a7426213580ffda2824f0edb83107f338a9
+        ports:
+            - 8021:8021
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/toshi-moto/data/proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+version: "3.7"
+
+x-powerlab:
+    store_app_id: toshi-moto
+    title:
+        en_us: Toshi Moto
+    tagline:
+        en_us: Secure Bitcoin portfolio monitoring with privacy-first design
+    description:
+        en_us: '[](LICENSE) Toshi Moto Toshi Moto is a watch only bitcoin wallet aggregator app for Umbrel. Screenshots Application Architecture Development This repo contains a git submodule so you need to clone it like below with the following flag: Cloning this repo Install and start This repo uses a pnpm workspace: Umbrel This app is in the App submission process with Umbrel. You can install it on an Umbrel using the community-app store I maintain for frequent releases. copy and paste the url below to "Add" and then select "Open" Developer Setup How to run the app locally Credits This app was created by the team at Webshot Archive, a developer tool for comparing changes using screenshots from E2E tests. During the development of this app, we wanted a better way to visualize our UI changes as they occurred and track them over time. License This software is licensed under the Apache 2.0 License'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/toshi-moto/icon.svg
+    category: finance
+    port_map: "8021"
+    author: Toshi Moto
+    developer: Toshi Moto
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: toshi-moto
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: toshi-moto/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:14:00Z"

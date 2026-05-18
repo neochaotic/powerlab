@@ -1,0 +1,41 @@
+name: nginx-proxy-manager
+services:
+    docker-host:
+        cap_add:
+            - NET_ADMIN
+            - NET_RAW
+        hostname: $DEVICE_DOMAIN_NAME
+        image: qoomon/docker-host:3.3.1@sha256:ec9d214d7fa88932e9186ca2f4419d44661376929931248525b08e7fa9e270f7
+        restart: on-failure
+    web:
+        hostname: nginx-proxy-manager_web_1
+        image: jc21/nginx-proxy-manager:2.14.0@sha256:2aa69b382a384b676c0d4f1d6f2eac40ecd478fcf7af1cfb3f9f1d3cd0c81e12
+        ports:
+            - 40080:80
+            - 40443:443
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/nginx-proxy-manager/data/npm-data:/data
+            - /DATA/PowerLabAppData/nginx-proxy-manager/data/letsencrypt:/etc/letsencrypt
+version: "3.7"
+
+x-powerlab:
+    store_app_id: nginx-proxy-manager
+    title:
+        en_us: Nginx Proxy Manager
+    tagline:
+        en_us: Expose your services easily and securely
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/nginx-proxy-manager/icon.svg
+    category: networking
+    port_map: "4498"
+    author: Jamie Curnow
+    developer: Jamie Curnow
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: nginx-proxy-manager
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: nginx-proxy-manager/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:47Z"

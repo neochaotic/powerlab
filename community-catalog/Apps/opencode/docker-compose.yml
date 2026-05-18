@@ -1,0 +1,40 @@
+name: opencode
+services:
+    app:
+        command:
+            - web
+            - --hostname
+            - 0.0.0.0
+            - --port
+            - "4096"
+        environment:
+            HOME: /home/opencode
+        image: ghcr.io/anomalyco/opencode:1.15.3@sha256:873e3acd6f6b9c53a3f42579d488a5af7e7df1d1adf88ffa69cbb94a5238f305
+        ports:
+            - 4096:4096
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/opencode/data/opencode:/home/opencode/
+version: "3.7"
+
+x-powerlab:
+    store_app_id: opencode
+    title:
+        en_us: OpenCode
+    tagline:
+        en_us: The open source AI coding agent
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/opencode/icon.svg
+    category: ai
+    port_map: "4096"
+    author: Anomaly
+    developer: Anomaly
+    main: app
+    source:
+        catalog: umbrel-apps
+        upstream_id: opencode
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: opencode/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:49Z"

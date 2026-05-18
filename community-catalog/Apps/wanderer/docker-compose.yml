@@ -1,0 +1,81 @@
+name: wanderer
+services:
+    db:
+        depends_on:
+            search:
+                condition: service_healthy
+        environment:
+            MEILI_MASTER_KEY: ${APP_SEED}
+            MEILI_URL: http://search:7700
+            ORIGIN: http://${DEVICE_DOMAIN_NAME}:3111
+            POCKETBASE_ENCRYPTION_KEY: ${APP_WANDERER_ENCRYPTION_KEY}
+        image: flomp/wanderer-db:v0.19.1@sha256:05df5c90a2fdd5ea38b873dc521b0fac2ff2e5a478bf6a4b25123f83431cb71d
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/wanderer/data/pb_data:/pb_data
+    search:
+        environment:
+            MEILI_MASTER_KEY: ${APP_SEED}
+            MEILI_NO_ANALYTICS: "true"
+            MEILI_URL: http://search:7700
+        healthcheck:
+            interval: 15s
+            retries: 10
+            start_period: 20s
+            test: curl --fail http://localhost:7700/health || exit 1
+            timeout: 10s
+        image: getmeili/meilisearch:v1.14.0@sha256:8cd411ba5d9ec2dfce02e241305208eebacce0fd74a72bece21cadd03dc566ce
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/wanderer/data/data.ms:/meili_data/data.ms
+    web:
+        depends_on:
+            db:
+                condition: service_started
+            search:
+                condition: service_healthy
+        environment:
+            BODY_SIZE_LIMIT: Infinity
+            MEILI_MASTER_KEY: ${APP_SEED}
+            MEILI_URL: http://search:7700
+            NOMINATIM_URL: https://nominatim.openstreetmap.org
+            ORIGIN: http://${DEVICE_DOMAIN_NAME}:3111
+            OVERPASS_API_URL: https://overpass-api.de
+            PUBLIC_DISABLE_SIGNUP: "false"
+            PUBLIC_POCKETBASE_URL: http://db:8090
+            UPLOAD_FOLDER: /app/uploads
+            UPLOAD_PASSWORD: ${APP_PASSWORD}
+            UPLOAD_USER: admin
+            VALHALLA_URL: https://valhalla1.openstreetmap.de
+        image: flomp/wanderer-web:v0.19.1@sha256:ff730d29c5f6a08c22401323fd4759bf704b581e97d676922ebba8129a37333d
+        ports:
+            - 3111:3000
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/wanderer/data/uploads:/app/uploads
+version: "3.7"
+
+x-powerlab:
+    store_app_id: wanderer
+    title:
+        en_us: Wanderer
+    tagline:
+        en_us: A self-hosted trail database
+    description:
+        en_us: '<div align="center"> <img src="web/static/svgs/logo_text_two_line_dark.svg" height="256" width="256"> <h4>The trail catalogue that makes your GPS data searchable</h4> [](https://github.com/open-wanderer/wanderer/) [](https://github.com/open-wanderer/wanderer/) [](https://www.buymeacoffee.com/wanderertrails) [](https://discord.gg/USSEBY98CP) [](https://demo.wanderer.to) </div> wanderer is a self-hosted trail database. You can upload your recorded tracks or create new ones and add various metadata to build an easily searchable catalogue. Core Features - Manage your trails - Plan new routes - Extensive map integration and visualization - Share trails with other people and explore theirs - Advanced filter and search functionality - Create custom lists to organize your trails further Getting started The recommended and quickest way to install wanderer is using docker compose: The first startup can take up to 90 seconds after which you can access the frontend at localhost:3000. > ℹ️ if you are not hosting wanderer at http://localhost:3000 make sure to change ORIGIN variable. Otherwise you will run into CORS errors. > ⚠️ if you are using wanderer in a production environment make sure to change the MEILI_MASTER_KEY variable. You can also run wanderer on bare-metal. Check out the documentation for a detailed how-to guide. Support wanderer If you like wanderer and would like to give something back you can donate over here. If you prefer to support the…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/wanderer/icon.svg
+    category: files
+    port_map: "3111"
+    author: Flomp
+    developer: Flomp
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: wanderer
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: wanderer/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:14:02Z"

@@ -1,0 +1,93 @@
+name: librechat
+services:
+    api:
+        command: npm run backend
+        depends_on:
+            - mongodb
+            - rag_api
+        environment:
+            - HOST=0.0.0.0
+            - MONGO_URI=mongodb://mongodb:27017/LibreChat
+            - MEILI_HOST=http://meilisearch:7700
+            - RAG_PORT=8000
+            - RAG_API_URL=http://librechat_rag_api_1:8000
+            - OPENAI_API_KEY=user_provided
+            - GOOGLE_KEY=user_provided
+            - ANTHROPIC_API_KEY=user_provided
+            - ASSISTANTS_API_KEY=user_provided
+            - CREDS_KEY=f34be427ebb29de8d88c107a71546019685ed8b241d8f2ed00c3df97ad2566f0
+            - CREDS_IV=e2341419ec3dd3d19b13a1a87fafcbfb
+            - JWT_SECRET=16f8c0ef4a5d391b26034086c628469d3f9f497f08163ab9b40137092f2909ef
+            - JWT_REFRESH_SECRET=eaa5191f2914e30b9387fd84e254e4ba6fc51b4654968a9b0803b456a54b8418
+        image: ghcr.io/danny-avila/librechat:v0.8.5@sha256:a46254938507971e0d4f7ed3f9d116bd9b118f4810b5b75eb716baf575645068
+        ports:
+            - 7050:3080
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/librechat/data/api/librechat.yaml:/app/librechat.yaml
+            - /DATA/PowerLabAppData/librechat/data/api/images:/app/client/public/images
+            - /DATA/PowerLabAppData/librechat/data/api/uploads:/app/uploads
+            - /DATA/PowerLabAppData/librechat/data/api/logs:/app/api/logs
+    meilisearch:
+        environment:
+            - MEILI_HOST=http://meilisearch:7700
+            - MEILI_NO_ANALYTICS=true
+            - MEILI_MASTER_KEY=DrhYf7zENyR6AlUCKmnz0eYASOQdl6zxH7s7MKFSfFCt
+        image: getmeili/meilisearch:v1.12.3@sha256:4acfcbbb9e089aa1aac838cfda3fba7f07aaaef044c23da8acbe0ab741400dac
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/librechat/data/meilisearch:/meili_data
+    mongodb:
+        command: mongod --noauth
+        image: mongo:8.0.10@sha256:15fb53a5160ebabff5ecade8f8b5d48721b68ea190957a7f35b5b38e8340e62b
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/librechat/data/db:/data/db
+    rag_api:
+        depends_on:
+            - vectordb
+        environment:
+            - DB_HOST=vectordb
+            - RAG_PORT=8000
+            - OPENAI_API_KEY=user_provided
+            - GOOGLE_KEY=user_provided
+            - ANTHROPIC_API_KEY=user_provided
+            - ASSISTANTS_API_KEY=user_provided
+        image: ghcr.io/danny-avila/librechat-rag-api-dev-lite:v0.7.3@sha256:67dba8e1e5707a795f2188d1e345f23b8ebf3bf75365026395edec76474cefa6
+        restart: on-failure
+    vectordb:
+        environment:
+            POSTGRES_DB: mydatabase
+            POSTGRES_PASSWORD: mypassword
+            POSTGRES_USER: myuser
+        image: ankane/pgvector:v0.5.1@sha256:d3a9d8ac27bb7e05e333ef25b634d2625adaa85336ab729954b9e94859bf6fa7
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/librechat/data/vectordb:/var/lib/postgresql/data
+version: "3.7"
+
+x-powerlab:
+    store_app_id: librechat
+    title:
+        en_us: LibreChat
+    tagline:
+        en_us: Enhanced ChatGPT Clone
+    description:
+        en_us: "<p align=\"center\"> <a href=\"https://librechat.ai\"> <img src=\"client/public/assets/logo.svg\" height=\"256\"> </a> <h1 align=\"center\"> <a href=\"https://librechat.ai\">LibreChat</a> </h1> </p> <p align=\"center\"> <strong>English</strong> · <a href=\"README.zh.md\">中文</a> </p> <p align=\"center\"> <a href=\"https://discord.librechat.ai\"> <img src=\"https://img.shields.io/discord/1086345563026489514?label=&logo=discord&style=for-the-badge&logoWidth=20&logoColor=white&labelColor=000000&color=blueviolet\"> </a> <a href=\"https://www.youtube.com/@LibreChat\"> <img src=\"https://img.shields.io/badge/YOUTUBE-red.svg?style=for-the-badge&logo=youtube&logoColor=white&labelColor=000000&logoWidth=20\"> </a> <a href=\"https://docs.librechat.ai\"> <img src=\"https://img.shields.io/badge/DOCS-blue.svg?style=for-the-badge&logo=read-the-docs&logoColor=white&labelColor=000000&logoWidth=20\"> </a> <a aria-label=\"Sponsors\" href=\"https://github.com/sponsors/danny-avila\"> <img src=\"https://img.shields.io/badge/SPONSORS-brightgreen.svg?style=for-the-badge&logo=github-sponsors&logoColor=white&labelColor=000000&logoWidth=20\"> </a> </p> <p align=\"center\"> <a href=\"https://railway.com/deploy/librechat-official?referralCode=HI9hWz&utm_medium=integration&utm_source=readme&utm_campaign=librechat\"> <img src=\"https://railway.com/button.svg\" alt=\"Deploy on Railway\" height=\"30\"> </a> <a href=\"https://zeabur.com/templates/0X2ZY8\"> <img src=\"https://zeabur.com/button.svg\" alt=\"Deploy on Zeabur\" height=\"30\"/> </a> <a href=\"https://template.cloud.sealos.io/deploy?templateName=librechat\"> <img src=\"https://raw.githubusercontent.com/labring-actions/templates/main/Deploy-on-Sealos.svg\" alt=\"Deploy on Sealos\" height=\"30\"> </a> </p> <p align=\"center\"> <a href=\"https://www.librechat.ai/docs/translation\"> <img src=\"https://img.shields.io/badge/dynamic/json.svg?style=for-the-badge&color=2096F3&label=locize&query=%24.translatedPercentage&url=https://api.locize.app/badgedata/4cb2598b-ed4d-469c-9b04-2ed531a8cb45&suffix=%+translated\" alt=\"Translation Progress\"> </a> </p> ✨ Features - \U0001F5A5️ **UI & Experience** inspired by ChatGPT with enhanced design and features - \U0001F916 **AI Model Selection**: - Anthropic (Claude), AWS Bedrock, OpenAI, Azure OpenAI, Google, Vertex AI, OpenAI Responses API (incl. Azure) - Custom Endpoints: Use any OpenAI-compatible API with LibreChat, no proxy required - Compatible with Local & Remote AI Providers: - Ollama, groq, Cohere, Mistral AI, Apple MLX, koboldcpp, together.ai, - OpenRouter, Helicone, Perplexity, ShuttleAI, Deepseek, Qwen, and more - \U0001F527 **Code Interpreter API**: - Secure, Sandboxed Execution in Python, Node.js (JS/TS), Go, C/C++, Java, PHP, Rust, and Fortran - Seamless File Handling: Upload, process, and download files directly - No Privacy Concerns: Fully isolated and secure execution -…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/librechat/icon.svg
+    category: ai
+    port_map: "7050"
+    author: Danny Avila
+    developer: Danny Avila
+    main: api
+    source:
+        catalog: umbrel-apps
+        upstream_id: librechat
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: librechat/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:42Z"

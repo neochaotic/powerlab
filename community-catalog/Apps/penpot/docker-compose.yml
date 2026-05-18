@@ -1,0 +1,95 @@
+name: penpot
+services:
+    penpot-backend:
+        depends_on:
+            - penpot-postgres
+            - penpot-valkey
+        environment:
+            - PENPOT_FLAGS=enable-registration enable-login-with-password disable-email-verification disable-smtp enable-prepl-server disable-secure-session-cookies
+            - PENPOT_SECRET_KEY=${APP_SEED}
+            - PENPOT_DATABASE_URI=postgresql://penpot-postgres/penpot
+            - PENPOT_DATABASE_USERNAME=penpot
+            - PENPOT_DATABASE_PASSWORD=penpot
+            - PENPOT_REDIS_URI=redis://penpot-valkey/0
+            - PENPOT_ASSETS_STORAGE_BACKEND=assets-fs
+            - PENPOT_STORAGE_ASSETS_FS_DIRECTORY=/opt/data/assets
+            - PENPOT_TELEMETRY_ENABLED=false
+            - PENPOT_PUBLIC_URI=http://${DEVICE_DOMAIN_NAME}:${APP_PENPOT_UI_PORT}
+        image: penpotapp/backend:2.15.3@sha256:7f16f70119a17b0f8abb90cd3fe800bbb5bc4472729cc1454775c2eb8d4f4803
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/penpot/data/assets:/opt/data/assets
+    penpot-exporter:
+        environment:
+            - PENPOT_SECRET_KEY=${APP_SEED}
+            - PENPOT_PUBLIC_URI=http://penpot-frontend
+            - PENPOT_REDIS_URI=redis://penpot-valkey/0
+        image: penpotapp/exporter:2.15.3@sha256:6c982fd76a1b8ded11ff650eb8abb063e9a37e7eb7b1152f875a8233bdee34b0
+        restart: on-failure
+        user: 1000:1000
+    penpot-frontend:
+        depends_on:
+            - penpot-backend
+            - penpot-exporter
+            - penpot-mcp
+        environment:
+            - PENPOT_FLAGS=enable-registration enable-login-with-password
+        image: penpotapp/frontend:2.15.3@sha256:ea3bb808a1439bd27e698f08e3b6d502a0e6cef9acb703b74ce0fb3aae882b72
+        ports:
+            - 9001:8080
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/penpot/data/assets:/opt/data/assets
+    penpot-mcp:
+        image: penpotapp/mcp:2.15.3@sha256:4535bd5d58e13a1e20beb6fc932b8013c4f0178d3e7e6b46b974e90fd00f71c4
+        restart: on-failure
+        user: 1000:1000
+    penpot-postgres:
+        environment:
+            - POSTGRES_INITDB_ARGS=--data-checksums
+            - POSTGRES_DB=penpot
+            - POSTGRES_USER=penpot
+            - POSTGRES_PASSWORD=penpot
+        image: postgres:15@sha256:546445ad21cb5893c0997080b831ee45945e798c4359270e16413c8bd93575db
+        restart: on-failure
+        stop_signal: SIGINT
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/penpot/data/postgres:/var/lib/postgresql/data
+    penpot-valkey:
+        healthcheck:
+            interval: 1s
+            retries: 5
+            start_period: 3s
+            test:
+                - CMD-SHELL
+                - valkey-cli ping | grep PONG
+            timeout: 3s
+        image: valkey/valkey:8.1.3@sha256:facc1d2c3462975c34e10fccb167bfa92b0e0dbd992fc282c29a61c3243afb11
+        restart: on-failure
+        user: 1000:1000
+version: "3.7"
+
+x-powerlab:
+    store_app_id: penpot
+    title:
+        en_us: Penpot
+    tagline:
+        en_us: Design and prototyping platform
+    description:
+        en_us: '[uri_license]: https://www.mozilla.org/en-US/MPL/2.0 [uri_license_image]: https://img.shields.io/badge/MPL-2.0-blue.svg <picture> <source media="(prefers-color-scheme: dark)" srcset="https://penpot.app/images/readme/github-dark-mode.png"> <source media="(prefers-color-scheme: light)" srcset="https://penpot.app/images/readme/github-light-mode.png"> <img alt="penpot header image" src="https://penpot.app/images/readme/github-light-mode.png"> </picture> <p align="center"> <a href="https://www.mozilla.org/en-US/MPL/2.0" rel="nofollow"><img alt="License: MPL-2.0" src="https://img.shields.io/badge/MPL-2.0-blue.svg" style="max-width:100%;"></a> <a href="https://community.penpot.app" rel="nofollow"><img alt="Penpot Community" src="https://img.shields.io/discourse/posts?server=https%3A%2F%2Fcommunity.penpot.app" style="max-width:100%;"></a> <a href="https://tree.taiga.io/project/penpot/" title="Managed with Taiga.io" rel="nofollow"><img alt="Managed with Taiga.io" src="https://img.shields.io/badge/managed%20with-TAIGA.io-709f14.svg" style="max-width:100%;"></a> <a href="https://gitpod.io/#https://github.com/penpot/penpot" rel="nofollow"><img alt="Gitpod ready-to-code" src="https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod" style="max-width:100%;"></a> </p> <p align="center"> <a href="https://penpot.app/"><b>Website</b></a> • <a href="https://help.penpot.app/user-guide/"><b>User Guide</b></a> • <a href="https://penpot.app/learning-center"><b>Learning Center</b></a> • <a href="https://community.penpot.app/"><b>Community</b></a> </p> <p align="center"> <a href="https://www.youtube.com/@Penpot"><b>Youtube</b></a> • <a href="https://peertube.kaleidos.net/a/penpot_app/video-channels"><b>Peertube</b></a> • <a href="https://www.linkedin.com/company/penpot/"><b>Linkedin</b></a> • <a href="https://instagram.com/penpot.app"><b>Instagram</b></a> • <a href="https://fosstodon.org/@penpot/"><b>Mastodon</b></a> • <a href="https://bsky.app/profile/penpot.app"><b>Bluesky</b></a> • <a href="https://twitter.com/penpotapp"><b>X</b></a> </p> <br /> Penpot video <br /> Penpot is the first **open-source** design tool for design and code collaboration. Designers can create stunning designs, interactive prototypes, design systems at scale, while developers enjoy ready-to-use code and make their workflow easy and fast. And all of this with no handoff drama. Available on browser or self-hosted, Penpot works with open standards like SVG, CSS, HTML and JSON, and it’s free! The latest updates take Penpot even further. It’s the first design tool to integrate native design tokens—a single source of truth to improve efficiency and collaboration between product design and development. With the huge 2.0 release, Penpot took the…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/penpot/icon.svg
+    category: developer
+    port_map: "9001"
+    author: Penpot
+    developer: Penpot
+    main: penpot-frontend
+    source:
+        catalog: umbrel-apps
+        upstream_id: penpot
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: penpot/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:52Z"

@@ -1,0 +1,36 @@
+name: papra
+services:
+    server:
+        environment:
+            - AUTH_SECRET=${APP_SEED}
+            - APP_BASE_URL=http://${DEVICE_DOMAIN_NAME}:8112
+        image: ghcr.io/papra-hq/papra:26.0.0-rootless@sha256:e41d2237a59b072063e4059a85492cb11fe4aefb706851becbbce88c7c2ae072
+        ports:
+            - 8112:1221
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/papra/data:/app/app-data
+
+x-powerlab:
+    store_app_id: papra
+    title:
+        en_us: Papra
+    tagline:
+        en_us: The minimalistic document archiving platform
+    description:
+        en_us: '<p align="center"> <picture> <source srcset="./.github/icon-dark.png" media="(prefers-color-scheme: light)"> <source srcset="./.github/icon-light.png" media="(prefers-color-scheme: dark)"> <img src="./.github/icon-dark.png" alt="Header banner"> </picture> </p> <h1 align="center"> Papra - Document management platform </h1> <p align="center"> Minimalistic document management and archiving platform. </p> <p align="center"> <a href="https://demo.papra.app">Demo</a> <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span> <a href="https://docs.papra.app">Docs</a> <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span> <a href="https://docs.papra.app/self-hosting/using-docker">Self-hosting</a> <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span> <a href="https://github.com/orgs/papra-hq/projects/2">Roadmap</a> <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span> <a href="https://papra.app/discord">Discord</a> <!-- <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span> <a href="https://dashboard.papra.app">Managed instance</a> --> </p> Introduction **Papra** is a minimalistic document management and archiving platform. It is designed to be simple to use and accessible to everyone. Papra is a platform for long-term document storage and management, like a digital archive for your documents. Forget about that receipt of that gift you bought for your friend last year, or that warranty for your new phone. With Papra, you can easily store, forget, and retrieve your documents whenever you need them. A live demo of the platform is available at demo.papra.app (no backend, client-side local storage only). [](https://demo.papra.app) Project Status Papra is under active development, the core functionalities are stable and usable. With lots of features and improvements added regularly. Feedback and bug reports are highly appreciated to help us improve the platform. Features - **Document management**: Upload, store, and manage your documents in one place. - **Organizations**: Create…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/papra/icon.svg
+    category: files
+    port_map: "8112"
+    author: Papra
+    developer: Papra
+    main: server
+    source:
+        catalog: umbrel-apps
+        upstream_id: papra
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: papra/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:51Z"

@@ -1,0 +1,37 @@
+name: copyparty
+services:
+    web:
+        environment:
+            TZ: UTC
+        image: ghcr.io/9001/copyparty-ac:1.20.14@sha256:d8aa87141c6fb35e9e620d477acb7f7950a0917d7fdd9c5b23cdf53de185835d
+        ports:
+            - 3923:3923
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/copyparty/data/config/config.conf:/cfg/config.conf:ro
+            - /DATA/PowerLabAppData/copyparty/data/cp_data:/cfg/hists
+            - /DATA/PowerLabAppData/copyparty/data/shared:/shr
+            - /DATA/PowerLabAppData/copyparty/data/media:/media
+version: "3.7"
+
+x-powerlab:
+    store_app_id: copyparty
+    title:
+        en_us: copyparty
+    tagline:
+        en_us: A versatile all-in-one file server for everything
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/copyparty/icon.svg
+    category: files
+    port_map: "3923"
+    author: "9001"
+    developer: "9001"
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: copyparty
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: copyparty/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:31Z"

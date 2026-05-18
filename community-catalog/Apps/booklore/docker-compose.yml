@@ -1,0 +1,50 @@
+name: booklore
+services:
+    db:
+        environment:
+            MARIADB_DATABASE: booklore
+            MARIADB_PASSWORD: booklorepass
+            MARIADB_ROOT_PASSWORD: rootpass
+            MARIADB_USER: bookloreuser
+        image: mariadb:12.0.2@sha256:b30cc65b57a11a2e791ad5c06284e599fe9f1bf3fe9081a88d85bcf36389be4a
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/booklore/data/db:/var/lib/mysql
+    web:
+        depends_on:
+            db:
+                condition: service_started
+        environment:
+            DATABASE_PASSWORD: booklorepass
+            DATABASE_URL: jdbc:mariadb://db:3306/booklore
+            DATABASE_USERNAME: bookloreuser
+        image: ghcr.io/booklore-app/booklore:v2.3.0@sha256:10474742a0e704ec48540a3e5559cf27c16bcf0c021c494ba5bf3cc25b16b887
+        ports:
+            - 6060:6060
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/booklore/data/app:/app/data
+            - /DATA/PowerLabAppData/booklore/data/books:/books
+version: "3.7"
+
+x-powerlab:
+    store_app_id: booklore
+    title:
+        en_us: BookLore
+    tagline:
+        en_us: An app for managing and reading books
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/booklore/icon.svg
+    category: files
+    port_map: "6060"
+    author: BookLore
+    developer: BookLore
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: booklore
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: booklore/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:29Z"

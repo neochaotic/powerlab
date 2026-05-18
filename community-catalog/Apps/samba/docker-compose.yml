@@ -1,0 +1,45 @@
+name: samba
+services:
+    homepage:
+        image: loficafe/static-web-server-samba:1.0.1@sha256:783667f052d9535bb75946ff9bc807989b041e25437ef10c30b291589d041e6e
+        ports:
+            - 9445:80
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/samba/data/samba/smb.conf:/public/smb.conf:ro
+    server:
+        environment:
+            GID: 1000
+            PASS: ${APP_PASSWORD}
+            UID: 1000
+            USER: umbrel
+        image: dockurr/samba:4.23.5@sha256:63428d1cb6c1ace60cfa782c1d6c9e4b3686044fc47600c97055e6b62e9bb5fa
+        ports:
+            - 446:445
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/samba/data/samba/smb.conf:/etc/samba/smb.conf
+            - /DATA/data/storage:/storage
+version: "3.7"
+
+x-powerlab:
+    store_app_id: samba
+    title:
+        en_us: Samba
+    tagline:
+        en_us: Make your storage accessible using Samba
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/samba/icon.svg
+    category: networking
+    port_map: "9445"
+    author: Samba
+    developer: Samba
+    main: homepage
+    source:
+        catalog: umbrel-apps
+        upstream_id: samba
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: samba/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:56Z"

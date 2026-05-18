@@ -1,0 +1,61 @@
+name: kitchenowl
+services:
+    db:
+        environment:
+            POSTGRES_DB: kitchenowl
+            POSTGRES_PASSWORD: password
+            POSTGRES_USER: kitchenowl
+        healthcheck:
+            interval: 30s
+            retries: 5
+            start_period: 80s
+            test:
+                - CMD-SHELL
+                - pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}
+            timeout: 60s
+        image: postgres:17.4@sha256:fe3f571d128e8efadcd8b2fde0e2b73ebab6dbec33f6bfe69d98c682c7d8f7bd
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/kitchenowl/data/kitchenowl_db:/var/lib/postgresql/data
+    web:
+        depends_on:
+            - db
+        environment:
+            DB_DRIVER: postgresql
+            DB_HOST: db
+            DB_NAME: kitchenowl
+            DB_PASSWORD: password
+            DB_USER: kitchenowl
+            JWT_SECRET_KEY: ${APP_PASSWORD}
+        image: tombursch/kitchenowl:v0.7.8@sha256:9f8d7e7849c68b3b516c92938b0489dc6173568f266c48e429556de0cb9d8d82
+        ports:
+            - 8474:8080
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/kitchenowl/data/kitchenowl_files:/data
+version: "3.7"
+
+x-powerlab:
+    store_app_id: kitchenowl
+    title:
+        en_us: KitchenOwl
+    tagline:
+        en_us: A grocery list and recipe manager
+    description:
+        en_us: "<h1 align=\"center\"> <picture> <source media=\"(prefers-color-scheme: dark)\" srcset=\"./docs/docs/img/icon.png\"> <img width=\"128\" src=\"./docs/docs/img/logo.png\" alt=\"KitchenOwl\"> </picture> </h1> <p align=\"center\"> <p align=\"center\">A smart grocery list and recipe manager.</p> </p> <h4 align=\"center\"> <a href=\"https://kitchenowl.org\">Website</a> | <a href=\"https://docs.kitchenowl.org\">Docs</a> | <a href=\"https://docs.kitchenowl.org/latest/self-hosting/\">Self-Hosting</a> | <a href=\"https://matrix.to/#/#kitchenowl:matrix.org\">Matrix</a> </h4> <h4 align=\"center\"> <a href=\"https://github.com/TomBursch/kitchenowl\"> <img alt=\"Stars\" src=\"https://img.shields.io/github/stars/tombursch/kitchenowl\" /> </a> <a href=\"https://hosted.weblate.org/engage/kitchenowl/\"> <img alt=\"Translation\" src=\"https://hosted.weblate.org/widgets/kitchenowl/-/kitchenowl/svg-badge.svg\" /> </a> <a href=\"https://matrix.to/#/#kitchenowl:matrix.org\"> <img alt=\"Matrix\" src=\"https://img.shields.io/matrix/kitchenowl:matrix.org\"> </a> <a href=\"LICENSE\"> <img alt=\"License\" src=\"https://img.shields.io/github/license/TomBursch/kitchenowl\" /> </a> <a href=\"https://github.com/TomBursch/kitchenowl/releases\"> <img alt=\"GitHub release (latest by date)\" src=\"https://img.shields.io/github/v/release/tombursch/kitchenowl\"> </a> <a href=\"https://hub.docker.com/repository/docker/tombursch/kitchenowl\"> <img alt=\"Docker pulls\" src=\"https://img.shields.io/docker/pulls/tombursch/kitchenowl\" /> </a> </h4> <div align=\"center\"> <a href='https://play.google.com/store/apps/details?id=com.tombursch.kitchenowl'> <img alt='Get it on Google Play' src='docs/docs/img/badges/playstore.png' height=\"50\" /> </a> <a href='https://f-droid.org/packages/com.tombursch.kitchenowl/'> <img alt='Get it on F-Droid' src='docs/docs/img/badges/f-droid.png' height=\"50\"/> </a> <a href='https://apps.apple.com/app/kitchenowl/id1557453670'> <img alt='Get it on the AppStore' src='docs/docs/img/badges/appstore.png' height=\"50\" /> </a> <a href='https://my.home-assistant.io/redirect/hacs_repository/?owner=TomBursch&repository=kitchenowl-ha&category=integration'> <img alt='Get it on the Home Assistant Community Store' src='docs/docs/img/badges/hacs_repository.svg' height=\"50\" /> </a> </div> <h3 align=\"center\"> \U0001F36B \U0001F958 \U0001F37D </h3> KitchenOwl is a smart self-hosted grocery list and recipe manager. Easily add items to your shopping list before you go shopping. You can also create recipes and get suggestions on what you want to cook. Track your expenses so you know how much you've spent. - Native Mobile/Web/Desktop apps with a great design - Add items…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/kitchenowl/icon.svg
+    category: files
+    port_map: "8474"
+    author: Tom Bursch
+    developer: Tom Bursch
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: kitchenowl
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: kitchenowl/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:41Z"

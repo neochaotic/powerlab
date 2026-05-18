@@ -1,0 +1,35 @@
+name: pocketbase
+services:
+    app:
+        image: ghcr.io/muchobien/pocketbase:0.38.1@sha256:e2039288dfa83369293114b357f40d0f16f8a873cdf8e4e4cf976036d2bcf9e7
+        ports:
+            - 5400:8090
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/pocketbase/data/data:/pb_data
+            - /DATA/PowerLabAppData/pocketbase/data/public:/pb_public
+            - /DATA/PowerLabAppData/pocketbase/data/hooks:/pb_hooks
+            - /DATA/PowerLabAppData/pocketbase/data/migrations:/pb_migrations
+version: "3.7"
+
+x-powerlab:
+    store_app_id: pocketbase
+    title:
+        en_us: PocketBase
+    tagline:
+        en_us: Open Source backend for your next SaaS and Mobile app in 1 file
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/pocketbase/icon.svg
+    category: developer
+    port_map: "5400"
+    author: PocketBase
+    developer: PocketBase
+    main: app
+    source:
+        catalog: umbrel-apps
+        upstream_id: pocketbase
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: pocketbase/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:53Z"

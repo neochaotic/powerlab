@@ -1,0 +1,48 @@
+name: gitlab
+services:
+    gitlab:
+        environment:
+            GITLAB_OMNIBUS_CONFIG: |
+                # Add any other gitlab.rb configuration here, each on its own line
+                gitlab_rails['initial_root_password'] = '${APP_PASSWORD}'
+                gitlab_rails['gitlab_shell_ssh_port'] = 2424
+                nginx['listen_port'] = 8929
+                nginx['listen_https'] = false
+            PGID: 1000
+            PUID: 1000
+        hostname: ${DEVICE_DOMAIN_NAME}:8929
+        image: gitlab/gitlab-ce:18.11.3-ce.0@sha256:49bd9fd166d8f82d443415c50aa65de2675a020b218c5949061db4b87442c7e1
+        ports:
+            - "2424:22"
+        restart: on-failure
+        shm_size: 256m
+        ulimits:
+            nofile:
+                hard: 8192
+                soft: 4096
+        volumes:
+            - /DATA/PowerLabAppData/gitlab/data/config:/etc/gitlab
+            - /DATA/PowerLabAppData/gitlab/data/logs:/var/log/gitlab
+            - /DATA/PowerLabAppData/gitlab/data/data:/var/opt/gitlab
+version: "3.7"
+
+x-powerlab:
+    store_app_id: gitlab
+    title:
+        en_us: GitLab
+    tagline:
+        en_us: Software. Faster.
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/gitlab/icon.svg
+    category: developer
+    port_map: "8929"
+    author: GitLab
+    developer: GitLab
+    main: gitlab
+    source:
+        catalog: umbrel-apps
+        upstream_id: gitlab
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: gitlab/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:36Z"

@@ -1,0 +1,46 @@
+name: slink
+services:
+    web:
+        environment:
+            IMAGE_COMPRESSION_QUALITY: 80
+            IMAGE_MAX_SIZE: 15M
+            IMAGE_STRIP_EXIF_METADATA: "true"
+            ORIGIN: http://${DEVICE_DOMAIN_NAME}:8811
+            REQUIRE_SSL: "false"
+            STORAGE_PROVIDER: local
+            TZ: UTC
+            USER_APPROVAL_REQUIRED: "false"
+            USER_PASSWORD_MIN_LENGTH: 8
+            USER_PASSWORD_REQUIREMENTS: 15
+        image: anirdev/slink:v1.11.3@sha256:0fd84616087a1cd6e1a195cf6ddbb59fad8fb174a9f9a98f49257fb534968e67
+        ports:
+            - 8811:3000
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/slink/data/var:/app/var/data
+            - /DATA/PowerLabAppData/slink/data/images:/app/slink/images
+version: "3.7"
+
+x-powerlab:
+    store_app_id: slink
+    title:
+        en_us: Slink
+    tagline:
+        en_us: A powerful, privacy-first image sharing platform
+    description:
+        en_us: 'Slink: Image Sharing Platform [](LICENSE) Welcome to **Slink**, a powerful self-hosted image sharing platform designed to give users complete control over their media sharing experience. Built with Symfony and SvelteKit, Slink enables seamless and secure image sharing without relying on third-party services. **Live Demo** | **Documentation** Why Slink? Slink solves the problem of sharing images with friends, family, and colleagues in a private, self-hosted environment. It''s also ideal for: - **Artists**: Showcase artwork in a community-focused platform. - **Developers**: Host and share screenshots for GitHub, portfolios, blogs, and more. - **Anyone**: Take control of image privacy and hosting. Features Sharing & Access Control - **Privacy-First Shares**: All shares are private by default; access is granted only to whoever holds the link. - **Password-Protected Shares**: Optionally require a password to view a shared image. - **Expiring Shares**: Set an expiration so a share auto-revokes after a chosen time. - **Share Management**: Dedicated page to list, edit, publish, or revoke your shares. - **URL Shortening**: Shorten image URLs for easier sharing. - **Collections**: Group images and share an entire collection via a single link. - **Explore**: Browse images other users have made publicly visible. Uploads & Media - **Image Upload**: Supports _PNG_,…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/slink/icon.svg
+    category: files
+    port_map: "8811"
+    author: Andrii Kryvoviaz
+    developer: Andrii Kryvoviaz
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: slink
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: slink/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:56Z"

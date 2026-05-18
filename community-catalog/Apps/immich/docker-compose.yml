@@ -1,0 +1,108 @@
+name: immich
+services:
+    machine-learning:
+        environment:
+            DB_DATABASE_NAME: immich
+            DB_HOSTNAME: postgres
+            DB_PASSWORD: moneyprintergobrrr
+            DB_USERNAME: immich
+            DISABLE_REVERSE_GEOCODING: "false"
+            IMMICH_MACHINE_LEARNING_URL: http://machine-learning:3003
+            JWT_SECRET: ${APP_SEED}
+            LOG_LEVEL: log
+            NODE_ENV: production
+            PUBLIC_LOGIN_PAGE_MESSAGE: ""
+            REDIS_HOSTNAME: redis
+            REVERSE_GEOCODING_PRECISION: "3"
+        image: ghcr.io/immich-app/immich-machine-learning:v2.7.5@sha256:a2501141440f10516d329fdfba2c68082e19eb9ba6016c061ac80d23beadf7f3
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/immich/data/model-cache:/cache
+    postgres:
+        environment:
+            DB_DATABASE_NAME: immich
+            DB_HOSTNAME: postgres
+            DB_PASSWORD: moneyprintergobrrr
+            DB_USERNAME: immich
+            DISABLE_REVERSE_GEOCODING: "false"
+            IMMICH_MACHINE_LEARNING_URL: http://machine-learning:3003
+            JWT_SECRET: ${APP_SEED}
+            LOG_LEVEL: log
+            NODE_ENV: production
+            POSTGRES_DB: immich
+            POSTGRES_INITDB_ARGS: --data-checksums
+            POSTGRES_PASSWORD: moneyprintergobrrr
+            POSTGRES_USER: immich
+            PUBLIC_LOGIN_PAGE_MESSAGE: ""
+            REDIS_HOSTNAME: redis
+            REVERSE_GEOCODING_PRECISION: "3"
+        image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:41eacbe83eca995561fe43814fd4891e16e39632806253848efaf04d3c8a8b84
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/immich/data/postgres:/var/lib/postgresql/data
+    redis:
+        image: valkey/valkey:8-bookworm@sha256:fea8b3e67b15729d4bb70589eb03367bab9ad1ee89c876f54327fc7c6e618571
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/immich/data/redis:/data
+    server:
+        depends_on:
+            - redis
+            - postgres
+        environment:
+            DB_DATABASE_NAME: immich
+            DB_HOSTNAME: postgres
+            DB_PASSWORD: moneyprintergobrrr
+            DB_USERNAME: immich
+            DISABLE_REVERSE_GEOCODING: "false"
+            IMMICH_MACHINE_LEARNING_URL: http://machine-learning:3003
+            JWT_SECRET: ${APP_SEED}
+            LOG_LEVEL: log
+            NODE_ENV: production
+            PUBLIC_LOGIN_PAGE_MESSAGE: ""
+            REDIS_HOSTNAME: redis
+            REVERSE_GEOCODING_PRECISION: "3"
+        image: ghcr.io/immich-app/immich-server:v2.7.5@sha256:c15bff75068effb03f4355997d03dc7e0fc58720c2b54ad6f7f10d1bc57efaa5
+        ports:
+            - 2283:2283
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/immich/data/upload:/data
+version: "3.7"
+x-environment:
+    DB_DATABASE_NAME: immich
+    DB_HOSTNAME: immich_postgres_1
+    DB_PASSWORD: moneyprintergobrrr
+    DB_USERNAME: immich
+    DISABLE_REVERSE_GEOCODING: "false"
+    IMMICH_MACHINE_LEARNING_URL: http://immich_machine-learning_1:3003
+    JWT_SECRET: ${APP_SEED}
+    LOG_LEVEL: log
+    NODE_ENV: production
+    PUBLIC_LOGIN_PAGE_MESSAGE: ""
+    REDIS_HOSTNAME: immich_redis_1
+    REVERSE_GEOCODING_PRECISION: "3"
+
+x-powerlab:
+    store_app_id: immich
+    title:
+        en_us: Immich
+    tagline:
+        en_us: High-performance photo and video backup solution
+    description:
+        en_us: '<p align="center"> <br/> <a href="https://opensource.org/license/agpl-v3"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg?color=3F51B5&style=for-the-badge&label=License&logoColor=000000&labelColor=ececec" alt="License: AGPLv3"></a> <a href="https://discord.immich.app"> <img src="https://img.shields.io/discord/979116623879368755.svg?label=Discord&logo=Discord&style=for-the-badge&logoColor=000000&labelColor=ececec" alt="Discord"/> </a> <br/> <br/> </p> <p align="center"> <img src="design/immich-logo-stacked-light.svg" width="300" title="Login With Custom URL"> </p> <h3 align="center">High performance self-hosted photo and video management solution</h3> <br/> <a href="https://immich.app"> <img src="design/immich-screenshots.png" title="Main Screenshot"> </a> <br/> <p align="center"> <a href="readme_i18n/README_ca_ES.md">Català</a> <a href="readme_i18n/README_es_ES.md">Español</a> <a href="readme_i18n/README_fr_FR.md">Français</a> <a href="readme_i18n/README_it_IT.md">Italiano</a> <a href="readme_i18n/README_ja_JP.md">日本語</a> <a href="readme_i18n/README_ko_KR.md">한국어</a> <a href="readme_i18n/README_de_DE.md">Deutsch</a> <a href="readme_i18n/README_nl_NL.md">Nederlands</a> <a href="readme_i18n/README_tr_TR.md">Türkçe</a> <a href="readme_i18n/README_zh_CN.md">简体中文</a> <a href="readme_i18n/README_zh_TW.md">正體中文</a> <a href="readme_i18n/README_uk_UA.md">Українська</a> <a href="readme_i18n/README_ru_RU.md">Русский</a> <a href="readme_i18n/README_pt_BR.md">Português Brasileiro</a> <a href="readme_i18n/README_sv_SE.md">Svenska</a> <a href="readme_i18n/README_ar_JO.md">العربية</a> <a href="readme_i18n/README_vi_VN.md">Tiếng Việt</a> <a href="readme_i18n/README_th_TH.md">ภาษาไทย</a> </p> > [!WARNING] > ⚠️ Always follow 3-2-1 backup plan for your precious photos and videos! > > [!NOTE] > You can find the main documentation, including installation guides, at https://immich.app/. Links - Documentation - About - Installation - Roadmap - Demo - Features - Translations - Contributing Demo Access the demo here. For the mobile app, you can use for the . Login credentials | Email | Password | | --------------- | -------- | | demo@immich.app | demo | Features | Features | Mobile | Web | | :------------------------------------------- | ------ | --- | | Upload and view videos and photos | Yes | Yes | | Auto backup when the app is opened…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/immich/icon.svg
+    category: files
+    port_map: "2283"
+    author: Alex Tran
+    developer: Alex Tran
+    main: server
+    source:
+        catalog: umbrel-apps
+        upstream_id: immich
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: immich/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:38Z"

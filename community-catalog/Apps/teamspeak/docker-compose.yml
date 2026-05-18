@@ -1,0 +1,46 @@
+name: teamspeak
+services:
+    server:
+        environment:
+            TS3SERVER_LICENSE: accept
+            TS3SERVER_SERVERADMIN_PASSWORD: $APP_PASSWORD
+        image: teamspeak:3.13.7@sha256:b5bdec55bc87b992c5658e739f3ce465644efa6d997633110b12be3dc3a10796
+        ports:
+            - 9987:9987/udp
+            - 10011:10011
+            - 30033:30033
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/teamspeak/data:/var/ts3server
+    ui:
+        environment:
+            JWT_SECRET: $APP_SEED
+        image: joni1802/ts3-manager:v2.2.1@sha256:d69890c323e8715cef0f625036c7c51ec7e7da321438897633fff5df83da1e39
+        ports:
+            - 50371:8080
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+version: "3.7"
+
+x-powerlab:
+    store_app_id: teamspeak
+    title:
+        en_us: TeamSpeak
+    tagline:
+        en_us: Easy, Secure, and High-Quality Communication for Gaming, Learning, Business, and more
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/teamspeak/icon.svg
+    category: social
+    port_map: "50371"
+    author: TeamSpeak Systems, Inc.
+    developer: TeamSpeak Systems, Inc.
+    main: ui
+    source:
+        catalog: umbrel-apps
+        upstream_id: teamspeak
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: teamspeak/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:59Z"

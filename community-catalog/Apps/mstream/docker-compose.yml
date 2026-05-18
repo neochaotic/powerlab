@@ -1,0 +1,35 @@
+name: mstream
+services:
+    server:
+        environment:
+            - PUID=1000
+            - PGID=1000
+        image: linuxserver/mstream:6.8.1@sha256:8788c77a98c8fba14fef306a54816ff45b392de9ac1484bbc2ad9b6ffd619c9e
+        ports:
+            - 3840:3000
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/mstream/data:/config
+            - /DATA/data/storage/downloads/music:/music
+version: "3.7"
+
+x-powerlab:
+    store_app_id: mstream
+    title:
+        en_us: mStream
+    tagline:
+        en_us: A private music server
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/mstream/icon.svg
+    category: media
+    port_map: "3840"
+    author: Iros Software
+    developer: Iros Software
+    main: server
+    source:
+        catalog: umbrel-apps
+        upstream_id: mstream
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: mstream/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:46Z"

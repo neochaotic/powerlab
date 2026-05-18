@@ -1,0 +1,31 @@
+name: chatpad-ai
+services:
+    web:
+        image: ghcr.io/deiucanta/chatpad:bb5f4abb36b45320df69dfccb64e734f36ca9bb3@sha256:15155e3a09fd677d578583f6bd3848c991cf768997400e37bc4c27e62a918a7e
+        ports:
+            - 10102:80
+        restart: on-failure
+version: "3.9"
+
+x-powerlab:
+    store_app_id: chatpad-ai
+    title:
+        en_us: Chatpad AI
+    tagline:
+        en_us: Premium quality UI for ChatGPT
+    description:
+        en_us: "<h1 align=\"center\">Chatpad AI</h1> <h2 align=\"center\">Premium quality UI for ChatGPT</h2> <!-- <p align=\"center\"><a href=\"https://chatpad.ai\">Web App</a> & <a href=\"https://download.chatpad.ai\">Desktop App</a></p> --> <p align=\"center\"><a href=\"https://chatpad.ai\">Web App</a> & <a href=\"https://dl.todesktop.com/230313oyppkw40a\">Desktop App</a></p> Recently, there has been a surge of UIs for ChatGPT, making it the new \"to-do app\" that everyone wants to try their hand at. Chatpad sets itself apart with a broader vision - to become the ultimate interface for ChatGPT users. ⚡️ Free and open source This app is provided for free and the source code is available on GitHub. \U0001F512 Privacy focused No tracking, no cookies, no bullshit. All your data is stored locally. ✨ Best experience Crafted with love and care to provide the best experience possible. Self-host using Docker Self-host using Docker with custom config One click Deployments <!-- Easypanel --> [](https://easypanel.io/docs/templates/chatpad) <!-- Netlify --> [](https://app.netlify.com/start/deploy?repository=https://github.com/deiucanta/chatpad) <!-- Vercel --> [](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fdeiucanta%2Fchatpad&project-name=chatpad&repository-name=chatpad-vercel&demo-title=Chatpad&demo-description=The%20Official%20Chatpad%20Website&demo-url=https%3A%2F%2Fchatpad.ai&demo-image=https%3A%2F%2Fraw.githubusercontent.com%2Fdeiucanta%2Fchatpad%2Fmain%2Fbanner.png) <!-- Railway --> [](https://railway.app/template/Ak6DUw?referralCode=9M8r62) [](https://cloud.digitalocean.com/apps/new?repo=https://github.com/deiucanta/chatpad/tree/main) Give Feedback If you have any feature requests or bug reports, go to feedback.chatpad.ai. Contribute This is a React.js application. Clone the project, run and and you're good to go. Credits - ToDesktop - A simple way to make your web app into a beautiful desktop app - DexieJS - A Minimalistic Wrapper for IndexedDB…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/chatpad-ai/icon.svg
+    category: ai
+    port_map: "10102"
+    author: Andrei Canta
+    developer: Andrei Canta
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: chatpad-ai
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: chatpad-ai/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:30Z"

@@ -1,0 +1,64 @@
+name: photoprism
+services:
+    db:
+        command: mysqld --transaction-isolation=READ-COMMITTED --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --max-connections=512 --innodb-rollback-on-timeout=OFF --innodb-lock-wait-timeout=50
+        environment:
+            MYSQL_DATABASE: photoprism
+            MYSQL_PASSWORD: photoprism
+            MYSQL_ROOT_PASSWORD: photoprism
+            MYSQL_USER: photoprism
+        image: mariadb:10.5.12@sha256:dfcba5641bdbfd7cbf5b07eeed707e6a3672f46823695a0d3aba2e49bbd9b1dd
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/photoprism/database:/var/lib/mysql
+    web:
+        environment:
+            PHOTOPRISM_ADMIN_PASSWORD: ${APP_PASSWORD}
+            PHOTOPRISM_DATABASE_DRIVER: mysql
+            PHOTOPRISM_DATABASE_NAME: photoprism
+            PHOTOPRISM_DATABASE_PASSWORD: photoprism
+            PHOTOPRISM_DATABASE_SERVER: db:3306
+            PHOTOPRISM_DATABASE_USER: photoprism
+            PHOTOPRISM_HTTP_COMPRESSION: gzip
+            PHOTOPRISM_HTTP_PORT: 8087
+            PHOTOPRISM_ORIGINALS_LIMIT: 10000
+            PHOTOPRISM_SITE_AUTHOR: ""
+            PHOTOPRISM_SITE_CAPTION: Digital Asset Management
+            PHOTOPRISM_SITE_DESCRIPTION: ""
+            PHOTOPRISM_SITE_TITLE: PhotoPrism
+            PHOTOPRISM_SITE_URL: http://${APP_DOMAIN}:8087/
+        image: photoprism/photoprism:260305@sha256:5229f68bce0293320547f35c733de584d7c2d5725a0efbddb68d7a118a8fc21c
+        ports:
+            - 8087:8087
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/photoprism/originals:/photoprism/originals
+            - /DATA/PowerLabAppData/photoprism/storage:/photoprism/storage
+version: "3.7"
+
+x-powerlab:
+    store_app_id: photoprism
+    title:
+        en_us: PhotoPrism
+    tagline:
+        en_us: Self-host your photo and video library
+    description:
+        en_us: 'PhotoPrism: Browse Your Life in Pictures [](https://docs.photoprism.app/license/agpl/) [](https://docs.photoprism.app/) [](https://link.photoprism.app/chat) [](https://link.photoprism.app/discussions) [](https://bsky.app/profile/photoprism.app) [](https://floss.social/@photoprism) PhotoPrism® is an AI-Powered Photos App for the Decentralized Web. It makes use of the latest technologies to tag and find pictures automatically without getting in your way. You can run it at home, on a private server, or in the cloud. To get a first impression, you are welcome to play with our public demo. Please be careful not to upload any private, unlawful or offensive pictures. Feature Overview ## **Our mission is to provide the most user- and privacy-friendly solution to keep your pictures organized and accessible.** That''s why PhotoPrism was built from the ground up to run wherever you need it, without compromising freedom, privacy, or functionality: <img align="right" height="270" src="https://dl.photoprism.app/img/ui/2025/iphone-crocus-540px.png"> * Browse all your pictures without worrying about RAW images or video formats * Whether you''re using a phone, tablet, or desktop computer, our intuitive PWA provides a native app-like experience and can be easily installed on your home screen * Quickly find specific photos and videos with powerful search filters that can be combined and are available for many different properties, including labels, location, resolution, color, chroma, and quality * Automatically labels your…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/photoprism/icon.svg
+    category: files
+    port_map: "8087"
+    author: PhotoPrism
+    developer: PhotoPrism
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: photoprism
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: photoprism/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:52Z"

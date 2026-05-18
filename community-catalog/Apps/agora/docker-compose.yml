@@ -1,0 +1,77 @@
+name: agora
+services:
+    agora:
+        environment:
+            AGORA_PORT: 8080
+            FILES_DIR: /files
+            INVOICES_MACAROON_PATH: /lnd/data/chain/bitcoin/$APP_BITCOIN_NETWORK/invoice.macaroon
+            LND_RPC_AUTHORITY: $APP_LIGHTNING_NODE_IP:$APP_LIGHTNING_NODE_GRPC_PORT
+            TLS_CERT_PATH: /lnd/tls.cert
+        image: ghcr.io/agora-org/agora:sha-48d3205@sha256:35eda120a8d868c7fa3b9cbdcad7cc2245b9fe7e0c5356c8091bb0bf9a65222d
+        init: true
+        networks:
+            default:
+                ipv4_address: $APP_AGORA_SERVER_IP
+        ports:
+            - 12080:80
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/agora/files:/files
+            - /DATA/PowerLabAppData/agora:/lnd:ro
+    filebrowser:
+        entrypoint: /data/entrypoint.sh
+        environment:
+            APP_PASSWORD: $APP_PASSWORD
+        image: filebrowser/filebrowser:v2.21.1@sha256:e1f43b1b8a1acb1d7cd5f934454e7a2ef571ea3bab48b0e1ed0fa97ef9df8d69
+        networks:
+            default:
+                ipv4_address: $APP_AGORA_FILEBROWSER_IP
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/agora/files:/srv
+            - /DATA/PowerLabAppData/agora/database/filebrowser.db:/database.db
+            - /DATA/PowerLabAppData/agora/data:/data
+    nginx:
+        depends_on:
+            - agora
+            - filebrowser
+        environment:
+            APP_AGORA_FILEBROWSER_IP: $APP_AGORA_FILEBROWSER_IP
+            APP_AGORA_SERVER_IP: $APP_AGORA_SERVER_IP
+            APP_HIDDEN_SERVICE: $APP_HIDDEN_SERVICE
+            NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx/
+        image: nginx:1.19-alpine@sha256:07ab71a2c8e4ecb19a5a5abcfb3a4f175946c001c8af288b1aa766d67b0d05d2
+        init: true
+        networks:
+            default:
+                ipv4_address: $APP_AGORA_IP
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/agora/nginx/nginx.conf.template:/etc/nginx/templates/nginx.conf.template
+            - /DATA/PowerLabAppData/agora/data/www:/usr/share/nginx/html
+version: "3.7"
+
+x-powerlab:
+    store_app_id: agora
+    title:
+        en_us: Agora
+    tagline:
+        en_us: Sell your files for Bitcoin
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/agora/icon.svg
+    category: files
+    port_map: "12080"
+    author: Casey Rodarmor & Sönke Hahn
+    developer: Casey Rodarmor & Sönke Hahn
+    main: agora
+    source:
+        catalog: umbrel-apps
+        upstream_id: agora
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: agora/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:27Z"

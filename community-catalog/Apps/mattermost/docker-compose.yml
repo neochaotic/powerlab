@@ -1,0 +1,66 @@
+name: mattermost
+services:
+    app:
+        depends_on:
+            db:
+                condition: service_healthy
+        environment:
+            MM_DBNAME: mattermost
+            MM_PASSWORD: admin
+            MM_SQLSETTINGS_DATASOURCE: postgres://admin:admin@db:5432/mattermost?sslmode=disable&connect_timeout=10
+            MM_USERNAME: admin
+        image: alexlack/mattermost-app:v11.6.2@sha256:d11529b3cd819d8f9ae12fda60c306dc7b6d55c9344ff71ed3d07e23fc2197a7
+        ports:
+            - 8443:8443/tcp
+            - 8443:8443/udp
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/mattermost/data/app/mattermost/config:/mattermost/config:rw
+            - /DATA/PowerLabAppData/mattermost/data/app/mattermost/data:/mattermost/data:rw
+            - /DATA/PowerLabAppData/mattermost/data/app/mattermost/logs:/mattermost/logs:rw
+            - /DATA/PowerLabAppData/mattermost/data/app/mattermost/plugins:/mattermost/plugins:rw
+            - /DATA/PowerLabAppData/mattermost/data/app/mattermost/client-plugins:/mattermost/client/plugins:rw
+            - /etc/localtime:/etc/localtime:ro
+    db:
+        environment:
+            MM_DBNAME: mattermost
+            MM_PASSWORD: admin
+            MM_USERNAME: admin
+        healthcheck:
+            interval: 10s
+            retries: 5
+            test:
+                - CMD-SHELL
+                - pg_isready -U postgres
+            timeout: 5s
+        image: alexlack/mattermost-db:v11.6.2@sha256:2c9ca7bf024665bbf479ee3a58b99790f44c592e22d711593a64a105132acca2
+        restart: on-failure
+        stop_grace_period: 1m
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/mattermost/data/db:/var/lib/postgresql/data
+            - /etc/localtime:/etc/localtime:ro
+version: "3.7"
+
+x-powerlab:
+    store_app_id: mattermost
+    title:
+        en_us: Mattermost
+    tagline:
+        en_us: Team Chat, Open Source, Self-Hosted
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/mattermost/icon.svg
+    category: social
+    port_map: "8765"
+    author: Mattermost
+    developer: Mattermost
+    main: app
+    source:
+        catalog: umbrel-apps
+        upstream_id: mattermost
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: mattermost/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:44Z"

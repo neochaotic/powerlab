@@ -1,0 +1,33 @@
+name: tailscale
+services:
+    web:
+        command: sh -c 'tailscale web --listen 0.0.0.0:8240 & exec tailscaled --tun=userspace-networking'
+        image: tailscale/tailscale:v1.96.5@sha256:dbeff02d2337344b351afac203427218c4d0a06c43fc10a865184063498472a6
+        network_mode: host
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/tailscale/data:/var/lib
+version: "3.7"
+
+x-powerlab:
+    store_app_id: tailscale
+    title:
+        en_us: Tailscale
+    tagline:
+        en_us: Zero config VPN to access your Umbrel from anywhere
+    description:
+        en_us: 'Tailscale https://tailscale.com Private WireGuard® networks made easy Overview This repository contains the majority of Tailscale''s open source code. Notably, it includes the daemon and the CLI tool. The daemon runs on Linux, Windows, macOS, and to varying degrees on FreeBSD and OpenBSD. The Tailscale iOS and Android apps use this repo''s code, but this repo doesn''t contain the mobile GUI code. Other Tailscale repos of note: * the Android app is at https://github.com/tailscale/tailscale-android * the Synology package is at https://github.com/tailscale/tailscale-synology * the QNAP package is at https://github.com/tailscale/tailscale-qpkg * the Chocolatey packaging is at https://github.com/tailscale/tailscale-chocolatey For background on which parts of Tailscale are open source and why, see https://tailscale.com/opensource/. Using We serve packages for a variety of distros and platforms at https://pkgs.tailscale.com. Other clients The macOS, iOS, and Windows clients use the code in this repository but additionally include small GUI wrappers. The GUI wrappers on non-open source platforms are themselves not open source. Building We always require the latest Go release, currently Go 1.26. (While we build releases with our Go fork, its use is not required.) If you''re packaging Tailscale for distribution, use instead, to burn commit IDs and version info into the binaries: If your distro has conventions…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/tailscale/icon.svg
+    category: networking
+    port_map: "8240"
+    author: Tailscale Inc.
+    developer: Tailscale Inc.
+    source:
+        catalog: umbrel-apps
+        upstream_id: tailscale
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: tailscale/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:59Z"

@@ -1,0 +1,32 @@
+name: mainsail
+services:
+    web:
+        image: ghcr.io/mainsail-crew/mainsail:sha-3783e07@sha256:c125fbc0de775cd97a526ca5e39deaa531f1c718f3a90253073c14a82cbe7acc
+        ports:
+            - 8070:80
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/mainsail/data/config.json:/usr/share/nginx/html/config.json:ro
+version: "3.7"
+
+x-powerlab:
+    store_app_id: mainsail
+    title:
+        en_us: Mainsail
+    tagline:
+        en_us: Control and monitor your printer from everywhere, from any device
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/mainsail/icon.svg
+    category: files
+    port_map: "8070"
+    author: Mainsail Crew
+    developer: Mainsail Crew
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: mainsail
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: mainsail/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:44Z"

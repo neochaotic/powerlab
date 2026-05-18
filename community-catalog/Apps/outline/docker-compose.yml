@@ -1,0 +1,106 @@
+name: outline
+services:
+    db:
+        environment:
+            POSTGRES_DB: outline
+            POSTGRES_PASSWORD: outlinepass
+            POSTGRES_USER: outline
+        healthcheck:
+            interval: 30s
+            retries: 3
+            test:
+                - CMD
+                - pg_isready
+                - -d
+                - outline
+                - -U
+                - outline
+            timeout: 20s
+        image: postgres:17.9-alpine@sha256:778d0b486d6daa02b77434d0358ec57a1b21fd8b6d22ac2eef56a33e816928f6
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/outline/data/db:/var/lib/postgresql/data
+    dex:
+        command:
+            - dex
+            - serve
+            - /etc/dex/config.yaml
+        image: dexidp/dex:v2.45.1@sha256:8499afd690c437f52301efd2b05b2455da5bd2dfc20332cd697dc9937f808462
+        ports:
+            - 8943:5556
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/outline/data/config:/etc/dex
+            - /DATA/PowerLabAppData/outline/data/dex:/var/dex
+    redis:
+        healthcheck:
+            interval: 10s
+            retries: 3
+            test:
+                - CMD
+                - redis-cli
+                - ping
+            timeout: 30s
+        image: redis:8.4.2-alpine@sha256:812a2556fa70318d980d248a65f62a3bdb72c0882e90d96e50d5c8cf2bed438d
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/outline/data/redis:/data
+    web:
+        depends_on:
+            - db
+            - redis
+            - dex
+        environment:
+            DATABASE_URL: postgres://outline:outlinepass@db:5432/outline
+            FILE_STORAGE: local
+            FILE_STORAGE_LOCAL_ROOT_DIR: /var/lib/outline/data
+            FILE_STORAGE_UPLOAD_MAX_SIZE: 262144000
+            NODE_ENV: production
+            OIDC_AUTH_URI: http://${DEVICE_DOMAIN_NAME}:8943/dex/auth
+            OIDC_CLIENT_ID: outline
+            OIDC_CLIENT_SECRET: ${APP_SEED}
+            OIDC_DISPLAY_NAME: Dex
+            OIDC_SCOPES: openid profile email
+            OIDC_TOKEN_URI: http://dex:5556/dex/token
+            OIDC_USERINFO_URI: http://dex:5556/dex/userinfo
+            OIDC_USERNAME_CLAIM: preferred_username
+            PGSSLMODE: disable
+            PORT: 3000
+            REDIS_URL: redis://redis:6379
+            SECRET_KEY: ${APP_SEED}
+            URL: http://${DEVICE_DOMAIN_NAME}:${APP_OUTLINE_PORT}
+            UTILS_SECRET: ${APP_SEED}
+        image: outlinewiki/outline:1.7.1@sha256:361df7040e6f0d7abac768b99f40122197921626a7e69501aabb5fcb496fc1b4
+        ports:
+            - 8942:3000
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/outline/data/app:/var/lib/outline/data
+version: "3.7"
+
+x-powerlab:
+    store_app_id: outline
+    title:
+        en_us: Outline
+    tagline:
+        en_us: A modern team knowledge base and wiki
+    description:
+        en_us: '<p align="center"> <picture> <source media="(prefers-color-scheme: dark)" srcset="./public/logos/outline-logo-dark.png" height="29"> <source media="(prefers-color-scheme: light)" srcset="./public/logos/outline-logo-light.png" height="29"> <img src="./public/logos/outline-logo-light.png" height="29" alt="Outline" /> </picture> </p> <p align="center"> <i>A fast, collaborative, knowledge base for your team built using React and Node.js.<br/>Try out Outline using our hosted version at <a href="https://www.getoutline.com">www.getoutline.com</a>.</i> <br/> <img width="1640" alt="screenshot" src="https://user-images.githubusercontent.com/380914/110356468-26374600-7fef-11eb-9f6a-f2cc2c8c6590.png"> </p> <p align="center"> <a href="http://www.typescriptlang.org" rel="nofollow"><img src="https://img.shields.io/badge/%3C%2F%3E-TypeScript-%230074c1.svg" alt="TypeScript"></a> <a href="https://github.com/prettier/prettier"><img src="https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat" alt="Prettier"></a> <a href="https://github.com/styled-components/styled-components"><img src="https://img.shields.io/badge/style-%F0%9F%92%85%20styled--components-orange.svg" alt="Styled Components"></a> <a href="https://translate.getoutline.com/project/outline" alt="Localized"><img src="https://badges.crowdin.net/outline/localized.svg"></a> </p> This is the source code that runs **Outline** and all the associated services. If you want to use Outline then you don''t need to run this code, A hosted version of the app is offered at getoutline.com. You can also find documentation on using Outline in our guide. If you''d like to run your own copy of Outline or contribute to development then this is the place for you. Installation Please see the documentation for running your own copy of Outline in a production configuration. If you have questions or improvements for the docs please create a thread in GitHub discussions. Contributing > **Note:** Please do not submit AI-generated pull requests. We receive a high volume of mass, low-quality PRs generated by AI tools like Claude, ChatGPT, and Copilot…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/outline/icon.svg
+    category: files
+    port_map: "8942"
+    author: Outline
+    developer: Outline
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: outline
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: outline/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:50Z"

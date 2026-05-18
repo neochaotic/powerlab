@@ -1,0 +1,32 @@
+name: uptime-kuma
+services:
+    server:
+        image: louislam/uptime-kuma:2.3.2@sha256:9aeb4e51d038047f414309c77a1af553281ca535723cb88907d907269d0a908e
+        ports:
+            - 8385:3001
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/uptime-kuma/data/uptime-kuma:/app/data
+version: "3.7"
+
+x-powerlab:
+    store_app_id: uptime-kuma
+    title:
+        en_us: Uptime Kuma
+    tagline:
+        en_us: Self-hosted uptime monitoring tool
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/uptime-kuma/icon.svg
+    category: networking
+    port_map: "8385"
+    author: Louis Lam
+    developer: Louis Lam
+    main: server
+    source:
+        catalog: umbrel-apps
+        upstream_id: uptime-kuma
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: uptime-kuma/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:14:01Z"

@@ -1,0 +1,62 @@
+name: poznote
+services:
+    app:
+        environment:
+            HTTP_WEB_PORT: 80
+            SQLITE_DATABASE: /var/www/html/data/database/poznote.db
+        healthcheck:
+            interval: 30s
+            retries: 3
+            start_period: 10s
+            test:
+                - CMD
+                - wget
+                - --quiet
+                - --tries=1
+                - --timeout=5
+                - -O
+                - /dev/null
+                - http://127.0.0.1/api/health
+            timeout: 10s
+        image: ghcr.io/timothepoznanski/poznote:6.10.0@sha256:0767aa6e1d40b551795a5798f8ea922694db4118628a2537f2a64943c19037f2
+        ports:
+            - 8389:80
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/poznote/data:/var/www/html/data
+    mcp:
+        depends_on:
+            - app
+        environment:
+            POZNOTE_API_URL: http://app:80/api/v1
+            POZNOTE_DEBUG: ${POZNOTE_DEBUG:-false}
+        image: ghcr.io/timothepoznanski/poznote-mcp:6.10.0@sha256:8ee0b5cb86c2481cdda404e4159d934b4fe466270a33e7fb966d48d7559f918f
+        ports:
+            - 8340:8045
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/poznote/data:/var/www/html/data:ro
+version: "3.7"
+
+x-powerlab:
+    store_app_id: poznote
+    title:
+        en_us: Poznote
+    tagline:
+        en_us: A powerful app for taking notes
+    description:
+        en_us: "<p align=\"center\"> <img src=\"images/poznote-logo-text.png\" alt=\"Poznote Logo\" width=\"400\"> </p> <div align=\"center\"> [](https://github.com/timothepoznanski/poznote/stargazers) [](https://github.com/timothepoznanski/poznote/blob/main/LICENCE) [](https://github.com/timothepoznanski/poznote/pkgs/container/poznote) </div> <h3 align=\"center\"> Poznote is a personal note-taking and documentation platform. </h3> <br> <p align=\"center\"> <img src=\"images/pres1.png\" alt=\"Poznote-light\" width=\"100%\"> </p> Features Discover all the features here. Demo https://demo.poznote.com **Login**: poznote<br> **Password**: poznote Table of content - Install - Access - Change Settings - Update application - Authentication - Note types - Personalization - Multi-users - Git Synchronization - Backup / Export - Restore / Import - Offline View - Multiple Instances - MCP Server - Chrome Extension - API Documentation - Tech Stack - About Install > The official image is multi-arch (linux/amd64, linux/arm64) and supports Windows/macOS via Docker Desktop, as well as ARM64 devices like Raspberry Pi, NAS systems etc. Choose your preferred installation method below: <a id=\"windows\"></a> <details> <summary><strong>\U0001F5A5️ Windows</strong></summary> Step 1: Prerequisite Install and start Docker Desktop Step 2: Deploy Poznote Create a new directory: Navigate to the Poznote directory: Create the environment file: Edit the file: Download the Docker Compose configuration file: Download the latest Poznote Webserver and Poznote MCP images : Start Poznote containers: </details> <a id=\"linux\"></a> <details> <summary><strong>\U0001F427 Linux</strong></summary> Step 1: Prerequisite 1. Install Docker engine 2. Install Docker Compose Step…"
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/poznote/icon.svg
+    category: files
+    port_map: "8389"
+    author: Timothé Poznanski
+    developer: Timothé Poznanski
+    main: app
+    source:
+        catalog: umbrel-apps
+        upstream_id: poznote
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: poznote/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:54Z"

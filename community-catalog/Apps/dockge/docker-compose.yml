@@ -1,0 +1,55 @@
+name: dockge
+services:
+    docker:
+        command: |
+            dockerd
+              --bridge dind0
+              --data-root /data/data
+              --exec-root /data/exec
+              --host unix:///data/docker.sock
+              --pidfile /data/docker.pid
+        entrypoint: /entrypoint.sh
+        environment:
+            DOCKER_ENSURE_BRIDGE: dind0:10.32.0.1/16
+        image: docker:24.0.5-dind@sha256:3c6e4dca7a63c9a32a4e00da40461ce067f255987ccc9721cf18ffa087bcd1ef
+        network_mode: host
+        privileged: true
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/dockge/entrypoint.sh:/entrypoint.sh
+            - /DATA/PowerLabAppData/dockge/data/docker:/data
+    dockge:
+        environment:
+            DOCKGE_ENABLE_CONSOLE: "true"
+            DOCKGE_STACKS_DIR: /opt/stacks
+        image: louislam/dockge:1.5.0@sha256:335c6368b880ecc203236ed89e6e5232e0d6578e8ef5920e4a502390451502bf
+        ports:
+            - 5005:5001
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/dockge/data/docker:/var/run
+            - /DATA/PowerLabAppData/dockge/data/dockge-data:/app/data
+            - /DATA/PowerLabAppData/dockge/data/dockge-stacks:/opt/stacks
+version: "3.7"
+
+x-powerlab:
+    store_app_id: dockge
+    title:
+        en_us: Dockge
+    tagline:
+        en_us: Easy to use Docker Compose manager
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/dockge/icon.svg
+    category: developer
+    port_map: "5005"
+    author: Louis Lam
+    developer: Louis Lam
+    main: dockge
+    source:
+        catalog: umbrel-apps
+        upstream_id: dockge
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: dockge/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:31Z"

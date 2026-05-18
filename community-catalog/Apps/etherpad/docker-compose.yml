@@ -1,0 +1,68 @@
+name: etherpad
+services:
+    app:
+        depends_on:
+            - postgres
+        environment:
+            ADMIN_PASSWORD: ${APP_PASSWORD}
+            ALLOW_UNKNOWN_FILE_ENDS: "true"
+            CI: "true"
+            DB_CHARSET: utf8mb4
+            DB_HOST: postgres
+            DB_NAME: etherpad
+            DB_PASS: admin
+            DB_PORT: 5432
+            DB_TYPE: postgres
+            DB_USER: admin
+            DEFAULT_PAD_TEXT: null
+            DISABLE_IP_LOGGING: "false"
+            LOGLEVEL: INFO
+            NODE_ENV: production
+            SHOW_SETTINGS_IN_ADMIN_PAGE: "true"
+            SKIN_NAME: colibris
+            SKIN_VARIANTS: super-light-toolbar super-light-editor light-background
+            SOFFICE: null
+            SUPPRESS_ERRORS_IN_PAD_TEXT: "false"
+            TRUST_PROXY: "true"
+        image: etherpad/etherpad:3.0.0@sha256:037ce33b51aa4997af6b953847631cb89bfc1d0d1c29598249a099dc2b990d1e
+        ports:
+            - 9002:9001
+        restart: on-failure
+        user: "5001:0"
+        volumes:
+            - /DATA/PowerLabAppData/etherpad/data/plugins:/opt/etherpad-lite/src/plugin_packages
+            - /DATA/PowerLabAppData/etherpad/data/etherpad-var:/opt/etherpad-lite/var:rw
+    postgres:
+        environment:
+            PGDATA: /var/lib/postgresql/data/pgdata
+            POSTGRES_DB: etherpad
+            POSTGRES_PASSWORD: admin
+            POSTGRES_PORT: 5432
+            POSTGRES_USER: admin
+        image: postgres:15-alpine@sha256:93a6166360be8f1d116b7ea97ebb8dea9e2c9c746349e952738bbba72a961d7c
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/etherpad/data/postgres_data:/var/lib/postgresql/data/pgdata
+version: "3.7"
+
+x-powerlab:
+    store_app_id: etherpad
+    title:
+        en_us: Etherpad
+    tagline:
+        en_us: An intuitive tool for real-time collaborative writing
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/etherpad/icon.svg
+    category: files
+    port_map: "9002"
+    author: The Etherpad Foundation
+    developer: The Etherpad Foundation
+    main: app
+    source:
+        catalog: umbrel-apps
+        upstream_id: etherpad
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: etherpad/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:34Z"

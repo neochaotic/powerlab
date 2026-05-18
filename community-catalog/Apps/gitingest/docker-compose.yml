@@ -28,7 +28,7 @@ x-powerlab:
         catalog: umbrel-apps
         upstream_id: gitingest
         upstream_repo: https://github.com/getumbrel/umbrel-apps.git
-        upstream_commit: 931a2146a30e8398b127434cf4fd2f20ae77bb4f
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
         upstream_path: gitingest/umbrel-app.yml
         transform_version: "1.0"
-        synced_at: "2026-05-13T17:26:39Z"
+        synced_at: "2026-05-18T10:13:36Z"

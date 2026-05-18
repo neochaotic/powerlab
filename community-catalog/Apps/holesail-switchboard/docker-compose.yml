@@ -1,0 +1,50 @@
+name: holesail-switchboard
+services:
+    web:
+        environment:
+            HSSB_CLIENT_HOST: 0.0.0.0
+            HSSB_DATA_FILE: /data/data.json
+            HSSB_FIXED_CLIENT_PORTS: 3161-3170
+            HSSB_HOST: 0.0.0.0
+            HSSB_PORT: 3160
+            HSSB_SUBTITLE: 'For more information, visit: https://github.com/oren-z0/holesail-switchboard/blob/main/docs/Umbrel.md'
+        image: orenz0/holesail-switchboard:v2.0.8@sha256:87bee9070543a0ec929289fc1d6ebe37b899350b4844d35ff1f2b38e689868ad
+        ports:
+            - 3161:3161
+            - 3162:3162
+            - 3163:3163
+            - 3164:3164
+            - 3165:3165
+            - 3166:3166
+            - 3167:3167
+            - 3168:3168
+            - 3169:3169
+            - 3170:3170
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/holesail-switchboard/data:/data
+version: "3.7"
+
+x-powerlab:
+    store_app_id: holesail-switchboard
+    title:
+        en_us: Holesail Switchboard
+    tagline:
+        en_us: Manage multiple holesail P2P tunnels from a single dashboard
+    description:
+        en_us: 'Holesail Switchboard A web interface to manage multiple holesail servers and clients for peer-to-peer connections. Features - Create and manage multiple holesail servers - Create and manage multiple holesail clients - Real-time status monitoring (running, failed, disabled, initializing) - QR code generation for server connection URLs - Secure mode support for servers - Persistent configuration storage Quick Start Run directly with npx (no installation required): This will start the server and automatically open your browser. CLI Usage CLI Flags | Flag | Description | Default | |------|-------------|---------| | | Path to data file | OS-specific (see below) | | | Web dashboard UI port | 3000 | | | Web dashboard UI host | 127.0.0.1 | | | Host for Holesail clients to bind to | 127.0.0.1 | | | Don''t open browser on startup | (opens by default) | | | Show help | | Default Data File Locations When is not specified and environment variable is not set: - **macOS**: - **Linux**: - **Windows**: Environment Variables CLI flags take precedence over environment variables. Copy to to configure: | Variable | Description | CLI Override | |----------|-------------|--------------| | | Path to JSON state file | | | | Web…'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/holesail-switchboard/icon.svg
+    category: networking
+    port_map: "3160"
+    author: oren-z0
+    developer: oren-z0
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: holesail-switchboard
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: holesail-switchboard/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:37Z"

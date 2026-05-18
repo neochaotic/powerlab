@@ -1,0 +1,36 @@
+name: torbrowser
+services:
+    web:
+        environment:
+            - DARK_MODE=1
+            - WEB_AUDIO=1
+        image: dennysubke/torbrowser:15.0.1@sha256:81269f7ec6494e5d7d4fc88391256bfb311165bb1d18124984ada296268c6962
+        ports:
+            - 5832:5800
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/torbrowser/config:/config
+version: "3.7"
+
+x-powerlab:
+    store_app_id: torbrowser
+    title:
+        en_us: Tor Browser
+    tagline:
+        en_us: An invisible shield for your browsing experience
+    description:
+        en_us: 'This project is no longer hosted here. Come find us at our gitlab repository instead. About Tor protects your privacy on the internet by hiding the connection between your Internet address and the services you use. We believe Tor is reasonably secure, but please ensure you read the instructions and configure it properly. Resources Home page: - https://www.torproject.org/ Download new versions: - https://www.torproject.org/download/download.html Documentation, including links to installation and setup instructions: - https://www.torproject.org/docs/documentation.html Frequently Asked Questions: - https://www.torproject.org/docs/faq.html'
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/torbrowser/icon.svg
+    category: networking
+    port_map: "5832"
+    author: The Tor Project
+    developer: The Tor Project
+    main: web
+    source:
+        catalog: umbrel-apps
+        upstream_id: torbrowser
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: torbrowser/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:14:00Z"

@@ -1,0 +1,60 @@
+name: plausible
+services:
+    plausible:
+        command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
+        depends_on:
+            - plausible_db
+            - plausible_events_db
+        environment:
+            - BASE_URL=http://${DEVICE_DOMAIN_NAME}:9092
+            - SECRET_KEY_BASE=${APP_SEED}
+            - TOTP_VAULT_KEY=${APP_PLAUSIBLE_VAULT_KEY}
+        image: ghcr.io/plausible/community-edition:v3.2.1@sha256:33e60bfb40f2df5da00f8753b76fad04f67dba3abe6d73eb516e440e3fb62985
+        ports:
+            - 9092:8000
+        restart: on-failure
+        user: 1000:1000
+    plausible_db:
+        environment:
+            - POSTGRES_PASSWORD=postgres
+        image: postgres:16-alpine@sha256:492898505cb45f9835acc327e98711eaa9298ed804e0bb36f29e08394229550d
+        restart: on-failure
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/plausible/db-data:/var/lib/postgresql/data
+    plausible_events_db:
+        environment:
+            - CLICKHOUSE_SKIP_USER_SETUP=1
+        image: clickhouse/clickhouse-server:24.12-alpine@sha256:cd450891db46cc6ffe313ca2b0fb7dbfb897a6873ca74a724cbe050a2cf62621
+        restart: on-failure
+        ulimits:
+            nofile:
+                hard: 262144
+                soft: 262144
+        user: 1000:1000
+        volumes:
+            - /DATA/PowerLabAppData/plausible/event-data:/var/lib/clickhouse
+            - /DATA/PowerLabAppData/plausible/event-logs:/var/log/clickhouse-server
+            - /DATA/PowerLabAppData/plausible/clickhouse/clickhouse-config.xml:/etc/clickhouse-server/config.d/logging.xml:ro
+            - /DATA/PowerLabAppData/plausible/clickhouse/clickhouse-user-config.xml:/etc/clickhouse-server/users.d/logging.xml:ro
+
+x-powerlab:
+    store_app_id: plausible
+    title:
+        en_us: Plausible Analytics
+    tagline:
+        en_us: Easy to use and privacy-friendly Google Analytics alternative
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/plausible/icon.svg
+    category: developer
+    port_map: "9092"
+    author: Plausible Community Edition
+    developer: Plausible Community Edition
+    main: plausible
+    source:
+        catalog: umbrel-apps
+        upstream_id: plausible
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: plausible/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:53Z"

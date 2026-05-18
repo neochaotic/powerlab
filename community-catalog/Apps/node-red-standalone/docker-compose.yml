@@ -1,0 +1,32 @@
+name: node-red-standalone
+services:
+    web:
+        environment:
+            PORT: 1881
+        image: nodered/node-red:4.1.10@sha256:eaa2fa23f751581162a4ff9eebb28fcbfcca7935b1a839f63672718f3c816761
+        network_mode: host
+        restart: on-failure
+        stop_grace_period: 1m
+        volumes:
+            - /DATA/PowerLabAppData/node-red-standalone/data:/data
+version: "3.7"
+
+x-powerlab:
+    store_app_id: node-red-standalone
+    title:
+        en_us: Node-RED
+    tagline:
+        en_us: Wire together the Internet of Things
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/node-red-standalone/icon.svg
+    category: automation
+    port_map: "1881"
+    author: OpenJS Foundation
+    developer: OpenJS Foundation
+    source:
+        catalog: umbrel-apps
+        upstream_id: node-red-standalone
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: node-red-standalone/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:48Z"

@@ -1,0 +1,34 @@
+name: navidrome
+services:
+    server:
+        environment:
+            - PUID=1000
+            - PGID=1000
+        image: deluan/navidrome:0.61.2@sha256:9fa40b3d8dec43ceb2213d1fa551da3dcfef6ac6d19c2e534efb92527c2bafd2
+        ports:
+            - 4533:4533
+        restart: on-failure
+        volumes:
+            - /DATA/PowerLabAppData/navidrome/data:/data
+            - /DATA/data/storage/downloads/music:/music
+
+x-powerlab:
+    store_app_id: navidrome
+    title:
+        en_us: Navidrome
+    tagline:
+        en_us: Your personal streaming service
+    icon: https://getumbrel.github.io/umbrel-apps-gallery/navidrome/icon.svg
+    category: media
+    port_map: "4533"
+    author: Navidrome
+    developer: Navidrome
+    main: server
+    source:
+        catalog: umbrel-apps
+        upstream_id: navidrome
+        upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+        upstream_commit: 7d224ca6c493d2279a49086ed9e7bf45d642d9e6
+        upstream_path: navidrome/umbrel-app.yml
+        transform_version: "1.0"
+        synced_at: "2026-05-18T10:13:47Z"
