@@ -34,6 +34,11 @@
 	let adding = $state(false);
 	let acknowledgedRisk = $state(false);
 
+	// The PowerLab-curated catalog is always id=0 (registered as a
+	// local path during install). Counting "operator-added" = total
+	// sources minus 1, with a safety floor for the loading state.
+	const operatorAddedCount = $derived(Math.max(0, sources.length - 1));
+
 	async function load(): Promise<void> {
 		loading = true;
 		error = null;
@@ -128,10 +133,20 @@
 		<div>
 			<h2 class="text-2xl font-bold text-white">Catalog</h2>
 			<p class="mt-1 text-sm text-zinc-400">
-				Sources PowerLab pulls app listings from. The PowerLab Curated
-				catalog ships with every release and is reviewed per app. You
-				can add your own sources below — those are NOT audited by
-				PowerLab.
+				Sources PowerLab pulls app listings from. The
+				<strong class="text-zinc-200">PowerLab Curated</strong>
+				catalog ships with every release, is reviewed per app, and
+				is wiped + replaced on every install — operator edits to
+				its <code class="text-zinc-400">Apps/</code> dir do not
+				survive upgrades.
+				{#if operatorAddedCount > 0}
+					You have <strong class="text-yellow-300">{operatorAddedCount}</strong>
+					operator-added source{operatorAddedCount === 1 ? '' : 's'} below;
+					those are NOT audited by PowerLab and persist across upgrades.
+				{:else}
+					You can add your own sources below — those are NOT
+					audited by PowerLab.
+				{/if}
 			</p>
 		</div>
 		<button
