@@ -96,6 +96,20 @@ func InitSetup(config string, sample string) {
 	// are left untouched.
 	MigrateAppStoreListLegacyRemoval()
 
+	// ADR-0039 (#450) — remove orphaned community-catalog/Apps/ dirs.
+	// Boxes upgraded from a PowerLab version that shipped a larger
+	// curated set may have leftover app dirs on disk that the v0.7.0
+	// install.sh `cp -R` overlay never removed. Compares disk vs the
+	// `.curated-manifest` file written into the catalog dir by
+	// scripts/package-linux.sh and removes anything not in the
+	// manifest. Missing/empty manifest → noop (safer to leave orphans
+	// than wipe operator state). The install-time wipe-then-copy from
+	// PR #451 is the authoritative path for fresh installs; this
+	// migration is the safety net for v0.7.0 boxes that already have
+	// orphans on disk + future-proof against any path that bypasses
+	// install.sh.
+	MigrateOrphanCuratedApps()
+
 	// Dev sandbox: when there is no production install (/etc/powerlab),
 	// redirect runtime + app data into the project tree so multiple
 	// services can share a writable sandbox under `./start.sh`. In
