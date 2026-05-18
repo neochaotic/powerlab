@@ -1,0 +1,5 @@
+kind: Fixed
+body: 'Sidebar telemetry no longer freezes when navigating to /settings or /files (#453). Root cause: the system-store''s `startPolling/stopPolling` operated on a single shared interval handle, so a stopPolling from one consumer (e.g. launchpad unmount) silently killed the sidebar''s polling. Pages that did NOT call startPolling on mount (settings, files, apps) left the interval dead. Refcount fix: each useSystemStore() facade has its own consumer identity; the shared interval ticks at min(ms) across active consumers and only clears when the LAST one stops. Vitest unit (4 new) + Playwright nav-survives-route E2E (2 new) lock the contract. Also cleans up Sidebar.svelte''s duplicate onDestroy block (refactor artifact, refcount fix makes it idempotent but the duplication itself was a code smell).'
+time: 2026-05-17T23:25:00Z
+custom:
+    Issue: "453"

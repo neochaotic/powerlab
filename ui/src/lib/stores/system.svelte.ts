@@ -45,6 +45,15 @@ let loading = $state(typeof localStorage === 'undefined' || !localStorage.getIte
 let error = $state<string | null>(null);
 let interval: ReturnType<typeof setInterval> | null = null;
 
+// Refcount of active consumers (#453). Each useSystemStore() facade has
+// its own consumer identity; the shared interval runs while >= 1 is
+// active and ticks at the SMALLEST requested ms across all consumers.
+//
+// Why a Map<symbol, number> instead of a plain counter: we need to know
+// which intervals each consumer requested so the active tick rate
+// reflects min() across them. A bare counter would just track liveness.
+const consumers = new Map<symbol, number>();
+
 // EMA state — smooths instantaneous CPU spikes over ~10 samples
 let emaCpu: number | null = null;
 const EMA_ALPHA = 0.1;
@@ -131,7 +140,38 @@ async function fetchStorageDevices() {
 	}
 }
 
+function tick(): void {
+	fetchUtilization();
+	fetchDisks();
+	// Storage devices are polled every Nth utilization tick rather
+	// than every tick — smartctl is slow + values don't change
+	// second-by-second.
+	if (storageDevicesPollCount % 10 === 0) {
+		fetchStorageDevices();
+	}
+	storageDevicesPollCount++;
+}
+
+// rearm rebuilds the global interval to match the current consumer set.
+// Called whenever a consumer joins or leaves so the active tick rate
+// reflects min(ms) across active consumers. Clears the interval entirely
+// when no consumers remain — that is the contract that closes #453.
+function rearm(): void {
+	if (interval) {
+		clearInterval(interval);
+		interval = null;
+	}
+	if (consumers.size === 0) return;
+	const ms = Math.min(...consumers.values());
+	interval = setInterval(tick, ms);
+}
+
 export function useSystemStore() {
+	// Each facade is unique so duplicate startPolling on the SAME
+	// facade is a no-op (matches the legacy idempotency contract) AND
+	// stopPolling from ONE facade does not affect OTHERS (the bug fix).
+	const id = Symbol('system-store-consumer');
+	let started = false;
 	return {
 		get utilization() { return utilization; },
 		get disks() { return disks; },
@@ -139,27 +179,27 @@ export function useSystemStore() {
 		get loading() { return loading; },
 		get error() { return error; },
 		startPolling(ms = 3000) {
-			if (interval) return;
-			fetchUtilization();
-			fetchDisks();
-			fetchStorageDevices();
-			interval = setInterval(() => {
+			if (started) return;
+			const isFirstConsumer = consumers.size === 0;
+			consumers.set(id, ms);
+			started = true;
+			rearm();
+			// Eager fetch on the FIRST consumer only — avoids the
+			// skeleton-flash. Subsequent consumers piggyback on the
+			// existing interval's regular tick. If the interval picked
+			// a smaller ms because of this new consumer (rearm above),
+			// the next tick lands within that smaller window anyway.
+			if (isFirstConsumer) {
 				fetchUtilization();
 				fetchDisks();
-				// Storage devices are polled every Nth utilization tick
-				// rather than every tick — smartctl is slow + values
-				// don't change second-by-second.
-				if (storageDevicesPollCount % 10 === 0) {
-					fetchStorageDevices();
-				}
-				storageDevicesPollCount++;
-			}, ms);
+				fetchStorageDevices();
+			}
 		},
 		stopPolling() {
-			if (interval) {
-				clearInterval(interval);
-				interval = null;
-			}
+			if (!started) return;
+			consumers.delete(id);
+			started = false;
+			rearm();
 		}
 	};
 }

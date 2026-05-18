@@ -66,7 +66,7 @@
 
 	onDestroy(() => {
 		store.stopPolling();
-		clearInterval(clockInterval);
+		if (clockInterval) clearInterval(clockInterval);
 	});
 
 	function toggleSidebar() {
@@ -84,11 +84,6 @@
 		document.documentElement.setAttribute("data-theme", theme);
 		localStorage.setItem("theme", theme);
 	}
-
-	onDestroy(() => {
-		store.stopPolling();
-		if (clockInterval) clearInterval(clockInterval);
-	});
 
 	const u = $derived(store.utilization);
 
@@ -418,6 +413,8 @@
 					<!-- CPU Widget -->
 					<div
 						class="flex flex-col gap-3 rounded-2xl border border-white/5 bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.04]"
+						data-testid="sidebar-cpu-widget"
+						data-cpu-percent={u.cpu.percent.toFixed(2)}
 					>
 						<MiniProgress
 							value={u.cpu.percent}

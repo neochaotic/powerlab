@@ -116,6 +116,109 @@ describe('System store', () => {
 		store.stopPolling();
 	});
 
+	// ─── Refcount semantics (#453) ────────────────────────────────────
+	// Locks the contract that fixes the sidebar-telemetry-pauses-on-route-
+	// change bug: stopPolling from ONE consumer must not kill the interval
+	// for OTHER consumers. Repro flow under the old (buggy) semantics:
+	//   Sidebar mounts → startPolling(1000)
+	//   Launchpad page mounts → startPolling(2000)  (early-return, no-op)
+	//   Launchpad unmounts → stopPolling() — KILLED the sidebar's interval
+	//   Settings mounts (no startPolling) → telemetry frozen
+	// Refcount fix: each useSystemStore() facade has its own `started`
+	// flag + a unique consumer id; stopPolling only clears the interval
+	// when the LAST consumer goes away.
+
+	it('refcount: stopPolling from one consumer keeps interval alive for another', async () => {
+		vi.mocked(systemApi.getSystemUtilization).mockResolvedValue({ data: null } as any);
+		vi.mocked(systemApi.getSystemDisk).mockResolvedValue({ data: null } as any);
+		vi.mocked(systemApi.getStorageDevices).mockResolvedValue({ data: null } as any);
+
+		const { useSystemStore } = await import('./system.svelte');
+		const sidebar = useSystemStore();
+		const launchpad = useSystemStore();
+
+		sidebar.startPolling(1000);
+		launchpad.startPolling(2000);
+		const beforeUnmount = vi.mocked(systemApi.getSystemUtilization).mock.calls.length;
+
+		launchpad.stopPolling(); // Launchpad navigates away
+
+		// Interval MUST keep firing for the sidebar after launchpad unmount.
+		await vi.advanceTimersByTimeAsync(3500);
+		const afterUnmount = vi.mocked(systemApi.getSystemUtilization).mock.calls.length;
+		expect(afterUnmount).toBeGreaterThan(beforeUnmount);
+
+		sidebar.stopPolling();
+	});
+
+	it('refcount: interval clears only when the LAST consumer stops', async () => {
+		vi.mocked(systemApi.getSystemUtilization).mockResolvedValue({ data: null } as any);
+		vi.mocked(systemApi.getSystemDisk).mockResolvedValue({ data: null } as any);
+		vi.mocked(systemApi.getStorageDevices).mockResolvedValue({ data: null } as any);
+
+		const { useSystemStore } = await import('./system.svelte');
+		const a = useSystemStore();
+		const b = useSystemStore();
+		a.startPolling(1000);
+		b.startPolling(1000);
+		a.stopPolling();
+		b.stopPolling();
+
+		const baseline = vi.mocked(systemApi.getSystemUtilization).mock.calls.length;
+		await vi.advanceTimersByTimeAsync(5000);
+		expect(vi.mocked(systemApi.getSystemUtilization).mock.calls.length).toBe(baseline);
+	});
+
+	it('refcount: duplicate stopPolling on same facade is idempotent', async () => {
+		// Sidebar.svelte currently has two onDestroy blocks both calling
+		// store.stopPolling() (refactor artifact). Under refcount semantics
+		// the second call MUST NOT decrement past zero or affect other
+		// consumers.
+		vi.mocked(systemApi.getSystemUtilization).mockResolvedValue({ data: null } as any);
+		vi.mocked(systemApi.getSystemDisk).mockResolvedValue({ data: null } as any);
+		vi.mocked(systemApi.getStorageDevices).mockResolvedValue({ data: null } as any);
+
+		const { useSystemStore } = await import('./system.svelte');
+		const sidebar = useSystemStore();
+		const launchpad = useSystemStore();
+
+		sidebar.startPolling(1000);
+		launchpad.startPolling(1000);
+
+		sidebar.stopPolling();
+		sidebar.stopPolling(); // duplicate (the Sidebar.svelte double-onDestroy bug)
+
+		const before = vi.mocked(systemApi.getSystemUtilization).mock.calls.length;
+		await vi.advanceTimersByTimeAsync(3500);
+		// Launchpad still polling → fetch count should grow despite the
+		// duplicate stopPolling on sidebar.
+		expect(vi.mocked(systemApi.getSystemUtilization).mock.calls.length).toBeGreaterThan(before);
+
+		launchpad.stopPolling();
+	});
+
+	it('refcount: interval picks the SMALLEST requested ms across consumers', async () => {
+		vi.mocked(systemApi.getSystemUtilization).mockResolvedValue({ data: null } as any);
+		vi.mocked(systemApi.getSystemDisk).mockResolvedValue({ data: null } as any);
+		vi.mocked(systemApi.getStorageDevices).mockResolvedValue({ data: null } as any);
+
+		const { useSystemStore } = await import('./system.svelte');
+		const slow = useSystemStore();
+		const fast = useSystemStore();
+
+		slow.startPolling(5000);
+		const baselineSlow = vi.mocked(systemApi.getSystemUtilization).mock.calls.length;
+
+		fast.startPolling(1000); // a faster consumer arrives
+		await vi.advanceTimersByTimeAsync(1500);
+		expect(
+			vi.mocked(systemApi.getSystemUtilization).mock.calls.length
+		).toBeGreaterThan(baselineSlow);
+
+		slow.stopPolling();
+		fast.stopPolling();
+	});
+
 	it('disks accepts both array and single-object backend responses', async () => {
 		vi.mocked(systemApi.getSystemUtilization).mockResolvedValue({ data: null } as any);
 		vi.mocked(systemApi.getSystemDisk).mockResolvedValue({
