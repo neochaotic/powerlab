@@ -110,6 +110,27 @@ Alternatively, you can start the backend independently:
    ```
 3. The gateway will start on `http://localhost:8765`.
 
+### Hot-swap deploy to a Linux staging box (from any dev OS)
+
+`make stage-build` produces Linux/amd64 binaries ready to scp onto a running PowerLab box for a quick hot-swap test. Workflow:
+
+```bash
+make stage-build
+scp stage-build/bin/* root@<HOST>:/usr/bin/
+ssh root@<HOST> 'systemctl restart powerlab-*'
+```
+
+How it handles CGO services (#414):
+
+| Service | Source | Why |
+|---|---|---|
+| gateway, app-management, core, message-bus, sync-catalog | Cross-compiled locally (`CGO_ENABLED=0 GOOS=linux GOARCH=amd64`) | Pure Go, no headers required |
+| user-service, local-storage | **Downloaded from latest GitHub release tarball** | CGO (libpam, fuse, netlink) cannot be cross-compiled from macOS — the dev's box doesn't ship the Linux headers |
+
+If you cross-compile user-service from macOS with `CGO_ENABLED=0` and deploy it, login silently returns "invalid credentials" because the PAM call site no-ops. The `make stage-build` script avoids this trap by pulling the CGO services from CI's Linux build.
+
+Override the release source via env: `POWERLAB_RELEASE_TAG=v0.7.2 make stage-build` to pin to a specific tag instead of latest.
+
 ### Setting up the Frontend
 
 1. Navigate to the `ui/` directory:

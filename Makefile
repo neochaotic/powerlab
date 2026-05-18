@@ -1,4 +1,4 @@
-.PHONY: dev build test check lint clean help sync-catalog sync-catalog-dry
+.PHONY: dev build test check lint clean help sync-catalog sync-catalog-dry stage-build test-backend test-ui test-ui-watch
 
 # ─── Frontend ──────────────────────────────────────────────────────────
 
@@ -31,6 +31,11 @@ test-backend: ## Run Go backend tests
 	cd backend/user-service && go test ./... -v
 	cd backend/local-storage && go test ./... -v
 	cd backend/message-bus && go test ./... -v
+
+# ─── Staging deploy build (Linux/amd64 from any host) ────────────────
+
+stage-build: ## Build hot-swap binaries for Linux/amd64 (CGO svcs from release, #414)
+	bash scripts/stage-build.sh
 
 # ─── Catalog sync ─────────────────────────────────────────────────────
 
