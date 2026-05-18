@@ -345,15 +345,15 @@ jobs:
       - name: Self-test the safety lint
         run: ./scripts/check-catalog-app-safety_test.sh
       - name: Run catalog app safety lint
-        # Warn-only during Sprint 22 ship phase: existing
-        # community-catalog/ entries inherited from the pre-ADR-0039
-        # Umbrel passthrough model have ~45 findings across 27 apps.
-        # The initial curated catalog PR (Sprint 22 PR 7) will wipe
-        # them and re-seed clean; flip this to strict once that's
-        # merged.
+        # Strict since the Sprint 22 curated catalog (PR #448) seeded
+        # the dir with 4 hand-audited apps and the install-time wipe-
+        # then-copy (PR #451) keeps it that way on every install. Any
+        # new addition that introduces privileged: true, docker.sock,
+        # network_mode: host, cap_add ALL/SYS_ADMIN, or system path
+        # bind-mounts now blocks the merge.
         run: ./scripts/check-catalog-app-safety.sh
         env:
-          POWERLAB_CATALOG_SAFETY_STRICT: '0'
+          POWERLAB_CATALOG_SAFETY_STRICT: '1'
 
   # ─────────────────────────────────────────────────────────────────────
   # Backend integration tests (Phase 3 of #150 — Sprint 13.5). Build
