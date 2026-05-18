@@ -1,0 +1,5 @@
+kind: Added
+body: 'ADR-0040 — Proportional engineering hygiene baseline (SAST + lint + metrics + tests). Captures the decision to adopt 4 hygiene families from the external K8s-grade audit (govulncheck, gosec, golangci-lint with 8 linters, Dependabot, /healthz+/readyz+/metrics endpoints, test coverage ratchet) while explicitly DEFERRING 3 (API versioning, KEP-style design, public disclosure program) until product stage warrants them. Establishes the "would enterprise IT accept this" lens for future "should we adopt X from $project" decisions. Impl ships in subsequent PRs (Sprint 23 PR 14 lint+Dependabot, PR 15 govulncheck; Sprint 24 metrics endpoints).'
+time: 2026-05-18T02:30:00Z
+custom:
+    Issue: ""
