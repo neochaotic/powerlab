@@ -327,49 +327,29 @@ download:
    bounded; the running services hold their own state in
    `/var/lib/powerlab/` so this is just a binary swap.
 
-2. **Community-catalog refresh** (~30–60 s on first run, ~5–15 s on
-   warm runs). Since v0.6.5 (#326) the bundled
-   `/usr/bin/powerlab-sync-catalog` is invoked post-install to
-   `git clone --depth=1` the upstream
-   `getumbrel/umbrel-apps` repo and re-emit the
-   `/var/lib/powerlab/community-catalog/` tree against the current
-   transform logic. The clone is the heavy part — the umbrel-apps
-   repo contains 300+ app folders. **This is what makes a v0.6.5+
-   upgrade feel slower than a v0.6.4 era upgrade** — not the tarball
-   size (which only grew ~5 MB / ~8%, sub-second on most links).
-   The step is bounded by `timeout 60` so an unreachable GitHub or
-   a slow link does NOT wedge the upgrade — `install.sh` logs
-   `sync skipped — bundled catalog will be used` and proceeds.
+2. **Catalog wipe-and-replace** (~1 s). `install.sh` removes
+   `/var/lib/powerlab/community-catalog/Apps/` and replaces it with
+   the bundled curated tree from the tarball. ADR-0039 made the
+   tarball-bundled curated set the sole source of truth on a default
+   install — there is no post-install upstream sync that runs
+   automatically, so total wall-clock is dominated by the systemd
+   restart cycle above, not the catalog step.
 
-### Skipping the catalog refresh
+### Optional manual upstream mirror
 
-Set `POWERLAB_SKIP_SYNC=1` in the install.sh environment to skip
-step 2 entirely. The tarball ships a bundled `community-catalog/`
-snapshot that is already good for new installs and most upgrades;
-the post-install sync is for keeping the catalog fresh between
-PowerLab releases when the upstream Umbrel repo has moved on.
-
-When to use it:
-
-- **Air-gapped boxes.** GitHub is unreachable; let the bundled
-  catalog stand and run `powerlab-sync-catalog` later out-of-band
-  from a host that has internet, then copy the output.
-- **Fast offline upgrades.** You know the bundled catalog matches
-  what you already have and you just want a clean binary swap.
-- **CI / packaging tests.** Reproducible installs without
-  dependencies on the live Umbrel repo state.
-
-Example:
-
-```bash
-sudo POWERLAB_SKIP_SYNC=1 ./install.sh
-```
-
-Refresh on demand later:
+If an operator wants to mirror an upstream catalog repo into a
+PowerLab box (custom curated set, internal fork, etc.), the
+maintainer-grade `/usr/bin/powerlab-sync-catalog` binary is still
+shipped. It is NOT invoked by `install.sh`; per ADR-0039 PowerLab
+does not auto-track any external catalog. To use it, write to a
+dedicated dir and register that path as a custom source via the UI
+(Settings → Catalog → Add custom catalog source) so the operator
+acknowledges the "unaudited" badge:
 
 ```bash
 sudo /usr/bin/powerlab-sync-catalog \
-  --output /var/lib/powerlab/community-catalog
+  --upstream https://github.com/<owner>/<repo>.git \
+  --output  /var/lib/powerlab/custom-catalogs/<name>
 ```
 
 Or restart the install.sh path without the skip:
