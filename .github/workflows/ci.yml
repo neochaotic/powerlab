@@ -330,6 +330,32 @@ jobs:
           POWERLAB_CATALOG_LINT_STRICT: '1'
 
   # ─────────────────────────────────────────────────────────────────────
+  # Catalog app safety lint (ADR-0039 Sprint 22 PR 6). Compose-level
+  # security gate — rejects privileged, docker.sock mounts, host
+  # networking/PID/IPC, dangerous capabilities, system-path binds.
+  # Runs strict from the start; there's no "warn-only" phase because
+  # no apps were curated under the previous model.
+  # ─────────────────────────────────────────────────────────────────────
+  catalog-app-safety:
+    name: Catalog app safety
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Self-test the safety lint
+        run: ./scripts/check-catalog-app-safety_test.sh
+      - name: Run catalog app safety lint
+        # Warn-only during Sprint 22 ship phase: existing
+        # community-catalog/ entries inherited from the pre-ADR-0039
+        # Umbrel passthrough model have ~45 findings across 27 apps.
+        # The initial curated catalog PR (Sprint 22 PR 7) will wipe
+        # them and re-seed clean; flip this to strict once that's
+        # merged.
+        run: ./scripts/check-catalog-app-safety.sh
+        env:
+          POWERLAB_CATALOG_SAFETY_STRICT: '0'
+
+  # ─────────────────────────────────────────────────────────────────────
   # Backend integration tests (Phase 3 of #150 — Sprint 13.5). Build
   # tag `integration` keeps these out of the default `go test ./...`
   # so dev machines without Docker don't fail them on every commit.
