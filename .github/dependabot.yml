@@ -1,0 +1,161 @@
+# Dependabot configuration (ADR-0040).
+#
+# Monitors three ecosystems: Go modules per service, npm in ui/, and
+# GitHub Actions in workflows. Weekly cadence keeps PR volume manageable
+# for a single-maintainer project.
+#
+# Patch-version updates are eligible for auto-merge (see workflow
+# .github/workflows/dependabot-auto-merge.yml — to be added in a
+# follow-up PR if maintenance burden warrants it). Minor + major
+# require manual review.
+#
+# Groups: aggregate related deps in one PR to avoid 20-PR floods.
+
+version: 2
+updates:
+
+  # ─── Go modules per service ─────────────────────────────────────────
+  - package-ecosystem: gomod
+    directory: "/backend/gateway"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 3
+    groups:
+      gateway-deps:
+        applies-to: version-updates
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "chore(deps/gateway)"
+
+  - package-ecosystem: gomod
+    directory: "/backend/app-management"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      app-mgmt-deps:
+        applies-to: version-updates
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "chore(deps/app-mgmt)"
+
+  - package-ecosystem: gomod
+    directory: "/backend/core"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      core-deps:
+        applies-to: version-updates
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "chore(deps/core)"
+
+  - package-ecosystem: gomod
+    directory: "/backend/user-service"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      user-service-deps:
+        applies-to: version-updates
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "chore(deps/user-service)"
+
+  - package-ecosystem: gomod
+    directory: "/backend/local-storage"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      local-storage-deps:
+        applies-to: version-updates
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "chore(deps/local-storage)"
+
+  - package-ecosystem: gomod
+    directory: "/backend/message-bus"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      message-bus-deps:
+        applies-to: version-updates
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "chore(deps/message-bus)"
+
+  - package-ecosystem: gomod
+    directory: "/backend/sync-catalog"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      sync-catalog-deps:
+        applies-to: version-updates
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "chore(deps/sync-catalog)"
+
+  - package-ecosystem: gomod
+    directory: "/backend/common"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      common-deps:
+        applies-to: version-updates
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "chore(deps/common)"
+
+  # ─── Frontend npm ───────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: "/ui"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      ui-prod-deps:
+        applies-to: version-updates
+        dependency-type: production
+        patterns:
+          - "*"
+      ui-dev-deps:
+        applies-to: version-updates
+        dependency-type: development
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "chore(deps/ui)"
+
+  # ─── GitHub Actions ─────────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: "chore(deps/actions)"

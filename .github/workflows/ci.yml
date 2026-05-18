@@ -299,6 +299,70 @@ jobs:
           POWERLAB_DEADCODE_MODE: 'delta'
 
   # ─────────────────────────────────────────────────────────────────────
+  # Backend golangci-lint (ADR-0040 — proportional hygiene baseline).
+  # Warn-only initially; each linter family flips to strict in its own
+  # focused PR per the ADR-0037 ratchet pattern. Goal of this job is
+  # SIGNAL today (find what'd fail if we flipped strict tomorrow), not
+  # gate. `issues-exit-code: 0` in .golangci.yml enforces the
+  # warn-only contract — if a family later flips strict, that change
+  # ships in the same PR that ratchets the config.
+  # ─────────────────────────────────────────────────────────────────────
+  backend-lint:
+    name: Backend lint (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    needs: backend
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - common
+          - gateway
+          - core
+          - user-service
+          - message-bus
+          - app-management
+          - local-storage
+          - sync-catalog
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: false
+
+      - name: Install fuse (local-storage only)
+        if: matrix.service == 'local-storage'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libfuse-dev fuse pkg-config
+
+      - name: Install libpam (user-service only)
+        if: matrix.service == 'user-service'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libpam0g-dev
+
+      - name: Run go generate
+        if: matrix.service != 'gateway' && matrix.service != 'common'
+        working-directory: backend/${{ matrix.service }}
+        run: go generate ./...
+
+      - name: golangci-lint
+        # Warn-only: continue-on-error makes lint findings non-blocking
+        # at the JOB level (the workflow run passes even if this step
+        # exits non-zero). Per ADR-0040. When a linter family flips to
+        # strict it does so in its own focused PR that drops this line.
+        continue-on-error: true
+        uses: golangci/golangci-lint-action@v7
+        with:
+          # v2.x — v1.61.0 was built with Go 1.23 and refused to load
+          # our config against Go 1.25 ("the Go language version
+          # (go1.23) used to build golangci-lint is lower than the
+          # targeted Go version (1.25)"). Need the action's v7 to
+          # accept v2.x binaries.
+          version: v2.0.2
+          working-directory: backend/${{ matrix.service }}
+          args: --config=${{ github.workspace }}/.golangci.yml --timeout=5m
+
+  # ─────────────────────────────────────────────────────────────────────
   # Catalog hostname lint (Sprint 20 PR 4a). Scans every
   # community-catalog/Apps/*/docker-compose.yml for the legacy
   # docker-compose v1 hostname pattern `<project>_<service>_<idx>` and

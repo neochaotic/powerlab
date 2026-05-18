@@ -1,4 +1,4 @@
-.PHONY: dev build test check lint clean help sync-catalog sync-catalog-dry stage-build test-backend test-ui test-ui-watch
+.PHONY: dev build test check lint lint-go clean help sync-catalog sync-catalog-dry stage-build test-backend test-ui test-ui-watch
 
 # ─── Frontend ──────────────────────────────────────────────────────────
 
@@ -21,6 +21,13 @@ check: ## TypeScript type checking
 
 lint: ## Lint frontend
 	cd ui && npx eslint .
+
+lint-go: ## Lint Go backend per service (warn-only, matches CI, ADR-0040)
+	@command -v golangci-lint >/dev/null 2>&1 || { echo "golangci-lint not installed. Install via: brew install golangci-lint OR go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; exit 1; }
+	@for svc in common core gateway app-management user-service local-storage message-bus sync-catalog; do \
+		echo "── $$svc ──"; \
+		(cd backend/$$svc && golangci-lint run --config=../../.golangci.yml --timeout=5m ./...) || true; \
+	done
 
 # ─── Backend ───────────────────────────────────────────────────────────
 
