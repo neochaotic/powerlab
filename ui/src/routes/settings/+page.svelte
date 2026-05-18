@@ -29,10 +29,11 @@
 	import AuditPane from '$lib/components/settings/AuditPane.svelte';
 	import LogsPane from '$lib/components/settings/LogsPane.svelte';
 	import CatalogPane from '$lib/components/settings/CatalogPane.svelte';
+	import PowerPane from '$lib/components/settings/PowerPane.svelte';
 
 	const store = useSettingsStore();
 
-	type Section = 'general' | 'network' | 'apps' | 'catalog' | 'security' | 'audit' | 'logs' | 'about';
+	type Section = 'general' | 'network' | 'apps' | 'catalog' | 'security' | 'audit' | 'logs' | 'power' | 'about';
 	let activeSection = $state<Section>('general');
 	let copiedKey = $state<string | null>(null);
 
@@ -43,7 +44,7 @@
 	// Deep-link support: a URL hash like /settings#security or
 	// /settings#network jumps straight to that tab. Used by HttpBanner
 	// to bring the user here from anywhere in the app.
-	const VALID_SECTIONS: Section[] = ['general', 'network', 'apps', 'catalog', 'security', 'audit', 'logs', 'about'];
+	const VALID_SECTIONS: Section[] = ['general', 'network', 'apps', 'catalog', 'security', 'audit', 'logs', 'power', 'about'];
 	function applyHash() {
 		const h = window.location.hash.replace(/^#/, '') as Section;
 		if (VALID_SECTIONS.includes(h)) activeSection = h;
@@ -467,6 +468,7 @@
 		{ id: 'security', label: 'Security', icon: ShieldCheck,       desc: 'Password, sessions' },
 		{ id: 'audit',    label: 'Audit',    icon: ClipboardList,     desc: 'API request log' },
 		{ id: 'logs',     label: 'Logs',     icon: FileText,          desc: 'Service stdout files' },
+		{ id: 'power',    label: 'Power',    icon: Power,             desc: 'Restart services, reboot host' },
 		{ id: 'about',    label: 'About',    icon: Info,              desc: 'Version, license, links' }
 	];
 
@@ -588,6 +590,11 @@
 			{:else if activeSection === 'logs'}
 				<div in:fade={{ duration: 150 }}>
 					<LogsPane />
+				</div>
+
+			{:else if activeSection === 'power'}
+				<div in:fade={{ duration: 150 }}>
+					<PowerPane />
 				</div>
 
 			{:else if activeSection === 'about'}
