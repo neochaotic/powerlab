@@ -7,7 +7,7 @@
 		SlidersHorizontal, Network, Boxes, Info, Globe, Clock, Hash,
 		Power, RefreshCw, Copy, Check, ExternalLink, ShieldCheck, KeyRound,
 		Code2, Scale, Heart, Sparkles, Container, Zap, Wifi, AlertTriangle,
-		AlertCircle, ClipboardList, FileText
+		AlertCircle, ClipboardList, FileText, Store
 	} from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { cn } from '$lib/utils';
@@ -28,10 +28,11 @@
 	import AboutPane from '$lib/components/settings/AboutPane.svelte';
 	import AuditPane from '$lib/components/settings/AuditPane.svelte';
 	import LogsPane from '$lib/components/settings/LogsPane.svelte';
+	import CatalogPane from '$lib/components/settings/CatalogPane.svelte';
 
 	const store = useSettingsStore();
 
-	type Section = 'general' | 'network' | 'apps' | 'security' | 'audit' | 'logs' | 'about';
+	type Section = 'general' | 'network' | 'apps' | 'catalog' | 'security' | 'audit' | 'logs' | 'about';
 	let activeSection = $state<Section>('general');
 	let copiedKey = $state<string | null>(null);
 
@@ -42,7 +43,7 @@
 	// Deep-link support: a URL hash like /settings#security or
 	// /settings#network jumps straight to that tab. Used by HttpBanner
 	// to bring the user here from anywhere in the app.
-	const VALID_SECTIONS: Section[] = ['general', 'network', 'apps', 'security', 'audit', 'logs', 'about'];
+	const VALID_SECTIONS: Section[] = ['general', 'network', 'apps', 'catalog', 'security', 'audit', 'logs', 'about'];
 	function applyHash() {
 		const h = window.location.hash.replace(/^#/, '') as Section;
 		if (VALID_SECTIONS.includes(h)) activeSection = h;
@@ -462,6 +463,7 @@
 		{ id: 'general',  label: 'General',  icon: SlidersHorizontal, desc: 'Hostname, timezone, language' },
 		{ id: 'network',  label: 'Network',  icon: Network,           desc: 'mDNS, interfaces, DNS' },
 		{ id: 'apps',     label: 'Apps',     icon: Boxes,             desc: 'Storage path, app sources' },
+		{ id: 'catalog',  label: 'Catalog',  icon: Store,             desc: 'Sources for installable apps' },
 		{ id: 'security', label: 'Security', icon: ShieldCheck,       desc: 'Password, sessions' },
 		{ id: 'audit',    label: 'Audit',    icon: ClipboardList,     desc: 'API request log' },
 		{ id: 'logs',     label: 'Logs',     icon: FileText,          desc: 'Service stdout files' },
@@ -556,6 +558,11 @@
 			{:else if activeSection === 'apps'}
 				<div in:fade={{ duration: 150 }}>
 					<AppsPane {storagePath} {copiedKey} onCopy={copy} />
+				</div>
+
+			{:else if activeSection === 'catalog'}
+				<div in:fade={{ duration: 150 }}>
+					<CatalogPane />
 				</div>
 
 			{:else if activeSection === 'security'}
