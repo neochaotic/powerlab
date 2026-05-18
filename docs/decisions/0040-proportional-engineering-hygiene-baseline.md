@@ -32,7 +32,7 @@ Four hygiene families MANDATORY going forward. Three explicitly DEFERRED. The sp
 | **Lint** | `golangci-lint` with 8 linters: govet, staticcheck, errcheck, gosec, revive, ineffassign, unused, gocyclo | Warn-only initially, ratchet to strict per family over N sprints | Sprint 23 (PR 14) → continuous |
 | **Dependency hygiene** | `dependabot.yml` for Go + npm + GitHub Actions | Weekly PRs, auto-merge for patch only | Sprint 23 (PR 14) |
 | **Metrics + health** | `/healthz` + `/readyz` + `/metrics` (Prometheus exposition) on every service | Mandatory on every new HTTP service; backfill existing 6 in Sprint 24 | Sprint 24 |
-| **Test coverage push** | `vitest --coverage` UI threshold ratchet; `go test -coverprofile` per service | Ratchet ceiling: UI 28% → 40% by v0.7.10, → 50% by v0.7.30. Backend per service: case-by-case. | continuous |
+| **Test coverage push** | `vitest --coverage` UI threshold ratchet; `go test -coverprofile` per service | **Coverage cadence rule** (see below). Per-version targets removed — version cadence per memory `feedback_version_cadence_v07_to_v030` says not to anchor work to specific patches | continuous |
 
 ### Explicitly deferred
 
@@ -44,6 +44,39 @@ Four hygiene families MANDATORY going forward. Three explicitly DEFERRED. The sp
 | **CodeQL** | Heavyweight, GitHub-only, marginal value vs gosec for Go. `staticcheck` + `gosec` + `govulncheck` cover the same surface. | If gosec misses a class CodeQL would catch |
 | **Distributed tracing** | Premature without ADR-0034 observability service to consume traces. Mark as Step 3 of ADR-0034. | After ADR-0034 Step 2 (`/metrics` aggregation) lands |
 | **Trivy container scanning** | We don't build Docker images — we ship binaries. Apps' images are operator/upstream responsibility. | If/when PowerLab ships container images |
+
+### Coverage cadence rule (added 2026-05-18 amendment)
+
+Maintainer-set cadence after the K8s-grade audit discussion:
+
+**+10 percentage points per surface per sprint, until that surface hits its realistic ceiling ("estabilidade"). A concluded surface stays at baseline forever — sprint CI fails on regression.**
+
+Realistic ceilings (informed by code shape, not aspiration):
+
+| Surface | Ceiling | Why this ceiling |
+|---|---|---|
+| Pure-logic packages (sync-catalog, common utils) | 85-90% | No external state |
+| HTTP handlers (gateway) | 80-85% | Stateless, table-driven |
+| Service layer with Docker SDK | 65-70% | Heavy mocking required |
+| CGO services (user-service libpam, local-storage netlink+fuse) | 40-50% | Capped by runtime — can't test libpam without real libpam |
+| UI components (Svelte) | 70-75% | Component tests + Playwright complement |
+
+**Weighted aggregate ceiling: ~65-70% realistic.** Above that becomes brittle/teatro per `feedback_no_apagar_test_para_passar` + `feedback_playwright_mocks_are_not_e2e`.
+
+**Why the cap matters as much as the +10%:**
+
+- Without the cap, the rule degrades — past ~80% it forces mocks that test the mock instead of the code
+- Without the +10% floor, sprints could ship features without test work
+- The cap is per surface, not aggregate — gives flexibility to focus a sprint on one heavy surface while another concludes
+
+**Operational mechanics:**
+
+- Every PR shows coverage diff (already practice on some PRs)
+- Sprint-end gate: aggregate delta must be ≥10% OR retro explains why (bug-fix-only sprint, etc.)
+- When a surface concludes, log it in the next retro + flag the new baseline — CI gate flips that surface to "regression-only" mode
+- **No v1.0 anchoring**: targets are per-sprint cadence, never "by version X.Y.Z" (memory `feedback_version_cadence_v07_to_v030`)
+
+Memory anchor: `feedback_coverage_cadence_rule`.
 
 ### god-file refactoring (audit point #5)
 
@@ -93,7 +126,7 @@ The 4 adopted families address PowerLab's actual risk surface (homelab+SMB → e
 ### Negative / accepted trade-offs
 
 - Linter strict-ratchet bloqueia features novas até cada family hit zero violations. Mitigated by warn-only start + per-family ratchet (one linter at a time).
-- Coverage push consumes cycles. Mitigated by tracking ratio, not absolute; small features can ship without coverage backlog hit.
+- Coverage push consumes cycles. Mitigated by the **coverage cadence rule** below (per-surface +10pp, not global), and by tracking ratio rather than absolute.
 - Metrics endpoints add HTTP surface to maintain. Mitigated by shared middleware (one impl, 7 services consume).
 - ADR-0034 observability bumped up in priority. This is **good** — alignment with enterprise pivot — but is multi-sprint.
 
