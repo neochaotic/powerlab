@@ -91,7 +91,7 @@ func InitV1Router() http.Handler {
 			// v1SysGroup.POST("/config", v1.PostSetSystemConfig)
 			v1SysGroup.GET("/logs", v1.GetSystemErrorLogs) // error/logs
 
-			v1SysGroup.POST("/stop", v1.PostKillCasaOS)
+			v1SysGroup.POST("/stop", v1.PostKillCore)
 
 			// Power pane (#260) — list/restart PowerLab systemd units +
 			// host reboot/shutdown. Service name is validated against

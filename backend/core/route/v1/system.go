@@ -71,14 +71,17 @@ func GetSystemConfigDebug(ctx echo.Context) error {
 	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: bugContent})
 }
 
-// @Summary active killing casaos
+// @Summary Self-kill the PowerLab core process
+// @Description Used by the in-app updater to stop core before binary
+// swap. systemd restarts it via the unit file's Restart=always.
+// NOT a host-level shutdown — see /v1/sys/host/shutdown for that.
 // @Produce  application/json
 // @Accept application/json
 // @Tags sys
 // @Security ApiKeyAuth
 // @Success 200 {string} string "ok"
-// @Router /sys/restart [post]
-func PostKillCasaOS(ctx echo.Context) error {
+// @Router /sys/stop [post]
+func PostKillCore(ctx echo.Context) error {
 	os.Exit(0)
 	return nil
 }
