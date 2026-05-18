@@ -1,0 +1,101 @@
+# golangci-lint configuration (ADR-0040).
+#
+# Linter selection follows the ADR's "8 core families" line: govet,
+# staticcheck, errcheck, gosec, revive, ineffassign, unused, gocyclo.
+#
+# Mode: WARN-ONLY in CI initially (issues-exit-code: 0). Each linter
+# flips to strict per-family on its own cadence, following the ADR-0037
+# delta-strict pattern that worked for deadcode. The flip happens in
+# its own focused PR (one linter at a time, baseline file shipped in
+# same PR if needed).
+#
+# Devs can run locally via `make lint-go`. No pre-commit hook by
+# design (see ADR-0040: pre-commit hooks deferred until first linter
+# family flips to strict).
+
+run:
+  timeout: 5m
+  # Skip generated code — codegen/, *.pb.go, mock_*.go etc. These
+  # produce noise that doesn't reflect human-authored code quality.
+  skip-dirs:
+    - codegen
+    - build
+    - vendor
+  skip-files:
+    - ".*\\.pb\\.go$"
+    - ".*\\.gen\\.go$"
+    - "mock_.*\\.go$"
+
+# In warn-only mode, the issue exit code is 0 so CI prints findings
+# without failing. When a family flips to strict (per ADR-0040), this
+# changes to 1 in the strict-flip PR.
+issues-exit-code: 0
+
+linters:
+  disable-all: true
+  enable:
+    # govet — Go's standard analyzer suite. Catches shadowed vars,
+    # printf format mismatches, lock copies. Free.
+    - govet
+    # staticcheck — replaces vet's deeper checks. Catches bug classes
+    # govet misses (deprecated API usage, simplifiable code patterns).
+    - staticcheck
+    # errcheck — flags unchecked errors. PowerLab has a "log + continue"
+    # culture in some places; warn-only protects existing code from
+    # immediate breakage while flagging new occurrences.
+    - errcheck
+    # gosec — SAST for Go. Catches command injection, hardcoded creds,
+    # weak crypto, SQL injection. Direct retort to the catalog-security
+    # vs own-code irony (ADR-0040 trigger).
+    - gosec
+    # revive — modern golint successor. Style + best-practice checks.
+    # Disabled rules below trim the noise to PowerLab-relevant subset.
+    - revive
+    # ineffassign — flags assignments to never-read variables.
+    - ineffassign
+    # unused — finds dead code that go's compiler accepts (unused
+    # struct fields, methods, constants). Complements check-deadcode.sh
+    # which only finds unreachable funcs.
+    - unused
+    # gocyclo — cyclomatic complexity gate. Set high initially so we
+    # don't flood; ratcheted down per file in subsequent PRs.
+    - gocyclo
+
+linters-settings:
+  gocyclo:
+    # Initial ceiling. compose_app.go + disk.go have functions far
+    # above this; the ratchet PR brings it down once those are split.
+    # ADR-0040: god-file splits deferred until coverage ≥50%.
+    min-complexity: 30
+  revive:
+    # Quiet the rules that don't fit PowerLab's idioms.
+    rules:
+      - name: exported              # require exported docs (noisy on early-stage code)
+        disabled: true
+      - name: package-comments
+        disabled: true
+      - name: var-naming
+        disabled: true              # accept legacy CasaOS-derived names during rebrand
+  gosec:
+    # G404 (weak random source) is acceptable for non-crypto contexts
+    # (e.g. random-pick of catalog items). G115 (integer overflow) is
+    # noisy on Go 1.21+ where it triggers on safe casts.
+    excludes:
+      - G404
+      - G115
+  errcheck:
+    # Allowed to ignore explicitly. fmt.Fprintf to os.Stderr, defer
+    # rows.Close() patterns are de-facto fine.
+    check-blank: false
+    exclude-functions:
+      - (*database/sql.Rows).Close
+      - (*os.File).Close
+      - fmt.Fprintf
+      - fmt.Fprintln
+
+issues:
+  # Show all findings, not just the first 3 per linter.
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  # Don't auto-exclude any patterns — show everything in warn-only mode.
+  exclude-use-default: false
