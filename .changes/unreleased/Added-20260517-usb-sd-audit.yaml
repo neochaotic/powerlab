@@ -1,0 +1,5 @@
+kind: Added
+body: 'Audit doc `docs/audits/usb-sd-automount-gap-2026-05-17.md` captures the USB/SD auto-mount status (#416). Inherited surface area from CasaOS is complete on the API + UI toggle layer but **broken end-to-end on the runtime layer**: the Go code sources `/usr/share/powerlab/shell/local-storage-helper.sh` which does not exist in the repo or tarball, so every USB operation is a silent no-op. Audit breaks the implementation into Phase B (runtime audit on .142), Phase C (backend helper + udev rule), Phase D (Files page sidebar — the headline user requirement: mounted disks must appear in Files), Phase E (tests). No code shipped; tracking issues opened for Phase B-E follow-up.'
+time: 2026-05-18T00:05:00Z
+custom:
+    Issue: "416"
