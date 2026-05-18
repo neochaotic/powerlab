@@ -20,7 +20,6 @@ import (
 	"github.com/neochaotic/powerlab/backend/common/utils/port"
 	"github.com/neochaotic/powerlab/backend/core/common"
 	"github.com/neochaotic/powerlab/backend/core/model"
-	"github.com/neochaotic/powerlab/backend/core/pkg/config"
 	"github.com/neochaotic/powerlab/backend/core/pkg/utils"
 	"github.com/neochaotic/powerlab/backend/common/external"
 	"github.com/neochaotic/powerlab/backend/core/service"
@@ -36,16 +35,16 @@ import (
 // lives under /v1/powerlab-update/ and uses the manifest.json
 // pipeline; nothing should be calling these old routes.
 
-// @Summary  get logs
+// @Summary Get the PowerLab core process logs (tail)
 // @Produce  application/json
 // @Accept application/json
 // @Tags sys
 // @Security ApiKeyAuth
 // @Success 200 {string} string "ok"
 // @Router /sys/error/logs [get]
-func GetCasaOSErrorLogs(ctx echo.Context) error {
+func GetSystemErrorLogs(ctx echo.Context) error {
 	line, _ := strconv.Atoi(utils.DefaultQuery(ctx, "line", "100"))
-	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: service.MyService.System().GetCasaOSLogs(line)})
+	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: service.MyService.System().GetSystemLogs(line)})
 }
 
 // GetSystemConfigDebug returns a formatted bug-report string the
@@ -70,59 +69,6 @@ func GetSystemConfigDebug(ctx echo.Context) error {
 `, sys.OS, common.VERSION, disk.Total>>20, disk.Used>>20, array)
 
 	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: bugContent})
-}
-
-// @Summary get casaos server port
-// @Produce  application/json
-// @Accept application/json
-// @Tags sys
-// @Security ApiKeyAuth
-// @Success 200 {string} string "ok"
-// @Router /sys/port [get]
-func GetCasaOSPort(ctx echo.Context) error {
-	return ctx.JSON(common_err.SUCCESS,
-		model.Result{
-			Success: common_err.SUCCESS,
-			Message: common_err.GetMsg(common_err.SUCCESS),
-			Data:    config.ServerInfo.HttpPort,
-		})
-}
-
-// @Summary edit casaos server port
-// @Produce  application/json
-// @Accept application/json
-// @Tags sys
-// @Security ApiKeyAuth
-// @Param port json string true "port"
-// @Success 200 {string} string "ok"
-// @Router /sys/port [put]
-func PutCasaOSPort(ctx echo.Context) error {
-	json := make(map[string]string)
-	ctx.Bind(&json)
-	portStr := json["port"]
-	portNumber, err := strconv.Atoi(portStr)
-	if err != nil {
-		return ctx.JSON(common_err.SERVICE_ERROR,
-			model.Result{
-				Success: common_err.SERVICE_ERROR,
-				Message: err.Error(),
-			})
-	}
-
-	isAvailable := port.IsPortAvailable(portNumber, "tcp")
-	if !isAvailable {
-		return ctx.JSON(common_err.SERVICE_ERROR,
-			model.Result{
-				Success: common_err.PORT_IS_OCCUPIED,
-				Message: common_err.GetMsg(common_err.PORT_IS_OCCUPIED),
-			})
-	}
-	service.MyService.System().UpSystemPort(strconv.Itoa(portNumber))
-	return ctx.JSON(common_err.SUCCESS,
-		model.Result{
-			Success: common_err.SUCCESS,
-			Message: common_err.GetMsg(common_err.SUCCESS),
-		})
 }
 
 // @Summary active killing casaos

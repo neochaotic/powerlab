@@ -43,7 +43,7 @@ import (
 // below.
 type SystemService interface {
 	GetSystemConfigDebug() []string
-	GetCasaOSLogs(lineNumber int) string
+	GetSystemLogs(lineNumber int) string
 	UpdateAssist()
 	UpSystemPort(port string)
 	GetTimeZone() string
@@ -383,7 +383,7 @@ func (s *systemService) UpSystemPort(port string) {
 	config.Cfg.SaveTo(config.SystemConfigInfo.ConfigPath)
 }
 
-func (s *systemService) GetCasaOSLogs(lineNumber int) string {
+func (s *systemService) GetSystemLogs(lineNumber int) string {
 	if lineNumber <= 0 {
 		lineNumber = 100
 	}
