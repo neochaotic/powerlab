@@ -580,54 +580,29 @@ echo "[powerlab-install] Installing static UI to /usr/share/powerlab/www..."
 rm -rf /usr/share/powerlab/www
 cp -R "$HERE/www" /usr/share/powerlab/www
 
-# Install/refresh community catalog (Umbrel weekly-sync output) at
-# /var/lib/powerlab/community-catalog. The directory is also created by
-# the install -d step above; here we copy in the pre-bundled apps. We
-# use rsync-like semantics: copy contents, don't wipe the destination —
-# operator-written overrides (description-powerlab.md) survive upgrades.
-# See docs/architecture/community-catalog.md.
+# Install/refresh community catalog at /var/lib/powerlab/community-catalog.
+# ADR-0039 requires the tarball's curated set be the sole source of truth
+# on default install — operator catalog additions live as DISTINCT source
+# entries (registered via Settings → Catalog, stored under separate
+# appstore workdirs), not by editing this directory in place.
+#
+# Wipe-then-copy semantics (issue #450): on upgrade from a release that
+# shipped a larger curated set, the old Apps/ entries would otherwise
+# remain on disk and continue to surface in the store. Removing Apps/
+# first and replacing it with the bundled tree guarantees the install
+# state matches the release contents byte-for-byte. The wider
+# community-catalog/ dir is preserved (README, .gitkeep, x-powerlab-*.md
+# etc.) — only the Apps/ subtree is replaced.
+#
+# Note: the powerlab-sync-catalog binary is still shipped to /usr/bin
+# for explicit operator use (e.g. mirroring an upstream into a custom
+# catalog source registered via Settings → Catalog). It is NOT invoked
+# automatically here; auto-sync against an upstream contradicts the
+# "PowerLab ships its own curated set" promise.
 if [[ -d "$HERE/community-catalog" ]]; then
   echo "[powerlab-install] Installing community catalog..."
+  rm -rf /var/lib/powerlab/community-catalog/Apps
   cp -R "$HERE/community-catalog"/. /var/lib/powerlab/community-catalog/
-fi
-
-# Post-install catalog refresh — closes the v0.6.x class of bugs where a
-# released tarball carried a stale community-catalog vs the binary's
-# current transform logic (#321 fixed Phase 7 transform; #322 re-emit
-# merged after v0.6.2 tagged; v0.6.3 upgrade overwrote user's working
-# catalog with stale bundled YAMLs from the v0.6.2 tarball). Now that
-# powerlab-sync-catalog ships in /usr/bin, install.sh runs it ONCE
-# best-effort to refresh the on-disk catalog against current upstream.
-#
-# Best-effort means: if git is missing, or GitHub is unreachable, or
-# the sync errors for any reason — we DON'T fail the install. The
-# bundled catalog from the tarball above is the fallback; the user can
-# re-run /usr/bin/powerlab-sync-catalog later via cron / by hand.
-#
-# Timeout: 60s. If sync takes longer (slow network), skip. The next
-# weekly GH-Action sync PR will refresh the in-repo catalog anyway.
-#
-# Escape hatch: POWERLAB_SKIP_SYNC=1 in the env skips this step entirely.
-# Useful for: (a) fast offline upgrades — the bundled catalog from the
-# tarball is good enough until the next manual sync; (b) air-gapped
-# boxes where git clone of upstream isn't reachable. The user can run
-# `/usr/bin/powerlab-sync-catalog --output /var/lib/powerlab/community-catalog`
-# at any later time to refresh on demand.
-if [[ "${POWERLAB_SKIP_SYNC:-0}" == "1" ]]; then
-  echo "[powerlab-install] Skipping community catalog refresh (POWERLAB_SKIP_SYNC=1). Run /usr/bin/powerlab-sync-catalog manually to refresh later."
-elif command -v git &>/dev/null && command -v /usr/bin/powerlab-sync-catalog &>/dev/null; then
-  echo "[powerlab-install] Refreshing community catalog from upstream (best-effort, 60s timeout)..."
-  if timeout 60 /usr/bin/powerlab-sync-catalog \
-       --output /var/lib/powerlab/community-catalog \
-       >/dev/null 2>&1; then
-    echo "[powerlab-install]   community catalog refreshed."
-  else
-    echo "[powerlab-install]   sync skipped — bundled catalog will be used (GitHub unreachable or timeout)."
-  fi
-else
-  if ! command -v git &>/dev/null; then
-    echo "[powerlab-install] Skipping catalog refresh — git not installed. Run 'apt install git' (or equivalent) + '/usr/bin/powerlab-sync-catalog --output /var/lib/powerlab/community-catalog' to refresh on demand."
-  fi
 fi
 
 # Install the PAM service policy at /etc/pam.d/powerlab. PowerLab's

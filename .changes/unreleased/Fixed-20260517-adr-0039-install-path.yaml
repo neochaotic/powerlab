@@ -1,0 +1,5 @@
+kind: Fixed
+body: 'Upgrade path no longer leaves orphan apps from prior catalog versions (#450). `install.sh` now wipes `/var/lib/powerlab/community-catalog/Apps/` before copying the tarball''s curated tree (wipe-then-copy, not overlay). The post-install `powerlab-sync-catalog` auto-invocation is removed — `install.sh` no longer auto-pulls `getumbrel/umbrel-apps` upstream per install, which had been silently re-populating the catalog with 200+ filtered Umbrel apps and violating ADR-0039''s "PowerLab ships its own curated set" promise. The binary is still shipped to `/usr/bin/powerlab-sync-catalog` for explicit operator/maintainer use against custom upstreams (register output as a custom catalog source via Settings → Catalog).'
+time: 2026-05-17T22:45:00Z
+custom:
+    Issue: "450"
