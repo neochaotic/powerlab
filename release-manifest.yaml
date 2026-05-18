@@ -31,11 +31,10 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Catalog model pivot (ADR-0039). PowerLab now ships a curated
-  set of 4 install-verified apps instead of the 240+ inherited
-  Umbrel/CasaOS legacy. Add custom catalog URLs via
-  Settings → Catalog at your own risk. Security-first install
-  pipeline (hook filter + compose safety lint).
+  Catalog pivot (ADR-0039). Ships 4 curated apps instead of 240+
+  legacy. Add custom catalog URLs via Settings → Catalog at own
+  risk. Security-first install: hook filter + compose safety
+  lint + image-skeleton-seed.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
