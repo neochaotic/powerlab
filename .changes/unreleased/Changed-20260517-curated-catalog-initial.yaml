@@ -1,0 +1,5 @@
+kind: Changed
+body: 'Catalog model: PowerLab now ships with 4 curated, install-verified apps (AdventureLog, Baikal, Enclosed, Gitingest) instead of the 240+ inherited Umbrel entries. Each curated app has a PowerLab-authored description and an `x-powerlab.yml` manifest with `verified: <date>` annotation. Operators who want more apps can add custom catalog URLs via Settings → Catalog (with "Unaudited" badge). Per ADR-0039.'
+time: 2026-05-17T00:00:00Z
+custom:
+    Issue: ""

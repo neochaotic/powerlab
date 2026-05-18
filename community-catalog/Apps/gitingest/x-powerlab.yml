@@ -1,0 +1,14 @@
+id: gitingest
+title: Gitingest
+tagline: Convert any GitHub repo into LLM-ready text
+category: ai
+license: MIT
+upstream:
+  source: https://github.com/coderamp-labs/gitingest
+  inspiration: yes
+verified: 2026-05-15
+verified_by:
+  - name: PowerLab core
+    staging: powerlab .142 staging box
+    notes: Single Python container. Paste a GitHub URL, get a flattened text dump of the repo formatted for ChatGPT/Claude context windows.
+notes: Data lives at /DATA/PowerLabAppData/gitingest/data

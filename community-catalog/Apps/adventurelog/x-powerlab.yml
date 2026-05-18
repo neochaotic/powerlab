@@ -1,0 +1,14 @@
+id: adventurelog
+title: AdventureLog
+tagline: Self-hosted travel log + map of places visited
+category: productivity
+license: GPL-3.0
+upstream:
+  source: https://github.com/seanmorley15/AdventureLog
+  inspiration: yes
+verified: 2026-05-15
+verified_by:
+  - name: PowerLab core
+    staging: powerlab .142 staging box
+    notes: 3 containers (web, server, db) reach healthy on first install
+notes: Data lives at /DATA/PowerLabAppData/adventurelog/data
