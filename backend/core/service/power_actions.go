@@ -58,13 +58,11 @@ var defaultRunner commandRunner = func(name string, args ...string) ([]byte, err
 	return exec.Command(name, args...).CombinedOutput() //nolint:gosec
 }
 
-// QueryServiceState returns the current state of a PowerLab systemd
-// unit. The unit name MUST come from PowerLabServices — pass any other
-// string and the function returns an error rather than shelling out.
-func QueryServiceState(name string) (ServiceState, error) {
-	return queryServiceStateWith(defaultRunner, name)
-}
-
+// queryServiceStateWith returns the current state of a PowerLab
+// systemd unit. The unit name MUST come from PowerLabServices —
+// pass any other string and the function returns an error rather
+// than shelling out. Production callers reach this via
+// QueryAllServiceStates; tests inject their own commandRunner stub.
 func queryServiceStateWith(run commandRunner, name string) (ServiceState, error) {
 	if !IsAllowedPowerLabService(name) {
 		return ServiceState{}, fmt.Errorf("service %q not in PowerLab whitelist", name)
