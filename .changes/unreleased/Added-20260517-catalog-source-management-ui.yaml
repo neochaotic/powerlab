@@ -1,5 +1,0 @@
-kind: Added
-body: 'Settings → Catalog pane: list registered catalog sources, add custom URLs at own risk with one-time acknowledgement modal, remove operator-added sources. The PowerLab Curated default catalog ships immutable; operator-added catalogs render with a permanent "Unaudited" badge throughout the store. Backend endpoints (POST/DELETE /v2/app_management/appstore) already existed; this PR adds the UI surface per ADR-0039.'
-time: 2026-05-17T00:00:00Z
-custom:
-    Issue: ""

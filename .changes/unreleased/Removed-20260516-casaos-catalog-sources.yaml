@@ -1,5 +1,0 @@
-kind: Removed
-body: 'Legacy CasaOS upstream catalog sources removed from the default app-store list (CasaOS jsdelivr zip + big-bear-casaos zip). Operators upgrading get a one-time startup migration that strips these URLs from their on-disk conf and persists the cleaned list. Apps already installed from these sources continue to run; only the catalog source is dropped. Per ADR-0038 — same trust class as Umbrel community catalog, no operator demand, no PowerLab-side maintenance.'
-time: 2026-05-17T00:00:00Z
-custom:
-    Issue: "438"

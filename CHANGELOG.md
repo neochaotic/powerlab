@@ -13,6 +13,19 @@ Each PR adds a tiny YAML fragment under `.changes/unreleased/<id>.yaml`.
 At release time, `changie batch <version>` aggregates the fragments into
 a new section below this header. See `CONTRIBUTING.md` for the workflow.
 
+## [v0.7.0] — 2026-05-17
+### Added
+- Settings → Catalog pane: list registered catalog sources, add custom URLs at own risk with one-time acknowledgement modal, remove operator-added sources. The PowerLab Curated default catalog ships immutable; operator-added catalogs render with a permanent "Unaudited" badge throughout the store. Backend endpoints (POST/DELETE /v2/app_management/appstore) already existed; this PR adds the UI surface per ADR-0039.
+### Changed
+- Catalog model: PowerLab now ships with 4 curated, install-verified apps (AdventureLog, Baikal, Enclosed, Gitingest) instead of the 240+ inherited Umbrel entries. Each curated app has a PowerLab-authored description and an `x-powerlab.yml` manifest with `verified: <date>` annotation. Operators who want more apps can add custom catalog URLs via Settings → Catalog (with "Unaudited" badge). Per ADR-0039.
+### Removed
+- Legacy CasaOS upstream catalog sources removed from the default app-store list (CasaOS jsdelivr zip + big-bear-casaos zip). Operators upgrading get a one-time startup migration that strips these URLs from their on-disk conf and persists the cleaned list. Apps already installed from these sources continue to run; only the catalog source is dropped. Per ADR-0038 — same trust class as Umbrel community catalog, no operator demand, no PowerLab-side maintenance.
+### Fixed
+- Install-time pre-seed of empty bind-mount source dirs from image content. Closes the "bind-mount overlay" bug class generically — apps that ship pre-populated content at their data path (Laravel `storage/framework/{cache,views,sessions}`, nextcloud `/var/www/html`, jellyfin `/config`, etc.) used to crash on first install because the empty host bind-mount source would overlay the image content. PowerLab now `docker create` + `docker cp <image>:<target> <host>` before docker compose up, transferring the skeleton. Best-effort: docker CLI failures are swallowed; only runs when source dir is empty (re-installs with user data are untouched). Per ADR-0038 Tier 1 transform.
+### Security
+- CI gate: compose-level security lint for every catalog app. Rejects `privileged: true`, `/var/run/docker.sock` bind, `network_mode/pid/ipc: host`, `cap_add: ALL` or `SYS_ADMIN`, and bind-mounts of system paths (/etc, /var/lib, /usr, /root, /home, /boot, /sys, /proc). Allow-list for /DATA/PowerLabAppData app data paths. Ships warn-only during Sprint 22 ship phase; flips strict after the initial curated catalog re-seed PR lands. Per ADR-0039.
+
+
 ## [v0.6.16] — 2026-05-16
 ### Added
 - gateway: `/v1/logs/services/{service}/stream` SSE endpoint spawns `journalctl -u powerlab-<service>.service -o json -f` and streams parsed entries (severity + message + timestamp) as SSE events. Service name validated against strict allowlist before exec; subprocess lifetime bound to request context (client disconnect → SIGKILL). Backend half of #259 /logs Phase 4.

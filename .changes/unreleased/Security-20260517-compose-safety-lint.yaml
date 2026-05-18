@@ -1,5 +1,0 @@
-kind: Security
-body: 'CI gate: compose-level security lint for every catalog app. Rejects `privileged: true`, `/var/run/docker.sock` bind, `network_mode/pid/ipc: host`, `cap_add: ALL` or `SYS_ADMIN`, and bind-mounts of system paths (/etc, /var/lib, /usr, /root, /home, /boot, /sys, /proc). Allow-list for /DATA/PowerLabAppData app data paths. Ships warn-only during Sprint 22 ship phase; flips strict after the initial curated catalog re-seed PR lands. Per ADR-0039.'
-time: 2026-05-17T00:00:00Z
-custom:
-    Issue: ""

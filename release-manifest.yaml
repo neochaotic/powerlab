@@ -31,10 +31,11 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Install reliability. Live per-service journald viewer in
-  Settings → Logs. 154 catalog hostname fixes + install-time
-  host substitution + bind-mount chmod unblock 44+ apps.
-  ADR-0037 delta-strict deadcode gate. No breaking changes.
+  Catalog model pivot (ADR-0039). PowerLab now ships a curated
+  set of 4 install-verified apps instead of the 240+ inherited
+  Umbrel/CasaOS legacy. Add custom catalog URLs via
+  Settings → Catalog at your own risk. Security-first install
+  pipeline (hook filter + compose safety lint).
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:

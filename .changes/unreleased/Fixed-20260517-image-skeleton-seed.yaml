@@ -1,5 +1,0 @@
-kind: Fixed
-body: 'Install-time pre-seed of empty bind-mount source dirs from image content. Closes the "bind-mount overlay" bug class generically — apps that ship pre-populated content at their data path (Laravel `storage/framework/{cache,views,sessions}`, nextcloud `/var/www/html`, jellyfin `/config`, etc.) used to crash on first install because the empty host bind-mount source would overlay the image content. PowerLab now `docker create` + `docker cp <image>:<target> <host>` before docker compose up, transferring the skeleton. Best-effort: docker CLI failures are swallowed; only runs when source dir is empty (re-installs with user data are untouched). Per ADR-0038 Tier 1 transform.'
-time: 2026-05-17T00:00:00Z
-custom:
-    Issue: "428"
