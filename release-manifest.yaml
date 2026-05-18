@@ -31,10 +31,10 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Catalog pivot (ADR-0039). Ships 4 curated apps instead of 240+
-  legacy. Add custom catalog URLs via Settings → Catalog at own
-  risk. Security-first install: hook filter + compose safety
-  lint + image-skeleton-seed.
+  Hardening release. Closes #450 install-path bug class
+  (orphan apps + auto-Umbrel-sync). Settings → Power pane.
+  Sidebar telemetry fix (#453). Lockout recovery doc +
+  systemd hardening. ADR-0040 hygiene baseline.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:

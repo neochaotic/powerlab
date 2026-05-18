@@ -78,6 +78,51 @@ Realistic ceilings (informed by code shape, not aspiration):
 
 Memory anchor: `feedback_coverage_cadence_rule`.
 
+### Govulncheck: warn-only first run (2026-05-18 amendment)
+
+Initial promise was "strict from day 1 — a known CVE is a known CVE."
+First CI run against the existing codebase found **10 vulnerabilities
+across 6 modules** (mostly `golang.org/x/image` v0.6.0 with old TIFF
+decoder issues patched in v0.10.0+, reachable from `backend/core/pkg/
+utils/file/image.go`). Strict-day-1 would have blocked every PR in
+Sprint 23 close-out + every future PR until the dep-bump backlog
+cleared.
+
+**Amendment**: govulncheck ships warn-only initially
+(`continue-on-error: true` on the CI step), then flips to strict in
+a one-line PR once per-service dep bumps land. Same ratchet pattern
+as the lint gate.
+
+Per-service dep-bump work queued for the v0.7.2 release. Once all 7
+service modules show 0 vulns, the `continue-on-error: true` line
+gets dropped and govulncheck behaves as originally promised.
+
+This amendment honours the ADR's own acceptance text — "If any of
+those reveal the proportional baseline is too aggressive, this ADR
+is amended, not the implementation rolled back."
+
+### Cadence reframe (2026-05-18 amendment — sprint era ends)
+
+Sprint 23 is the **last sprint**. After Sprint 23 retro + v0.7.1 cut,
+the planning unit becomes **release** (v0.7.2, v0.7.3, ...) and each
+release carries larger scope than a typical past sprint. Memory
+`feedback_sprint_23_is_last_releases_take_over` captures this.
+
+What this ADR's cadence rules become:
+
+| Was | Becomes |
+|---|---|
+| "+10pp per surface per sprint" | "+10pp per surface per release" (larger releases ≈ proportionally more room) |
+| "Sprint-end gate: aggregate delta ≥10%" | "Release-end gate: aggregate delta ≥10% OR release notes explain" |
+| "Per-sprint retro" | "Per-release notes" |
+| "Linter ratchet per family per sprint" | "Linter ratchet per family per release" |
+
+The ADR's core decisions don't change — only the time unit. The
+realistic ceiling table, deferred families list, and god-file
+refactor deferral all stay as written. A bug-fix-only release may
+ship without coverage delta; the rule applies to releases that ship
+new code surface.
+
 ### god-file refactoring (audit point #5)
 
 god-file splits stay **deferred until coverage clears 50%** (UI) / case-by-case (backend). Splitting at low coverage risks silent regressions (memory `feedback_tdd_strict` + `feedback_no_apagar_test_para_passar`). The Sprint 7 #123 carry remains carry until then.
