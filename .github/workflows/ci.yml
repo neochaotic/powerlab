@@ -357,7 +357,7 @@ jobs:
         # exits non-zero). Per ADR-0040. When a linter family flips to
         # strict it does so in its own focused PR that drops this line.
         continue-on-error: true
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v9
         with:
           # v2.x — v1.61.0 was built with Go 1.23 and refused to load
           # our config against Go 1.25 ("the Go language version
