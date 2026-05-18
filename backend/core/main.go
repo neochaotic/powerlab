@@ -247,9 +247,9 @@ func main() {
 	command.ExecuteScripts(scriptDirectory)
 
 	if supported, err := daemon.SdNotify(false, daemon.SdNotifyReady); err != nil {
-		logger.Error("Failed to notify systemd that casaos main service is ready", zap.Any("error", err))
+		logger.Error("Failed to notify systemd that powerlab-core is ready", zap.Any("error", err))
 	} else if supported {
-		logger.Info("Notified systemd that casaos main service is ready")
+		logger.Info("Notified systemd that powerlab-core is ready")
 	} else {
 		logger.Info("This process is not running as a systemd service.")
 	}
