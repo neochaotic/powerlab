@@ -346,6 +346,14 @@ Wants=powerlab-gateway.service powerlab-message-bus.service powerlab-user-servic
 Description=PowerLab $svc service
 $AFTER_LINE
 Wants=docker.service
+# Looser StartLimit than systemd defaults (5 in 10s) to absorb
+# upgrade-window flaps where dependent services are mid-restart
+# and our ExecStartPre URL-file wait times out. 10 restarts in 60s
+# tolerates ~6 minutes of cumulative thrash before systemd gives
+# up — operator can recover via systemctl reset-failed + start per
+# the lockout recovery doc. (#260 follow-up)
+StartLimitBurst=10
+StartLimitIntervalSec=60
 
 [Service]
 Type=simple
@@ -371,6 +379,13 @@ cat > "$STAGE/systemd/powerlab-gateway.service" <<EOF
 Description=PowerLab gateway service
 After=network.target docker.service
 Wants=docker.service
+# Looser StartLimit than systemd defaults. Gateway is the FIRST
+# PowerLab service to come up + the LAST one operators can lose
+# without losing UI access entirely — extra slack on its restart
+# burst tolerance reduces lockout risk during upgrade flaps.
+# (#260 follow-up — see docs/operations/lockout-recovery.md)
+StartLimitBurst=10
+StartLimitIntervalSec=60
 
 [Service]
 Type=simple
