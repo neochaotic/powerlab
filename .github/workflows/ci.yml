@@ -346,13 +346,20 @@ jobs:
         run: go generate ./...
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        # Warn-only: continue-on-error makes lint findings non-blocking
+        # at the JOB level (the workflow run passes even if this step
+        # exits non-zero). Per ADR-0040. When a linter family flips to
+        # strict it does so in its own focused PR that drops this line.
+        continue-on-error: true
+        uses: golangci/golangci-lint-action@v7
         with:
-          version: v1.61.0
+          # v2.x — v1.61.0 was built with Go 1.23 and refused to load
+          # our config against Go 1.25 ("the Go language version
+          # (go1.23) used to build golangci-lint is lower than the
+          # targeted Go version (1.25)"). Need the action's v7 to
+          # accept v2.x binaries.
+          version: v2.0.2
           working-directory: backend/${{ matrix.service }}
-          # --config points at the repo-root .golangci.yml; that file
-          # sets issues-exit-code: 0 so this job prints findings
-          # without failing the build. Per ADR-0040.
           args: --config=${{ github.workspace }}/.golangci.yml --timeout=5m
 
   # ─────────────────────────────────────────────────────────────────────
