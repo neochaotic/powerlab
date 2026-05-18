@@ -1,0 +1,5 @@
+kind: Added
+body: 'Backfill retrospective for sprints 13-18 (`docs/audits/sprints-13-18-backfill.md`). Sprint 23 process-recovery audit caught that 7 of 13 sprints had no retro doc — chain was broken from Sprint 13 (install UX hardening + SSE protocol fixes) through Sprint 18 (journald viewer + golden-path E2E + the never-closed Sprint 18 epic #376). Doc captures headline deliverables, carries that closed in later sprints, carries still open, and the memory entries created. Single batch doc rather than 6 separate files — context-reconstruction value > per-sprint fidelity at this remove.'
+time: 2026-05-18T02:00:00Z
+custom:
+    Issue: ""
