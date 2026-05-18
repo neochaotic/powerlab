@@ -104,6 +104,9 @@ jobs:
       - name: Install-upgrade leaves clean catalog (Sprint 23 #450)
         run: bash scripts/check-install-upgrade-clean_test.sh
 
+      - name: local-storage-helper.sh contract + safety (Sprint 23 #464)
+        run: bash scripts/check-local-storage-helper_test.sh
+
       - name: ESLint raw-fetch ban (Sprint 15 #353)
         run: bash scripts/check-eslint-fetch-ban_test.sh
 

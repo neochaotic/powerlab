@@ -27,7 +27,7 @@ log() { echo "[powerlab-pkg] $*"; }
 # ─── 1. Clean & prepare ──────────────────────────────────────────────────
 log "Packaging PowerLab v$VERSION for linux/$ARCH"
 rm -rf "$STAGE" "$TARBALL"
-mkdir -p "$STAGE/bin" "$STAGE/www" "$STAGE/conf" "$STAGE/systemd" "$STAGE/store" "$STAGE/community-catalog"
+mkdir -p "$STAGE/bin" "$STAGE/www" "$STAGE/conf" "$STAGE/systemd" "$STAGE/store" "$STAGE/community-catalog" "$STAGE/shell"
 
 # ─── 2. Cross-compile Go services ────────────────────────────────────────
 log "Cross-compiling backend services for linux/$ARCH..."
@@ -180,6 +180,18 @@ fi
 bash "$ROOT/scripts/check-built-ui-version.sh" "$VERSION" "build"
 
 cp -R build/* "$STAGE/www/"
+
+# ─── 3.4. Bundle shell helpers ───────────────────────────────────────────
+# Shell helpers shipped under /usr/share/powerlab/shell on the target.
+# Currently:
+#   - local-storage-helper.sh — USB/SD auto-mount lifecycle (#464,
+#     audit doc docs/audits/usb-sd-automount-gap-2026-05-17.md)
+# Sourced by backend/local-storage/service/{usb,disk}.go via
+# `source $ShellPath/local-storage-helper.sh ; FUNC args`.
+if [[ -d "$ROOT/scripts/shell" ]]; then
+  cp -R "$ROOT/scripts/shell"/. "$STAGE/shell/"
+  log "  bundled shell helpers ($(ls "$STAGE/shell" 2>/dev/null | wc -l | tr -d ' ') files)"
+fi
 
 # ─── 3.5. Bundle community catalog (Umbrel-sync output) ──────────────────
 # Pre-populated by .github/workflows/sync-umbrel-catalog.yml weekly. We
@@ -608,7 +620,9 @@ install -d -m 0755 /var/lib/powerlab/{apps,appstore,conf,backups,db,community-ca
 install -d -m 0755 /var/log/powerlab
 install -d -m 0755 /var/run/powerlab
 install -d -m 0755 /usr/share/powerlab
+install -d -m 0755 /usr/share/powerlab/shell
 install -d -m 0755 /DATA/AppData
+install -d -m 0755 /mnt/powerlab
 
 echo "[powerlab-install] Installing binaries to /usr/bin..."
 install -m 0755 "$HERE/bin/powerlab-"* /usr/bin/
@@ -616,6 +630,16 @@ install -m 0755 "$HERE/bin/powerlab-"* /usr/bin/
 echo "[powerlab-install] Installing static UI to /usr/share/powerlab/www..."
 rm -rf /usr/share/powerlab/www
 cp -R "$HERE/www" /usr/share/powerlab/www
+
+# Install shell helpers under /usr/share/powerlab/shell. Currently:
+#   - local-storage-helper.sh — USB/SD auto-mount lifecycle (#464,
+#     audit doc docs/audits/usb-sd-automount-gap-2026-05-17.md)
+# Sourced by backend/local-storage/service/{usb,disk}.go via
+# `source $ShellPath/local-storage-helper.sh; FUNC args`.
+if [[ -d "$HERE/shell" ]]; then
+  echo "[powerlab-install] Installing shell helpers to /usr/share/powerlab/shell..."
+  install -m 0755 "$HERE/shell/"*.sh /usr/share/powerlab/shell/ 2>/dev/null || true
+fi
 
 # Install/refresh community catalog at /var/lib/powerlab/community-catalog.
 # ADR-0039 requires the tarball's curated set be the sole source of truth
