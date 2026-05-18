@@ -1,0 +1,14 @@
+id: baikal
+title: Baikal
+tagline: CalDAV + CardDAV server for self-hosted calendars and contacts
+category: productivity
+license: AGPL-3.0
+upstream:
+  source: https://github.com/sabre-io/Baikal
+  inspiration: yes
+verified: 2026-05-15
+verified_by:
+  - name: PowerLab core
+    staging: powerlab .142 staging box
+    notes: Single web container reaches healthy. Point your CalDAV/CardDAV client at it (Apple Calendar, Thunderbird, DAVx5).
+notes: Data lives at /DATA/PowerLabAppData/baikal/data

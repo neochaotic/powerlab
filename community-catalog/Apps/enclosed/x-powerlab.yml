@@ -1,0 +1,14 @@
+id: enclosed
+title: Enclosed
+tagline: End-to-end encrypted note-sharing with auto-expiry
+category: security
+license: AGPL-3.0
+upstream:
+  source: https://github.com/CorentinTh/enclosed
+  inspiration: yes
+verified: 2026-05-15
+verified_by:
+  - name: PowerLab core
+    staging: powerlab .142 staging box
+    notes: Single Node container. Browser-side encryption — the server only sees ciphertext.
+notes: Data lives at /DATA/PowerLabAppData/enclosed/data
