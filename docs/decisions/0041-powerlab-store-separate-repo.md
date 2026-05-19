@@ -174,42 +174,6 @@ This ADR is **accepted** when:
 
 If Phase 1-2 reveal the split is too operationally heavy, this ADR is amended (e.g. revert to monolith + add path-isolation tooling), not the implementation forced through.
 
-## Cross-reference strategy
-
-Discoverability is a first-class concern. Operators reading either repo should always be one click away from the relevant context in the other. Concrete pattern:
-
-### From **`powerlab/`** (core) → **`powerlab-store/`**
-
-| Surface in core | Link to store |
-|---|---|
-| `README.md` | Top-level callout: "App catalog lives in [neochaotic/powerlab-store](https://github.com/neochaotic/powerlab-store) — see [its README](https://github.com/neochaotic/powerlab-store/blob/main/README.md) for what ships." |
-| `docs/architecture/community-catalog.md` (rename to `catalog.md` post Phase 3) | First paragraph: "Catalog source of truth: [`neochaotic/powerlab-store`](https://github.com/neochaotic/powerlab-store). Schema spec: [`docs/schema.md`](https://github.com/neochaotic/powerlab-store/blob/main/docs/schema.md). Submission flow: [`CONTRIBUTING.md`](https://github.com/neochaotic/powerlab-store/blob/main/CONTRIBUTING.md)." |
-| `CONTRIBUTING.md` | "Adding an app? You don't change THIS repo — open a PR in [powerlab-store](https://github.com/neochaotic/powerlab-store) following [its contribution manual](https://github.com/neochaotic/powerlab-store/blob/main/CONTRIBUTING.md)." |
-| Settings → Catalog UI copy | "Catalog source: [powerlab-store](https://github.com/neochaotic/powerlab-store) v<N.M.P>" with the version live-rendered from `index.json` |
-| `release-manifest.yaml` summary on releases that bump bundled store | "Catalog updated to [powerlab-store v<N.M.P>](https://github.com/neochaotic/powerlab-store/releases/tag/v<N.M.P>) — see [CHANGELOG](https://github.com/neochaotic/powerlab-store/blob/main/CHANGELOG.md#<anchor>)" |
-| `docs/decisions/0039-*.md`, `docs/decisions/0041-*.md` | "Implemented in [powerlab-store](https://github.com/neochaotic/powerlab-store); see [its ADRs](https://github.com/neochaotic/powerlab-store/tree/main/docs/adr) for store-specific decisions." |
-| `docs/operations/install.md` (when written) | "Where do apps come from? [powerlab-store](https://github.com/neochaotic/powerlab-store) — bundled at build time or fetched via Settings → Catalog." |
-
-### From **`powerlab-store/`** → **`powerlab/`** (core)
-
-| Surface in store | Link to core |
-|---|---|
-| `README.md` | Lead: "Catalog for [PowerLab](https://github.com/neochaotic/powerlab) — the headless OS panel for home servers." Plus install pointer: "End users: don't clone this repo. Install PowerLab (see [its README](https://github.com/neochaotic/powerlab/blob/main/README.md)) and the catalog ships with it." |
-| `CONTRIBUTING.md` | Schema/safety context: "These checks mirror [PowerLab core's catalog safety lint](https://github.com/neochaotic/powerlab/blob/main/scripts/check-catalog-app-safety.sh) ([ADR-0040](https://github.com/neochaotic/powerlab/blob/main/docs/decisions/0040-proportional-engineering-hygiene-baseline.md)). The store adds digest-pinning + icon presence on top." |
-| `docs/schema.md` | "Schema consumed by [`backend/sync-catalog/types.go`](https://github.com/neochaotic/powerlab/blob/main/backend/sync-catalog/types.go) and the [`x-powerlab` extension parser](https://github.com/neochaotic/powerlab/blob/main/backend/app-management/common/labels.go)." |
-| `docs/curation-criteria.md` | "Rationale: PowerLab core ADRs [0039 (native curated)](https://github.com/neochaotic/powerlab/blob/main/docs/decisions/0039-powerlab-native-curated-catalog.md) + [0041 (this repo)](https://github.com/neochaotic/powerlab/blob/main/docs/decisions/0041-powerlab-store-separate-repo.md) + maintainer memory `feedback_security_is_priority`." |
-| `docs/icon-guidelines.md` | "Surfaced in PowerLab's app store UI ([source](https://github.com/neochaotic/powerlab/blob/main/ui/src/lib/components/orchestrator/StorePreview.svelte))." |
-| `SECURITY.md` | "Found a vulnerability in an app's compose? File here. Found a vulnerability in PowerLab core (gateway, install path, JWT, etc.)? File at [powerlab/SECURITY.md](https://github.com/neochaotic/powerlab/blob/main/SECURITY.md)." |
-| `.github/PULL_REQUEST_TEMPLATE.md` | Checklist item: "Compatible with [PowerLab x-powerlab schema](https://github.com/neochaotic/powerlab/blob/main/backend/sync-catalog/types.go) — see [schema.md](../../docs/schema.md)." |
-| `index.json` autogen template | Embed `"docs_url": "https://github.com/neochaotic/powerlab-store"` + `"core_url": "https://github.com/neochaotic/powerlab"` |
-
-### Cross-link maintenance
-
-- **Permalinks over branches** in code references (`/blob/<sha>/` for ADRs that supersede; `/blob/main/` for evergreen ops docs)
-- **Both READMEs link to each other on line 1-3** so a search engine surfacing one finds the other
-- **CI gate (future)**: a periodic check that referenced URLs in markdown still resolve. Tracked as a v0.7.x candidate (low priority).
-- **Memory `feedback_critique_before_executing`** applies — when proposing a change to either repo, the agent checks if the corresponding doc in the OTHER repo needs an update.
-
 ## References
 
 - ADR-0039 — PowerLab native curated catalog (the **what** preserved; **where it lives** moves)
