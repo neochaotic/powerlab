@@ -1,0 +1,5 @@
+kind: Fixed
+body: '`ui/package.json` version bumped to 0.7.1 to match the v0.7.1 tag. v0.7.1 cut sequence skipped the `scripts/prepare-release.sh` step that normally automates this bump → defense-in-depth gate `check-ui-package-version-fresh_test.sh` started failing on every PR until corrected. Release tarballs themselves were unaffected (release workflow shipped tarballs at 2026-05-19T03:12 ok); this is a post-tag housekeeping unblock. Process anchor: future cuts MUST run `scripts/prepare-release.sh <X.Y.Z>` BEFORE `git tag`.'
+time: 2026-05-19T03:18:00Z
+custom:
+    Issue: ""
