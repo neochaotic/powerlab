@@ -33,7 +33,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SERVICES_DEFAULT=(app-management gateway core user-service message-bus local-storage sync-catalog)
+SERVICES_DEFAULT=(app-management gateway core user-service message-bus local-storage)
 BASELINE_DIR="$REPO_ROOT/scripts/deadcode-baseline"
 
 # Mode resolution: explicit MODE wins; otherwise fall back to legacy
