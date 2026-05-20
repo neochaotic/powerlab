@@ -132,6 +132,9 @@ A curated catalogue of **300+ ready-to-install Docker apps**, organised by categ
 
 Behind every install: PowerLab quietly handles port collisions, streams the install logs in real time, surfaces compatibility warnings before the pull starts, and remembers everything in a clean local YAML you can read.
 
+> **The catalog lives in its own repo: [neochaotic/powerlab-store](https://github.com/neochaotic/powerlab-store).**
+> Independent product, independent release cadence. Every app passes a strict security gate (no `hooks/`, no `exports.sh`, no privileged mounts, digest-pinned images, rehosted icons) before merging. Want to **add an app** or **report a catalog bug**? Go there. Want to understand the **architecture decision** to split the catalog out? See [ADR-0041](docs/decisions/0041-powerlab-store-separate-repo.md).
+
 <br>
 
 ---
@@ -376,6 +379,6 @@ See **[SUPPORT.md](./SUPPORT.md)** for the deep matrix — hardware tiers, distr
 
 <div align="center">
 
-<sub>Crafted by <a href="https://github.com/neochaotic">neochaotic</a> · <a href="https://github.com/neochaotic/powerlab/issues">Report an issue</a> · <a href="https://github.com/neochaotic/powerlab/discussions">Discussions</a></sub>
+<sub>Crafted by <a href="https://github.com/neochaotic">neochaotic</a> · <a href="https://github.com/neochaotic/powerlab/issues">Report an issue</a> · <a href="https://github.com/neochaotic/powerlab/discussions">Discussions</a> · <a href="https://github.com/neochaotic/powerlab-store">App catalog repo</a></sub>
 
 </div>

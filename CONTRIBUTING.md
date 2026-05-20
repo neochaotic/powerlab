@@ -174,6 +174,16 @@ Override the release source via env: `POWERLAB_RELEASE_TAG=v0.7.2 make stage-bui
 3. Update the documentation if you're adding or changing features.
 4. Submit a PR with a clear description of the changes and the problem they solve.
 
+## Adding an app to the catalog
+
+**Don't change this repo to add an app.** The PowerLab app catalog is maintained as an independent product in [neochaotic/powerlab-store](https://github.com/neochaotic/powerlab-store) — separate repo, separate release cadence, separate CI gates focused on app safety + supply-chain pinning.
+
+- New app, app bug, icon update, description update → open a PR in [powerlab-store](https://github.com/neochaotic/powerlab-store) following its [CONTRIBUTING.md](https://github.com/neochaotic/powerlab-store/blob/main/CONTRIBUTING.md)
+- Architectural decision behind the split → [ADR-0041](docs/decisions/0041-powerlab-store-separate-repo.md)
+- Catalog rationale (security-first, no upstream passthrough) → [ADR-0039](docs/decisions/0039-powerlab-native-curated-catalog.md)
+
+PowerLab core changes (gateway, sync-catalog parser, install flow, UI shell, Settings → Catalog UX) stay in this repo.
+
 ## License
 
 By contributing, you agree that your contributions will be licensed under the GNU Affero General Public License v3.0 — see the project's `LICENSE` file at the repo root for the full text.

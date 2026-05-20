@@ -1,8 +1,9 @@
 # 0039 — PowerLab-native curated catalog (security-first, no external passthrough)
 
-- **Status:** accepted
+- **Status:** accepted (where-it-lives portion superseded by ADR-0041)
 - **Date:** 2026-05-17
 - **Supersedes:** ADR-0038 (Umbrel catalog passthrough — toggle + hard filter)
+- **Partially superseded by:** [ADR-0041](0041-powerlab-store-separate-repo.md) — the curated catalog is now maintained as an independent product in [neochaotic/powerlab-store](https://github.com/neochaotic/powerlab-store). The **what** (security-first curated set, no upstream passthrough, custom-URL escape hatch) is unchanged; the **where** moved out of this repo. Icon policy also updated — rehosted as raw binary in the store, not hot-linked.
 - **Trigger:** ADR-0038 proposed an opt-in toggle that would let operators turn on live passthrough to the Umbrel community catalog with PowerLab acting as intermediary. Mid-sprint review of that decision (2026-05-17) rejected the "show warning + operator confirms" trust model on principle — see `feedback_security_is_priority`. The conclusion was that any architecture which routes through PowerLab the risk of executing third-party code (even hooks/exports.sh which we'd hard-filter) keeps PowerLab on the hook for the trust posture of an unaudited upstream. The clean answer is to **not route** at all.
 
 ## Context
