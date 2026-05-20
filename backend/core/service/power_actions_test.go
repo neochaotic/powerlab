@@ -194,6 +194,67 @@ func TestQueryAllServiceStates_PartialFailureContinues(t *testing.T) {
 	}
 }
 
+// Layer 4: gateway self-restart must fork a transient systemd-run unit so
+// the gateway's own cgroup is not torn down before the HTTP response fires.
+
+func TestRestartGateway_UsesSystemdRun(t *testing.T) {
+	var capturedExe string
+	stub := func(name string, args ...string) ([]byte, error) {
+		capturedExe = name
+		return []byte(""), nil
+	}
+	_, err := restartPowerLabServiceWith(stub, "powerlab-gateway")
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if capturedExe != "systemd-run" {
+		t.Errorf("expected systemd-run for gateway self-restart, got %q — cgroup escape won't work", capturedExe)
+	}
+}
+
+func TestRestartGateway_DelayedCommandContainsSleepAndServiceName(t *testing.T) {
+	var capturedArgs []string
+	stub := func(name string, args ...string) ([]byte, error) {
+		capturedArgs = args
+		return []byte(""), nil
+	}
+	_, err := restartPowerLabServiceWith(stub, "powerlab-gateway")
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	// The shell command arg must encode both a delay and the correct unit.
+	shellCmd := strings.Join(capturedArgs, " ")
+	if !strings.Contains(shellCmd, "sleep") {
+		t.Errorf("gateway restart command must include a sleep delay; got args: %v", capturedArgs)
+	}
+	if !strings.Contains(shellCmd, "powerlab-gateway") {
+		t.Errorf("gateway restart command must reference the service name; got args: %v", capturedArgs)
+	}
+}
+
+func TestRestartNonGateway_UsesSystemctlDirectly(t *testing.T) {
+	// All non-gateway services must still use the synchronous systemctl path.
+	for _, svc := range PowerLabServices {
+		if svc == "powerlab-gateway" {
+			continue
+		}
+		svc := svc
+		t.Run(svc, func(t *testing.T) {
+			var capturedExe string
+			stub := func(name string, args ...string) ([]byte, error) {
+				capturedExe = name
+				return []byte(""), nil
+			}
+			if _, err := restartPowerLabServiceWith(stub, svc); err != nil {
+				t.Fatalf("unexpected err: %v", err)
+			}
+			if capturedExe != "systemctl" {
+				t.Errorf("expected systemctl for %q, got %q", svc, capturedExe)
+			}
+		})
+	}
+}
+
 func TestRebootHost_InvokesSystemctlReboot(t *testing.T) {
 	var capturedName string
 	var capturedArgs []string

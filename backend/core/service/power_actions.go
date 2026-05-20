@@ -119,10 +119,14 @@ func queryAllServiceStatesWith(run commandRunner) ([]ServiceState, []error) {
 	return states, errs
 }
 
+// GatewayService is the systemd unit name for the PowerLab gateway.
+// Restarting it requires the delayed-exec path (see restartPowerLabServiceWith).
+const GatewayService = "powerlab-gateway"
+
 // RestartPowerLabService restarts a single PowerLab unit. The unit
-// MUST be in PowerLabServices. Returns the output of `systemctl
-// restart <unit>` for surfacing to the caller (helpful when a restart
-// fails because of a unit-file syntax error or similar).
+// MUST be in PowerLabServices. For the gateway service itself, the
+// restart is forked via systemd-run so the HTTP response can be sent
+// before the process is torn down; all other units restart synchronously.
 func RestartPowerLabService(name string) ([]byte, error) {
 	return restartPowerLabServiceWith(defaultRunner, name)
 }
@@ -130,6 +134,18 @@ func RestartPowerLabService(name string) ([]byte, error) {
 func restartPowerLabServiceWith(run commandRunner, name string) ([]byte, error) {
 	if !IsAllowedPowerLabService(name) {
 		return nil, fmt.Errorf("service %q not in PowerLab whitelist", name)
+	}
+	if name == GatewayService {
+		// The gateway is restarting itself. A direct `systemctl restart`
+		// would kill this process (and its cgroup) before the HTTP
+		// response returns. systemd-run spawns a transient unit in a
+		// separate cgroup so the restart fires ~2 s after we reply.
+		out, err := run("systemd-run", "--no-block", "--quiet",
+			"/bin/sh", "-c", "sleep 2 && systemctl restart "+name) //nolint:gosec
+		if err != nil {
+			return out, fmt.Errorf("systemd-run delayed restart %s: %w (output: %s)", name, err, string(out))
+		}
+		return out, nil
 	}
 	out, err := run("systemctl", "restart", name)
 	if err != nil {
