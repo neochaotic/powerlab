@@ -130,6 +130,18 @@ func main() {
 	}
 
 	for _, appID := range apps {
+		// ADR-0038 hard filter: any app shipping `hooks/` or
+		// `exports.sh` is rejected at sync time. PowerLab never
+		// executes upstream host scripts; apps that need them never
+		// land in PowerLab's catalog. Runs BEFORE parse — saves the
+		// parse work + makes the security gate the first thing in
+		// the pipeline.
+		if hasArtifacts, reason := appHasUnsupportedHookArtifacts(upstreamDir, appID); hasArtifacts {
+			log.Printf("[hooks] %-40s — %s", appID, reason)
+			counts.hardReject++
+			continue
+		}
+
 		manifestPath := filepath.Join(upstreamDir, appID, "umbrel-app.yml")
 		composePath := filepath.Join(upstreamDir, appID, "docker-compose.yml")
 
