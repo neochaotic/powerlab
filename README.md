@@ -343,6 +343,11 @@ CI runs all of the above on every push to `main` (`.github/workflows/ci.yml`).
 
 Six independent Go services, each with its own `go.mod` and codegen pipeline so they evolve independently. The gateway routes `/v1/*` and `/v2/*` to the right service based on a `routes.json` it rebuilds at every boot.
 
+Plus two standalone binaries that don't run as long-lived services:
+
+- **`powerlab-sync-catalog`** — keeps `/var/lib/powerlab/community-catalog/` fresh against the upstream Umbrel repo. Runs once post-install + on demand.
+- **`powerlab-logs`** — diagnostic survival CLI. Surfaces the systemd journal, Docker container logs, and install/upgrade transcripts without depending on any PowerLab daemon. When the gateway is down, this is the binary you SSH in and run. See [`docs/operations/powerlab-logs.md`](docs/operations/powerlab-logs.md) for the full reference; architecture in [`docs/architecture/log-aggregation.md`](docs/architecture/log-aggregation.md).
+
 <br>
 
 ---
