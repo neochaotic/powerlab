@@ -1,0 +1,47 @@
+name: prowlarr
+services:
+  prowlarr:
+    environment:
+      PGID: '1000'
+      PUID: '1000'
+      TZ: Europe/London
+    image: linuxserver/prowlarr:2.3.5@sha256:a89f252d6a22bd25af14a5380aec0adcc3c3af2e3282164f981680e6844070f3
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 9696
+      published: '9696'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/prowlarr/config
+      target: /config
+version: '3.7'
+x-powerlab:
+  store_app_id: prowlarr
+  title:
+    en_us: Prowlarr
+  tagline:
+    en_us: Integration of various PVR applications
+  category: Media
+  port_map: '9696'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Prowlarr
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Prowlarr/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/prowlarr/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Prowlarr Team
+  developer: Prowlarr Team
+  main: prowlarr

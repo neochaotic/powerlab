@@ -1,0 +1,51 @@
+name: jackett
+services:
+  jackett:
+    environment:
+      AUTO_UPDATE: 'true'
+      PGID: '1000'
+      PUID: '1000'
+      TZ: Europe/London
+    image: linuxserver/jackett:0.24.1841@sha256:8040477109a1aba71be3a1c27ce9c3b0692e2d184647c11cff43ca714cd82d74
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 9117
+      published: '9117'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/jackett/config
+      target: /config
+    - type: bind
+      source: /DATA/PowerLabAppData/jackett/data
+      target: /downloads
+version: '3.7'
+x-powerlab:
+  store_app_id: jackett
+  title:
+    en_us: Jackett
+  tagline:
+    en_us: Jackett works as a proxy server
+  category: Network & VPN
+  port_map: '9117'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Jackett
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Jackett/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/jackett/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Jackett
+  developer: Jackett
+  main: jackett

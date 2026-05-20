@@ -1,0 +1,51 @@
+name: obsidian
+services:
+  obsidian:
+    image: lscr.io/linuxserver/obsidian:1.8.10@sha256:44b2ef3b238735b24b09556cd877ae2542785aa3abce9747c36198e50d997c20
+    deploy:
+      resources:
+        reservations:
+          memory: 512M
+    shm_size: 1gb
+    network_mode: bridge
+    ports:
+    - target: 3000
+      published: '15323'
+      protocol: tcp
+    - target: 3001
+      published: '15324'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/obsidian/config
+      target: /config
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: $TZ
+version: '3.7'
+x-powerlab:
+  store_app_id: obsidian
+  title:
+    en_us: Obsidian
+  tagline:
+    en_us: Obsidian
+  category: System
+  port_map: '15323'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Obsidian
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Obsidian/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/obsidian/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Obsidian
+  developer: Obsidian
+  main: obsidian

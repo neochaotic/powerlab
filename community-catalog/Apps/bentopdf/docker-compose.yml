@@ -1,0 +1,30 @@
+name: bentopdf
+services:
+  web:
+    image: ghcr.io/alam00000/bentopdf:v2.8.4@sha256:f54b9ed9c56b767e0098b525468206689b666323c2b500b9686c3cf41cdfa348
+    restart: on-failure
+version: '3.7'
+x-powerlab:
+  store_app_id: bentopdf
+  title:
+    en_us: BentoPDF
+  tagline:
+    en_us: A Privacy First PDF Toolkit
+  category: Files & Sync
+  port_map: '8080'
+  source:
+    catalog: umbrel-apps
+    upstream_id: bentopdf
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: bentopdf/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/bentopdf/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: BentoPDF
+  developer: BentoPDF
+  main: web

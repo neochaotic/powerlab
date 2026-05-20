@@ -1,0 +1,49 @@
+name: fizzy
+services:
+  server:
+    image: ghcr.io/mauricewipf/fizzy-umbrel:5f45e54@sha256:2d7a493a8933aa784b4d06cc96bd8b047beaf19173d1eec04c767e9dd7f4c28b
+    user: 1000:1000
+    volumes:
+    - /DATA/PowerLabAppData/fizzy/data/app:/rails/storage
+    environment:
+      RAILS_ENV: production
+      SECRET_KEY_BASE: ''
+      DATABASE_ADAPTER: sqlite
+      ACTIVE_STORAGE_SERVICE: local
+      SOLID_QUEUE_IN_PUMA: 'true'
+      FORCE_SSL: 'false'
+      ASSUME_SSL: 'false'
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    restart: on-failure
+version: '3.7'
+x-powerlab:
+  store_app_id: fizzy
+  title:
+    en_us: Fizzy
+  tagline:
+    en_us: Kanban as it should be. Not as it has been.
+  category: Productivity
+  port_map: '80'
+  source:
+    catalog: umbrel-apps
+    upstream_id: fizzy
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: fizzy/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/fizzy/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: 37signals
+  developer: 37signals
+  main: server

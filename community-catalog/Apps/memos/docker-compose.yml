@@ -1,0 +1,47 @@
+name: memos
+services:
+  memos:
+    environment:
+      PGID: $PGID
+      PUID: $PUID
+      TZ: $TZ
+    image: neosmemo/memos:0.25@sha256:40db300a188ede0c2cf1fc0c49741a03077478d6891fd3ace05c16d702b536a6
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 5230
+      published: '5230'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/memos/memos
+      target: /var/opt/memos
+version: '3.7'
+x-powerlab:
+  store_app_id: memos
+  title:
+    en_us: Memos
+  tagline:
+    en_us: Memos
+  category: System
+  port_map: '5230'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Memos
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Memos/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/memos/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Memos
+  developer: Memos
+  main: memos

@@ -1,0 +1,36 @@
+name: chromium
+services:
+  chromium:
+    image: ghcr.io/linuxserver/chromium:version-8d3cb5f1@sha256:d7c5f7faf5fe524117fd73c4d446e1bf81bccd0d64d073a30b8c9819fdf105d6
+    environment:
+    - PUID=1000
+    - PGID=1000
+    volumes:
+    - /DATA/PowerLabAppData/chromium/data:/config
+    shm_size: 1gb
+    restart: on-failure
+version: '3.7'
+x-powerlab:
+  store_app_id: chromium
+  title:
+    en_us: Chromium
+  tagline:
+    en_us: The open-source browser project
+  category: Network & VPN
+  port_map: '3000'
+  source:
+    catalog: umbrel-apps
+    upstream_id: chromium
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: chromium/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/chromium/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: The Chromium Project
+  developer: The Chromium Project
+  main: chromium

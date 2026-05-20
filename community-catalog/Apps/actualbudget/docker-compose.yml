@@ -1,0 +1,42 @@
+name: actualbudget
+services:
+  actualbudget:
+    image: actualbudget/actual-server:25.7.1@sha256:b6bb759f31d1c2c82a37d04f9d8930359ae8e3b3faa8eaa5338a0a2328702908
+    deploy:
+      resources:
+        reservations:
+          memory: 128M
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/actualbudget/data
+      target: /data
+    ports:
+    - target: 5006
+      published: '15006'
+      protocol: tcp
+version: '3.7'
+x-powerlab:
+  store_app_id: actualbudget
+  title:
+    en_us: ActualBudget
+  tagline:
+    en_us: ActualBudget
+  category: System
+  port_map: '15006'
+  source:
+    catalog: casaos-appstore
+    upstream_id: ActualBudget
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/ActualBudget/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/actualbudget/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: ActualBudget
+  developer: ActualBudget
+  main: actualbudget

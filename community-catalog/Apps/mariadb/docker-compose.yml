@@ -1,0 +1,47 @@
+name: mariadb
+services:
+  mariadb:
+    image: linuxserver/mariadb:11.4.8@sha256:91de7f701bc7fc3a424b81beafca7a7c6c4c5b7c8be6afd2ae148698695c0b0c
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+      MYSQL_ROOT_PASSWORD: casaos
+      MYSQL_DATABASE: casaos
+      MYSQL_USER: casaos
+      MYSQL_PASSWORD: casaos
+      REMOTE_SQL: ''
+    ports:
+    - target: 3306
+      published: '3306'
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/mariadb/config
+      target: /config
+version: '3.7'
+x-powerlab:
+  store_app_id: mariadb
+  title:
+    en_us: MariaDB
+  tagline:
+    en_us: MariaDB
+  category: System
+  port_map: '3306'
+  source:
+    catalog: casaos-appstore
+    upstream_id: MariaDB
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/MariaDB/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/mariadb/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: MariaDB
+  developer: MariaDB
+  main: mariadb

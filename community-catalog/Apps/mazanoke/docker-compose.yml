@@ -1,0 +1,38 @@
+name: mazanoke
+services:
+  web:
+    image: ghcr.io/civilblur/mazanoke:v1.1.6@sha256:92cc7474deb789af6549318563b7a9ee750131f9f7b297cc9c87ab67e656c22c
+    restart: on-failure
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - nc -z 127.0.0.1 80 || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+version: '3.7'
+x-powerlab:
+  store_app_id: mazanoke
+  title:
+    en_us: Mazanoke
+  tagline:
+    en_us: A self-hosted local image optimizer
+  category: Files & Sync
+  port_map: '80'
+  source:
+    catalog: umbrel-apps
+    upstream_id: mazanoke
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: mazanoke/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/mazanoke/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: civilblur
+  developer: civilblur
+  main: web

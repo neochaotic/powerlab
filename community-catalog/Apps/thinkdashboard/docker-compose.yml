@@ -1,0 +1,35 @@
+name: thinkdashboard
+services:
+  server:
+    image: ghcr.io/matiasdesuu/thinkdashboard:v0.7.6@sha256:3bd3ac29fcd0329673a1b4946e4e63ecc55239e6221a00bd4b407a5343c55079
+    user: 1000:1000
+    restart: on-failure
+    volumes:
+    - /DATA/PowerLabAppData/thinkdashboard/data:/app/data
+    environment:
+    - PORT=8080
+version: '3.7'
+x-powerlab:
+  store_app_id: thinkdashboard
+  title:
+    en_us: ThinkDashboard
+  tagline:
+    en_us: A lightweight, bookmark dashboard with keyboard shortcuts
+  category: Files & Sync
+  port_map: '8080'
+  source:
+    catalog: umbrel-apps
+    upstream_id: thinkdashboard
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: thinkdashboard/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/thinkdashboard/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: MatiasDesuu
+  developer: MatiasDesuu
+  main: server

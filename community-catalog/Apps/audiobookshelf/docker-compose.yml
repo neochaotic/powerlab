@@ -1,0 +1,41 @@
+name: audiobookshelf
+services:
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:2.30.0@sha256:6fbd7dc95d53c6e168ce69e760b87c334e3b9ba88bf7b8531ed5a116d5d6da03
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    restart: unless-stopped
+    volumes:
+    - /DATA/PowerLabAppData/audiobookshelf/Audiobooks:/audiobooks
+    - /DATA/PowerLabAppData/audiobookshelf/Podcasts:/podcasts
+    - /DATA/PowerLabAppData/audiobookshelf/config:/config
+    - /DATA/PowerLabAppData/audiobookshelf/metadata:/metadata
+    ports:
+    - 13378:80
+version: '3.7'
+x-powerlab:
+  store_app_id: audiobookshelf
+  title:
+    en_us: Audiobookshelf
+  tagline:
+    en_us: Audiobookshelf
+  category: System
+  port_map: '13378'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Audiobookshelf
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Audiobookshelf/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/audiobookshelf/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Audiobookshelf
+  developer: Audiobookshelf
+  main: audiobookshelf

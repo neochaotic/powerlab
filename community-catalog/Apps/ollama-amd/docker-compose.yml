@@ -1,0 +1,58 @@
+name: ollama-amd
+services:
+  ollama:
+    image: ollama/ollama:0.9.5-rocm@sha256:f72c60a04f9679390818c0cd797e109375e76869c795c005a6081a14761f324f
+    restart: unless-stopped
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_CONTEXT_LENGTH: '4096'
+    devices:
+    - /dev/kfd
+    - /dev/dri
+    ports:
+    - target: 11434
+      published: '11434'
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/ollama-amd/models
+      target: /root/.ollama
+    deploy:
+      resources:
+        limits:
+          memory: 12G
+        reservations:
+          memory: 2G
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - ollama --version >/dev/null 2>&1 || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+version: '3.7'
+x-powerlab:
+  store_app_id: ollama-amd
+  title:
+    en_us: Ollama (AMD GPU / ROCm)
+  tagline:
+    en_us: Run LLMs locally with AMD ROCm acceleration (Linux only)
+  category: AI & ML
+  port_map: '11434'
+  source:
+    catalog: powerlab-authored
+    upstream_id: ollama
+    upstream_repo: https://github.com/ollama/ollama
+    upstream_path: hand-authored
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T00:00:00Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/ollama-amd/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Ollama
+  developer: Ollama
+  main: ollama

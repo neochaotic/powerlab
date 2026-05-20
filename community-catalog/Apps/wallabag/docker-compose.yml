@@ -1,0 +1,56 @@
+name: wallabag
+services:
+  wallabag:
+    image: wallabag/wallabag:2.6.13@sha256:efa1c00736e0544291dd104f8f3092ca5e88076862e9e034ae9cd3eaa9d36daa
+    deploy:
+      resources:
+        reservations:
+          memory: 512M
+    network_mode: bridge
+    ports:
+    - target: 80
+      published: '25661'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/wallabag/images
+      target: /var/www/wallabag/web/assets/images
+    environment:
+      SYMFONY__ENV__DOMAIN_NAME: http://<IP>:25661
+      SYMFONY__ENV__SERVER_NAME: Wallabag
+    healthcheck:
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://localhost/api/info
+      interval: 1m
+      timeout: 3s
+version: '3.7'
+x-powerlab:
+  store_app_id: wallabag
+  title:
+    en_us: Wallabag
+  tagline:
+    en_us: Wallabag
+  category: System
+  port_map: '25661'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Wallabag
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Wallabag/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/wallabag/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Wallabag
+  developer: Wallabag
+  main: wallabag

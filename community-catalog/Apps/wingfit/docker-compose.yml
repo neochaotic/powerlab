@@ -1,0 +1,38 @@
+name: wingfit
+services:
+  app:
+    image: ghcr.io/itskovacs/wingfit:5.3.1@sha256:fed5dcc1c8abdec6409f4272caa08f9a6f1d2a3c8e1f9a13b3459c2ffea8a360
+    restart: on-failure
+    volumes:
+    - /DATA/PowerLabAppData/wingfit/data:/app/storage
+    command:
+    - fastapi
+    - run
+    - /app/wingfit/main.py
+    - --host
+    - 0.0.0.0
+version: '3.7'
+x-powerlab:
+  store_app_id: wingfit
+  title:
+    en_us: Wingfit
+  tagline:
+    en_us: An open-source minimalist fitness app
+  category: Files & Sync
+  port_map: '8000'
+  source:
+    catalog: umbrel-apps
+    upstream_id: wingfit
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: wingfit/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/wingfit/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Kovacs
+  developer: Kovacs
+  main: app

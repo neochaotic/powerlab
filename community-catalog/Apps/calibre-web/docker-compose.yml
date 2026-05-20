@@ -1,0 +1,52 @@
+name: calibre-web
+services:
+  calibre-web:
+    environment:
+      DOCKER_MODS: ghcr.io/linuxserver/mods:universal-calibre
+      PGID: $PGID
+      PUID: $PUID
+      TZ: $TZ
+    image: linuxserver/calibre-web:0.6.24@sha256:241009026e6fa74238b2cb3fec755c4c64474e94a1e434f5731ed6ca409c8054
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 8083
+      published: '8083'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/calibre-web/config
+      target: /config
+    - type: bind
+      source: /DATA/PowerLabAppData/calibre-web/Books
+      target: /books
+version: '3.7'
+x-powerlab:
+  store_app_id: calibre-web
+  title:
+    en_us: Calibre-web
+  tagline:
+    en_us: Web app for browsing, reading and downloading eBooks stored in a Calibre
+      database
+  category: Media
+  port_map: '8083'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Calibre-web
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Calibre-web/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/calibre-web/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: linuxserver
+  developer: linuxserver
+  main: calibre-web

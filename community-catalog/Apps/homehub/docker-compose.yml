@@ -1,0 +1,39 @@
+name: homehub
+services:
+  web:
+    image: ghcr.io/surajverma/homehub:0.2.3.2@sha256:7ffa2ed369b39bb090b6eae1ee7d27b803215939794107b3e4cbeede627338ec
+    restart: on-failure
+    environment:
+    - FLASK_ENV=production
+    - SECRET_KEY=${APP_SEED}
+    volumes:
+    - /DATA/PowerLabAppData/homehub/data/uploads:/app/uploads
+    - /DATA/PowerLabAppData/homehub/data/media:/app/media
+    - /DATA/PowerLabAppData/homehub/data/pdfs:/app/pdfs
+    - /DATA/PowerLabAppData/homehub/data/app_data:/app/data
+    - /DATA/PowerLabAppData/homehub/data/config/config.yml:/app/config.yml:ro
+version: '3.7'
+x-powerlab:
+  store_app_id: homehub
+  title:
+    en_us: HomeHub
+  tagline:
+    en_us: A modern hub for family organization
+  category: Files & Sync
+  port_map: '5000'
+  source:
+    catalog: umbrel-apps
+    upstream_id: homehub
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: homehub/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/homehub/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Suraj Verma
+  developer: Suraj Verma
+  main: web

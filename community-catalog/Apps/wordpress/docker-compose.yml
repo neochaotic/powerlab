@@ -1,0 +1,52 @@
+name: wordpress
+services:
+  app:
+    image: wordpress:6.9.4@sha256:ee74dc0ebbe7ec43b7f473c0fb4f1dfb6b211d7785f0a95bcdfa10e628c2e67f
+    user: 1000:1000
+    environment:
+    - WORDPRESS_DB_HOST=db
+    - WORDPRESS_DB_NAME=wordpress
+    - WORDPRESS_DB_USER=umbrel
+    - WORDPRESS_DB_PASSWORD=umbrelwordpress
+    volumes:
+    - /DATA/PowerLabAppData/wordpress/data/wordpress:/var/www/html
+    restart: on-failure
+    depends_on:
+    - db
+  db:
+    image: mariadb:11.5.2@sha256:2d50fe0f77dac919396091e527e5e148a9de690e58f32875f113bef6506a17f5
+    user: 1000:1000
+    environment:
+    - MYSQL_ROOT_PASSWORD=umbrelwordpressroot
+    - MYSQL_DATABASE=wordpress
+    - MYSQL_USER=umbrel
+    - MYSQL_PASSWORD=umbrelwordpress
+    volumes:
+    - /DATA/PowerLabAppData/wordpress/data/db:/var/lib/mysql
+    restart: on-failure
+version: '3.7'
+x-powerlab:
+  store_app_id: wordpress
+  title:
+    en_us: WordPress
+  tagline:
+    en_us: The open source publishing platform of choice for millions of websites
+      worldwide
+  category: Productivity
+  port_map: '80'
+  source:
+    catalog: umbrel-apps
+    upstream_id: wordpress
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: wordpress/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/wordpress/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: WordPress
+  developer: WordPress
+  main: app

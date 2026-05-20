@@ -1,0 +1,34 @@
+name: lubelogger
+services:
+  app:
+    image: ghcr.io/hargata/lubelogger:v1.6.4@sha256:82a41d7ebda9b47ce70ab55b590ea597f90ebee56877e6a99b4b786cf2f4432b
+    user: 1000:1000
+    restart: on-failure
+    volumes:
+    - /DATA/PowerLabAppData/lubelogger/data/app:/App/data
+    - /DATA/PowerLabAppData/lubelogger/data/keys:/root/.aspnet/DataProtection-Keys
+version: '3.7'
+x-powerlab:
+  store_app_id: lubelogger
+  title:
+    en_us: LubeLogger
+  tagline:
+    en_us: A vehicle maintenance and fuel mileage tracker
+  category: Files & Sync
+  port_map: '8080'
+  source:
+    catalog: umbrel-apps
+    upstream_id: lubelogger
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: lubelogger/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/lubelogger/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Hargata Softworks
+  developer: Hargata Softworks
+  main: app

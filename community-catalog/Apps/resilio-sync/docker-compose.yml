@@ -1,0 +1,53 @@
+name: resilio-sync
+services:
+  resilio-sync:
+    environment:
+    - PGID=$PGID
+    - PUID=$PUID
+    - TZ=$TZ
+    image: linuxserver/resilio-sync:2.7.3@sha256:a6c055059e706277a5c82cba541063fa1f8471cda3c500a3e737ca17d087b95a
+    network_mode: bridge
+    ports:
+    - target: 55555
+      published: '55555'
+      protocol: tcp
+    - target: 8888
+      published: '8888'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/resilio-sync/data
+      target: /sync
+    - type: bind
+      source: /DATA/PowerLabAppData/resilio-sync/config
+      target: /config
+    - type: bind
+      source: /DATA/PowerLabAppData/resilio-sync/data
+      target: /downloads
+    privileged: false
+version: '3.7'
+x-powerlab:
+  store_app_id: resilio-sync
+  title:
+    en_us: Resilio-sync
+  tagline:
+    en_us: Resilio-sync
+  category: System
+  port_map: '55555'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Resilio-sync
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Resilio-sync/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/resilio-sync/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Resilio-sync
+  developer: Resilio-sync
+  main: resilio-sync

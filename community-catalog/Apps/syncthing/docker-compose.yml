@@ -1,0 +1,59 @@
+name: syncthing
+services:
+  syncthing:
+    environment:
+      PGID: $PGID
+      PUID: $PUID
+      TZ: $TZ
+    image: linuxserver/syncthing:1.29.7@sha256:2600853512ea2744d88b05fba7524d4bc6d99e14975d408a7f53beee0a2b83e1
+    deploy:
+      resources:
+        reservations:
+          memory: 256M
+    network_mode: bridge
+    ports:
+    - target: 8384
+      published: '8384'
+      protocol: tcp
+    - target: 22000
+      published: '22000'
+      protocol: tcp
+    - target: 22000
+      published: '22000'
+      protocol: udp
+    - target: 21027
+      published: '21027'
+      protocol: udp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/syncthing/config
+      target: /config
+    - type: bind
+      source: /DATA/PowerLabAppData/syncthing/DATA
+      target: /DATA
+version: '3.7'
+x-powerlab:
+  store_app_id: syncthing
+  title:
+    en_us: Syncthing
+  tagline:
+    en_us: Free, secure, and distributed file synchronisation tool.
+  category: Files & Sync
+  port_map: '8384'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Syncthing
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Syncthing/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/syncthing/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Syncthing
+  developer: Syncthing
+  main: syncthing

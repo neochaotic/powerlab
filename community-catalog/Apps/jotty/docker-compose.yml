@@ -1,0 +1,37 @@
+name: jotty
+services:
+  web:
+    image: ghcr.io/fccview/jotty:1.23.0@sha256:abd142f8e2036a7bc40d2ee94abea6ab185af078d327af349019c518e0bd1df0
+    user: 1000:1000
+    restart: on-failure
+    volumes:
+    - /DATA/PowerLabAppData/jotty/data/app:/app/data
+    - /DATA/PowerLabAppData/jotty/data/config:/app/config
+    - /DATA/PowerLabAppData/jotty/data/cache:/app/.next/cache
+    environment:
+    - NODE_ENV=production
+version: '3.7'
+x-powerlab:
+  store_app_id: jotty
+  title:
+    en_us: Jotty
+  tagline:
+    en_us: A simple app, for your checklists and notes
+  category: Files & Sync
+  port_map: '3000'
+  source:
+    catalog: umbrel-apps
+    upstream_id: jotty
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: jotty/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/jotty/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: fccview
+  developer: fccview
+  main: web

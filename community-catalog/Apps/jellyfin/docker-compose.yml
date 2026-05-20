@@ -1,0 +1,69 @@
+name: jellyfin
+services:
+  jellyfin:
+    devices:
+    - /dev/dri:/dev/dri
+    - /dev/vcsm:/dev/vcsm
+    - /dev/vchiq:/dev/vchiq
+    - /dev/video10:/dev/video10
+    - /dev/video11:/dev/video11
+    - /dev/video12:/dev/video12
+    environment:
+      PGID: $PGID
+      PUID: $PUID
+      TZ: $TZ
+    image: linuxserver/jellyfin:10.10.7@sha256:68e012f4bf5aeb114632e9045f5b2f2f6713536693093f70fcb338179f84f86c
+    deploy:
+      resources:
+        reservations:
+          memory: 256M
+    network_mode: bridge
+    ports:
+    - target: 8096
+      published: '8097'
+      protocol: tcp
+    - target: 8920
+      published: '8921'
+      protocol: tcp
+    - target: 7359
+      published: '7359'
+      protocol: tcp
+    - target: 1900
+      published: '1901'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/jellyfin/config
+      target: /config
+    - type: bind
+      source: /DATA/PowerLabAppData/jellyfin/data
+      target: /Media
+    - type: bind
+      source: /DATA/PowerLabAppData/jellyfin/opt/vc/lib
+      target: /opt/vc/lib
+version: '3.7'
+x-powerlab:
+  store_app_id: jellyfin
+  title:
+    en_us: Jellyfin
+  tagline:
+    en_us: Puts you in control of your media.
+  category: Media
+  port_map: '8097'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Jellyfin
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Jellyfin/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/jellyfin/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Jellyfin
+  developer: Jellyfin
+  main: jellyfin

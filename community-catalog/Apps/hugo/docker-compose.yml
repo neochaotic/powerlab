@@ -1,0 +1,49 @@
+name: hugo
+services:
+  hugo:
+    image: ghcr.io/gohugoio/hugo:v0.152.2@sha256:d2952bdcfa3b0b25ca3d2104394c2883ffa86abb88855515f01b23b5e8f1355b
+    deploy:
+      resources:
+        reservations:
+          memory: 256M
+    restart: unless-stopped
+    user: 0:0
+    ports:
+    - target: 1313
+      published: '1313'
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/hugo/project
+      target: /project
+    - type: bind
+      source: /DATA/PowerLabAppData/hugo/cache
+      target: /cache
+    command:
+    - server
+    - --bind=0.0.0.0
+version: '3.7'
+x-powerlab:
+  store_app_id: hugo
+  title:
+    en_us: Hugo
+  tagline:
+    en_us: Hugo
+  category: System
+  port_map: '1313'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Hugo
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Hugo/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/hugo/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Hugo
+  developer: Hugo
+  main: hugo

@@ -1,0 +1,43 @@
+name: minio
+services:
+  web:
+    image: quay.io/minio/minio:RELEASE.2025-06-13T11-33-47Z@sha256:064117214caceaa8d8a90ef7caa58f2b2aeb316b5156afe9ee8da5b4d83e12c8
+    restart: on-failure
+    user: 1000:1000
+    stop_grace_period: 1m
+    ports:
+    - 9010:9000
+    command:
+    - server
+    - /data
+    volumes:
+    - /DATA/PowerLabAppData/minio/data/minio:/data
+    environment:
+      MINIO_ROOT_USER: umbrel
+      MINIO_ROOT_PASSWORD: ''
+      MINIO_CONSOLE_ADDRESS: :9011
+version: '3.7'
+x-powerlab:
+  store_app_id: minio
+  title:
+    en_us: MinIO
+  tagline:
+    en_us: The Object Store for AI Data Infrastructure
+  category: Developer
+  port_map: '9010'
+  source:
+    catalog: umbrel-apps
+    upstream_id: minio
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: minio/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/minio/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: MinIO, Inc.
+  developer: MinIO, Inc.
+  main: web

@@ -1,0 +1,50 @@
+name: photoprism
+services:
+  photoprism:
+    environment:
+      PHOTOPRISM_ADMIN_PASSWORD: casaos
+      PHOTOPRISM_UPLOAD_NSFW: 'true'
+      TZ: $TZ
+    image: photoprism/photoprism:250228@sha256:8f1cb70617cb97c2b675ad63334be57e962f91e58967e81ae31bc58fc00ed304
+    deploy:
+      resources:
+        reservations:
+          memory: 512M
+    network_mode: bridge
+    ports:
+    - target: 2342
+      published: '2342'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/photoprism/photoprism/storage
+      target: /photoprism/storage
+    - type: bind
+      source: /DATA/PowerLabAppData/photoprism/data
+      target: /photoprism/originals
+version: '3.7'
+x-powerlab:
+  store_app_id: photoprism
+  title:
+    en_us: PhotoPrism
+  tagline:
+    en_us: Browsing, organizing & sharing your photo collection
+  category: Media
+  port_map: '2342'
+  source:
+    catalog: casaos-appstore
+    upstream_id: PhotoPrism
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/PhotoPrism/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/photoprism/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: PhotoPrism
+  developer: PhotoPrism
+  main: photoprism

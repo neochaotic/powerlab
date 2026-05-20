@@ -1,0 +1,53 @@
+name: mylar3
+services:
+  mylar3:
+    environment:
+      PGID: $PGID
+      PUID: $PUID
+      TZ: $TZ
+    image: linuxserver/mylar3:0.8.3@sha256:4e81d9559b60e6ded17f11b6c4d2e48efcdc962ccb6415f487f81621cab53b74
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 8090
+      published: '8090'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/mylar3/config
+      target: /config
+    - type: bind
+      source: /DATA/PowerLabAppData/mylar3/Comics
+      target: /comics
+    - type: bind
+      source: /DATA/PowerLabAppData/mylar3/data
+      target: /downloads
+version: '3.7'
+x-powerlab:
+  store_app_id: mylar3
+  title:
+    en_us: Mylar3
+  tagline:
+    en_us: Automatic comic book (cbr/cbz) downloader
+  category: Media
+  port_map: '8090'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Mylar3
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Mylar3/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/mylar3/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Mylar3 Team
+  developer: Mylar3 Team
+  main: mylar3

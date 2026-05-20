@@ -1,0 +1,33 @@
+name: uptime-kuma
+services:
+  server:
+    image: louislam/uptime-kuma:2.3.2@sha256:9aeb4e51d038047f414309c77a1af553281ca535723cb88907d907269d0a908e
+    restart: on-failure
+    stop_grace_period: 1m
+    volumes:
+    - /DATA/PowerLabAppData/uptime-kuma/data/uptime-kuma:/app/data
+version: '3.7'
+x-powerlab:
+  store_app_id: uptime-kuma
+  title:
+    en_us: Uptime Kuma
+  tagline:
+    en_us: Self-hosted uptime monitoring tool
+  category: Network & VPN
+  port_map: '3001'
+  source:
+    catalog: umbrel-apps
+    upstream_id: uptime-kuma
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: uptime-kuma/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/uptime-kuma/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Louis Lam
+  developer: Louis Lam
+  main: server

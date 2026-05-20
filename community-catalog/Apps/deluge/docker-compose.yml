@@ -1,0 +1,57 @@
+name: deluge
+services:
+  deluge:
+    environment:
+      DELUGE_LOGLEVEL: error
+      PGID: $PGID
+      PUID: $PUID
+      TZ: $TZ
+    image: linuxserver/deluge:2.2.0@sha256:6ae1d992859c1afaec200a1ec703a26afa97f82f3780ca4e5c224d1531bc1bf0
+    deploy:
+      resources:
+        reservations:
+          memory: 256M
+    network_mode: bridge
+    ports:
+    - target: 8112
+      published: '8112'
+      protocol: tcp
+    - target: 6881
+      published: '6881'
+      protocol: tcp
+    - target: 6881
+      published: '6881'
+      protocol: udp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/deluge/config
+      target: /config
+    - type: bind
+      source: /DATA/PowerLabAppData/deluge/DATA
+      target: /DATA
+version: '3.7'
+x-powerlab:
+  store_app_id: deluge
+  title:
+    en_us: Deluge
+  tagline:
+    en_us: A lightweight and free BitTorrent client.
+  category: Media
+  port_map: '8112'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Deluge
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Deluge/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/deluge/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Deluge Team
+  developer: Deluge Team
+  main: deluge

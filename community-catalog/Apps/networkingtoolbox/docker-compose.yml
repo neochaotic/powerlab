@@ -1,0 +1,45 @@
+name: networkingtoolbox
+services:
+  app:
+    image: ghcr.io/lissy93/networking-toolbox:1.6.0@sha256:4e97330fb310e1a5fbe185b1bf859270902ddef7934b88cecc6b3def98d21eaa
+    user: 1000:1000
+    restart: on-failure
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
+    healthcheck:
+      test:
+      - CMD
+      - wget
+      - -qO-
+      - http://localhost:3000/health
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+version: '3.7'
+x-powerlab:
+  store_app_id: networkingtoolbox
+  title:
+    en_us: Networking Toolbox
+  tagline:
+    en_us: The all-in-one offline-first networking toolbox for sysadmins
+  category: Developer
+  port_map: '3000'
+  source:
+    catalog: umbrel-apps
+    upstream_id: networkingtoolbox
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: networkingtoolbox/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/networkingtoolbox/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Alicia Sykes
+  developer: Alicia Sykes
+  main: app

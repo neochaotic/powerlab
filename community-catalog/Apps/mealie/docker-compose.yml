@@ -1,0 +1,38 @@
+name: mealie
+services:
+  web:
+    image: ghcr.io/mealie-recipes/mealie:v3.17.0@sha256:d570139f1891346131d02f8e4d1853100ae4846474958ca6c68cfe1648058467
+    restart: on-failure
+    environment:
+      ALLOW_SIGNUP: 'true'
+      PUID: 1000
+      PGID: 1000
+      MAX_WORKERS: 1
+      WEB_CONCURRENCY: 1
+    volumes:
+    - /DATA/PowerLabAppData/mealie/data:/app/data
+version: '3.7'
+x-powerlab:
+  store_app_id: mealie
+  title:
+    en_us: Mealie
+  tagline:
+    en_us: A Place for All Your Recipes
+  category: Files & Sync
+  port_map: '9000'
+  source:
+    catalog: umbrel-apps
+    upstream_id: mealie
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: mealie/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/mealie/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Hayden
+  developer: Hayden
+  main: web

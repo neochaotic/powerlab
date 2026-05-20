@@ -1,0 +1,53 @@
+name: lidarr
+services:
+  lidarr:
+    environment:
+      PGID: '1000'
+      PUID: '1000'
+      TZ: Europe/London
+    image: linuxserver/lidarr:3.1.0@sha256:7f34e2a907c7bcfc5cd49a1685db21a1e5055c96e8ad5e0d77ee94e1d50d84e5
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 8686
+      published: '8686'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/lidarr/config
+      target: /config
+    - type: bind
+      source: /DATA/PowerLabAppData/lidarr/Music
+      target: /music
+    - type: bind
+      source: /DATA/PowerLabAppData/lidarr/data
+      target: /downloads
+version: '3.7'
+x-powerlab:
+  store_app_id: lidarr
+  title:
+    en_us: Lidarr
+  tagline:
+    en_us: Music collection manager for Usenet and BitTorrent users
+  category: Media
+  port_map: '8686'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Lidarr
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Lidarr/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/lidarr/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: lidarr Team
+  developer: lidarr Team
+  main: lidarr

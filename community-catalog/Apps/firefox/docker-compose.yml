@@ -1,0 +1,36 @@
+name: firefox
+services:
+  server:
+    image: linuxserver/firefox:139.0.4@sha256:01c090309f63bc619a1df80bf14fdc87cb6fd922d956da48a968a60ab5a0df6d
+    restart: on-failure
+    environment:
+    - PUID=1000
+    - PGID=1000
+    volumes:
+    - /DATA/PowerLabAppData/firefox/data/config:/config
+    shm_size: 1gb
+version: '3.7'
+x-powerlab:
+  store_app_id: firefox
+  title:
+    en_us: Firefox
+  tagline:
+    en_us: Firefox is a free and open-source web browser
+  category: Network & VPN
+  port_map: '3000'
+  source:
+    catalog: umbrel-apps
+    upstream_id: firefox
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: firefox/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/firefox/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Mozilla Foundation
+  developer: Mozilla Foundation
+  main: server

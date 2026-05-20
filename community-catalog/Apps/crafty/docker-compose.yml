@@ -1,0 +1,43 @@
+name: crafty
+services:
+  crafty:
+    image: registry.gitlab.com/crafty-controller/crafty-4:4.4.11@sha256:c9706200aec4f273468b0b58c4bc1e118c9935ca371dd29ca9c114ff8595a34b
+    restart: always
+    environment:
+    - TZ=Etc/UTC
+    ports:
+    - 8111:8443
+    - 8112:8123
+    - 19132:19132/udp
+    - 25500-25600:25500-25600
+    volumes:
+    - /DATA/PowerLabAppData/crafty/backups:/crafty/backups
+    - /DATA/PowerLabAppData/crafty/logs:/crafty/logs
+    - /DATA/PowerLabAppData/crafty/servers:/crafty/servers
+    - /DATA/PowerLabAppData/crafty/config:/crafty/app/config
+    - /DATA/PowerLabAppData/crafty/import:/crafty/import
+version: '3.7'
+x-powerlab:
+  store_app_id: crafty
+  title:
+    en_us: Crafty
+  tagline:
+    en_us: Take control of your Minecraft servers.
+  category: Productivity
+  port_map: '8111'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Crafty
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Crafty/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/crafty/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Crafty Team
+  developer: Crafty Team
+  main: crafty

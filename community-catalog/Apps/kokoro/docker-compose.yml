@@ -1,0 +1,31 @@
+name: kokoro
+services:
+  web:
+    image: ghcr.io/remsky/kokoro-fastapi-cpu:v0.3.0@sha256:d7df384acb57929f88a696d892c1a2e0c6b60fa934802ebec9a88626003b8e9a
+    user: 1000:1000
+    restart: on-failure
+version: '3.7'
+x-powerlab:
+  store_app_id: kokoro
+  title:
+    en_us: Kokoro
+  tagline:
+    en_us: An intelligent, high-quality TTS solution
+  category: AI & ML
+  port_map: '8880'
+  source:
+    catalog: umbrel-apps
+    upstream_id: kokoro
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: kokoro/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/kokoro/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Hexgrad
+  developer: Hexgrad
+  main: web

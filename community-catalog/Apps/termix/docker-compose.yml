@@ -1,0 +1,32 @@
+name: termix
+services:
+  web:
+    image: ghcr.io/lukegus/termix:release-2.2.1@sha256:577c0e7024fa7767ffbd00e19a1e0ce28fb0027aab37c3f7d49e2c18bc001210
+    restart: on-failure
+    volumes:
+    - /DATA/PowerLabAppData/termix/data:/app/data
+version: '3.7'
+x-powerlab:
+  store_app_id: termix
+  title:
+    en_us: Termix
+  tagline:
+    en_us: Manage your servers with built-in SSH, tunnels, and file access
+  category: Developer
+  port_map: '8080'
+  source:
+    catalog: umbrel-apps
+    upstream_id: termix
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: termix/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/termix/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: LukeGus
+  developer: LukeGus
+  main: web
