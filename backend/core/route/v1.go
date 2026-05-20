@@ -99,6 +99,7 @@ func InitV1Router() http.Handler {
 			// BEFORE reaching the shell layer. Destructive host ops
 			// require {"confirm": true} in the body.
 			v1SysGroup.GET("/services", v1.GetPowerLabServices)
+			v1SysGroup.GET("/services/preflight", v1.GetPowerLabServicesPreflight)
 			v1SysGroup.POST("/services/:name/restart", v1.PostRestartPowerLabService)
 			v1SysGroup.POST("/host/reboot", v1.PostHostReboot)
 			v1SysGroup.POST("/host/shutdown", v1.PostHostShutdown)

@@ -2,6 +2,7 @@
 //
 // Scope is intentionally narrow:
 //   GET  /v1/sys/services                   — list PowerLab services + state
+//   GET  /v1/sys/services/preflight         — is-enabled per unit (for UI warning modal)
 //   POST /v1/sys/services/:name/restart     — restart a whitelisted unit
 //   POST /v1/sys/host/reboot                — systemctl reboot (requires {"confirm":true})
 //   POST /v1/sys/host/shutdown              — systemctl poweroff (requires {"confirm":true})
@@ -25,6 +26,18 @@ import (
 	"github.com/neochaotic/powerlab/backend/common/utils/common_err"
 	"github.com/neochaotic/powerlab/backend/core/service"
 )
+
+// GetPowerLabServicesPreflight returns the enabled/disabled state of every
+// PowerLab unit. The UI uses this to show a warning modal before restarting
+// the gateway ("this will disconnect you for a few seconds").
+func GetPowerLabServicesPreflight(ctx echo.Context) error {
+	states := service.QueryAllServiceEnabled()
+	return ctx.JSON(http.StatusOK, model.Result{
+		Success: common_err.SUCCESS,
+		Message: common_err.GetMsg(common_err.SUCCESS),
+		Data:    states,
+	})
+}
 
 // GetPowerLabServices returns ServiceState for every PowerLab unit.
 // Partial failures are surfaced as a placeholder entry with

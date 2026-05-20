@@ -154,6 +154,42 @@ func restartPowerLabServiceWith(run commandRunner, name string) ([]byte, error) 
 	return out, nil
 }
 
+// ServiceEnabledState captures whether a PowerLab unit is enabled in systemd.
+// Used by the /v1/sys/services/preflight endpoint so the UI can show a
+// warning before restarting a service that would interrupt the user's session.
+type ServiceEnabledState struct {
+	Name    string `json:"name"`
+	Enabled bool   `json:"enabled"`
+}
+
+// QueryAllServiceEnabled returns the enabled/disabled state of every
+// PowerLab unit. Best-effort: a systemctl failure marks the unit as
+// disabled rather than aborting the loop.
+func QueryAllServiceEnabled() []ServiceEnabledState {
+	return queryAllServiceEnabledWith(defaultRunner)
+}
+
+func queryAllServiceEnabledWith(run commandRunner) []ServiceEnabledState {
+	result := make([]ServiceEnabledState, len(PowerLabServices))
+	for i, name := range PowerLabServices {
+		enabled, _ := queryServiceEnabledWith(run, name)
+		result[i] = ServiceEnabledState{Name: name, Enabled: enabled}
+	}
+	return result
+}
+
+// queryServiceEnabledWith calls `systemctl is-enabled --quiet <name>` and
+// returns true if exit code is 0 (enabled), false otherwise. The unit name
+// MUST be in PowerLabServices — anything else returns an error without
+// shelling out.
+func queryServiceEnabledWith(run commandRunner, name string) (bool, error) {
+	if !IsAllowedPowerLabService(name) {
+		return false, fmt.Errorf("service %q not in PowerLab whitelist", name)
+	}
+	_, err := run("systemctl", "is-enabled", "--quiet", name)
+	return err == nil, nil
+}
+
 // RebootHost runs `systemctl reboot`. No payload, no flags — this is
 // a destructive operation, the caller's handler is responsible for
 // confirmation prompts + auth. Per `feedback_security_is_priority`,

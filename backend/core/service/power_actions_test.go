@@ -255,6 +255,116 @@ func TestRestartNonGateway_UsesSystemctlDirectly(t *testing.T) {
 	}
 }
 
+// Layer 5: preflight endpoint — is-enabled per unit for the UI modal.
+
+func TestQueryServiceEnabled_ReturnsTrueOnExitZero(t *testing.T) {
+	stub := func(name string, args ...string) ([]byte, error) {
+		return []byte(""), nil // systemctl is-enabled exits 0 → enabled
+	}
+	enabled, err := queryServiceEnabledWith(stub, "powerlab-gateway")
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if !enabled {
+		t.Error("expected enabled=true for exit-0 stub")
+	}
+}
+
+func TestQueryServiceEnabled_ReturnsFalseOnNonZeroExit(t *testing.T) {
+	stub := func(name string, args ...string) ([]byte, error) {
+		return []byte("disabled"), fmt.Errorf("exit status 1") // disabled unit
+	}
+	enabled, err := queryServiceEnabledWith(stub, "powerlab-gateway")
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if enabled {
+		t.Error("expected enabled=false for non-zero exit stub")
+	}
+}
+
+func TestQueryServiceEnabled_RejectsNonWhitelisted(t *testing.T) {
+	var called bool
+	stub := func(name string, args ...string) ([]byte, error) {
+		called = true
+		return nil, nil
+	}
+	_, err := queryServiceEnabledWith(stub, "sshd")
+	if err == nil {
+		t.Error("expected error for non-whitelisted service")
+	}
+	if called {
+		t.Error("commandRunner invoked for non-whitelisted service — SECURITY BUG")
+	}
+}
+
+func TestQueryServiceEnabled_InvokesIsEnabledQuiet(t *testing.T) {
+	var capturedName string
+	var capturedArgs []string
+	stub := func(name string, args ...string) ([]byte, error) {
+		capturedName = name
+		capturedArgs = args
+		return []byte(""), nil
+	}
+	if _, err := queryServiceEnabledWith(stub, "powerlab-core"); err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if capturedName != "systemctl" {
+		t.Errorf("expected systemctl, got %q", capturedName)
+	}
+	if len(capturedArgs) < 2 || capturedArgs[0] != "is-enabled" {
+		t.Errorf("expected first arg to be is-enabled, got %v", capturedArgs)
+	}
+	found := false
+	for _, a := range capturedArgs {
+		if a == "powerlab-core" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("service name not in args: %v", capturedArgs)
+	}
+}
+
+func TestQueryAllServiceEnabled_ReturnsOnePerService(t *testing.T) {
+	stub := func(name string, args ...string) ([]byte, error) {
+		return []byte(""), nil
+	}
+	states := queryAllServiceEnabledWith(stub)
+	if len(states) != len(PowerLabServices) {
+		t.Errorf("got %d entries, want %d", len(states), len(PowerLabServices))
+	}
+	for _, s := range states {
+		if !s.Enabled {
+			t.Errorf("service %q should be enabled (stub returns exit 0)", s.Name)
+		}
+	}
+}
+
+func TestQueryAllServiceEnabled_PropagatesDisabledState(t *testing.T) {
+	stub := func(name string, args ...string) ([]byte, error) {
+		// Only powerlab-core is disabled.
+		for _, a := range args {
+			if a == "powerlab-core" {
+				return []byte("disabled"), fmt.Errorf("exit status 1")
+			}
+		}
+		return []byte(""), nil
+	}
+	states := queryAllServiceEnabledWith(stub)
+	if len(states) != len(PowerLabServices) {
+		t.Fatalf("got %d entries, want %d", len(states), len(PowerLabServices))
+	}
+	for _, s := range states {
+		if s.Name == "powerlab-core" && s.Enabled {
+			t.Error("powerlab-core should be disabled")
+		}
+		if s.Name != "powerlab-core" && !s.Enabled {
+			t.Errorf("%q should be enabled", s.Name)
+		}
+	}
+}
+
 func TestRebootHost_InvokesSystemctlReboot(t *testing.T) {
 	var capturedName string
 	var capturedArgs []string
