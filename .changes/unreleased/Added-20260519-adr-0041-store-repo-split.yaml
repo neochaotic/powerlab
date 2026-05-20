@@ -1,0 +1,5 @@
+kind: Added
+body: 'ADR-0041 proposes splitting the community catalog into a dedicated `neochaotic/powerlab-store` repo (created 2026-05-19, AGPL-3.0 base, hybrid licensing for code vs content vs art). Supersedes the where-it-lives portion of ADR-0039 (the what — native curated, no upstream tracking — stays). Driven by Sprint 23 hotspot-file rebase pain + the impending 139-app import that would scale the pain. 7-phase migration roadmap, strict-day-1 CI gates in the store repo, formal compat protocol between core and store, full cross-reference strategy between the two repos.'
+time: 2026-05-19T04:00:00Z
+custom:
+    Issue: ""
