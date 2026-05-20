@@ -140,6 +140,49 @@ func TestChangePort(t *testing.T) {
 	assert.Equal(t, expectedPort, result.Data)
 }
 
+// TestCreateRoute_RequiresAuth verifies the JWT middleware is active for
+// non-loopback callers. Before the echojwt migration this test couldn't
+// even compile (echo v4.13.x removed JWTWithConfig), locking in both
+// the build fix and the auth behaviour.
+func TestCreateRoute_RequiresAuth(t *testing.T) {
+	defer setup(t)(t)
+
+	route := &model.Route{
+		Path:   "test",
+		Target: "http://localhost:8080",
+	}
+	body, err := json.Marshal(route)
+	assert.NilError(t, err)
+
+	req, _ := http.NewRequest(http.MethodPost, "/v1/gateway/routes", bytes.NewReader(body))
+	req.RemoteAddr = "192.168.1.100:12345" // non-loopback → JWT must fire
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+	w := httptest.NewRecorder()
+	_router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+// TestChangePort_RequiresAuth mirrors TestCreateRoute_RequiresAuth for
+// the PUT /v1/gateway/port endpoint.
+func TestChangePort_RequiresAuth(t *testing.T) {
+	defer setup(t)(t)
+
+	request := &model.ChangePortRequest{Port: "9999"}
+	body, err := json.Marshal(request)
+	assert.NilError(t, err)
+
+	req, _ := http.NewRequest(http.MethodPut, "/v1/gateway/port", bytes.NewReader(body))
+	req.RemoteAddr = "192.168.1.100:12345" // non-loopback → JWT must fire
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+	w := httptest.NewRecorder()
+	_router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
 func TestChangePortNegative(t *testing.T) {
 	defer setup(t)(t)
 

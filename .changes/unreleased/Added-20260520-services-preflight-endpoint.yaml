@@ -1,0 +1,15 @@
+kind: Added
+body: |
+  GET /v1/sys/services/preflight endpoint (Layer 5).
+
+  Returns is-enabled state per PowerLab systemd unit:
+    [{"name": "powerlab-gateway", "enabled": true}, ...]
+
+  The UI uses this to show a warning modal ("restarting the gateway
+  will briefly disconnect you") before a user triggers a self-restart.
+  Best-effort: a systemctl failure marks the unit disabled rather than
+  aborting the whole response. Locked by handler test + 6 service-layer
+  unit tests (exit-0→enabled, non-zero→disabled, whitelist rejection,
+  correct systemctl args, all-services count, partial disabled state).
+custom:
+  Issue: "260"

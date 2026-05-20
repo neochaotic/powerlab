@@ -119,10 +119,14 @@ func queryAllServiceStatesWith(run commandRunner) ([]ServiceState, []error) {
 	return states, errs
 }
 
+// GatewayService is the systemd unit name for the PowerLab gateway.
+// Restarting it requires the delayed-exec path (see restartPowerLabServiceWith).
+const GatewayService = "powerlab-gateway"
+
 // RestartPowerLabService restarts a single PowerLab unit. The unit
-// MUST be in PowerLabServices. Returns the output of `systemctl
-// restart <unit>` for surfacing to the caller (helpful when a restart
-// fails because of a unit-file syntax error or similar).
+// MUST be in PowerLabServices. For the gateway service itself, the
+// restart is forked via systemd-run so the HTTP response can be sent
+// before the process is torn down; all other units restart synchronously.
 func RestartPowerLabService(name string) ([]byte, error) {
 	return restartPowerLabServiceWith(defaultRunner, name)
 }
@@ -131,11 +135,59 @@ func restartPowerLabServiceWith(run commandRunner, name string) ([]byte, error) 
 	if !IsAllowedPowerLabService(name) {
 		return nil, fmt.Errorf("service %q not in PowerLab whitelist", name)
 	}
+	if name == GatewayService {
+		// The gateway is restarting itself. A direct `systemctl restart`
+		// would kill this process (and its cgroup) before the HTTP
+		// response returns. systemd-run spawns a transient unit in a
+		// separate cgroup so the restart fires ~2 s after we reply.
+		out, err := run("systemd-run", "--no-block", "--quiet",
+			"/bin/sh", "-c", "sleep 2 && systemctl restart "+name) //nolint:gosec
+		if err != nil {
+			return out, fmt.Errorf("systemd-run delayed restart %s: %w (output: %s)", name, err, string(out))
+		}
+		return out, nil
+	}
 	out, err := run("systemctl", "restart", name)
 	if err != nil {
 		return out, fmt.Errorf("systemctl restart %s: %w (output: %s)", name, err, string(out))
 	}
 	return out, nil
+}
+
+// ServiceEnabledState captures whether a PowerLab unit is enabled in systemd.
+// Used by the /v1/sys/services/preflight endpoint so the UI can show a
+// warning before restarting a service that would interrupt the user's session.
+type ServiceEnabledState struct {
+	Name    string `json:"name"`
+	Enabled bool   `json:"enabled"`
+}
+
+// QueryAllServiceEnabled returns the enabled/disabled state of every
+// PowerLab unit. Best-effort: a systemctl failure marks the unit as
+// disabled rather than aborting the loop.
+func QueryAllServiceEnabled() []ServiceEnabledState {
+	return queryAllServiceEnabledWith(defaultRunner)
+}
+
+func queryAllServiceEnabledWith(run commandRunner) []ServiceEnabledState {
+	result := make([]ServiceEnabledState, len(PowerLabServices))
+	for i, name := range PowerLabServices {
+		enabled, _ := queryServiceEnabledWith(run, name)
+		result[i] = ServiceEnabledState{Name: name, Enabled: enabled}
+	}
+	return result
+}
+
+// queryServiceEnabledWith calls `systemctl is-enabled --quiet <name>` and
+// returns true if exit code is 0 (enabled), false otherwise. The unit name
+// MUST be in PowerLabServices — anything else returns an error without
+// shelling out.
+func queryServiceEnabledWith(run commandRunner, name string) (bool, error) {
+	if !IsAllowedPowerLabService(name) {
+		return false, fmt.Errorf("service %q not in PowerLab whitelist", name)
+	}
+	_, err := run("systemctl", "is-enabled", "--quiet", name)
+	return err == nil, nil
 }
 
 // RebootHost runs `systemctl reboot`. No payload, no flags — this is

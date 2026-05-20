@@ -16,6 +16,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/labstack/echo/v4"
+	echojwt "github.com/labstack/echo-jwt/v4"
 	echo_middleware "github.com/labstack/echo/v4/middleware"
 	common_middleware "github.com/neochaotic/powerlab/backend/common/middleware"
 )
@@ -55,16 +56,12 @@ func InitV2Router() http.Handler {
 
 	e.Use(echo_middleware.Logger())
 
-	e.Use(echo_middleware.JWTWithConfig(echo_middleware.JWTConfig{
+	e.Use(echojwt.WithConfig(echojwt.Config{
 		Skipper: func(c echo.Context) bool {
 			return c.RealIP() == "::1" || c.RealIP() == "127.0.0.1"
 		},
-		ParseTokenFunc: func(token string, c echo.Context) (interface{}, error) {
-			// claims, code := jwt.Validate(token)
-			// if code != common_err.SUCCESS {
-			// 	return nil, echo.ErrUnauthorized
-			// }
-			valid, claims, err := jwt.Validate(token, func() (*ecdsa.PublicKey, error) { return external.GetPublicKey(config.CommonInfo.RuntimePath) })
+		ParseTokenFunc: func(c echo.Context, auth string) (interface{}, error) {
+			valid, claims, err := jwt.Validate(auth, func() (*ecdsa.PublicKey, error) { return external.GetPublicKey(config.CommonInfo.RuntimePath) })
 			if err != nil || !valid {
 				return nil, echo.ErrUnauthorized
 			}
@@ -74,8 +71,10 @@ func InitV2Router() http.Handler {
 			return claims, nil
 		},
 		TokenLookupFuncs: []echo_middleware.ValuesExtractor{
+			// Header → ?token= fallback + RFC 6750 Bearer-prefix
+			// stripping centralised in jwt.ExtractTokenFromRequest.
 			func(c echo.Context) ([]string, error) {
-				return []string{c.Request().Header.Get(echo.HeaderAuthorization)}, nil
+				return []string{jwt.ExtractTokenFromRequest(c)}, nil
 			},
 		},
 	}))

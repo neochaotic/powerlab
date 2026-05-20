@@ -12,6 +12,7 @@ import (
 	"github.com/neochaotic/powerlab/backend/common/utils/common_err"
 	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
 	"github.com/labstack/echo/v4"
+	echojwt "github.com/labstack/echo-jwt/v4"
 	echo_middleware "github.com/labstack/echo/v4/middleware"
 	common_middleware "github.com/neochaotic/powerlab/backend/common/middleware"
 	"github.com/neochaotic/powerlab/backend/gateway/service"
@@ -125,13 +126,13 @@ func (m *ManagementRoute) buildV1RouteGroup(v1Group *echo.Group) {
 
 				return ctx.NoContent(http.StatusCreated)
 			},
-			echo_middleware.JWTWithConfig(echo_middleware.JWTConfig{
+			echojwt.WithConfig(echojwt.Config{
 				Skipper: func(c echo.Context) bool {
 					return c.RealIP() == "::1" || c.RealIP() == "127.0.0.1"
 					// return true
 				},
-				ParseTokenFunc: func(token string, c echo.Context) (interface{}, error) {
-					valid, claims, err := jwt.Validate(token, func() (*ecdsa.PublicKey, error) { return external.GetPublicKey(m.management.State.GetRuntimePath()) })
+				ParseTokenFunc: func(c echo.Context, auth string) (interface{}, error) {
+					valid, claims, err := jwt.Validate(auth, func() (*ecdsa.PublicKey, error) { return external.GetPublicKey(m.management.State.GetRuntimePath()) })
 					if err != nil || !valid {
 						return nil, echo.ErrUnauthorized
 					}
@@ -180,13 +181,13 @@ func (m *ManagementRoute) buildV1RouteGroup(v1Group *echo.Group) {
 					Message: common_err.GetMsg(common_err.SUCCESS),
 				})
 			},
-			echo_middleware.JWTWithConfig(echo_middleware.JWTConfig{
+			echojwt.WithConfig(echojwt.Config{
 				Skipper: func(c echo.Context) bool {
 					return c.RealIP() == "::1" || c.RealIP() == "127.0.0.1"
 					// return true
 				},
-				ParseTokenFunc: func(token string, c echo.Context) (interface{}, error) {
-					valid, claims, err := jwt.Validate(token, func() (*ecdsa.PublicKey, error) { return external.GetPublicKey(m.management.State.GetRuntimePath()) })
+				ParseTokenFunc: func(c echo.Context, auth string) (interface{}, error) {
+					valid, claims, err := jwt.Validate(auth, func() (*ecdsa.PublicKey, error) { return external.GetPublicKey(m.management.State.GetRuntimePath()) })
 					if err != nil || !valid {
 						return nil, echo.ErrUnauthorized
 					}
