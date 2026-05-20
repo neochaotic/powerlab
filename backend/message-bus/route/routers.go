@@ -13,6 +13,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/labstack/echo/v4"
+	echojwt "github.com/labstack/echo-jwt/v4"
 	echo_middleware "github.com/labstack/echo/v4/middleware"
 	common_middleware "github.com/neochaotic/powerlab/backend/common/middleware"
 	"github.com/neochaotic/powerlab/backend/message-bus/codegen"
@@ -36,7 +37,7 @@ func NewAPIRouter(swagger *openapi3.T, services *service.Services) (http.Handler
 	e.Use(echo_middleware.Recover())
 	e.Use(echo_middleware.Logger())
 
-	e.Use(echo_middleware.JWTWithConfig(echo_middleware.JWTConfig{
+	e.Use(echojwt.WithConfig(echojwt.Config{
 		Skipper: func(c echo.Context) bool {
 			// skip when source is unix socket
 			if c.Request().Host == "unix" {
@@ -53,8 +54,8 @@ func NewAPIRouter(swagger *openapi3.T, services *service.Services) (http.Handler
 
 			return false
 		},
-		ParseTokenFunc: func(token string, c echo.Context) (interface{}, error) {
-			valid, claims, err := jwt.Validate(token, func() (*ecdsa.PublicKey, error) { return external.GetPublicKey(config.CommonInfo.RuntimePath) })
+		ParseTokenFunc: func(c echo.Context, auth string) (interface{}, error) {
+			valid, claims, err := jwt.Validate(auth, func() (*ecdsa.PublicKey, error) { return external.GetPublicKey(config.CommonInfo.RuntimePath) })
 			if err != nil || !valid {
 				return nil, echo.ErrUnauthorized
 			}

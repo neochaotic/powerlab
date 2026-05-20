@@ -9,6 +9,7 @@ import (
 	v1 "github.com/neochaotic/powerlab/backend/user-service/route/v1"
 	"github.com/neochaotic/powerlab/backend/user-service/service"
 	"github.com/labstack/echo/v4"
+	echojwt "github.com/labstack/echo-jwt/v4"
 	echo_middleware "github.com/labstack/echo/v4/middleware"
 	common_middleware "github.com/neochaotic/powerlab/backend/common/middleware"
 )
@@ -32,13 +33,13 @@ func InitRouter() http.Handler {
 	v1Group := e.Group("/v1")
 
 	v1UsersGroup := v1Group.Group("/users")
-	v1UsersGroup.Use(echo_middleware.JWTWithConfig(echo_middleware.JWTConfig{
+	v1UsersGroup.Use(echojwt.WithConfig(echojwt.Config{
 		Skipper: func(c echo.Context) bool {
 			return c.RealIP() == "::1" || c.RealIP() == "127.0.0.1"
 		},
-		ParseTokenFunc: func(token string, c echo.Context) (interface{}, error) {
+		ParseTokenFunc: func(c echo.Context, auth string) (interface{}, error) {
 			valid, claims, err := jwt.Validate(
-				token,
+				auth,
 				func() (*ecdsa.PublicKey, error) {
 					_, publicKey := service.MyService.User().GetKeyPair()
 					return publicKey, nil
