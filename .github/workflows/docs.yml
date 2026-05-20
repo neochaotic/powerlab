@@ -55,7 +55,7 @@ jobs:
       # source = Go files, generated artifact = lives only at build
       # time. Avoids the "diff churn on every refactor of internal
       # types" anti-pattern flagged in the day-1 self-review (#200).
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: '1.25'
           cache-dependency-path: backend/pkg/go.sum
