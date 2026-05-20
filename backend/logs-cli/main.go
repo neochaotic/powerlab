@@ -47,7 +47,7 @@ See docs/operations/powerlab-logs.md for the full reference.
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, usage)
+		fmt.Fprint(os.Stderr, usage)
 		os.Exit(2)
 	}
 
@@ -71,7 +71,7 @@ func main() {
 			os.Exit(1)
 		}
 	case "help", "-h", "--help":
-		fmt.Fprintln(os.Stdout, usage)
+		fmt.Fprint(os.Stdout, usage)
 	default:
 		fmt.Fprintf(os.Stderr, "unknown subcommand %q\n\n%s", sub, usage)
 		os.Exit(2)
