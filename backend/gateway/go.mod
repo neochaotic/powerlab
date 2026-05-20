@@ -18,7 +18,7 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
-	github.com/labstack/echo-jwt/v4 v4.4.0 // indirect
+	github.com/labstack/echo-jwt/v4 v4.4.0
 	github.com/labstack/gommon v0.5.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/miekg/dns v1.1.27 // indirect
