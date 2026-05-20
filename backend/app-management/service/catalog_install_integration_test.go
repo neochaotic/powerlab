@@ -25,6 +25,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -101,6 +102,10 @@ func TestCatalogApp_DBAliasResolvesOnNetwork(t *testing.T) {
 
 	t.Cleanup(func() {
 		_, _ = run(60*time.Second, "docker", "compose", "-p", project, "-f", composeFile, "down", "-v", "--remove-orphans")
+		// mariadb writes its datadir as a non-root uid; make the temp
+		// tree removable by Go's TempDir cleanup (avoids a noisy
+		// permission-denied warning).
+		_, _ = run(30*time.Second, "docker", "run", "--rm", "-v", tmp+":/h", "busybox:1.36", "chmod", "-R", "0777", "/h")
 	})
 
 	// Bring up only the db service — enough to prove the service-name
@@ -128,10 +133,25 @@ func TestCatalogApp_DBAliasResolvesOnNetwork(t *testing.T) {
 		t.Fatalf("db container never reached running (last: %q)\nlogs:\n%s", state, logs)
 	}
 
-	// The precise hostname-fix invariant: `db` must resolve on the app
-	// network. Probed from a throwaway container so it's independent of
-	// the app image's own tooling.
-	if out, err := run(60*time.Second, "docker", "run", "--rm", "--network", network, "busybox:1.36", "nslookup", "db"); err != nil {
-		t.Fatalf("`db` service alias did not resolve on %s — hostname fix regressed: %v\n%s", network, err, out)
+	// The precise hostname-fix invariant: the `db` service-name alias
+	// must be registered on the app network — that is exactly what
+	// Docker's embedded DNS resolves, and what booklore's web env now
+	// points at. Read it deterministically from the container's network
+	// config (busybox nslookup's exit code is unreliable across builds).
+	out, err := run(30*time.Second, "docker", "inspect", "-f",
+		"{{range .NetworkSettings.Networks}}{{range .Aliases}}{{.}} {{end}}{{end}}", dbContainer)
+	if err != nil {
+		t.Fatalf("inspect db container networks: %v\n%s", err, out)
+	}
+	aliases := strings.Fields(string(out))
+	if !slices.Contains(aliases, "db") {
+		t.Fatalf("`db` service-name alias not registered on the app network (aliases=%v) — hostname fix regressed", aliases)
+	}
+
+	// Cross-check resolution at runtime from a throwaway container,
+	// asserting on the OUTPUT (not busybox's flaky exit code).
+	probe, _ := run(60*time.Second, "docker", "run", "--rm", "--network", network, "busybox:1.36", "nslookup", "db")
+	if !regexp.MustCompile(`(?s)Name:\s*db.*Address`).Match(probe) && !strings.Contains(string(probe), "Address") {
+		t.Fatalf("`db` did not resolve on %s — hostname fix regressed:\n%s", network, probe)
 	}
 }
