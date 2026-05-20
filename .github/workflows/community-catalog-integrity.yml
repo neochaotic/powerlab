@@ -1,0 +1,35 @@
+name: Community Catalog Integrity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'community-catalog/**'
+      - 'scripts/check-bundle-integrity.sh'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'community-catalog/**'
+      - 'scripts/check-bundle-integrity.sh'
+
+permissions:
+  contents: read
+
+jobs:
+  integrity:
+    name: bundle integrity check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install pyyaml
+
+      - name: Run check-bundle-integrity.sh
+        run: |
+          chmod +x scripts/check-bundle-integrity.sh
+          ./scripts/check-bundle-integrity.sh
