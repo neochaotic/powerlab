@@ -71,8 +71,10 @@ func InitV2Router() http.Handler {
 			return claims, nil
 		},
 		TokenLookupFuncs: []echo_middleware.ValuesExtractor{
+			// Header → ?token= fallback + RFC 6750 Bearer-prefix
+			// stripping centralised in jwt.ExtractTokenFromRequest.
 			func(c echo.Context) ([]string, error) {
-				return []string{c.Request().Header.Get(echo.HeaderAuthorization)}, nil
+				return []string{jwt.ExtractTokenFromRequest(c)}, nil
 			},
 		},
 	}))
