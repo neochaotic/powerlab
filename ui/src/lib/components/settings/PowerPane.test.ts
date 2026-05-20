@@ -7,6 +7,7 @@ import PowerPane from './PowerPane.svelte';
 vi.mock('$lib/api/power', () => ({
 	listPowerLabServices: vi.fn(),
 	restartPowerLabService: vi.fn(),
+	getServicesPreflight: vi.fn(),
 	rebootHost: vi.fn(),
 	shutdownHost: vi.fn()
 }));
@@ -14,6 +15,7 @@ vi.mock('$lib/api/power', () => ({
 import {
 	listPowerLabServices,
 	restartPowerLabService,
+	getServicesPreflight,
 	rebootHost,
 	shutdownHost
 } from '$lib/api/power';
@@ -154,6 +156,61 @@ describe('PowerPane', () => {
 		await fireEvent.click(container.querySelector('[data-testid="power-refresh"]')!);
 		await waitFor(() => {
 			expect(listPowerLabServices).toHaveBeenCalledTimes(2);
+		});
+	});
+
+	it('Gateway Restart opens warning modal instead of calling API directly', async () => {
+		vi.mocked(listPowerLabServices).mockResolvedValue(SERVICES);
+		vi.mocked(getServicesPreflight).mockResolvedValue([]);
+
+		const { container } = render(PowerPane);
+		await waitFor(() => screen.getByText('powerlab-gateway'));
+
+		const gatewayRow = container.querySelector('[data-testid="service-row-powerlab-gateway"]');
+		const restartBtn = gatewayRow?.querySelector('[data-testid="service-restart-btn"]') as HTMLButtonElement;
+		await fireEvent.click(restartBtn);
+
+		await waitFor(() => {
+			expect(container.querySelector('[data-testid="gateway-restart-modal"]')).toBeTruthy();
+		});
+		expect(restartPowerLabService).not.toHaveBeenCalled();
+	});
+
+	it('Gateway restart modal cancel does not call restart API', async () => {
+		vi.mocked(listPowerLabServices).mockResolvedValue(SERVICES);
+		vi.mocked(getServicesPreflight).mockResolvedValue([]);
+
+		const { container } = render(PowerPane);
+		await waitFor(() => screen.getByText('powerlab-gateway'));
+
+		const gatewayRow = container.querySelector('[data-testid="service-row-powerlab-gateway"]');
+		await fireEvent.click(gatewayRow?.querySelector('[data-testid="service-restart-btn"]')!);
+		await waitFor(() => container.querySelector('[data-testid="gateway-restart-modal"]'));
+
+		await fireEvent.click(container.querySelector('[data-testid="gateway-restart-cancel"]')!);
+
+		await waitFor(() => {
+			expect(container.querySelector('[data-testid="gateway-restart-modal"]')).toBeNull();
+		});
+		expect(restartPowerLabService).not.toHaveBeenCalled();
+	});
+
+	it('Gateway restart modal confirm calls restartPowerLabService for gateway', async () => {
+		vi.mocked(listPowerLabServices).mockResolvedValue(SERVICES);
+		vi.mocked(getServicesPreflight).mockResolvedValue([]);
+		vi.mocked(restartPowerLabService).mockResolvedValue(undefined);
+
+		const { container } = render(PowerPane);
+		await waitFor(() => screen.getByText('powerlab-gateway'));
+
+		const gatewayRow = container.querySelector('[data-testid="service-row-powerlab-gateway"]');
+		await fireEvent.click(gatewayRow?.querySelector('[data-testid="service-restart-btn"]')!);
+		await waitFor(() => container.querySelector('[data-testid="gateway-restart-modal"]'));
+
+		await fireEvent.click(container.querySelector('[data-testid="gateway-restart-confirm"]')!);
+
+		await waitFor(() => {
+			expect(restartPowerLabService).toHaveBeenCalledWith('powerlab-gateway');
 		});
 	});
 });
