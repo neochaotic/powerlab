@@ -3,8 +3,10 @@ package service
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
+	"github.com/neochaotic/powerlab/backend/app-management/pkg/config"
 	"gopkg.in/yaml.v3"
 )
 
@@ -39,6 +41,24 @@ import (
 // has no logger). Non-existent paths are CREATED, not skipped, so
 // the first install can write.
 func PrepareBindMountSources(yamlBytes []byte) error {
+	return prepareBindMountSourcesWithinRoot(yamlBytes, config.AppInfo.StoragePath)
+}
+
+// prepareBindMountSourcesWithinRoot is PrepareBindMountSources bounded to
+// a containment root. Only bind sources that resolve INSIDE allowedRoot
+// are created/chmod'd; anything outside (`/etc`, `/`, `..` escapes) is
+// skipped.
+//
+// Why containment (security, ADR-0039 / enterprise pivot): chmod 0o777 is
+// applied to whatever absolute path a compose declares as a bind source.
+// Catalog apps all live under the per-app data root (StoragePath/
+// PowerLabAppData/<id>), so legitimate sources are always inside it. A
+// malicious or compromised catalog entry — or a future operator-added
+// source — declaring `volumes: ["/etc:/x"]` would otherwise make install
+// world-write a host system path. Under the enterprise threat model
+// (untrusted apps, not "operator is the only shell user") that's
+// unacceptable, so we fail-closed: no root → prepare nothing.
+func prepareBindMountSourcesWithinRoot(yamlBytes []byte, allowedRoot string) error {
 	var doc map[string]any
 	if err := yaml.Unmarshal(yamlBytes, &doc); err != nil {
 		return fmt.Errorf("parse compose: %w", err)
@@ -61,10 +81,25 @@ func PrepareBindMountSources(yamlBytes []byte) error {
 			if src == "" {
 				continue
 			}
+			if !pathWithinRoot(src, allowedRoot) {
+				continue
+			}
 			prepareOne(src)
 		}
 	}
 	return nil
+}
+
+// pathWithinRoot reports whether path resolves to root or a descendant of
+// it, after cleaning (so `<root>/../escape` is rejected). Fail-closed:
+// an empty root denies everything.
+func pathWithinRoot(path, root string) bool {
+	if root == "" {
+		return false
+	}
+	cp := filepath.Clean(path)
+	cr := filepath.Clean(root)
+	return cp == cr || strings.HasPrefix(cp, cr+string(filepath.Separator))
 }
 
 // extractBindSource returns the host-path source of a bind-mount
