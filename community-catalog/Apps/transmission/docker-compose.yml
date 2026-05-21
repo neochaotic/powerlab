@@ -1,0 +1,62 @@
+name: transmission
+services:
+  transmission:
+    environment:
+      PASS: casaos
+      PEERPORT: '51413'
+      PGID: '1000'
+      PUID: '1000'
+      TZ: Europe/London
+      USER: casaos
+    image: linuxserver/transmission:4.0.4@sha256:7a65725d8720e0e698e7bdeed5315a8b325193c6e95e5c5ab3aa2af9f7908ce9
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 9091
+      published: '9091'
+      protocol: tcp
+    - target: 51413
+      published: '51413'
+      protocol: tcp
+    - target: 51413
+      published: '51413'
+      protocol: UDP
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/transmission/config
+      target: /config
+    - type: bind
+      source: /DATA/PowerLabAppData/transmission/data
+      target: /downloads
+    - type: bind
+      source: /DATA/PowerLabAppData/transmission/watch
+      target: /watch
+version: '3.7'
+x-powerlab:
+  store_app_id: transmission
+  title:
+    en_us: Transmission
+  tagline:
+    en_us: Transmission is a cross-platform BitTorrent client
+  category: Media
+  port_map: '9091'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Transmission
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Transmission/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/transmission/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Transmission
+  developer: Transmission
+  main: transmission

@@ -102,20 +102,6 @@ updates:
       prefix: "chore(deps/message-bus)"
 
   - package-ecosystem: gomod
-    directory: "/backend/sync-catalog"
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 3
-    groups:
-      sync-catalog-deps:
-        applies-to: version-updates
-        patterns:
-          - "*"
-    commit-message:
-      prefix: "chore(deps/sync-catalog)"
-
-  - package-ecosystem: gomod
     directory: "/backend/common"
     schedule:
       interval: weekly

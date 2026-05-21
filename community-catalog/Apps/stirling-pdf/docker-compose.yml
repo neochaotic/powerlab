@@ -1,0 +1,41 @@
+name: stirling-pdf
+services:
+  app:
+    image: stirlingtools/stirling-pdf:2.10.1@sha256:950c596db26e0764f642def2fd4f9ee904ff2ac16d83fe621ff731b771d9b385
+    restart: on-failure
+    stop_grace_period: 1m
+    volumes:
+    - /DATA/PowerLabAppData/stirling-pdf/data/tessdata:/usr/share/tessdata
+    - /DATA/PowerLabAppData/stirling-pdf/data/configs:/configs
+    - /DATA/PowerLabAppData/stirling-pdf/data/logs:/logs
+    - /DATA/PowerLabAppData/stirling-pdf/data/pipeline:/pipeline
+    environment:
+      DOCKER_ENABLE_SECURITY: 'false'
+      INSTALL_BOOK_AND_ADVANCED_HTML_OPS: 'true'
+      LANGS: ALL
+      SECURITY_ENABLELOGIN: 'false'
+version: '3.7'
+x-powerlab:
+  store_app_id: stirling-pdf
+  title:
+    en_us: Stirling PDF
+  tagline:
+    en_us: Merge, split, rotate, and convert PDFs with ease
+  category: Files & Sync
+  port_map: '8080'
+  source:
+    catalog: umbrel-apps
+    upstream_id: stirling-pdf
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: stirling-pdf/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/stirling-pdf/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Stirling Tools
+  developer: Stirling Tools
+  main: app

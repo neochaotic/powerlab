@@ -1,0 +1,36 @@
+name: adminer
+services:
+  adminer:
+    image: adminer:5.4.1@sha256:a3167350c4eb9ae4473b8ea0f49c8e5ae74c87b240ee2f6086521dba2a6bf243
+    deploy:
+      resources:
+        reservations:
+          memory: 32M
+    restart: unless-stopped
+    ports:
+    - 8080:8080
+version: '3.7'
+x-powerlab:
+  store_app_id: adminer
+  title:
+    en_us: Adminer
+  tagline:
+    en_us: Adminer
+  category: System
+  port_map: '8080'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Adminer
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Adminer/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/adminer/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Adminer
+  developer: Adminer
+  main: adminer

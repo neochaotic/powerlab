@@ -57,6 +57,19 @@ APP_COUNT="$(jq -r '.apps_count' "$INDEX_TMP")"
 STORE_VERSION="$(jq -r '.store_version' "$INDEX_TMP")"
 echo "  Store version: ${STORE_VERSION}, ${APP_COUNT} apps"
 
+# Freshness gate: a shippable catalog must come from a TAGGED store
+# release. The store's index.json carries a pre-release suffix
+# (e.g. 0.1.0-dev) on main; a tag (v0.1.0) carries a clean semver.
+# Refuse to bundle a dev snapshot into community-catalog/ unless
+# explicitly overridden for local testing. Dry-run is exempt — it
+# only lists what would change.
+if [[ "$DRY_RUN" == "0" && "$STORE_VERSION" == *-* && "${POWERLAB_ALLOW_DEV_STORE:-0}" != "1" ]]; then
+  echo "ERROR: refusing to bundle a pre-release store snapshot (store_version=${STORE_VERSION})." >&2
+  echo "       Bundle from a tagged store release:  ./scripts/bundle-store.sh v0.1.0" >&2
+  echo "       Override for local testing only:     POWERLAB_ALLOW_DEV_STORE=1 ./scripts/bundle-store.sh main" >&2
+  exit 1
+fi
+
 if [[ "$DRY_RUN" == "1" ]]; then
   echo ""
   echo "Apps that would be bundled (excluding manually-curated overrides):"

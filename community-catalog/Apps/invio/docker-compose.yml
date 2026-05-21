@@ -1,0 +1,52 @@
+name: invio
+services:
+  backend:
+    image: ghcr.io/kittendevv/invio-backend:v2.0.1@sha256:603d3a7a1134bd515fe06afc671e01ac454f0e53a90595d3bc0ba3c5dbceaf40
+    environment:
+      ADMIN_USER: admin
+      ADMIN_PASS: ''
+      JWT_SECRET: ''
+      SESSION_TTL_SECONDS: 43200
+      SECURE_HEADERS_DISABLED: 'false'
+      ENABLE_HSTS: 'true'
+      DATABASE_PATH: /app/data/invio.db
+    volumes:
+    - /DATA/PowerLabAppData/invio/data:/app/data
+    restart: on-failure
+  frontend:
+    image: ghcr.io/kittendevv/invio-frontend:v2.0.1@sha256:8dfc68bbc8063e66508a4750d9d3191aa8bbe0348d94560ae5ea0c61d3f1e852
+    environment:
+      PORT: 8000
+      BACKEND_URL: http://backend:3000
+      COOKIE_SECURE: 'false'
+      FRONTEND_SECURE_HEADERS_DISABLED: 'false'
+      ENABLE_HSTS: 'false'
+      ORIGIN: http://${DEVICE_DOMAIN_NAME}:8003
+    depends_on:
+    - backend
+    restart: on-failure
+version: '3.7'
+x-powerlab:
+  store_app_id: invio
+  title:
+    en_us: Invio
+  tagline:
+    en_us: Invio is a self-hosted invoicing app without the bloat
+  category: Finance
+  port_map: '8000'
+  source:
+    catalog: umbrel-apps
+    upstream_id: invio
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: invio/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/invio/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: kittendevv
+  developer: kittendevv
+  main: backend

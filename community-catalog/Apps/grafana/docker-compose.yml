@@ -1,0 +1,45 @@
+name: grafana
+services:
+  grafana:
+    image: grafana/grafana:12.1.4@sha256:553160ed532b89bac217ffd424c2d7fb62a1dfbc49685d29993795b77e9cea9a
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 3000
+      published: '3003'
+      protocol: tcp
+    restart: always
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/grafana/data
+      target: /var/lib/grafana
+version: '3.7'
+x-powerlab:
+  store_app_id: grafana
+  title:
+    en_us: Grafana
+  tagline:
+    en_us: Grafana is a complete observability stack that allows you to monitor and
+      analyze metrics, logs and traces. It allows you to query, visualize, alert on
+      and understand your data no matter where it is stored.
+  category: Network & VPN
+  port_map: '3003'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Grafana
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Grafana/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/grafana/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: grafana
+  developer: grafana
+  main: grafana

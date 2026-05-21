@@ -1,0 +1,36 @@
+name: libreoffice
+services:
+  server:
+    image: linuxserver/libreoffice:7.6.7@sha256:a62c7f094f2a7ed8145983d04f54ca80d85b557bbdda0f9aa784ccb6267b70e8
+    restart: on-failure
+    stop_grace_period: 1m
+    environment:
+    - PUID=1000
+    - PGID=1000
+    volumes:
+    - /DATA/PowerLabAppData/libreoffice/data/config:/config
+version: '3.7'
+x-powerlab:
+  store_app_id: libreoffice
+  title:
+    en_us: LibreOffice
+  tagline:
+    en_us: Do more - easier, quicker, smarter
+  category: Files & Sync
+  port_map: '3000'
+  source:
+    catalog: umbrel-apps
+    upstream_id: libreoffice
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: libreoffice/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/libreoffice/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: The Document Foundation
+  developer: The Document Foundation
+  main: server

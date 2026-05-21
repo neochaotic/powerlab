@@ -1,0 +1,48 @@
+name: ombi
+services:
+  ombi:
+    environment:
+      BASE_URL: /ombi
+      PGID: '1000'
+      PUID: '1000'
+      TZ: Europe/London
+    image: linuxserver/ombi:4.47.1@sha256:8bf174e9675736d1ef39ead16e3012282962f72a7272284069f4c2a343d23bed
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 3579
+      published: '3579'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/ombi/config
+      target: /config
+version: '3.7'
+x-powerlab:
+  store_app_id: ombi
+  title:
+    en_us: Ombi
+  tagline:
+    en_us: Friendly media request tool, automatically syncs with your media servers!
+  category: Media
+  port_map: '3579'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Ombi
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Ombi/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/ombi/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Sabnzbd Team
+  developer: Sabnzbd Team
+  main: ombi

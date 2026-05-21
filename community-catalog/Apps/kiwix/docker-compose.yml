@@ -1,0 +1,36 @@
+name: kiwix
+services:
+  web:
+    image: ghcr.io/kiwix/kiwix-serve:3.8.2@sha256:0b6541355b250c6b45d2d7725e88f22f1d6a0f45ad9480d9c0bd4bc58436a12f
+    user: 1000:1000
+    restart: on-failure
+    volumes:
+    - /DATA/PowerLabAppData/kiwix/data/storage/downloads:/data
+    command: '/data/*.zim -k
+
+      '
+version: '3.7'
+x-powerlab:
+  store_app_id: kiwix
+  title:
+    en_us: Kiwix
+  tagline:
+    en_us: Access knowledge anytime, anywhere without an internet connection
+  category: Files & Sync
+  port_map: '8080'
+  source:
+    catalog: umbrel-apps
+    upstream_id: kiwix
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: kiwix/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/kiwix/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Kiwix
+  developer: Kiwix
+  main: web

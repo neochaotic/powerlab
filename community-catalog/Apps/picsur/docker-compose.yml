@@ -1,0 +1,69 @@
+name: picsur
+services:
+  db:
+    image: postgres:17.4@sha256:fe3f571d128e8efadcd8b2fde0e2b73ebab6dbec33f6bfe69d98c682c7d8f7bd
+    user: 1000:1000
+    mem_limit: 1g
+    cpu_shares: 1024
+    security_opt:
+    - no-new-privileges:true
+    healthcheck:
+      test:
+      - CMD
+      - pg_isready
+      - -q
+      - -d
+      - picsur
+      - -U
+      - picsuruser
+      timeout: 45s
+      interval: 10s
+      retries: 10
+    volumes:
+    - /DATA/PowerLabAppData/picsur/data/db:/var/lib/postgresql/data:rw
+    environment:
+      POSTGRES_DB: picsur
+      POSTGRES_USER: picsuruser
+      POSTGRES_PASSWORD: picsurpass
+    restart: on-failure
+  web:
+    image: ghcr.io/caramelfur/picsur:0.5.6@sha256:209ce21d338cd7d9a1adc838a67695e903149359bf192359819607df1b3c4417
+    user: 1000:1000
+    environment:
+      PICSUR_PORT: 8286
+      PICSUR_DB_HOST: db
+      PICSUR_DB_PORT: 5432
+      PICSUR_DB_USERNAME: picsuruser
+      PICSUR_DB_PASSWORD: picsurpass
+      PICSUR_DB_DATABASE: picsur
+      PICSUR_ADMIN_PASSWORD: ''
+      PICSUR_MAX_FILE_SIZE: 128000000000
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+version: '3.7'
+x-powerlab:
+  store_app_id: picsur
+  title:
+    en_us: Picsur
+  tagline:
+    en_us: An easy to use image sharing service
+  category: Files & Sync
+  port_map: '8286'
+  source:
+    catalog: umbrel-apps
+    upstream_id: picsur
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: picsur/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/picsur/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: CaramelFur
+  developer: CaramelFur
+  main: web

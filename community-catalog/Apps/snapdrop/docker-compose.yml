@@ -1,0 +1,47 @@
+name: snapdrop
+services:
+  snapdrop:
+    environment:
+    - PGID=$PGID
+    - PUID=$PUID
+    - TZ=$TZ
+    image: linuxserver/snapdrop:version-eac78009@sha256:54ef8d7543de2c699883af0c514db9064bbec05ff5f22d63342f90b953d7b138
+    network_mode: bridge
+    ports:
+    - target: 443
+      published: '443'
+      protocol: tcp
+    - target: 80
+      published: '89'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/snapdrop/config
+      target: /config
+    privileged: false
+version: '3.7'
+x-powerlab:
+  store_app_id: snapdrop
+  title:
+    en_us: Snapdrop
+  tagline:
+    en_us: Snapdrop
+  category: System
+  port_map: '443'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Snapdrop
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Snapdrop/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/snapdrop/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Snapdrop
+  developer: Snapdrop
+  main: snapdrop

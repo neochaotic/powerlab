@@ -1,0 +1,55 @@
+name: navidrome
+services:
+  navidrome:
+    deploy:
+      resources:
+        reservations:
+          memory: 1024M
+    image: deluan/navidrome:0.58.5@sha256:648ebd45c50c58edc7ad9f0cc3b4411a1bece16c81f0b3630a0ab0a739c6d7ec
+    labels:
+      icon: https://cdn.jsdelivr.net/gh/IceWhaleTech/CasaOS-AppStore@main/Apps/Navidrome/icon.png
+    restart: unless-stopped
+    ports:
+    - target: 4533
+      published: '4533'
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/navidrome/data
+      target: /data
+    - type: bind
+      source: /DATA/PowerLabAppData/navidrome/Music
+      target: /music
+    environment:
+      ND_SCANSCHEDULE: 1h
+      ND_LOGLEVEL: info
+      ND_SESSIONTIMEOUT: 24h
+      ND_BASEURL: ''
+      TZ: $TZ
+    network_mode: bridge
+    privileged: false
+version: '3.7'
+x-powerlab:
+  store_app_id: navidrome
+  title:
+    en_us: Navidrome
+  tagline:
+    en_us: Navidrome
+  category: System
+  port_map: '4533'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Navidrome
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Navidrome/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/navidrome/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Navidrome
+  developer: Navidrome
+  main: navidrome

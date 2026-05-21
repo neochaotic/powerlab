@@ -1,0 +1,46 @@
+name: n8n
+services:
+  n8n:
+    environment:
+      TZ: $TZ
+      N8N_SECURE_COOKIE: 'false'
+    image: n8nio/n8n:1.123.0@sha256:e1c87fb78c3d3f58f08263fb4710a270453982945616d5fc4ddb60f4524c51fc
+    deploy:
+      resources:
+        reservations:
+          memory: 320M
+    network_mode: bridge
+    ports:
+    - target: 5678
+      published: '5678'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/n8n/data
+      target: /home/node/.n8n
+version: '3.7'
+x-powerlab:
+  store_app_id: n8n
+  title:
+    en_us: n8n
+  tagline:
+    en_us: Workflow automation tool
+  category: System
+  port_map: '5678'
+  source:
+    catalog: casaos-appstore
+    upstream_id: N8n
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/N8n/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/n8n/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: n8n
+  developer: n8n
+  main: n8n

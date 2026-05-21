@@ -1,0 +1,51 @@
+name: booklore
+services:
+  web:
+    image: ghcr.io/booklore-app/booklore:v2.3.0@sha256:10474742a0e704ec48540a3e5559cf27c16bcf0c021c494ba5bf3cc25b16b887
+    restart: on-failure
+    environment:
+      DATABASE_URL: jdbc:mariadb://db:3306/booklore
+      DATABASE_USERNAME: bookloreuser
+      DATABASE_PASSWORD: booklorepass
+    depends_on:
+      db:
+        condition: service_started
+    volumes:
+    - /DATA/PowerLabAppData/booklore/data/app:/app/data
+    - /DATA/PowerLabAppData/booklore/data/books:/books
+  db:
+    image: mariadb:12.0.2@sha256:b30cc65b57a11a2e791ad5c06284e599fe9f1bf3fe9081a88d85bcf36389be4a
+    user: 1000:1000
+    restart: on-failure
+    environment:
+      MARIADB_DATABASE: booklore
+      MARIADB_USER: bookloreuser
+      MARIADB_PASSWORD: booklorepass
+      MARIADB_ROOT_PASSWORD: rootpass
+    volumes:
+    - /DATA/PowerLabAppData/booklore/data/db:/var/lib/mysql
+version: '3.7'
+x-powerlab:
+  store_app_id: booklore
+  title:
+    en_us: BookLore
+  tagline:
+    en_us: An app for managing and reading books
+  category: Files & Sync
+  port_map: '6060'
+  source:
+    catalog: umbrel-apps
+    upstream_id: booklore
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: booklore/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/booklore/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: BookLore
+  developer: BookLore
+  main: web

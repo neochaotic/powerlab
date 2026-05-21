@@ -1,0 +1,53 @@
+name: readarr
+services:
+  readarr:
+    environment:
+      PGID: $PGID
+      PUID: $PUID
+      TZ: $TZ
+    image: linuxserver/readarr:0.3.10-develop@sha256:c39c1fe2e48e9353a2d81294d70b7624975ae8d603c3cae8df77583d3efeca5b
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 8787
+      published: '8787'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/readarr/config
+      target: /config
+    - type: bind
+      source: /DATA/PowerLabAppData/readarr/Books
+      target: /books
+    - type: bind
+      source: /DATA/PowerLabAppData/readarr/data
+      target: /downloads
+version: '3.7'
+x-powerlab:
+  store_app_id: readarr
+  title:
+    en_us: Readarr
+  tagline:
+    en_us: Ebook and audiobook collection manager for Usenet and BitTorrent users.
+  category: Media
+  port_map: '8787'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Readarr
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Readarr/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/readarr/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Readarr Team
+  developer: Readarr Team
+  main: readarr

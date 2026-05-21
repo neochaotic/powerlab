@@ -1,0 +1,34 @@
+name: vert
+services:
+  web:
+    image: ghcr.io/vert-sh/vert:sha-9154213@sha256:921bd61b3d786ecedce81e5ec0cb5112bce6c43d64e331a53af6862e56bd3ebd
+    restart: on-failure
+    environment:
+      PUB_HOSTNAME: http://${DEVICE_DOMAIN_NAME}:3884
+      PUB_VERTD_URL: http://${DEVICE_DOMAIN_NAME}:3884
+      PUB_ENV: production
+version: '3.7'
+x-powerlab:
+  store_app_id: vert
+  title:
+    en_us: VERT
+  tagline:
+    en_us: A file conversion utility
+  category: Files & Sync
+  port_map: '80'
+  source:
+    catalog: umbrel-apps
+    upstream_id: vert
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: vert/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/vert/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: VERT
+  developer: VERT
+  main: web

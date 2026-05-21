@@ -1,0 +1,37 @@
+name: pyload-ng
+services:
+  web:
+    image: linuxserver/pyload-ng:0.5.0@sha256:0ef3e1d15183eb7f517742afe2f75b42c1d58e14640f8d5741f6e88d2d7b9ab5
+    restart: on-failure
+    volumes:
+    - /DATA/PowerLabAppData/pyload-ng/data/config:/config
+    - /DATA/PowerLabAppData/pyload-ng/data/storage/downloads:/downloads
+    environment:
+    - PUID=1000
+    - PGID=1000
+    - TZ=Etc/UTC
+version: '3.7'
+x-powerlab:
+  store_app_id: pyload-ng
+  title:
+    en_us: pyload-ng
+  tagline:
+    en_us: The free and open-source Download Manager
+  category: Files & Sync
+  port_map: '8000'
+  source:
+    catalog: umbrel-apps
+    upstream_id: pyload-ng
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: pyload-ng/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/pyload-ng/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: pyload
+  developer: pyload
+  main: web

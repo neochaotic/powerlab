@@ -17,10 +17,13 @@
 #
 # This test locks the post-fix contract: install ships ONLY the bundled
 # curated set; post-install does NOT silently sync from any upstream.
-# Operators who want to mirror an upstream catalog must register a custom
-# catalog source explicitly via Settings → Catalog (the ADR-0039 escape
-# hatch) or run /usr/bin/powerlab-sync-catalog by hand with their chosen
-# upstream + output.
+#
+# Follow-up (ADR-0039 enforcement pass): the Umbrel ingestion tooling
+# (backend/sync-catalog + the weekly sync workflow) was removed entirely —
+# the catalog is now sourced solely from the powerlab-store repo via
+# scripts/bundle-store.sh at release time. Operators who want a different
+# catalog register a custom source via Settings → Catalog. This test now
+# also asserts the packaging script no longer builds/ships sync-catalog.
 
 set -euo pipefail
 
@@ -59,12 +62,11 @@ echo "Test: community-catalog install wipes Apps/ before copying (ADR-0039)"
 assert_grep "wipes /var/lib/powerlab/community-catalog/Apps before copy" \
   'rm -rf /var/lib/powerlab/community-catalog/Apps'
 
-echo "Test: post-install does NOT auto-invoke powerlab-sync-catalog (ADR-0039)"
+echo "Test: post-install does NOT auto-invoke any catalog sync (ADR-0039)"
 # Auto-invocation re-pulled Umbrel upstream every install and re-populated
 # the curated catalog dir with the filtered upstream contents. ADR-0039
-# requires the curated set be the sole source of truth on a default
-# install. The binary stays shipped for explicit operator use, but the
-# install script must NOT call it.
+# requires the bundled curated set be the sole source of truth on a
+# default install.
 assert_not_grep "no automatic timeout 60 sync invocation" \
   'timeout 60 /usr/bin/powerlab-sync-catalog'
 assert_not_grep "no POWERLAB_SKIP_SYNC env knob" \
@@ -72,21 +74,20 @@ assert_not_grep "no POWERLAB_SKIP_SYNC env knob" \
 assert_not_grep "no 'community catalog refreshed' echo from auto-sync" \
   'community catalog refreshed'
 
-echo "Test: powerlab-sync-catalog binary is still shipped for maintainer/operator use"
-# We do NOT remove the binary — operators can register a custom catalog
-# source via the UI escape hatch, and maintainers use it locally for the
-# curation pipeline. Just the auto-invocation goes away.
-assert_grep "sync-catalog cross-compile step still present" \
-  "cd \"\$ROOT/backend/sync-catalog\""
-assert_grep "sync-catalog binary still output to STAGE/bin" \
-  "-o \"\$STAGE/bin/powerlab-sync-catalog\""
+echo "Test: sync-catalog is fully removed from packaging (ADR-0039 enforcement)"
+# The Umbrel ingestion binary was removed — the catalog is sourced from
+# the powerlab-store repo via bundle-store.sh, not built/shipped here.
+assert_not_grep "no sync-catalog cross-compile step" \
+  "backend/sync-catalog"
+assert_not_grep "no sync-catalog binary output to STAGE/bin" \
+  "powerlab-sync-catalog"
 
-echo "Test: backend/sync-catalog package still compiles"
-if (cd "$REPO_ROOT/backend/sync-catalog" && go build -o /dev/null . 2>/dev/null); then
-  echo "  PASS: backend/sync-catalog compiles"
-else
-  echo "  FAIL: backend/sync-catalog failed to compile" >&2
+echo "Test: backend/sync-catalog module no longer exists"
+if [[ -d "$REPO_ROOT/backend/sync-catalog" ]]; then
+  echo "  FAIL: backend/sync-catalog still present — should be removed" >&2
   failures=$((failures + 1))
+else
+  echo "  PASS: backend/sync-catalog removed"
 fi
 
 echo

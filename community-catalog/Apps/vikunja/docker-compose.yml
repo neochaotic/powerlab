@@ -1,0 +1,59 @@
+name: vikunja
+services:
+  db:
+    image: mariadb:10.11.8@sha256:75f6e61397758489d1dccf95db33b6b49ebfc7ec1253d40060fdf8ceb7f938a3
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: supersecret
+      MYSQL_USER: vikunja
+      MYSQL_PASSWORD: secret
+      MYSQL_DATABASE: vikunja
+    volumes:
+    - /DATA/PowerLabAppData/vikunja/data/db:/var/lib/mysql
+    restart: on-failure
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - mysqladmin ping -h localhost -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+      interval: 2s
+      start_period: 30s
+  web:
+    image: vikunja/vikunja:2.3.0@sha256:f6b80393c1998cd5cd0dc38d24762c59ab4c10000a6f1032ef5b554e262cab93
+    environment:
+      VIKUNJA_SERVICE_PUBLICURL: http://${DEVICE_DOMAIN_NAME}:4523
+      VIKUNJA_DATABASE_HOST: db
+      VIKUNJA_DATABASE_PASSWORD: secret
+      VIKUNJA_DATABASE_TYPE: mysql
+      VIKUNJA_DATABASE_USER: vikunja
+      VIKUNJA_DATABASE_DATABASE: vikunja
+      VIKUNJA_SERVICE_JWTSECRET: ''
+    volumes:
+    - /DATA/PowerLabAppData/vikunja/data/files:/app/vikunja/files
+    depends_on:
+    - db
+    restart: on-failure
+version: '3.7'
+x-powerlab:
+  store_app_id: vikunja
+  title:
+    en_us: Vikunja
+  tagline:
+    en_us: The open-source, self-hostable to-do app
+  category: Files & Sync
+  port_map: '3456'
+  source:
+    catalog: umbrel-apps
+    upstream_id: vikunja
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: vikunja/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/vikunja/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Vikunja
+  developer: Vikunja
+  main: web

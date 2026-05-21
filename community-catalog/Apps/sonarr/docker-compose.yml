@@ -1,0 +1,53 @@
+name: sonarr
+services:
+  sonarr:
+    environment:
+      PGID: $PGID
+      PUID: $PUID
+      TZ: $TZ
+    image: linuxserver/sonarr:4.0.17@sha256:60f3b6b5c7647ba2bafd81163acfe34b11117b9b834ebd7fbcc3e5f1b309c7ef
+    deploy:
+      resources:
+        reservations:
+          memory: 256M
+    network_mode: bridge
+    ports:
+    - target: 8989
+      published: '8989'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/sonarr/config
+      target: /config
+    - type: bind
+      source: /DATA/PowerLabAppData/sonarr/TV Shows
+      target: /tv
+    - type: bind
+      source: /DATA/PowerLabAppData/sonarr/data
+      target: /downloads
+version: '3.7'
+x-powerlab:
+  store_app_id: sonarr
+  title:
+    en_us: Sonarr
+  tagline:
+    en_us: The PVR for Usenet and BitTorrent users
+  category: Media
+  port_map: '8989'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Sonarr
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Sonarr/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/sonarr/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Sonarr
+  developer: Sonarr
+  main: sonarr

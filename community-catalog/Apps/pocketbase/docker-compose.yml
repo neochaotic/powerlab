@@ -1,0 +1,36 @@
+name: pocketbase
+services:
+  app:
+    image: ghcr.io/muchobien/pocketbase:0.38.1@sha256:e2039288dfa83369293114b357f40d0f16f8a873cdf8e4e4cf976036d2bcf9e7
+    restart: on-failure
+    stop_grace_period: 1m
+    volumes:
+    - /DATA/PowerLabAppData/pocketbase/data/data:/pb_data
+    - /DATA/PowerLabAppData/pocketbase/data/public:/pb_public
+    - /DATA/PowerLabAppData/pocketbase/data/hooks:/pb_hooks
+    - /DATA/PowerLabAppData/pocketbase/data/migrations:/pb_migrations
+version: '3.7'
+x-powerlab:
+  store_app_id: pocketbase
+  title:
+    en_us: PocketBase
+  tagline:
+    en_us: Open Source backend for your next SaaS and Mobile app in 1 file
+  category: Developer
+  port_map: '8090'
+  source:
+    catalog: umbrel-apps
+    upstream_id: pocketbase
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: pocketbase/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/pocketbase/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: PocketBase
+  developer: PocketBase
+  main: app

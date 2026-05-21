@@ -1,0 +1,39 @@
+name: chatbotui
+services:
+  chatbot-ui:
+    environment:
+      PGID: $PGID
+      PUID: $PUID
+      TZ: $TZ
+    image: ghcr.io/mckaywrigley/chatbot-ui:main@sha256:81cc705b47a52583e3f1718dc824fe3576d85b7ff298985c10bd15c03d0adcd5
+    network_mode: bridge
+    ports:
+    - target: 3000
+      published: '3080'
+      protocol: tcp
+    restart: unless-stopped
+version: '3.7'
+x-powerlab:
+  store_app_id: chatbotui
+  title:
+    en_us: ChatbotUI
+  tagline:
+    en_us: ChatbotUI
+  category: System
+  port_map: '3080'
+  source:
+    catalog: casaos-appstore
+    upstream_id: ChatbotUI
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/ChatbotUI/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/chatbotui/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: ChatbotUI
+  developer: ChatbotUI
+  main: chatbot-ui

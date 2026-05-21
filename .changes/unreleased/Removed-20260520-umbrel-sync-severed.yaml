@@ -1,0 +1,5 @@
+kind: Removed
+body: 'Severed Umbrel catalog ingestion entirely (ADR-0039 enforcement pass). Removed the weekly sync-umbrel-catalog GitHub workflow, the backend/sync-catalog binary, and its build/CI/packaging/dependabot wiring. The community catalog is now sourced solely from the powerlab-store repo via scripts/bundle-store.sh at release time. Added a freshness gate so bundle-store.sh refuses to bundle a pre-release (e.g. 0.1.0-dev) store snapshot — only tagged store releases ship, with a POWERLAB_ALLOW_DEV_STORE override for local testing.'
+time: 2026-05-20T16:30:00Z
+custom:
+    Issue: "450"

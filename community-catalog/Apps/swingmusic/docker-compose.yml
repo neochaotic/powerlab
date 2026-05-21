@@ -1,0 +1,39 @@
+name: swingmusic
+services:
+  swingmusic:
+    image: ghcr.io/swingmx/swingmusic:v1.4.8@sha256:e6ccef307ebeadac967de0565b75e4906615ecfaac2a8f6bb82be13f111439d5
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/swingmusic/config
+      target: /config
+    - type: bind
+      source: /DATA/PowerLabAppData/swingmusic/Music
+      target: /music
+    ports:
+    - 1970:1970
+    restart: unless-stopped
+version: '3.7'
+x-powerlab:
+  store_app_id: swingmusic
+  title:
+    en_us: SwingMusic
+  tagline:
+    en_us: SwingMusic
+  category: System
+  port_map: '1970'
+  source:
+    catalog: casaos-appstore
+    upstream_id: SwingMusic
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/SwingMusic/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/swingmusic/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: SwingMusic
+  developer: SwingMusic
+  main: swingmusic

@@ -1,0 +1,37 @@
+name: wizarr
+services:
+  app:
+    image: ghcr.io/wizarrrr/wizarr:v2026.4.0@sha256:19da537e01b5470cb34b083b5ac64cb534dd27084d9d66bc634e96c1f3976884
+    restart: on-failure
+    volumes:
+    - /DATA/PowerLabAppData/wizarr/data:/data
+    environment:
+    - PUID=1000
+    - PGID=1000
+    - DISABLE_BUILTIN_AUTH=false
+    - TZ=UTC
+version: '3.7'
+x-powerlab:
+  store_app_id: wizarr
+  title:
+    en_us: Wizarr
+  tagline:
+    en_us: An advanced invitation and management system for media servers
+  category: Media
+  port_map: '5690'
+  source:
+    catalog: umbrel-apps
+    upstream_id: wizarr
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: wizarr/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/wizarr/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Wizarr
+  developer: Wizarr
+  main: app

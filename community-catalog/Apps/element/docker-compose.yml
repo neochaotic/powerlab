@@ -1,0 +1,32 @@
+name: element
+services:
+  web:
+    image: vectorim/element-web:v1.12.18@sha256:c21772a1eabeededa19be591343f548995e458ec34ba8f27425ae923c10af82e
+    user: nginx:nginx
+    restart: on-failure
+    stop_grace_period: 1m
+version: '3.7'
+x-powerlab:
+  store_app_id: element
+  title:
+    en_us: Element
+  tagline:
+    en_us: A glossy Matrix client compatible with Synapse
+  category: Productivity
+  port_map: '80'
+  source:
+    catalog: umbrel-apps
+    upstream_id: element
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: element/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/element/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: New Vector Ltd
+  developer: New Vector Ltd
+  main: web

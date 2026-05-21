@@ -1,0 +1,53 @@
+name: radarr
+services:
+  radarr:
+    environment:
+      PGID: $PGID
+      PUID: $PUID
+      TZ: $TZ
+    image: linuxserver/radarr:6.1.1@sha256:079e48870584baf2a3e7e43e7ba6d3c834555931851a59c82c51cc792d285caf
+    deploy:
+      resources:
+        reservations:
+          memory: 256M
+    network_mode: bridge
+    ports:
+    - target: 7878
+      published: '7878'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/radarr/config
+      target: /config
+    - type: bind
+      source: /DATA/PowerLabAppData/radarr/Movies
+      target: /movies
+    - type: bind
+      source: /DATA/PowerLabAppData/radarr/data
+      target: /downloads
+version: '3.7'
+x-powerlab:
+  store_app_id: radarr
+  title:
+    en_us: Radarr
+  tagline:
+    en_us: The movie collection manager for Usenet and BitTorrent users
+  category: Media
+  port_map: '7878'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Radarr
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Radarr/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/radarr/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Radarr
+  developer: Radarr
+  main: radarr

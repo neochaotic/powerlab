@@ -190,7 +190,6 @@ jobs:
           - app-management
           - local-storage
           - pkg
-          - sync-catalog
     steps:
       - uses: actions/checkout@v4
 
@@ -273,7 +272,6 @@ jobs:
           - message-bus
           - app-management
           - local-storage
-          - sync-catalog
     steps:
       - uses: actions/checkout@v4
 
@@ -327,7 +325,6 @@ jobs:
           - message-bus
           - app-management
           - local-storage
-          - sync-catalog
     steps:
       - uses: actions/checkout@v4
 

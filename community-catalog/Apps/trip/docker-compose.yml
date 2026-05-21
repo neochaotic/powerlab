@@ -1,0 +1,39 @@
+name: trip
+services:
+  app:
+    image: ghcr.io/itskovacs/trip:1.44.0@sha256:19dd24aec6347a66521e34c14ae04daa2a69757933c4dffcc45cdc41a085786d
+    restart: on-failure
+    stop_grace_period: 1m
+    volumes:
+    - /DATA/PowerLabAppData/trip/data/app:/app/storage
+    command:
+    - fastapi
+    - run
+    - /app/trip/main.py
+    - --host
+    - 0.0.0.0
+version: '3.7'
+x-powerlab:
+  store_app_id: trip
+  title:
+    en_us: Trip
+  tagline:
+    en_us: Minimalist Map Tracker and Trip Planner
+  category: Files & Sync
+  port_map: '8000'
+  source:
+    catalog: umbrel-apps
+    upstream_id: trip
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: trip/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/trip/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: itskovacs
+  developer: itskovacs
+  main: app

@@ -1,0 +1,69 @@
+name: emby-nvidia
+services:
+  emby:
+    devices:
+    - /dev/dri:/dev/dri
+    - /dev/vchiq:/dev/vchiq
+    - /dev/video10:/dev/video10
+    - /dev/video11:/dev/video11
+    - /dev/video12:/dev/video12
+    environment:
+      PGID: '1000'
+      PUID: '1000'
+      TZ: $TZ
+      CPU_FALLBACK: 'true'
+      NVIDIA_VISIBLE_DEVICES: all
+    image: linuxserver/emby:4.9.1@sha256:873fe21193c902b1919a75584ad6ee99e2286cd7194fd0c8c70d13113574b78b
+    deploy:
+      resources:
+        reservations:
+          memory: 256M
+          devices:
+          - driver: nvidia
+            count: all
+            capabilities:
+            - gpu
+    network_mode: bridge
+    ports:
+    - target: 8096
+      published: '8096'
+      protocol: tcp
+    - target: 8920
+      published: '8920'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/emby-nvidia/config
+      target: /config
+    - type: bind
+      source: /DATA/PowerLabAppData/emby-nvidia/TV Shows
+      target: /data/tvshows
+    - type: bind
+      source: /DATA/PowerLabAppData/emby-nvidia/Movies
+      target: /data/movies
+version: '3.7'
+x-powerlab:
+  store_app_id: emby-nvidia
+  title:
+    en_us: Emby_Nvidia
+  tagline:
+    en_us: Emby_Nvidia
+  category: System
+  port_map: '8096'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Emby_Nvidia
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Emby_Nvidia/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/emby-nvidia/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Emby_Nvidia
+  developer: Emby_Nvidia
+  main: emby

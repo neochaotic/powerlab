@@ -1,0 +1,97 @@
+name: affine
+services:
+  web:
+    image: ghcr.io/toeverything/affine:0.26.3@sha256:725aaceb0ed94d4b832ae6ef9414503291c9b2b4f60bd6f3c7eef571b6149add
+    restart: on-failure
+    environment:
+    - AFFINE_CONFIG_PATH=/root/.affine/config
+    - REDIS_SERVER_HOST=redis
+    - DATABASE_URL=postgres://affine:affine@db:5432/affine
+    - NODE_ENV=production
+    volumes:
+    - /DATA/PowerLabAppData/affine/data/config:/root/.affine/config
+    - /DATA/PowerLabAppData/affine/data/storage/blob:/root/.affine/storage
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
+  migration:
+    image: ghcr.io/toeverything/affine:0.26.3@sha256:725aaceb0ed94d4b832ae6ef9414503291c9b2b4f60bd6f3c7eef571b6149add
+    restart: on-failure
+    command:
+    - sh
+    - -c
+    - node ./scripts/self-host-predeploy
+    environment:
+    - AFFINE_CONFIG_PATH=/root/.affine/config
+    - REDIS_SERVER_HOST=redis
+    - DATABASE_URL=postgres://affine:affine@db:5432/affine
+    - NODE_ENV=production
+    volumes:
+    - /DATA/PowerLabAppData/affine/data/config:/root/.affine/config
+    - /DATA/PowerLabAppData/affine/data/storage/blob:/root/.affine/storage
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+  redis:
+    image: redis:7.2.4@sha256:e647cfe134bf5e8e74e620f66346f93418acfc240b71dd85640325cb7cd01402
+    restart: on-failure
+    volumes:
+    - /DATA/PowerLabAppData/affine/data/storage/redis:/data
+    healthcheck:
+      test:
+      - CMD
+      - redis-cli
+      - --raw
+      - incr
+      - ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  db:
+    image: postgres:16.2@sha256:f58300ac8d393b2e3b09d36ea12d7d24ee9440440e421472a300e929ddb63460
+    restart: on-failure
+    environment:
+      POSTGRES_USER: affine
+      POSTGRES_PASSWORD: affine
+      POSTGRES_DB: affine
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+    - /DATA/PowerLabAppData/affine/data/storage/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pg_isready -U affine
+      interval: 10s
+      timeout: 5s
+      retries: 5
+version: '3.7'
+x-powerlab:
+  store_app_id: affine
+  title:
+    en_us: Affine
+  tagline:
+    en_us: Open source alternative to Notion, Miro, and Airtable
+  category: Files & Sync
+  port_map: '3010'
+  source:
+    catalog: umbrel-apps
+    upstream_id: affine
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: affine/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/affine/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: toeverything
+  developer: toeverything
+  main: web

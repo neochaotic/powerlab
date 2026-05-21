@@ -1,0 +1,41 @@
+name: opencode
+services:
+  app:
+    image: ghcr.io/anomalyco/opencode:1.15.0@sha256:2bffd70c77a574bfb7f930f1940352348bab2242a8b31753f116cea6ac8e9d5b
+    command:
+    - web
+    - --hostname
+    - 0.0.0.0
+    - --port
+    - '4096'
+    restart: on-failure
+    user: 1000:1000
+    environment:
+      HOME: /home/opencode
+    volumes:
+    - /DATA/PowerLabAppData/opencode/data/opencode:/home/opencode/
+version: '3.7'
+x-powerlab:
+  store_app_id: opencode
+  title:
+    en_us: OpenCode
+  tagline:
+    en_us: The open source AI coding agent
+  category: AI & ML
+  port_map: '4096'
+  source:
+    catalog: umbrel-apps
+    upstream_id: opencode
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: opencode/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/opencode/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Anomaly
+  developer: Anomaly
+  main: app

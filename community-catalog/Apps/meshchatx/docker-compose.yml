@@ -1,0 +1,35 @@
+name: meshchatx
+services:
+  web:
+    image: ghcr.io/quad4-software/meshchatx:4.6.2@sha256:295cd7a6a9a932f61035ca9debb8739df642dda9c3f54cbd14023650766bc680
+    restart: on-failure
+    user: 1000:1000
+    volumes:
+    - /DATA/PowerLabAppData/meshchatx/data:/config
+    environment:
+      MESHCHAT_NO_HTTPS: 'true'
+version: '3.7'
+x-powerlab:
+  store_app_id: meshchatx
+  title:
+    en_us: MeshChatX
+  tagline:
+    en_us: The future of off-grid communication. Secure, decentralized, and unstoppable
+  category: Productivity
+  port_map: '8000'
+  source:
+    catalog: umbrel-apps
+    upstream_id: meshchatx
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: meshchatx/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/meshchatx/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Quad4
+  developer: Quad4
+  main: web

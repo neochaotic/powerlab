@@ -9,7 +9,7 @@
 # script:
 #
 #   1. Cross-compiles pure-Go services from the local source
-#      (gateway, app-management, core, message-bus, sync-catalog —
+#      (gateway, app-management, core, message-bus —
 #      `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build`).
 #   2. Downloads the latest GitHub release tarball and extracts the
 #      CGO services (user-service, local-storage) from it. These were
@@ -47,7 +47,6 @@ PURE_GO_SERVICES=(
   "backend/app-management:powerlab-app-management"
   "backend/core:powerlab-core"
   "backend/message-bus:powerlab-message-bus"
-  "backend/sync-catalog:powerlab-sync-catalog"
 )
 
 build_pure_go() {

@@ -1,0 +1,71 @@
+name: bitmagnet
+services:
+  bitmagnet:
+    image: ghcr.io/bitmagnet-io/bitmagnet:v0.10.0@sha256:cf2c16fac5b51f1c18e630b4710175d35d7e44b83012cfd05a2b43712feec05e
+    restart: on-failure
+    stop_grace_period: 1m
+    ports:
+    - 3336:3334/tcp
+    - 3336:3334/udp
+    user: 1000:1000
+    environment:
+      HOME: /tmp
+      XDG_CONFIG_HOME: /config
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ''
+      POSTGRES_NAME: bitmagnet
+    volumes:
+    - /DATA/PowerLabAppData/bitmagnet/data/config:/config/bitmagnet
+    command:
+    - worker
+    - run
+    - --keys=http_server
+    - --keys=queue_server
+    - --keys=dht_crawler
+    depends_on:
+      postgres:
+        condition: service_healthy
+  postgres:
+    image: postgres:16-alpine@sha256:23e88eb049fd5d54894d70100df61d38a49ed97909263f79d4ff4c30a5d5fca2
+    restart: on-failure
+    user: 1000:1000
+    environment:
+      POSTGRES_PASSWORD: ''
+      POSTGRES_DB: bitmagnet
+      POSTGRES_USER: postgres
+      PGUSER: postgres
+    shm_size: 1g
+    volumes:
+    - /DATA/PowerLabAppData/bitmagnet/data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pg_isready
+      start_period: 20s
+      interval: 10s
+version: '3.7'
+x-powerlab:
+  store_app_id: bitmagnet
+  title:
+    en_us: Bitmagnet
+  tagline:
+    en_us: Self-hosted BitTorrent indexer and DHT crawler
+  category: Media
+  port_map: '3333'
+  source:
+    catalog: umbrel-apps
+    upstream_id: bitmagnet
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: bitmagnet/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/bitmagnet/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: bitmagnet
+  developer: bitmagnet
+  main: bitmagnet

@@ -1,0 +1,37 @@
+name: homebox
+services:
+  web:
+    image: ghcr.io/sysadminsmedia/homebox:0.25.0@sha256:6506480a3dfadd2cc885fa97b32d11b0ee28ec58629fa34a76afdb4ac540c7fc
+    restart: on-failure
+    user: 1000:1000
+    environment:
+    - HBOX_LOG_LEVEL=info
+    - HBOX_LOG_FORMAT=text
+    - HBOX_WEB_MAX_UPLOAD_SIZE=10
+    volumes:
+    - /DATA/PowerLabAppData/homebox/data:/data/
+version: '3.7'
+x-powerlab:
+  store_app_id: homebox
+  title:
+    en_us: HomeBox
+  tagline:
+    en_us: An inventory and organization system built for the home user
+  category: Files & Sync
+  port_map: '7745'
+  source:
+    catalog: umbrel-apps
+    upstream_id: homebox
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: homebox/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/homebox/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: SysAdmins Media
+  developer: SysAdmins Media
+  main: web

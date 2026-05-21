@@ -1,0 +1,36 @@
+name: papra
+services:
+  server:
+    image: ghcr.io/papra-hq/papra:26.0.0-rootless@sha256:e41d2237a59b072063e4059a85492cb11fe4aefb706851becbbce88c7c2ae072
+    user: 1000:1000
+    restart: on-failure
+    environment:
+    - AUTH_SECRET=${APP_SEED}
+    - APP_BASE_URL=http://${DEVICE_DOMAIN_NAME}:8112
+    volumes:
+    - /DATA/PowerLabAppData/papra/data:/app/app-data
+version: '3.7'
+x-powerlab:
+  store_app_id: papra
+  title:
+    en_us: Papra
+  tagline:
+    en_us: The minimalistic document archiving platform
+  category: Files & Sync
+  port_map: '1221'
+  source:
+    catalog: umbrel-apps
+    upstream_id: papra
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: papra/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/papra/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Papra
+  developer: Papra
+  main: server

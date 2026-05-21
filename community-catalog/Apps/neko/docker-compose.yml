@@ -1,0 +1,41 @@
+name: neko
+services:
+  web:
+    image: ghcr.io/m1k1o/neko/firefox:3.1.4@sha256:0e0dfa8199ff4cccf95284c0c8e9dde72f740feb816302cc5e7071efe079039e
+    environment:
+      PUID: 1000
+      PGID: 1000
+      NEKO_DESKTOP_SCREEN: 1920x1080@30
+      NEKO_MEMBER_MULTIUSER_USER_PASSWORD: neko
+      NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD: ''
+      NEKO_WEBRTC_EPR: 52000-52100
+      NEKO_WEBRTC_ICELITE: 0
+    shm_size: 2gb
+    restart: on-failure
+    ports:
+    - 52000-52100:52000-52100/udp
+version: '3.7'
+x-powerlab:
+  store_app_id: neko
+  title:
+    en_us: Neko
+  tagline:
+    en_us: A self-hosted virtual browser powered by WebRTC
+  category: Network & VPN
+  port_map: '8080'
+  source:
+    catalog: umbrel-apps
+    upstream_id: neko
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: neko/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/neko/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: m1k1o
+  developer: m1k1o
+  main: web

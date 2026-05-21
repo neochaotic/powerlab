@@ -1,4 +1,4 @@
-.PHONY: dev build test check lint lint-go clean help sync-catalog sync-catalog-dry stage-build test-backend test-ui test-ui-watch
+.PHONY: dev build test check lint lint-go clean help stage-build test-backend test-ui test-ui-watch
 
 # ─── Frontend ──────────────────────────────────────────────────────────
 
@@ -24,7 +24,7 @@ lint: ## Lint frontend
 
 lint-go: ## Lint Go backend per service (warn-only, matches CI, ADR-0040)
 	@command -v golangci-lint >/dev/null 2>&1 || { echo "golangci-lint not installed. Install via: brew install golangci-lint OR go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; exit 1; }
-	@for svc in common core gateway app-management user-service local-storage message-bus sync-catalog; do \
+	@for svc in common core gateway app-management user-service local-storage message-bus; do \
 		echo "── $$svc ──"; \
 		(cd backend/$$svc && golangci-lint run --config=../../.golangci.yml --timeout=5m ./...) || true; \
 	done
@@ -43,23 +43,6 @@ test-backend: ## Run Go backend tests
 
 stage-build: ## Build hot-swap binaries for Linux/amd64 (CGO svcs from release, #414)
 	bash scripts/stage-build.sh
-
-# ─── Catalog sync ─────────────────────────────────────────────────────
-
-sync-catalog: ## Run umbrel-catalog sync locally (writes to community-catalog/)
-	cd backend/sync-catalog && go build -o /tmp/sync-catalog .
-	/tmp/sync-catalog \
-		--source umbrel \
-		--output community-catalog \
-		--upstream https://github.com/getumbrel/umbrel-apps.git
-
-sync-catalog-dry: ## Dry-run the umbrel-catalog sync (scans + reports, no files written)
-	cd backend/sync-catalog && go build -o /tmp/sync-catalog .
-	/tmp/sync-catalog \
-		--source umbrel \
-		--output /tmp/sync-dryrun \
-		--upstream https://github.com/getumbrel/umbrel-apps.git \
-		--dry-run
 
 # ─── Utilities ─────────────────────────────────────────────────────────
 

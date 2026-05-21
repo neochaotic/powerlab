@@ -1,0 +1,34 @@
+name: homarr
+services:
+  web:
+    image: ghcr.io/homarr-labs/homarr:v1.61.0@sha256:6a726c72b37d56a7ce271d35498712f90bfd05ee203bc81e069d718489c35b06
+    restart: on-failure
+    environment:
+      SECRET_ENCRYPTION_KEY: ''
+    volumes:
+    - /DATA/PowerLabAppData/homarr/data:/appdata
+version: '3.7'
+x-powerlab:
+  store_app_id: homarr
+  title:
+    en_us: Homarr
+  tagline:
+    en_us: A customizable browser home page
+  category: Files & Sync
+  port_map: '7575'
+  source:
+    catalog: umbrel-apps
+    upstream_id: homarr
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: homarr/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/homarr/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: homarr-labs
+  developer: homarr-labs
+  main: web

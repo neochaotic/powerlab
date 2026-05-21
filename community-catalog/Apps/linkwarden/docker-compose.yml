@@ -1,0 +1,102 @@
+name: linkwarden
+services:
+  linkwarden:
+    image: ghcr.io/linkwarden/linkwarden:v2.14.1@sha256:31cf4bd2a2e111991fa5c9de03174c8698869c83722105c6ce529e4c911e6861
+    restart: unless-stopped
+    depends_on:
+      linkwarden-postgres:
+        condition: service_healthy
+      linkwarden-meilisearch:
+        condition: service_started
+    ports:
+    - target: 3000
+      published: '3428'
+      protocol: tcp
+    environment:
+      TZ: $TZ
+      NEXTAUTH_URL: http://localhost:3000/api/v1/auth
+      NEXTAUTH_SECRET: abc123
+      DATABASE_URL: postgresql://postgres:abc123@linkwarden-postgres:5432/linkwarden
+      STORAGE_FOLDER: /data
+      MEILI_HOST: http://linkwarden-meilisearch:7700
+      MEILI_MASTER_KEY: kZWvi7wFylRjEnOTnNrNucG3d7c892HlIBtN3Vr8M-0
+      NEXT_PUBLIC_DISABLE_REGISTRATION: 'false'
+      NEXT_PUBLIC_CREDENTIALS_ENABLED: 'true'
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/linkwarden/data
+      target: /data/data
+    networks:
+    - linkwarden-net
+    deploy:
+      resources:
+        reservations:
+          memory: 512m
+  linkwarden-postgres:
+    image: postgres:16-alpine@sha256:16bc17c64a573ef34162af9298258d1aec548232985b33ed7b1eac33ba35c229
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: abc123
+      POSTGRES_DB: linkwarden
+      TZ: $TZ
+    networks:
+    - linkwarden-net
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/linkwarden/pgdata
+      target: /var/lib/postgresql/data
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pg_isready -U postgres -d linkwarden
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        reservations:
+          memory: 256m
+  linkwarden-meilisearch:
+    image: getmeili/meilisearch:v1.12.8@sha256:c9fac23131cca4db95173d41cc50fd5639121ee381795528fdd7522d7978a7b8
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: kZWvi7wFylRjEnOTnNrNucG3d7c892HlIBtN3Vr8M-0
+      MEILI_ENV: production
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/linkwarden/meili_data
+      target: /meili_data
+    networks:
+    - linkwarden-net
+    deploy:
+      resources:
+        reservations:
+          memory: 256m
+networks:
+  linkwarden-net: {}
+version: '3.7'
+x-powerlab:
+  store_app_id: linkwarden
+  title:
+    en_us: Linkwarden
+  tagline:
+    en_us: Linkwarden
+  category: System
+  port_map: '3428'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Linkwarden
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Linkwarden/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/linkwarden/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Linkwarden
+  developer: Linkwarden
+  main: linkwarden

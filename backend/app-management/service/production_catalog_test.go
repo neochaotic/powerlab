@@ -100,7 +100,7 @@ func TestProductionCatalog_AllParseThroughComposeLoader(t *testing.T) {
 	}
 
 	if failed > 0 {
-		t.Logf("CI gate failed: %d/%d apps in community-catalog/ would not surface in the store. Run `make sync-catalog` to refresh, or fix backend/sync-catalog/transform.go if a new upstream pattern appeared.",
+		t.Logf("CI gate failed: %d/%d apps in community-catalog/ would not surface in the store. Re-bundle from the powerlab-store repo (./scripts/bundle-store.sh <tag>), or fix the offending app's docker-compose.yml in powerlab-store.",
 			failed, len(appDirs))
 	}
 }
@@ -126,9 +126,10 @@ var shellVarRE = regexp.MustCompile(`\$\{[A-Z_][A-Z0-9_]*\}|\$[A-Z_][A-Z0-9_]*`)
 // placeholder remains. After the v0.6.3 round of transforms we should
 // have ZERO surviving `${...}` or `$VAR` in those positions.
 //
-// When this test fails: it surfaces the EXACT pattern Umbrel surfaced.
-// Add a substitution case to `backend/sync-catalog/transform.go`,
-// re-emit (`make sync-catalog`), re-run the test. Loop closes.
+// When this test fails: it surfaces the EXACT placeholder pattern that
+// slipped through. Fix the offending app's docker-compose.yml in the
+// powerlab-store repo, re-bundle (./scripts/bundle-store.sh <tag>),
+// re-run the test. Loop closes.
 func TestProductionCatalog_NoUnknownPlaceholdersInDangerousPositions(t *testing.T) {
 	appsDir := filepath.Join("..", "..", "..", "community-catalog", "Apps")
 	entries, err := os.ReadDir(appsDir)

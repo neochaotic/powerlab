@@ -115,29 +115,13 @@ for svc in "${SERVICES[@]}"; do
   fi
 done
 
-# ─── 2.5 Build sync-catalog ─────────────────────────────────────────────
-# Shipping sync-catalog as a system binary lets install.sh refresh the
-# community catalog post-install, decoupling catalog freshness from
-# tarball freshness. The class of bug v0.6.2 hit (binary fixed Phase 7,
-# tarball still had v0.6.1 broken YAMLs) closes here: even an old
-# tarball with stale catalog gets refreshed on install, as long as git
-# is on the host and GitHub is reachable. Build flags are simpler than
-# the main services (no CGO, no version-stamp ldflags — it's a
-# maintenance tool, not a long-running service).
-log "  building sync-catalog..."
-cd "$ROOT/backend/sync-catalog"
-GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
-  -trimpath \
-  -o "$STAGE/bin/powerlab-sync-catalog" \
-  .
-
-# ─── 2.6 Build logs-cli (Sprint 14 #150 / ADR-0027) ─────────────────────
+# ─── 2.5 Build logs-cli (Sprint 14 #150 / ADR-0027) ─────────────────────
 # powerlab-logs is the diagnostic survival binary — surfaces systemd
 # journal, Docker container logs, and install/upgrade logs from a host
 # WITHOUT depending on any running PowerLab daemon. The operator SSH's
 # in and runs `powerlab-logs journal --follow` when something is on
-# fire. Same lean cross-compile profile as sync-catalog (no CGO, no
-# version-stamp ldflags). See backend/logs-cli/main.go.
+# fire. Lean cross-compile profile (no CGO, no version-stamp ldflags).
+# See backend/logs-cli/main.go.
 log "  building logs-cli..."
 cd "$ROOT/backend/logs-cli"
 GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
@@ -707,11 +691,10 @@ fi
 # community-catalog/ dir is preserved (README, .gitkeep, x-powerlab-*.md
 # etc.) — only the Apps/ subtree is replaced.
 #
-# Note: the powerlab-sync-catalog binary is still shipped to /usr/bin
-# for explicit operator use (e.g. mirroring an upstream into a custom
-# catalog source registered via Settings → Catalog). It is NOT invoked
-# automatically here; auto-sync against an upstream contradicts the
-# "PowerLab ships its own curated set" promise.
+# The catalog is bundled from the powerlab-store repo at release time
+# (scripts/bundle-store.sh); there is no install-time or post-install
+# upstream sync. Operators who want a different catalog register a custom
+# source via Settings → Catalog.
 if [[ -d "$HERE/community-catalog" ]]; then
   echo "[powerlab-install] Installing community catalog..."
   rm -rf /var/lib/powerlab/community-catalog/Apps

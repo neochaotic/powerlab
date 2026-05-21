@@ -1,0 +1,76 @@
+name: jellyfin-nvidia
+services:
+  jellyfin:
+    devices:
+    - /dev/dri:/dev/dri
+    - /dev/vcsm:/dev/vcsm
+    - /dev/vchiq:/dev/vchiq
+    - /dev/video10:/dev/video10
+    - /dev/video11:/dev/video11
+    - /dev/video12:/dev/video12
+    environment:
+      PGID: $PGID
+      PUID: $PUID
+      TZ: $TZ
+      CPU_FALLBACK: 'true'
+      NVIDIA_VISIBLE_DEVICES: all
+    image: linuxserver/jellyfin:10.10.6@sha256:3ade631e7085ce6d8ce4b477191152ab51316f0293f23be7531508324cae7b37
+    deploy:
+      resources:
+        reservations:
+          memory: 256M
+          devices:
+          - driver: nvidia
+            count: all
+            capabilities:
+            - gpu
+    network_mode: bridge
+    ports:
+    - target: 8096
+      published: '8097'
+      protocol: tcp
+    - target: 8920
+      published: '8921'
+      protocol: tcp
+    - target: 7359
+      published: '7359'
+      protocol: tcp
+    - target: 1900
+      published: '1901'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/jellyfin-nvidia/config
+      target: /config
+    - type: bind
+      source: /DATA/PowerLabAppData/jellyfin-nvidia/data
+      target: /Media
+    - type: bind
+      source: /DATA/PowerLabAppData/jellyfin-nvidia/opt/vc/lib
+      target: /opt/vc/lib
+version: '3.7'
+x-powerlab:
+  store_app_id: jellyfin-nvidia
+  title:
+    en_us: Jellyfin_Nvidia
+  tagline:
+    en_us: Jellyfin_Nvidia
+  category: System
+  port_map: '8097'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Jellyfin_Nvidia
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Jellyfin_Nvidia/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/jellyfin-nvidia/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Jellyfin_Nvidia
+  developer: Jellyfin_Nvidia
+  main: jellyfin

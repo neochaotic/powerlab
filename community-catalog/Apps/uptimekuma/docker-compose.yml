@@ -1,0 +1,43 @@
+name: uptimekuma
+services:
+  uptimekuma:
+    image: louislam/uptime-kuma:1.23.16-alpine@sha256:f111cca721507faa0a57e1ffc75210d64c9a9ca0f8375e0336a2a9a88ae2987c
+    deploy:
+      resources:
+        reservations:
+          memory: 128M
+    network_mode: bridge
+    ports:
+    - target: 3001
+      published: '3001'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/uptimekuma/app/data
+      target: /app/data
+version: '3.7'
+x-powerlab:
+  store_app_id: uptimekuma
+  title:
+    en_us: Uptime Kuma
+  tagline:
+    en_us: A fancy monitoring tool
+  category: Network & VPN
+  port_map: '3001'
+  source:
+    catalog: casaos-appstore
+    upstream_id: UptimeKuma
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/UptimeKuma/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/uptimekuma/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Louis Lam
+  developer: Louis Lam
+  main: uptimekuma

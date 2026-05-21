@@ -1,0 +1,31 @@
+name: nutstash-wallet
+services:
+  web:
+    image: ghcr.io/gandlafbtc/nutstash-wallet:0.1.10@sha256:8a585c4a6545e68e9a1c8fcf2a0a15ef401ad040accf925234451fe1b838d180
+    restart: on-failure
+    stop_grace_period: 1m
+version: '3.7'
+x-powerlab:
+  store_app_id: nutstash-wallet
+  title:
+    en_us: Nutstash Wallet
+  tagline:
+    en_us: Nutstash is a Cashu wallet for your browser
+  category: Finance
+  port_map: '3000'
+  source:
+    catalog: umbrel-apps
+    upstream_id: nutstash-wallet
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: nutstash-wallet/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/nutstash-wallet/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: gandlafbtc
+  developer: gandlafbtc
+  main: web

@@ -37,10 +37,15 @@ fi
 test_root=$(mktemp -d "${TMPDIR:-/tmp}/powerlab-upgrade-test-XXXXXX")
 trap 'rm -rf "$test_root"' EXIT
 
-# Simulated "v0.6.x box" with old orphan apps still on disk.
+# Simulated "v0.6.x box" with old orphan apps still on disk. These use
+# synthetic ids that will NEVER be in the curated catalog, so the test
+# stays valid as the catalog grows (real app names like jellyfin /
+# vaultwarden are now legitimately bundled and must NOT be treated as
+# orphans). The mechanic under test is: wipe-then-copy removes any app
+# dir not in the new curated set.
 prior_apps_dir="$test_root/var/lib/powerlab/community-catalog/Apps"
 mkdir -p "$prior_apps_dir"
-prior_apps=("home-assistant" "jellyfin" "nextcloud" "vaultwarden" "pihole")
+prior_apps=("legacy-orphan-alpha" "legacy-orphan-bravo" "legacy-orphan-charlie")
 for app in "${prior_apps[@]}"; do
   mkdir -p "$prior_apps_dir/$app"
   echo "services: {}" > "$prior_apps_dir/$app/docker-compose.yml"

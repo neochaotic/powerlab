@@ -1,0 +1,61 @@
+name: petio
+services:
+  petio:
+    image: ghcr.io/petio-team/petio@sha256:1c5a9276a844f4284601cbe332905864950545ebdeaad74bacb9097ea4f4b333
+    restart: unless-stopped
+    networks:
+    - petio-network
+    depends_on:
+    - mongo
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 7777
+      published: '7777'
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/PowerLabAppData/petio/config
+      target: /app/api/config
+    - type: bind
+      source: /DATA/PowerLabAppData/petio/logs
+      target: /app/logs
+  mongo:
+    image: mongo:4.4.22@sha256:dcef38a5b82ca7e1293055ededc22d38fb27fffb526523c70a4cbd864182c310
+    restart: unless-stopped
+    hostname: mongo
+    networks:
+    - petio-network
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+networks:
+  petio-network: {}
+version: '3.7'
+x-powerlab:
+  store_app_id: petio
+  title:
+    en_us: Petio
+  tagline:
+    en_us: Petio
+  category: System
+  port_map: '7777'
+  source:
+    catalog: casaos-appstore
+    upstream_id: Petio
+    upstream_repo: https://github.com/IceWhaleTech/CasaOS-AppStore.git
+    upstream_path: Apps/Petio/docker-compose.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/petio/icon.png
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Petio
+  developer: Petio
+  main: petio

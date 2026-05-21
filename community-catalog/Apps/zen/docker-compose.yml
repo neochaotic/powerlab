@@ -1,0 +1,34 @@
+name: zen
+services:
+  app:
+    image: ghcr.io/sheshbabu/zen/zen:1.5.0@sha256:370d7ae0d8b4d06593b44ffa1cfde5d15c7f80abe4bbe8d94e86d8d29e250270
+    user: 1000:1000
+    restart: on-failure
+    volumes:
+    - /DATA/PowerLabAppData/zen/data/app:/data
+    - /DATA/PowerLabAppData/zen/data/images:/images
+version: '3.7'
+x-powerlab:
+  store_app_id: zen
+  title:
+    en_us: Zen
+  tagline:
+    en_us: A simple app for focused and private note-taking
+  category: Files & Sync
+  port_map: '8080'
+  source:
+    catalog: umbrel-apps
+    upstream_id: zen
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: zen/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/zen/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Sheshbabu
+  developer: Sheshbabu
+  main: app

@@ -1,0 +1,34 @@
+name: file-drop
+services:
+  app:
+    image: ghcr.io/besoeasy/file-drop:1.1.1@sha256:672d05e260c88bd6d923b2b0b3b845bd80b35e0255cec35b2f047aa7a6525e5f
+    user: 1000:1000
+    restart: on-failure
+    stop_grace_period: 5m
+    environment:
+    - NODE_ENV=production
+version: '3.7'
+x-powerlab:
+  store_app_id: file-drop
+  title:
+    en_us: File Drop
+  tagline:
+    en_us: Decentralized, Anonymous, and Secure File Sharing
+  category: Files & Sync
+  port_map: '3232'
+  source:
+    catalog: umbrel-apps
+    upstream_id: file-drop
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: file-drop/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/file-drop/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: besoeasy
+  developer: besoeasy
+  main: app

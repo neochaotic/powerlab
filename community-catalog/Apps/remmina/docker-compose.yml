@@ -1,0 +1,35 @@
+name: remmina
+services:
+  server:
+    image: linuxserver/remmina:1.4.35@sha256:ca2b6788bad28d864086649fc276ce696cac9cdf69e6976b85497b341ed07d8d
+    volumes:
+    - /DATA/PowerLabAppData/remmina/data/config:/config
+    restart: on-failure
+    environment:
+    - PUID=1000
+    - PGID=1000
+version: '3.7'
+x-powerlab:
+  store_app_id: remmina
+  title:
+    en_us: Remmina
+  tagline:
+    en_us: Remote access screen and file sharing
+  category: Network & VPN
+  port_map: '3000'
+  source:
+    catalog: umbrel-apps
+    upstream_id: remmina
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: remmina/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/remmina/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Remmina
+  developer: Remmina
+  main: server

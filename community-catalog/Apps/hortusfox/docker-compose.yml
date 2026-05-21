@@ -1,0 +1,57 @@
+name: hortusfox
+services:
+  app:
+    image: ghcr.io/danielbrendel/hortusfox-web:v5.8@sha256:62fdac133dddda643d4e533de58068dc25eef7bb70f5607a0dd7a16c01049668
+    restart: on-failure
+    volumes:
+    - /DATA/PowerLabAppData/hortusfox/data/images:/var/www/html/public/img
+    - /DATA/PowerLabAppData/hortusfox/data/logs:/var/www/html/app/logs
+    - /DATA/PowerLabAppData/hortusfox/data/backup:/var/www/html/public/backup
+    - /DATA/PowerLabAppData/hortusfox/data/themes:/var/www/html/public/themes
+    - /DATA/PowerLabAppData/hortusfox/data/migrate:/var/www/html/app/migrations
+    environment:
+      APP_ADMIN_EMAIL: umbrel@umbrel.local
+      APP_ADMIN_PASSWORD: ''
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: hortusfox
+      DB_USERNAME: user
+      DB_PASSWORD: password
+      DB_CHARSET: utf8mb4
+    depends_on:
+    - db
+  db:
+    image: mariadb:11.4.7@sha256:c5c82ddc074b9236fda87127934a1da726ecac68e9de083fd0e0d11a7bedc077
+    restart: on-failure
+    environment:
+      MYSQL_ROOT_PASSWORD: my-secret-pw
+      MYSQL_DATABASE: hortusfox
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    volumes:
+    - /DATA/PowerLabAppData/hortusfox/data/db_data:/var/lib/mysql
+version: '3.7'
+x-powerlab:
+  store_app_id: hortusfox
+  title:
+    en_us: HortusFox
+  tagline:
+    en_us: A collaborative plant tracking and management application
+  category: Files & Sync
+  port_map: '80'
+  source:
+    catalog: umbrel-apps
+    upstream_id: hortusfox
+    upstream_repo: https://github.com/getumbrel/umbrel-apps.git
+    upstream_path: hortusfox/umbrel-app.yml
+    transform_version: 1.0-powerlab-secure
+    synced_at: '2026-05-19T02:27:01Z'
+  icon: https://raw.githubusercontent.com/neochaotic/powerlab-store/v0.1.1/Apps/hortusfox/icon.svg
+  security:
+    image_pin: pinned
+    audit_notes: Reviewed during import from upstream catalog (see x-powerlab.source).
+      No init scripts, no privilege escalation, no host-namespace bypass, no kernel
+      capability grants. Volume paths rewritten to /DATA/PowerLabAppData/<id>.
+  author: Daniel Brendel
+  developer: Daniel Brendel
+  main: app
