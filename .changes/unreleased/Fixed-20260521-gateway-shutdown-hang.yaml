@@ -1,0 +1,5 @@
+kind: Fixed
+body: 'Gateway no longer hangs ~90s on restart. Graceful shutdown used http.Server.Shutdown(context.Background()) with no deadline, which blocks until every active connection drains — but the gateway proxies long-lived SSE streams (audit feed, journald logs, telemetry) that never close, so a restart with the UI open stalled until systemd SIGKILLed the process. This also stalled the Layer 4 gateway self-restart. Both shutdown paths now use a bounded 10s context (shutdownGateway helper) so they drain briefly then return.'
+time: 2026-05-21T13:30:00Z
+custom:
+    Issue: "483"
