@@ -1,5 +1,0 @@
-kind: Added
-body: '`scripts/shell/local-storage-helper.sh` — USB/SD auto-mount helper script (#464, Phase C of USB/SD audit). Implements the 4 functions that backend/local-storage/service/{usb,disk}.go has been silently failing to source since the CasaOS rebrand: USB_Start_Auto, USB_Stop_Auto, do_mount, UDEVILUmount. Installs a udev rule covering both USB block devices (ID_BUS=usb) and SD cards (ID_DRIVE_FLASH_SD=1 — CasaOS upstream never shipped SD support, PowerLab does). Mount point: /mnt/powerlab/{label-or-uuid}. Path-traversal safe — UDEVILUmount refuses to rmdir anything outside POWERLAB_MOUNT_ROOT. Shipped via `scripts/package-linux.sh` to `/usr/share/powerlab/shell/`. Hardware E2E hot-plug verification deferred to operator (Phase E checklist #465); CI gate covers static contract + safety guards.'
-time: 2026-05-18T10:30:00Z
-custom:
-    Issue: "464"

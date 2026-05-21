@@ -1,5 +1,0 @@
-kind: Added
-body: 'Backend endpoints for the Settings → Power pane (#260). `GET /v1/sys/services` lists PowerLab systemd units (powerlab-gateway, app-management, core, user-service, local-storage, message-bus) with their active/sub state + PID. `POST /v1/sys/services/{name}/restart` restarts a whitelisted unit (service name validated against a hardcoded allow-list before reaching the shell — non-whitelisted names rejected at the handler). `POST /v1/sys/host/reboot` and `POST /v1/sys/host/shutdown` trigger `systemctl reboot|poweroff`, each requiring `{"confirm": true}` in the body so an accidental POST cannot power-cycle the box. UI Power pane is a focused follow-up PR.'
-time: 2026-05-18T00:30:00Z
-custom:
-    Issue: "260"

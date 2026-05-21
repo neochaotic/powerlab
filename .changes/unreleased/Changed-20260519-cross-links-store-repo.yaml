@@ -1,5 +1,0 @@
-kind: Changed
-body: |
-  Docs: README, CONTRIBUTING.md, and ADR-0039 now cross-link to
-  the independent powerlab-store repo. The catalog moved out of
-  this repo per ADR-0041 — app submissions go there.

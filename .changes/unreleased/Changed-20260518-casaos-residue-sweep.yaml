@@ -1,5 +1,0 @@
-kind: Changed
-body: 'CasaOS rebrand residue cleanup spotted during #260 review. Renames `GetCasaOSErrorLogs` → `GetSystemErrorLogs` and the underlying `SystemService.GetCasaOSLogs` → `GetSystemLogs`. Deletes unused `GetCasaOSPort`/`PutCasaOSPort` (dead code; routes were already commented out in v1.go). Fixes log messages in `backend/app-management/main.go` and `backend/core/main.go` that still said "casaos main service is ready" — now they correctly identify themselves as `powerlab-app-management` / `powerlab-core`. Swagger summaries on system.go updated to drop the lying "casaos" verb. Legacy/migration code paths (`LegacyCasaOSCoreDB`, `LegacyLabelKindKey = "casaos"`, x-casaos extension fallback) left untouched — those identify legacy data and the names are accurate.'
-time: 2026-05-18T01:00:00Z
-custom:
-    Issue: ""

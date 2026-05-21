@@ -1,5 +1,0 @@
-kind: Fixed
-body: 'Install-time host-placeholder substitution no longer corrupts bare (unbracketed) IPv6 addresses. stripPort treated the trailing hextet of `::1` / `fe80::1234` as a port and mangled them to `:` / `fe80:`; it now leaves any multi-colon input untouched (only single-colon IPv4/hostname `host:port` forms get the port stripped). Bracketed IPv6 from Host headers was already handled. Hardened alongside adversarial coverage for the install-pipeline secret substitution (regex over-match boundaries, 0700 secrets-dir confidentiality, literal `$`-in-value substitution).'
-time: 2026-05-21T15:00:00Z
-custom:
-    Issue: "483"

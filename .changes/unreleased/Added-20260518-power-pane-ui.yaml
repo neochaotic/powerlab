@@ -1,5 +1,0 @@
-kind: Added
-body: 'Settings → Power pane (#260) — UI for the power-actions backend from PR #466. Lists 6 PowerLab systemd units with live status badges (active/inactive/failed/activating), per-service Restart buttons, and host-level Reboot/Shutdown actions gated behind acknowledgement modals. Polls `GET /v1/sys/services` every 5s while the pane is mounted. Host ops use a checkbox acknowledgement modal that mirrors the backend''s `{"confirm": true}` body requirement (defense in depth). 4 Playwright specs lock the contract.'
-time: 2026-05-18T01:30:00Z
-custom:
-    Issue: "260"

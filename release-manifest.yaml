@@ -31,10 +31,12 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Hardening release. Closes #450 install-path bug class
-  (orphan apps + auto-Umbrel-sync). Settings → Power pane.
-  Sidebar telemetry fix (#453). Lockout recovery doc +
-  systemd hardening. ADR-0040 hygiene baseline.
+  Opt-in app catalog: disabled by default, enable in
+  Settings → Catalog (curated powerlab-store, 137 apps).
+  Fixes a gateway boot regression and a restart hang on
+  long-lived streams. Security: install-time bind-mount
+  containment + host/secret hardening. Releases now gate
+  on a real-backend install→uninstall smoke in CI.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:

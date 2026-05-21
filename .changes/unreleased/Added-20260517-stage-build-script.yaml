@@ -1,5 +1,0 @@
-kind: Added
-body: '`make stage-build` produces Linux/amd64 binaries ready for hot-swap deploy to a staging box, from any dev OS (#414). Pure-Go services (gateway, app-management, core, message-bus, sync-catalog) cross-compiled locally; CGO services (user-service, local-storage) pulled from the latest GitHub release tarball — avoids the silent "invalid credentials" trap from `CGO_ENABLED=0` cross-compile that bit Sprint 20 staging. Override release source via `POWERLAB_RELEASE_TAG=vX.Y.Z`. Documented in CONTRIBUTING.md "Hot-swap deploy" section.'
-time: 2026-05-17T23:55:00Z
-custom:
-    Issue: "414"

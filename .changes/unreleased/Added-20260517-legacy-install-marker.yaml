@@ -1,5 +1,0 @@
-kind: Added
-body: 'Boot migration tags apps installed before v0.7.1 with a `.installed-pre-v0.7.1` marker file under each app directory (#437). Idempotent via a `.legacy-scan-complete` sentinel under `AppsPath`; runs ONCE on the first v0.7.1 boot then never again. New installs (post-v0.7.1) never get the marker. This is the backend plumbing for the upcoming "Legacy" badge in the apps grid that will visually distinguish apps from the pre-ADR-0039 upstream Umbrel/CasaOS sync model from apps installed via the curated catalog or a registered custom source.'
-time: 2026-05-17T23:50:00Z
-custom:
-    Issue: "437"

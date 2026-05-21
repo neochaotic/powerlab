@@ -1,5 +1,0 @@
-kind: Added
-body: 'Coverage push +3.43pp aggregate (statements 37.23% → 40.66%) — first sprint applying the coverage cadence rule (memory feedback_coverage_cadence_rule, ADR-0040 amendment). 6 surfaces concluded at ≥95% coverage: catalog.ts API client, logs.ts API client, CatalogPane component, PowerPane component, AppHeader component, Breadcrumbs component. Honest gap to +10pp target: remaining surfaces are god-files (Sidebar 697 LOC, settings/+page 760, apps/+page 1561) which need splitting before they''re testable — ADR-0040 explicitly defers god-file refactor until coverage ≥50%, creating the chicken-and-egg the cadence rule will work through over multiple sprints.'
-time: 2026-05-18T10:00:00Z
-custom:
-    Issue: ""

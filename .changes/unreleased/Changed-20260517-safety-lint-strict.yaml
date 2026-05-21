@@ -1,5 +1,0 @@
-kind: Changed
-body: 'CI catalog-app-safety lint flipped from warn-only to strict (`POWERLAB_CATALOG_SAFETY_STRICT=1`). Sprint 22 PR #448 seeded the curated catalog with 4 hand-audited apps; PR #451 keeps it that way on every install via wipe-then-copy. Any future PR adding `privileged: true`, `docker.sock`, `network_mode: host`, `cap_add: [ALL|SYS_ADMIN]`, or system-path bind-mounts now blocks the merge. Local strict run before commit: `OK: 0 safety findings across 4 catalog file(s)`.'
-time: 2026-05-17T23:35:00Z
-custom:
-    Issue: ""

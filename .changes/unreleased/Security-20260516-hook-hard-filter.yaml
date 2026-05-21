@@ -1,5 +1,0 @@
-kind: Security
-body: 'sync-catalog: hard filter at sync time rejects upstream apps that ship `hooks/` directory or `exports.sh` file. PowerLab never executes upstream host scripts (the umbrelOS RCE surface). Apps with hook/export artifacts are dropped before parse with a `[hooks]` log line. Per ADR-0038.'
-time: 2026-05-16T00:00:00Z
-custom:
-    Issue: "432"

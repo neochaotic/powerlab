@@ -1,5 +1,0 @@
-kind: Changed
-body: 'Settings → Catalog header copy refined to accurately reflect ADR-0039 + #450 install semantics. Now states explicitly that PowerLab Curated is wiped + replaced on every install (operator edits to its `Apps/` dir do not survive upgrades) and shows a dynamic count of operator-added sources with a yellow-strong callout when any are present.'
-time: 2026-05-17T23:45:00Z
-custom:
-    Issue: ""

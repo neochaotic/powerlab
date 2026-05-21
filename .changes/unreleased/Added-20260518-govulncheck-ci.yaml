@@ -1,5 +1,0 @@
-kind: Added
-body: 'CI job `backend-vuln-scan` runs `govulncheck` per service in a matrix (ADR-0040 SAST adoption). Strict from day 1: a known CVE in any transitive dep fails the build. Unlike the lint gate which warns + ratchets, vuln scan is binary — a known CVE is a known CVE. Closes the SAST gap the K8s-grade audit (2026-05-18) flagged as "ironic given the catalog security work."'
-time: 2026-05-18T03:30:00Z
-custom:
-    Issue: ""

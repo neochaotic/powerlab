@@ -1,5 +1,0 @@
-kind: Changed
-body: 'ADR-0040 amended with explicit "Coverage cadence rule" section (maintainer-set 2026-05-18). +10 percentage points per surface per sprint until realistic ceiling ("estabilidade") concludes that surface. Per-version targets removed (cadence is per-sprint, never anchored to specific patches — memory `feedback_version_cadence_v07_to_v030`). Realistic per-surface ceilings documented (pure-logic 85-90%, HTTP handlers 80-85%, service layer 65-70%, CGO services 40-50%, UI 70-75%). Weighted aggregate ceiling ~65-70%, never 100% — above that becomes brittle/teatro.'
-time: 2026-05-18T03:50:00Z
-custom:
-    Issue: ""

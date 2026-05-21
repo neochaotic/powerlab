@@ -1,5 +1,0 @@
-kind: Fixed
-body: 'Boot-time migration removes orphan apps from `/var/lib/powerlab/community-catalog/Apps/` that aren''t in the bundled `.curated-manifest` (ADR-0039 / #450). Closes the gap for v0.7.0 boxes already on disk with leftover apps from a prior larger curated set — app-management converges back to the bundled set on next startup without requiring a re-install. Missing/empty manifest → noop (safer to leave orphans than wipe operator state). `scripts/package-linux.sh` emits the manifest at staging time; `backend/app-management/pkg/config/curated_catalog_orphan_cleanup.go` reads it at boot and prunes.'
-time: 2026-05-17T23:15:00Z
-custom:
-    Issue: "450"

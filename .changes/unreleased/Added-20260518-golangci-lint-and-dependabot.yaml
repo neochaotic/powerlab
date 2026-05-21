@@ -1,5 +1,0 @@
-kind: Added
-body: 'Golangci-lint warn-only baseline + Dependabot weekly + `make lint-go` target (ADR-0040 hygiene baseline). 8 core linters enabled: govet, staticcheck, errcheck, gosec, revive, ineffassign, unused, gocyclo. Warn-only initially (`issues-exit-code: 0` in `.golangci.yml`); each family flips to strict in its own focused PR per the ADR-0037 delta-strict ratchet pattern. CI matrix job `backend-lint` runs per service alongside the deadcode matrix. Dependabot covers all 8 Go modules + UI npm + GitHub Actions with grouped weekly PRs to avoid floods. Pre-commit hook deferred until first linter family flips strict.'
-time: 2026-05-18T03:00:00Z
-custom:
-    Issue: ""

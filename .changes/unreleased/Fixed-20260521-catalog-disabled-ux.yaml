@@ -1,5 +1,0 @@
-kind: Fixed
-body: 'With the catalog opt-in disabled, the store no longer shows a blank page and installed apps no longer flip to "Custom". The empty store now renders an enable-catalog call-to-action (one-click enable, explains the apps are already on-device and curated). Installed-app classification now reads the provenance baked into each app''s own compose (x-powerlab source/author) instead of live-catalog membership, so toggling the catalog off never relabels installed store apps as Custom.'
-time: 2026-05-21T17:30:00Z
-custom:
-    Issue: "483"

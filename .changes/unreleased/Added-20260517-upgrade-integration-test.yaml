@@ -1,5 +1,0 @@
-kind: Added
-body: 'CI gate `scripts/check-install-upgrade-clean_test.sh` reproduces the v0.6.x → v0.7.x upgrade scenario against a temp prefix: pre-populates the destination Apps/ with N "orphan" apps from a simulated prior install, builds a fake tarball stage with M curated apps + manifest, runs the actual install snippet from `scripts/package-linux.sh`, and asserts the post-install Apps/ contains exactly the curated set (orphans removed). Locks the #450 bug class so it cannot silently regress. Companion to PRs #451 + #452.'
-time: 2026-05-17T23:40:00Z
-custom:
-    Issue: "450"
