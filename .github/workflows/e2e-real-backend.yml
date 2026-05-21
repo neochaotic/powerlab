@@ -76,7 +76,10 @@ jobs:
       - name: Run browser @smoke against the real backend
         working-directory: ui
         # journald-stream needs systemd units (packaged install) — excluded here.
-        run: npx playwright test --grep "@smoke" --grep-invert "journald" --reporter=line
+        # --workers=1: real-backend login is rate-limited (HTTP 429); the
+        # token cache is per-process, so parallel workers each log in and
+        # trip the limit. Serial → one cached login for the whole run.
+        run: npx playwright test --grep "@smoke" --grep-invert "journald" --workers=1 --reporter=line
 
       - name: Dump backend logs on failure
         if: failure()
