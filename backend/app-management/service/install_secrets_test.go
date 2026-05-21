@@ -204,3 +204,77 @@ func extractEnvValue(t *testing.T, blob, key string) string {
 	}
 	return ""
 }
+
+// --- Adversarial / security locks -------------------------------------
+
+// The secrets directory must be created 0700 so other users on the host
+// can't enumerate which apps have secret files (the files themselves are
+// 0600, but a world-readable dir leaks app inventory + invites races).
+func TestSubstituteSecrets_SecretsDirIs0700(t *testing.T) {
+	base := t.TempDir()
+	dir := filepath.Join(base, "created", "by", "write") // does not exist yet
+	yaml := []byte("services:\n  app:\n    environment:\n      - S=${APP_SEED}\n")
+	if _, err := service.SubstituteSecrets(yaml, "appx", dir); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(dir)
+	if err != nil {
+		t.Fatalf("expected secrets dir created: %v", err)
+	}
+	if info.Mode().Perm() != 0o700 {
+		t.Errorf("SECURITY: secrets dir mode = %v, want 0700", info.Mode().Perm())
+	}
+}
+
+// The placeholder regex must be exact. Over-broadening would substitute
+// random secrets into unintended env vars (breaking apps) or leak
+// generated values where they don't belong; under-matching reintroduces
+// the literal-placeholder bug. Lock the boundary: near-miss tokens MUST
+// be left untouched AND must not even trigger the substitution path
+// (no secrets file written).
+func TestSubstituteSecrets_RegexDoesNotOverMatch(t *testing.T) {
+	dir := t.TempDir()
+	yaml := []byte(`services:
+  app:
+    environment:
+      - A=${APP_SEEDX}
+      - B=${app_seed}
+      - C=${APP_SEED
+      - D=${APP_TOKEN}
+      - E=${SOMETHING_APP_SEED}
+`)
+	out, err := service.SubstituteSecrets(yaml, "appx", dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(out) != string(yaml) {
+		t.Errorf("near-miss placeholders should be untouched.\n got:\n%s", out)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "appx.env")); !os.IsNotExist(err) {
+		t.Errorf("no secrets file should be written when nothing matched (err=%v)", err)
+	}
+}
+
+// A persisted secret value containing regex-replacement metacharacters
+// ($1, ${name}) must be substituted LITERALLY. This locks the use of
+// ReplaceAllFunc over ReplaceAll — the latter would expand $1/${name} as
+// capture-group references and silently corrupt the secret (and could
+// inject attacker-influenced expansions if a value were ever externally
+// sourced).
+func TestSubstituteSecrets_DollarInValueSubstitutedLiterally(t *testing.T) {
+	dir := t.TempDir()
+	// Pre-seed the secrets file with a value full of $ metachars.
+	const tricky = "ab$1cd${APP_SEED}ef$0"
+	if err := os.WriteFile(filepath.Join(dir, "appx.env"),
+		[]byte("APP_PASSWORD="+tricky+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	yaml := []byte("services:\n  app:\n    environment:\n      - PW=${APP_PASSWORD}\n")
+	out, err := service.SubstituteSecrets(yaml, "appx", dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(out), "PW="+tricky) {
+		t.Errorf("expected literal %q in output (no $-expansion), got:\n%s", tricky, out)
+	}
+}

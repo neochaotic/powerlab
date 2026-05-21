@@ -214,7 +214,7 @@ func main() {
 
 	defer func() {
 		if _gateway != nil {
-			if err := _gateway.Shutdown(context.Background()); err != nil {
+			if err := shutdownGateway(_gateway, gatewayShutdownTimeout); err != nil {
 				_log.Error(context.Background(), "Failed to stop gateway", err)
 			}
 		}
@@ -567,7 +567,7 @@ func reloadGateway(port string, route http.Handler) error {
 		go func() {
 			_log.Info(context.Background(), "Stopping previous gateway in 1 seconds...", slog.Any("address", gatewayOld.Addr))
 			time.Sleep(time.Second) // so that any request to the old gateway gets a response
-			if err := gatewayOld.Shutdown(context.Background()); err != nil {
+			if err := shutdownGateway(gatewayOld, gatewayShutdownTimeout); err != nil {
 				_log.Error(context.Background(), "Error when stopping previous gateway", err, slog.Any("address", gatewayOld.Addr))
 			}
 		}()

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/neochaotic/powerlab/backend/app-management/pkg/config"
 	"gopkg.in/yaml.v3"
 )
 
@@ -32,6 +33,7 @@ func TestPrepareBindMountSources_ChmodsExistingDirs(t *testing.T) {
 	if err := os.MkdirAll(cfgDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	config.AppInfo.StoragePath = tmpRoot // containment root
 
 	yamlBytes := []byte(`services:
   app:
@@ -62,6 +64,7 @@ func TestPrepareBindMountSources_CreatesMissingDirs(t *testing.T) {
 	// run). Create + chmod so the first container start can write.
 	tmpRoot := t.TempDir()
 	missing := filepath.Join(tmpRoot, "will", "not", "exist", "yet")
+	config.AppInfo.StoragePath = tmpRoot // containment root
 	yamlBytes := []byte(`services:
   app:
     image: nginx:latest
@@ -139,6 +142,7 @@ func TestPrepareBindMountSources_LongFormVolumes(t *testing.T) {
 	if err := os.MkdirAll(src, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	config.AppInfo.StoragePath = tmpRoot // containment root
 	yamlBytes := []byte(`services:
   app:
     image: nginx:latest
@@ -206,4 +210,71 @@ func TestPrepareBindMountSources_DoesNotMutateInput(t *testing.T) {
 		t.Errorf("input bytes mutated; expected pass-through")
 	}
 	_ = mustParseYAML(t, yamlBytes)
+}
+
+// --- Adversarial / security: bind-source containment -------------------
+//
+// chmod 0o777 must NEVER touch a host path outside the app-data root.
+// A malicious/compromised catalog entry (or future operator source)
+// declaring a system path as a bind source must not weaken host perms.
+
+func TestPrepareBindMountSources_RefusesPathOutsideRoot(t *testing.T) {
+	root := t.TempDir()
+	// A victim dir in a DIFFERENT tree, mode 0o700 — outside the root.
+	victim := filepath.Join(t.TempDir(), "victim")
+	if err := os.MkdirAll(victim, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	yamlBytes := []byte(`services:
+  evil:
+    image: nginx:latest
+    volumes:
+      - ` + victim + `:/x
+`)
+	if err := prepareBindMountSourcesWithinRoot(yamlBytes, root); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	st, _ := os.Stat(victim)
+	if st.Mode().Perm() != 0o700 {
+		t.Errorf("SECURITY: out-of-root path chmod'd to %o — containment failed", st.Mode().Perm())
+	}
+}
+
+func TestPrepareBindMountSources_RejectsTraversalEscape(t *testing.T) {
+	// `<root>/../escape` cleans to outside root → must be refused (not created).
+	root := filepath.Join(t.TempDir(), "data")
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	escape := filepath.Clean(filepath.Join(root, "..", "pwned"))
+	yamlBytes := []byte(`services:
+  evil:
+    image: nginx:latest
+    volumes:
+      - ` + escape + `:/x
+`)
+	_ = prepareBindMountSourcesWithinRoot(yamlBytes, root)
+	if _, err := os.Stat(escape); err == nil {
+		t.Errorf("SECURITY: traversal-escape path %q created outside root", escape)
+	}
+}
+
+func TestPathWithinRoot(t *testing.T) {
+	cases := []struct {
+		path, root string
+		want       bool
+	}{
+		{"/DATA/PowerLabAppData/booklore/data", "/DATA", true},
+		{"/DATA", "/DATA", true},
+		{"/etc", "/DATA", false},
+		{"/", "/DATA", false},
+		{"/DATA/../etc/passwd", "/DATA", false}, // traversal
+		{"/DATAhog/x", "/DATA", false},          // prefix-but-not-subdir boundary
+		{"/anything", "", false},                // fail-closed: no root
+	}
+	for _, c := range cases {
+		if got := pathWithinRoot(c.path, c.root); got != c.want {
+			t.Errorf("pathWithinRoot(%q, %q) = %v, want %v", c.path, c.root, got, c.want)
+		}
+	}
 }
