@@ -11,7 +11,7 @@ require (
 	github.com/neochaotic/powerlab/backend/pkg v0.0.0-00010101000000-000000000000
 	github.com/samber/lo v1.53.0
 	go.uber.org/goleak v1.3.0
-	gorm.io/gorm v1.25.7
+	gorm.io/gorm v1.31.1
 	gotest.tools v2.2.0+incompatible
 )
 
@@ -74,14 +74,17 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/nwaples/rardecode v1.1.3 // indirect
+	github.com/oasdiff/yaml v0.0.9 // indirect
+	github.com/oasdiff/yaml3 v0.0.12 // indirect
 	github.com/orca-zhang/ecache v1.1.3 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
-	github.com/perimeterx/marshmallow v1.1.4 // indirect
+	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/pierrec/lz4/v4 v4.1.26 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pressly/goose/v3 v3.27.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/schollz/closestmatch v2.1.0+incompatible // indirect
 	github.com/sethvargo/go-retry v0.3.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
@@ -96,6 +99,7 @@ require (
 	github.com/ulikunitz/xz v0.5.15 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
+	github.com/woodsbury/decimal128 v1.3.0 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/yosssi/ace v0.0.5 // indirect
 	golang.org/x/arch v0.3.0 // indirect
@@ -113,11 +117,10 @@ require (
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
 	github.com/deepmap/oapi-codegen v1.16.3
-	github.com/getkin/kin-openapi v0.118.0
-	github.com/go-openapi/jsonpointer v0.19.6 // indirect
-	github.com/go-openapi/swag v0.22.3 // indirect
+	github.com/getkin/kin-openapi v0.138.0
+	github.com/go-openapi/jsonpointer v0.21.0 // indirect
+	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/google/uuid v1.6.0
-	github.com/invopop/yaml v0.2.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/labstack/echo-jwt/v4 v4.4.0
 	github.com/labstack/echo/v4 v4.15.2
