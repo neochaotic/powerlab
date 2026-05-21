@@ -155,7 +155,10 @@ func InitV2Router() http.Handler {
 				// without this skip + manual registration the validator
 				// returns 400 and Settings → About cannot fetch the
 				// app-management config to show the user.
-				p == V2APIPath+"/config"
+				p == V2APIPath+"/config" ||
+				// /catalog/* — opt-in gate status + toggle, manually
+				// registered (not in the codegen OpenAPI spec).
+				strings.HasPrefix(p, V2APIPath+"/catalog/")
 		},
 	}))
 
@@ -168,6 +171,8 @@ func InitV2Router() http.Handler {
 		return appManagement.(*v2Route.AppManagement).ComposeAppDiskUsage(c, c.Param("id"))
 	})
 	e.GET(V2APIPath+"/config", appManagement.(*v2Route.AppManagement).GetAppManagementConfig)
+	e.GET(V2APIPath+"/catalog/status", appManagement.(*v2Route.AppManagement).GetCatalogStatus)
+	e.PUT(V2APIPath+"/catalog/enabled", appManagement.(*v2Route.AppManagement).SetCatalogEnabled)
 
 	codegen.RegisterHandlersWithBaseURL(e, appManagement, V2APIPath)
 

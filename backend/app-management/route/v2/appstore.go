@@ -123,6 +123,11 @@ func (a *AppManagement) ComposeAppStoreInfoList(ctx echo.Context, params codegen
 		return ctx.JSON(http.StatusInternalServerError, codegen.ResponseInternalServerError{Message: &message})
 	}
 
+	// Opt-in gate: the store ships dark (disabled by default). Until the
+	// operator enables the catalog, browse returns empty and the UI shows
+	// the "enable catalog" prompt instead of installable apps.
+	catalog = catalogIfEnabled(catalog, config.ServerInfo.CatalogEnabled)
+
 	if params.Category != nil {
 		catalog = FilterCatalogByCategory(catalog, *params.Category)
 	}

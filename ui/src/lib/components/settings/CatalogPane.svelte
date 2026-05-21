@@ -6,6 +6,8 @@
 		listCatalogSources,
 		addCatalogSource,
 		removeCatalogSource,
+		getCatalogStatus,
+		setCatalogEnabled,
 		type AppStoreSource
 	} from '$lib/api/catalog';
 
@@ -34,6 +36,13 @@
 	let adding = $state(false);
 	let acknowledgedRisk = $state(false);
 
+	// Master opt-in: the catalog is disabled by default. The store ships
+	// dark until the operator enables it here. Source is fixed (bundled
+	// powerlab-store) — operator-added sources are managed separately below.
+	let catalogEnabled = $state(false);
+	let catalogSource = $state('');
+	let togglingCatalog = $state(false);
+
 	// The PowerLab-curated catalog is always id=0 (registered as a
 	// local path during install). Counting "operator-added" = total
 	// sources minus 1, with a safety floor for the loading state.
@@ -44,6 +53,9 @@
 		error = null;
 		try {
 			sources = await listCatalogSources();
+			const status = await getCatalogStatus();
+			catalogEnabled = status.enabled;
+			catalogSource = status.source;
 		} catch (e) {
 			const apiErr = e as { status?: number; message?: string };
 			if (apiErr?.status !== 401) {
@@ -51,6 +63,20 @@
 			}
 		} finally {
 			loading = false;
+		}
+	}
+
+	async function toggleCatalog(): Promise<void> {
+		togglingCatalog = true;
+		error = null;
+		try {
+			const status = await setCatalogEnabled(!catalogEnabled);
+			catalogEnabled = status.enabled;
+		} catch (e) {
+			const apiErr = e as { message?: string };
+			error = apiErr?.message ?? String(e);
+		} finally {
+			togglingCatalog = false;
 		}
 	}
 
@@ -165,6 +191,38 @@
 			{error}
 		</div>
 	{/if}
+
+	<!-- Master opt-in toggle -->
+	<div
+		class="flex items-center justify-between gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4"
+		data-testid="catalog-toggle"
+	>
+		<div>
+			<p class="text-sm font-medium text-white">App Catalog</p>
+			<p class="mt-0.5 text-xs text-zinc-400">
+				{#if catalogEnabled}
+					Enabled — the store lists installable apps. Source:
+					<code class="text-zinc-400">{catalogSource}</code>
+				{:else}
+					Disabled — the store is empty until you enable the catalog.
+					Source: <code class="text-zinc-400">{catalogSource}</code> (fixed)
+				{/if}
+			</p>
+		</div>
+		<button
+			onclick={toggleCatalog}
+			disabled={togglingCatalog || loading}
+			class={cn(
+				'flex h-9 items-center gap-2 rounded-xl border px-3 text-xs font-medium transition-colors disabled:opacity-50',
+				catalogEnabled
+					? 'border-white/10 bg-white/[0.03] text-zinc-300 hover:border-white/20 hover:text-white'
+					: 'border-emerald-500/30 bg-emerald-500/[0.1] text-emerald-300 hover:bg-emerald-500/[0.15]'
+			)}
+			data-testid="catalog-toggle-button"
+		>
+			{togglingCatalog ? '…' : catalogEnabled ? 'Disable' : 'Enable catalog'}
+		</button>
+	</div>
 
 	<!-- Sources list -->
 	<div class="space-y-2" data-testid="catalog-sources">

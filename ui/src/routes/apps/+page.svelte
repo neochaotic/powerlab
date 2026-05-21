@@ -5,6 +5,7 @@
 	import { useAppStore } from '$lib/stores/apps.svelte';
 	import type { ComposeAppStoreInfo } from '$lib/api/apps';
 	import { getStoreAppYaml, installComposeApp, uninstallComposeApp, getComposeAppDiskUsage, updateComposeApp, checkPorts } from '$lib/api/apps';
+	import { getCatalogStatus, setCatalogEnabled } from '$lib/api/catalog';
 	import { getAuthToken } from '$lib/api/client';
 	import ContainerLogs from '$lib/components/apps/ContainerLogs.svelte';
 	import AppMetrics from '$lib/components/apps/AppMetrics.svelte';
@@ -92,6 +93,28 @@
 	let searchEl = $state<HTMLInputElement | null>(null);
 	let activeCategory = $state<string | null>(null);
 
+	// Catalog opt-in: the store ships disabled by default. When disabled,
+	// the browse grid stays empty and we show an enable CTA instead of a
+	// blank page. Default true so the grid renders optimistically while the
+	// real status loads (avoids a CTA flash for the common enabled case).
+	let catalogEnabled = $state(true);
+	let togglingCatalog = $state(false);
+	let catalogError = $state<string | null>(null);
+
+	async function enableCatalogFromStore() {
+		togglingCatalog = true;
+		catalogError = null;
+		try {
+			const status = await setCatalogEnabled(true);
+			catalogEnabled = status.enabled;
+			await store.fetchAppStore();
+		} catch (e) {
+			catalogError = e instanceof Error ? e.message : String(e);
+		} finally {
+			togglingCatalog = false;
+		}
+	}
+
 	const STATE_KEY = 'powerlab_store_state';
 
 	onMount(async () => {
@@ -110,6 +133,7 @@
 
 		store.fetchAppStore();
 		store.fetchInstalledApps();
+		getCatalogStatus().then(s => { catalogEnabled = s.enabled; }).catch(() => { /* leave optimistic default */ });
 	});
 
 	function formatSize(bytes: number) {
@@ -834,7 +858,27 @@
 
 		<!-- App grid -->
 		<div class="flex-1 overflow-y-auto px-8 pb-8">
-			{#if !store.catalogLoaded}
+			{#if !catalogEnabled}
+				<!-- Opt-in: catalog disabled. Show a real empty-state CTA, not a blank page. -->
+				<div class="flex flex-col items-center justify-center py-24 text-center">
+					<div class="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/[0.04]">
+						<Boxes class="h-8 w-8 text-zinc-400" />
+					</div>
+					<h2 class="mb-2 text-lg font-semibold text-white">{t('apps.catalogDisabledTitle')}</h2>
+					<p class="mb-6 max-w-md text-sm leading-relaxed text-zinc-400">{t('apps.catalogDisabledDesc')}</p>
+					{#if catalogError}
+						<p class="mb-3 text-xs text-red-400">{catalogError}</p>
+					{/if}
+					<Button onclick={enableCatalogFromStore} disabled={togglingCatalog} data-testid="catalog-enable-cta">
+						{#if togglingCatalog}
+							<Loader2 class="mr-2 h-4 w-4 animate-spin" /> {t('apps.catalogEnabling')}
+						{:else}
+							{t('apps.catalogEnable')}
+						{/if}
+					</Button>
+					<a href="/settings#catalog" class="mt-4 text-xs text-zinc-500 hover:text-zinc-300">{t('apps.catalogManageInSettings')}</a>
+				</div>
+			{:else if !store.catalogLoaded}
 				<!-- Skeleton — card grid (matches the default browse view) -->
 				<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 					{#each Array(8) as _}
