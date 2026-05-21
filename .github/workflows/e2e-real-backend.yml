@@ -50,6 +50,13 @@ jobs:
       - name: Verify Docker is available
         run: docker version
 
+      - name: Install CGO build deps
+        # user-service links libpam, local-storage links libfuse — both
+        # are CGO and need their dev headers to compile on the runner.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libpam0g-dev libfuse-dev pkg-config
+
       - name: Build UI
         working-directory: ui
         run: |
