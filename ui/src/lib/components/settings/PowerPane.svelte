@@ -7,15 +7,18 @@
 		Power,
 		AlertTriangle,
 		ShieldAlert,
-		CircleDot
+		CircleDot,
+		WifiOff
 	} from 'lucide-svelte';
 	import { cn } from '$lib/utils';
 	import {
 		listPowerLabServices,
 		restartPowerLabService,
+		getServicesPreflight,
 		rebootHost,
 		shutdownHost,
-		type ServiceState
+		type ServiceState,
+		type ServiceEnabledState
 	} from '$lib/api/power';
 
 	// Settings → Power pane (#260).
@@ -30,6 +33,12 @@
 	//
 	// Service list polls every 5s while the pane is mounted. Stops on
 	// unmount; refcount-friendly thanks to the local interval handle.
+	//
+	// Gateway restart uses a dedicated modal: restarting powerlab-gateway
+	// kills the serving process briefly. The UI auto-reloads after ~7s to
+	// reconnect once the new process is up.
+
+	const GATEWAY_SERVICE = 'powerlab-gateway';
 
 	let services = $state<ServiceState[]>([]);
 	let loading = $state(false);
@@ -44,6 +53,11 @@
 	let showShutdownModal = $state(false);
 	let shutdownAck = $state(false);
 	let shutdownInFlight = $state(false);
+
+	let showGatewayModal = $state(false);
+	let gatewayRestartInFlight = $state(false);
+	let gatewayReconnecting = $state(false);
+	let preflightStates = $state<ServiceEnabledState[]>([]);
 
 	async function load(): Promise<void> {
 		loading = true;
@@ -61,6 +75,10 @@
 	}
 
 	async function doRestart(name: string): Promise<void> {
+		if (name === GATEWAY_SERVICE) {
+			void openGatewayModal();
+			return;
+		}
 		restartInFlight = { ...restartInFlight, [name]: true };
 		error = null;
 		try {
@@ -72,6 +90,33 @@
 			error = apiErr?.message ?? String(e);
 		} finally {
 			restartInFlight = { ...restartInFlight, [name]: false };
+		}
+	}
+
+	async function openGatewayModal(): Promise<void> {
+		try {
+			preflightStates = await getServicesPreflight();
+		} catch {
+			preflightStates = [];
+		}
+		showGatewayModal = true;
+	}
+
+	async function confirmGatewayRestart(): Promise<void> {
+		gatewayRestartInFlight = true;
+		error = null;
+		try {
+			await restartPowerLabService(GATEWAY_SERVICE);
+			showGatewayModal = false;
+			gatewayReconnecting = true;
+			// Backend uses systemd-run with sleep 2 before the actual restart.
+			// Allow ~7s for the new process to come up, then reload.
+			setTimeout(() => window.location.reload(), 7000);
+		} catch (e) {
+			const apiErr = e as { message?: string };
+			error = apiErr?.message ?? String(e);
+		} finally {
+			gatewayRestartInFlight = false;
 		}
 	}
 
@@ -142,6 +187,17 @@
 		if (pollHandle) clearInterval(pollHandle);
 	});
 </script>
+
+{#if gatewayReconnecting}
+	<div
+		class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-zinc-950/90"
+		data-testid="gateway-reconnecting"
+	>
+		<WifiOff class="h-10 w-10 text-zinc-400 animate-pulse" />
+		<p class="text-lg font-semibold text-white">Restarting gateway…</p>
+		<p class="text-sm text-zinc-400">The page will reload automatically in a few seconds.</p>
+	</div>
+{/if}
 
 <div class="space-y-6" data-testid="power-pane">
 	<header class="flex items-start justify-between gap-4">
@@ -262,6 +318,65 @@
 		</div>
 	</section>
 </div>
+
+<!-- Gateway restart modal -->
+{#if showGatewayModal}
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="gateway-restart-modal-title"
+	>
+		<div
+			class="w-full max-w-lg rounded-2xl border border-blue-500/30 bg-zinc-950 p-6 shadow-2xl"
+			data-testid="gateway-restart-modal"
+		>
+			<div class="flex items-start gap-3">
+				<AlertTriangle class="mt-0.5 h-6 w-6 shrink-0 text-blue-400" />
+				<div class="flex-1">
+					<h3 id="gateway-restart-modal-title" class="text-lg font-semibold text-white">
+						Restart gateway?
+					</h3>
+					<p class="mt-3 text-sm leading-relaxed text-zinc-300">
+						Restarting <code class="text-zinc-400">powerlab-gateway</code> will
+						briefly disconnect your browser — the gateway <em>is</em> the HTTP
+						server. Expect ~5 seconds of downtime. This page will reload
+						automatically once the gateway is back up.
+					</p>
+
+					{#if preflightStates.length > 0}
+						<p class="mt-3 text-xs text-zinc-500">
+							Services that will experience a brief interruption:
+						</p>
+						<ul class="mt-1 space-y-0.5">
+							{#each preflightStates.filter((s) => s.enabled) as s (s.name)}
+								<li class="text-xs font-mono text-zinc-400">{s.name}</li>
+							{/each}
+						</ul>
+					{/if}
+				</div>
+			</div>
+
+			<div class="mt-6 flex justify-end gap-2">
+				<button
+					onclick={() => (showGatewayModal = false)}
+					class="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-zinc-300 transition-colors hover:border-white/20 hover:text-white"
+					data-testid="gateway-restart-cancel"
+				>
+					Cancel
+				</button>
+				<button
+					onclick={confirmGatewayRestart}
+					disabled={gatewayRestartInFlight}
+					class="rounded-xl border border-blue-500/40 bg-blue-500/20 px-4 py-2 text-sm font-medium text-blue-200 transition-colors hover:border-blue-500/60 hover:bg-blue-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+					data-testid="gateway-restart-confirm"
+				>
+					{gatewayRestartInFlight ? 'Restarting…' : 'Restart gateway'}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <!-- Reboot modal -->
 {#if showRebootModal}

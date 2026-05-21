@@ -1,7 +1,7 @@
 /**
  * Power-actions API client (#260, Sprint 23).
  *
- * Wraps the four endpoints shipped in backend/core/route/v1/power.go
+ * Wraps the endpoints shipped in backend/core/route/v1/power.go
  * that the Settings → Power pane drives. Service names are validated
  * server-side against a hardcoded allow-list (PowerLabServices); this
  * client doesn't replicate the list so it can't drift.
@@ -9,6 +9,7 @@
  * Endpoint map:
  *
  *   GET  /v1/sys/services                   → list PowerLab units + state
+ *   GET  /v1/sys/services/preflight         → enabled state per unit
  *   POST /v1/sys/services/{name}/restart    → restart a whitelisted unit
  *   POST /v1/sys/host/reboot                → systemctl reboot (requires confirm)
  *   POST /v1/sys/host/shutdown              → systemctl poweroff (requires confirm)
@@ -31,6 +32,13 @@ export interface ServiceState {
 	pid?: string;
 }
 
+export interface ServiceEnabledState {
+	/** PowerLab systemd unit name */
+	name: string;
+	/** true if systemctl is-enabled exits 0 for this unit */
+	enabled: boolean;
+}
+
 interface Envelope<T> {
 	data: T;
 	message?: string;
@@ -42,6 +50,16 @@ interface Envelope<T> {
  */
 export async function listPowerLabServices(): Promise<ServiceState[]> {
 	const res = await api.get<Envelope<ServiceState[] | null>>('/v1/sys/services');
+	return res.data ?? [];
+}
+
+/**
+ * GET the enabled state of every PowerLab systemd unit. Used by the
+ * gateway restart modal to warn the user which services will stop
+ * during the brief connection gap.
+ */
+export async function getServicesPreflight(): Promise<ServiceEnabledState[]> {
+	const res = await api.get<Envelope<ServiceEnabledState[] | null>>('/v1/sys/services/preflight');
 	return res.data ?? [];
 }
 

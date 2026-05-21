@@ -7,6 +7,7 @@ import PowerPane from './PowerPane.svelte';
 vi.mock('$lib/api/power', () => ({
 	listPowerLabServices: vi.fn(),
 	restartPowerLabService: vi.fn(),
+	getServicesPreflight: vi.fn(),
 	rebootHost: vi.fn(),
 	shutdownHost: vi.fn()
 }));
@@ -14,6 +15,7 @@ vi.mock('$lib/api/power', () => ({
 import {
 	listPowerLabServices,
 	restartPowerLabService,
+	getServicesPreflight,
 	rebootHost,
 	shutdownHost
 } from '$lib/api/power';
@@ -155,5 +157,93 @@ describe('PowerPane', () => {
 		await waitFor(() => {
 			expect(listPowerLabServices).toHaveBeenCalledTimes(2);
 		});
+	});
+
+	it('Gateway Restart opens warning modal instead of calling API directly', async () => {
+		vi.mocked(listPowerLabServices).mockResolvedValue(SERVICES);
+		vi.mocked(getServicesPreflight).mockResolvedValue([]);
+
+		const { container } = render(PowerPane);
+		await waitFor(() => screen.getByText('powerlab-gateway'));
+
+		const gatewayRow = container.querySelector('[data-testid="service-row-powerlab-gateway"]');
+		const restartBtn = gatewayRow?.querySelector('[data-testid="service-restart-btn"]') as HTMLButtonElement;
+		await fireEvent.click(restartBtn);
+
+		await waitFor(() => {
+			expect(container.querySelector('[data-testid="gateway-restart-modal"]')).toBeTruthy();
+		});
+		expect(restartPowerLabService).not.toHaveBeenCalled();
+	});
+
+	it('Gateway restart modal cancel does not call restart API', async () => {
+		vi.mocked(listPowerLabServices).mockResolvedValue(SERVICES);
+		vi.mocked(getServicesPreflight).mockResolvedValue([]);
+
+		const { container } = render(PowerPane);
+		await waitFor(() => screen.getByText('powerlab-gateway'));
+
+		const gatewayRow = container.querySelector('[data-testid="service-row-powerlab-gateway"]');
+		await fireEvent.click(gatewayRow?.querySelector('[data-testid="service-restart-btn"]')!);
+		await waitFor(() => container.querySelector('[data-testid="gateway-restart-modal"]'));
+
+		await fireEvent.click(container.querySelector('[data-testid="gateway-restart-cancel"]')!);
+
+		await waitFor(() => {
+			expect(container.querySelector('[data-testid="gateway-restart-modal"]')).toBeNull();
+		});
+		expect(restartPowerLabService).not.toHaveBeenCalled();
+	});
+
+	it('Gateway restart modal confirm calls restartPowerLabService for gateway', async () => {
+		vi.mocked(listPowerLabServices).mockResolvedValue(SERVICES);
+		vi.mocked(getServicesPreflight).mockResolvedValue([]);
+		vi.mocked(restartPowerLabService).mockResolvedValue(undefined);
+
+		const { container } = render(PowerPane);
+		await waitFor(() => screen.getByText('powerlab-gateway'));
+
+		const gatewayRow = container.querySelector('[data-testid="service-row-powerlab-gateway"]');
+		await fireEvent.click(gatewayRow?.querySelector('[data-testid="service-restart-btn"]')!);
+		await waitFor(() => container.querySelector('[data-testid="gateway-restart-modal"]'));
+
+		await fireEvent.click(container.querySelector('[data-testid="gateway-restart-confirm"]')!);
+
+		await waitFor(() => {
+			expect(restartPowerLabService).toHaveBeenCalledWith('powerlab-gateway');
+		});
+	});
+
+	// Bug simulation: before the modal, clicking Restart on the gateway would call
+	// restartPowerLabService directly — dropping the HTTP connection with no warning.
+	// This test verifies the reconnecting overlay appears after confirm, proving the
+	// user was warned BEFORE the connection drops. Without the modal, this state
+	// would never be set and the user would be left with a silent broken page.
+	it('Gateway restart confirm transitions to reconnecting overlay (bug simulation)', async () => {
+		vi.mocked(listPowerLabServices).mockResolvedValue(SERVICES);
+		vi.mocked(getServicesPreflight).mockResolvedValue([
+			{ name: 'powerlab-gateway', enabled: true },
+			{ name: 'powerlab-core', enabled: true }
+		]);
+		vi.mocked(restartPowerLabService).mockResolvedValue(undefined);
+
+		const { container } = render(PowerPane);
+		await waitFor(() => screen.getByText('powerlab-gateway'));
+
+		// Before: no reconnecting overlay
+		expect(container.querySelector('[data-testid="gateway-reconnecting"]')).toBeNull();
+
+		const gatewayRow = container.querySelector('[data-testid="service-row-powerlab-gateway"]');
+		await fireEvent.click(gatewayRow?.querySelector('[data-testid="service-restart-btn"]')!);
+		await waitFor(() => container.querySelector('[data-testid="gateway-restart-modal"]'));
+
+		await fireEvent.click(container.querySelector('[data-testid="gateway-restart-confirm"]')!);
+
+		// After confirm: reconnecting overlay is shown — user is warned
+		await waitFor(() => {
+			expect(container.querySelector('[data-testid="gateway-reconnecting"]')).toBeTruthy();
+		});
+		// Modal is gone — no double overlay
+		expect(container.querySelector('[data-testid="gateway-restart-modal"]')).toBeNull();
 	});
 });
