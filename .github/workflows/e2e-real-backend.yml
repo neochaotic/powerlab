@@ -18,6 +18,11 @@ on:
   schedule:
     - cron: '0 6 * * *' # nightly 06:00 UTC
   push:
+    # TEMP (remove before merge): run on this branch so the workflow can
+    # be validated on real CI — workflow_dispatch/schedule only fire from
+    # the default branch, so they can't exercise an unmerged branch.
+    branches:
+      - 'ci/browser-e2e-real'
     tags:
       - 'v*'
   workflow_dispatch: {}
