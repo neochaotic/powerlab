@@ -1,0 +1,84 @@
+name: Browser E2E (real backend)
+
+# Runs the Playwright @smoke specs against a REAL PowerLab stack (the
+# browser-level counterpart to the Go `backend-integration` job). These
+# specs skip in the per-PR `frontend-e2e` job because no backend URL is
+# set there; this workflow stands up the full stack and points them at it.
+#
+# Deliberately NOT on every PR: standing up the stack + browser is slow
+# and flakier than the mock suite, and the real-backend contract is
+# already gated per-PR by `backend-integration`. This runs where it pays
+# off — nightly, before a release tag, and on demand.
+#
+# Out of scope: the journald-stream @smoke needs systemd units (a
+# packaged install), which this background-process stack doesn't provide;
+# it is excluded via --grep-invert.
+
+on:
+  schedule:
+    - cron: '0 6 * * *' # nightly 06:00 UTC
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+jobs:
+  browser-e2e-real:
+    name: Browser @smoke vs real stack
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      POWERLAB_E2E_PORT: '8085'
+      POWERLAB_E2E_USER: ci-admin
+      POWERLAB_E2E_PASSWORD: ci-smoke-pass-12345
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Verify Docker is available
+        run: docker version
+
+      - name: Build UI
+        working-directory: ui
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install Playwright chromium
+        working-directory: ui
+        run: npx playwright install --with-deps chromium
+
+      - name: Bring up the real PowerLab stack
+        run: |
+          chmod +x scripts/ci-e2e-stack.sh
+          scripts/ci-e2e-stack.sh
+          echo "POWERLAB_E2E_BASE=http://127.0.0.1:${POWERLAB_E2E_PORT}" >> "$GITHUB_ENV"
+
+      - name: Run browser @smoke against the real backend
+        working-directory: ui
+        # journald-stream needs systemd units (packaged install) — excluded here.
+        run: npx playwright test --grep "@smoke" --grep-invert "journald" --reporter=line
+
+      - name: Dump backend logs on failure
+        if: failure()
+        run: |
+          echo "=== gateway ===";        tail -n 120 backend/logs/gateway.log        2>/dev/null || true
+          echo "=== app-management ==="; tail -n 120 backend/logs/app-management.log 2>/dev/null || true
+          echo "=== user-service ===";   tail -n 120 backend/logs/user-service.log   2>/dev/null || true
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-real-backend
+          path: ui/playwright-report/
+          retention-days: 7

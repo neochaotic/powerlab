@@ -1,0 +1,5 @@
+kind: Added
+body: 'CI workflow that runs the browser @smoke Playwright specs against a real, full PowerLab stack (gateway + services + UI + provisioned admin) brought up via scripts/ci-e2e-stack.sh on a GitHub Actions runner. This is the browser-level counterpart to the Go backend-integration job — the @smoke specs previously only skipped in per-PR CI (no backend URL) or ran manually against staging. Runs nightly, on release tags, and on demand (not per-PR, to keep PR CI fast). The journald-stream spec is excluded as it needs systemd units (packaged install), not this background-process stack.'
+time: 2026-05-21T18:30:00Z
+custom:
+    Issue: "483"
