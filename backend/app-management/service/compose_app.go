@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -89,6 +90,10 @@ func LoadComposeAppFromConfigFile(appID string, configFile string) (*ComposeApp,
 	options := composeCmd.ProjectOptions{
 		ProjectDir:  filepath.Dir(configFile),
 		ProjectName: appID,
+		// Local-only: our compose files never reference remote git/OCI
+		// includes, so disable remote resource loaders. This also lets
+		// ToProject run without a docker CLI instance.
+		Offline: true,
 	}
 
 	env := []string{fmt.Sprintf("%s=%s", "AppID", appID)}
@@ -97,9 +102,10 @@ func LoadComposeAppFromConfigFile(appID string, configFile string) (*ComposeApp,
 	}
 
 	// load project
-	project, err := options.ToProject(
-		nil,
-		nil,
+	project, _, err := options.ToProject(
+		context.Background(),
+		nil, // dockerCli: unused because Offline disables remote loaders
+		nil, // services: load all
 		cli.WithWorkingDirectory(options.ProjectDir), // this has to be the first option, otherwise it will assume the dir where this program is running is the working directory.
 
 		cli.WithOsEnv,

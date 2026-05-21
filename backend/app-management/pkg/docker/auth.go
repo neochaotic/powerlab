@@ -12,7 +12,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/docker/distribution/reference"
+	"github.com/distribution/reference"
 	"github.com/neochaotic/powerlab/backend/app-management/common"
 )
 

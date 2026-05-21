@@ -103,7 +103,7 @@ func (a *ComposeApp) Pull(ctx context.Context, logWriter io.Writer) error {
 // Up runs `compose up` on the project — assumes images are
 // already pulled. Use UpWithCheckRequire for the full lifecycle
 // hook (memory + disk preflight checks).
-func (a *ComposeApp) Up(ctx context.Context, service api.Service) error {
+func (a *ComposeApp) Up(ctx context.Context, service api.Compose) error {
 	a.injectEnvVariableToComposeApp()
 
 	if err := service.Up(ctx, (*codegen.ComposeApp)(a), api.UpOptions{
@@ -121,7 +121,7 @@ func (a *ComposeApp) Up(ctx context.Context, service api.Service) error {
 // UpWithCheckRequire runs Up after the catalog's min-memory /
 // min-disk preflight checks. Returns an error before pulling if
 // the host can't satisfy the requirements.
-func (a *ComposeApp) UpWithCheckRequire(ctx context.Context, service api.Service) error {
+func (a *ComposeApp) UpWithCheckRequire(ctx context.Context, service api.Compose) error {
 	// prepare source path for volumes if not exist
 	for i, app := range a.Services {
 		for _, volume := range app.Volumes {
@@ -163,7 +163,7 @@ func (a *ComposeApp) UpWithCheckRequire(ctx context.Context, service api.Service
 
 // Create wraps compose-go's Create on the project — used by Up
 // + UpWithCheckRequire as their first phase.
-func (a *ComposeApp) Create(ctx context.Context, options api.CreateOptions, service api.Service) error {
+func (a *ComposeApp) Create(ctx context.Context, options api.CreateOptions, service api.Compose) error {
 	a.injectEnvVariableToComposeApp()
 	return service.Create(ctx, (*codegen.ComposeApp)(a), api.CreateOptions{})
 }

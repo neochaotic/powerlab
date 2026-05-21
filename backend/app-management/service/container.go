@@ -31,6 +31,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/api/types/system"
 	client2 "github.com/docker/docker/client"
 )
 
@@ -68,10 +69,10 @@ type DockerService interface {
 	StopContainer(id string) error
 
 	// network
-	GetNetworkList() []types.NetworkResource
+	GetNetworkList() []network.Inspect
 
 	// docker server
-	GetServerInfo() (types.Info, error)
+	GetServerInfo() (system.Info, error)
 }
 
 type dockerService struct{}
@@ -675,17 +676,17 @@ func (ds *dockerService) RenameContainer(name, id string) (err error) {
 }
 
 // 获取网络列表
-func (ds *dockerService) GetNetworkList() []types.NetworkResource {
+func (ds *dockerService) GetNetworkList() []network.Inspect {
 	cli, _ := client2.NewClientWithOpts(client2.FromEnv, client2.WithAPIVersionNegotiation())
 	defer cli.Close()
-	networks, _ := cli.NetworkList(context.Background(), types.NetworkListOptions{})
+	networks, _ := cli.NetworkList(context.Background(), network.ListOptions{})
 	return networks
 }
 
-func (ds *dockerService) GetServerInfo() (types.Info, error) {
+func (ds *dockerService) GetServerInfo() (system.Info, error) {
 	cli, err := client2.NewClientWithOpts(client2.FromEnv, client2.WithAPIVersionNegotiation())
 	if err != nil {
-		return types.Info{}, err
+		return system.Info{}, err
 	}
 	defer cli.Close()
 

@@ -291,7 +291,7 @@ func baseInterpolationMap() map[string]string {
 	}
 }
 
-func apiService() (api.Service, client.APIClient, error) {
+func apiService() (api.Compose, client.APIClient, error) {
 	// Docker SDK v24 caps at API 1.43; daemons ≥25.0 require minimum 1.44.
 	// Setting DOCKER_API_VERSION lets the client negotiate above its compile-time cap.
 	if os.Getenv("DOCKER_API_VERSION") == "" {
@@ -312,11 +312,11 @@ func apiService() (api.Service, client.APIClient, error) {
 	return compose.NewComposeService(dockerCli), dockerCli.Client(), nil
 }
 
-// ApiService constructs a fresh docker-compose api.Service paired
+// ApiService constructs a fresh docker-compose api.Compose paired
 // with the underlying APIClient. Intended for one-shot operations
 // (rather than as a long-lived service); callers must Close the
 // APIClient when done.
-func ApiService() (api.Service, client.APIClient, error) {
+func ApiService() (api.Compose, client.APIClient, error) {
 	return apiService()
 }
 
