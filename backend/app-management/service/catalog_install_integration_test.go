@@ -69,7 +69,14 @@ func TestCatalogApp_DBAliasResolvesOnNetwork(t *testing.T) {
 
 	// Render: remap /DATA volume sources into a temp dir and drop the
 	// obsolete top-level `version:` key (compose-go ignores it but warns).
-	tmp := t.TempDir()
+	// Self-managed temp dir (NOT t.TempDir): mariadb writes its datadir
+	// as a non-root uid with restrictive perms, which Go's t.TempDir
+	// auto-cleanup cannot remove — that would fail the test on a pure
+	// teardown artifact. We remove it best-effort via a root container.
+	tmp, err := os.MkdirTemp("", "powerlab-itest-"+appID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	dataRoot := filepath.Join(tmp, "PowerLabAppData")
 	rendered := strings.ReplaceAll(string(raw), "/DATA/PowerLabAppData", dataRoot)
 	rendered = regexp.MustCompile(`(?m)^version:.*\n`).ReplaceAllString(rendered, "")
@@ -102,10 +109,10 @@ func TestCatalogApp_DBAliasResolvesOnNetwork(t *testing.T) {
 
 	t.Cleanup(func() {
 		_, _ = run(60*time.Second, "docker", "compose", "-p", project, "-f", composeFile, "down", "-v", "--remove-orphans")
-		// mariadb writes its datadir as a non-root uid; make the temp
-		// tree removable by Go's TempDir cleanup (avoids a noisy
-		// permission-denied warning).
-		_, _ = run(30*time.Second, "docker", "run", "--rm", "-v", tmp+":/h", "busybox:1.36", "chmod", "-R", "0777", "/h")
+		// Remove the (root-owned) datadir via a root container, then the
+		// rest. Best-effort: leftovers live under the OS temp dir.
+		_, _ = run(30*time.Second, "docker", "run", "--rm", "-v", tmp+":/h", "busybox:1.36", "rm", "-rf", "/h/PowerLabAppData")
+		_ = os.RemoveAll(tmp)
 	})
 
 	// Bring up only the db service — enough to prove the service-name
