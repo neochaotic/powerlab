@@ -142,8 +142,9 @@ func getContainerStats() {
 				dockerStats.Data = data
 				dockerStats.Title = strings.ReplaceAll(v.Names[0], "/", "")
 
-				// @tiger - 不建议直接把依赖的数据结构封装返回。
-				//          如果依赖的数据结构有变化，应该在这里适配或者保存，这样更加对客户端负责
+				// @tiger - avoid returning the dependency's data structure
+				// wrapped as-is; if it changes, adapt or persist it here —
+				// that keeps us more accountable to the client.
 				temp.Store(v.ID, dockerStats)
 				if i == 99 {
 					stats.Body.Close()
@@ -223,9 +224,9 @@ func (ds *dockerService) CheckContainerHealth(id string) (bool, error) {
 	return false, errors.New("no web port")
 }
 
-// 获取我的应用列表
+// GetContainer returns the container with the given id, or a zero value if
+// no such container exists.
 func (ds *dockerService) GetContainer(id string) (types.Container, error) {
-	// 获取docker应用
 	cli, err := client2.NewClientWithOpts(client2.FromEnv, client2.WithAPIVersionNegotiation())
 	if err != nil {
 		logger.Error("Failed to init client", zap.Any("err", err))
@@ -247,22 +248,20 @@ func (ds *dockerService) GetContainer(id string) (types.Container, error) {
 	return types.Container{}, nil
 }
 
-// 获取我的应用列表
+// GetContainerAppList returns PowerLab-managed apps and locally-recorded apps
+// derived from the running containers, filtered by the optional name/image/
+// state arguments.
 func (ds *dockerService) GetContainerAppList(name, image, state *string) (*[]model.MyAppList, *[]model.MyAppList) {
 	cli, err := client2.NewClientWithOpts(client2.FromEnv, client2.WithAPIVersionNegotiation(), client2.WithTimeout(time.Second*5))
 	if err != nil {
 		logger.Error("Failed to init client", zap.Any("err", err))
 	}
 	defer cli.Close()
-	// fts := filters.NewArgs()
-	// fts.Add("label", "casaos=casaos")
-	// fts.Add("label", "casaos")
-	// fts.Add("casaos", "casaos")
 	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{All: true})
 	if err != nil {
 		logger.Error("Failed to get container_list", zap.Any("err", err))
 	}
-	// 获取本地数据库应用
+	// apps recorded in the local database
 
 	localApps := []model.MyAppList{}
 
@@ -371,14 +370,6 @@ func (ds *dockerService) CreateContainerShellSession(container, row, col string)
 	return cli.ContainerExecAttach(ctx, ir.ID, types.ExecStartCheck{Detach: false, Tty: true})
 }
 
-// 正式内容
-
-// param imageName 镜像名称
-// param containerDbId 数据库的id
-// param port 容器内部主端口
-// param mapPort 容器主端口映射到外部的端口
-// param tcp 容器其他tcp端口
-// param udp 容器其他udp端口
 // CreateContainer builds a docker container spec from the V1 install
 // form's CustomizationPostData and creates the container. Spec
 // building is delegated to the `build*` helpers in
@@ -595,7 +586,8 @@ func (ds *dockerService) RecreateContainer(ctx context.Context, id string, pull 
 		func() error { return docker.RenameContainer(ctx, newID, containerInfo.Name) })
 }
 
-// 删除容器
+// RemoveContainer removes the named container. Unless update is true (an
+// in-place recreate), it also deletes the container's on-disk /config dir.
 func (ds *dockerService) RemoveContainer(name string, update bool) error {
 	ctx := context.Background()
 	if err := docker.RemoveContainer(ctx, name); err != nil {
@@ -606,7 +598,7 @@ func (ds *dockerService) RemoveContainer(name string, update bool) error {
 		return nil
 	}
 
-	// 路径处理
+	// clean up the container's config directory
 	if path := docker.GetDir(name, "/config"); !file.CheckNotExist(path) {
 		return file.RMDir(path)
 	}
@@ -614,19 +606,19 @@ func (ds *dockerService) RemoveContainer(name string, update bool) error {
 	return nil
 }
 
-// 停止镜像
+// StopContainer stops the container with the given id.
 func (ds *dockerService) StopContainer(id string) error {
 	ctx := context.Background()
 	return docker.StopContainer(ctx, id)
 }
 
-// 启动容器
+// StartContainer starts the named container.
 func (ds *dockerService) StartContainer(name string) error {
 	ctx := context.Background()
 	return docker.StartContainer(ctx, name)
 }
 
-// 查看日志
+// GetContainerLog returns the combined stdout/stderr log of the named container.
 func (ds *dockerService) GetContainerLog(name string) ([]byte, error) {
 	cli, err := client2.NewClientWithOpts(client2.FromEnv, client2.WithAPIVersionNegotiation())
 	if err != nil {
@@ -662,20 +654,18 @@ func (ds *dockerService) GetContainerByName(name string) (*types.Container, erro
 	return &containers[0], nil
 }
 
-// 获取容器详情
+// DescribeContainer returns the full inspect details for the given container.
 func (ds *dockerService) DescribeContainer(ctx context.Context, nameOrID string) (*types.ContainerJSON, error) {
 	return docker.Container(ctx, nameOrID)
 }
 
-// 更新容器名称
-// param name 容器名称
-// param id 老的容器名称
+// RenameContainer renames a container; name is the new name, id the current one.
 func (ds *dockerService) RenameContainer(name, id string) (err error) {
 	ctx := context.Background()
 	return docker.RenameContainer(ctx, id, name)
 }
 
-// 获取网络列表
+// GetNetworkList returns all docker networks on the host.
 func (ds *dockerService) GetNetworkList() []network.Inspect {
 	cli, _ := client2.NewClientWithOpts(client2.FromEnv, client2.WithAPIVersionNegotiation())
 	defer cli.Close()
