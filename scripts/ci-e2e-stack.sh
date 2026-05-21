@@ -131,21 +131,28 @@ for i in $(seq 1 30); do
 done
 curl -fsS -o /dev/null "$BASE/" || { cat "$LOGS/gateway.log"; die "gateway not answering on $BASE"; }
 
-# Provision the admin the @smoke login expects. Print the real response
-# each attempt — a 4xx here is NOT "already exists" (that was a wrong
-# assumption); user-service may still be wiring up to the gateway.
-log "Registering admin '$E2E_USER'..."
+# First-run provisioning. The register endpoint requires a one-time `key`
+# issued by GET /v1/users/status when the instance is uninitialized
+# (no users yet). So: fetch the key, then register {username,password,key}.
+log "Fetching first-run registration key from /v1/users/status..."
+key=""
 for i in $(seq 1 20); do
-  code=$(curl -s -o /tmp/reg.out -w "%{http_code}" -X POST "$BASE/v1/users/register" \
-    -H "Content-Type: application/json" \
-    -d "{\"username\":\"$E2E_USER\",\"password\":\"$E2E_PASS\"}" || echo "000")
-  body=$(cat /tmp/reg.out 2>/dev/null)
-  log "  register attempt $i: HTTP $code ${body:0:160}"
-  [[ "$code" == 2* ]] && { log "  registered."; break; }
-  # USER_EXIST from a prior attempt is fine — the sanity login below decides.
-  echo "$body" | grep -q "exist" && { log "  user reported existing — verifying via login."; break; }
+  resp=$(curl -s "$BASE/v1/users/status" || true)
+  key=$(echo "$resp" | jq -r '.data.key // empty' 2>/dev/null)
+  init=$(echo "$resp" | jq -r '.data.initialized // empty' 2>/dev/null)
+  log "  status attempt $i: initialized=$init key=${key:0:8}"
+  [ -n "$key" ] && break
+  [ "$init" = "true" ] && { log "  already initialized (ok)."; break; }
   sleep 2
 done
+
+if [ -n "$key" ]; then
+  log "Registering admin '$E2E_USER' with key..."
+  rc=$(curl -s -o /tmp/reg.out -w "%{http_code}" -X POST "$BASE/v1/users/register" \
+    -H "Content-Type: application/json" \
+    -d "{\"username\":\"$E2E_USER\",\"password\":\"$E2E_PASS\",\"key\":\"$key\"}" || echo "000")
+  log "  register: HTTP $rc $(head -c 160 /tmp/reg.out)"
+fi
 
 # Authoritative gate: a real login must work, or the stack is unusable
 # for the @smoke specs. Fail loudly with the body rather than hand
