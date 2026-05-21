@@ -70,3 +70,23 @@ export async function addCatalogSource(url: string): Promise<void> {
 export async function removeCatalogSource(id: number): Promise<void> {
 	await api.delete(`/v2/app_management/appstore/${id}`);
 }
+
+/**
+ * Catalog opt-in status. The catalog is disabled by default — the store
+ * ships dark until the operator enables it. `source` is the fixed
+ * bundled origin (not operator-editable; custom sources are separate).
+ */
+export interface CatalogStatus {
+	enabled: boolean;
+	source: string;
+}
+
+/** Whether the app catalog is enabled, plus its fixed source. */
+export async function getCatalogStatus(): Promise<CatalogStatus> {
+	return api.get<CatalogStatus>('/v2/app_management/catalog/status');
+}
+
+/** Enable or disable the app catalog (master opt-in toggle). */
+export async function setCatalogEnabled(enabled: boolean): Promise<CatalogStatus> {
+	return api.put<CatalogStatus>('/v2/app_management/catalog/enabled', { enabled });
+}
