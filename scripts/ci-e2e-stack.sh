@@ -115,8 +115,22 @@ for i in $(seq 1 30); do
 done
 [ -f "$RUNTIME/management.url" ] || { cat "$LOGS/gateway.log"; die "gateway did not come up"; }
 
+# message-bus must come up BEFORE the services that register event types
+# with it — user-service panics on boot if message-bus.url isn't written
+# yet (production masks this with systemd Restart=always; we don't have
+# that here). Start it, wait for its address file, THEN the rest.
+log "Starting message-bus..."
+( cd "$BACKEND/message-bus" && exec "$BIN/message-bus" -c "$CONF/message-bus.conf" ) >> "$LOGS/message-bus.log" 2>&1 &
+echo $! >> "$RUNTIME/powerlab.pids"
+for i in $(seq 1 30); do
+  [ -f "$RUNTIME/message-bus.url" ] && break
+  sleep 1
+done
+[ -f "$RUNTIME/message-bus.url" ] || { cat "$LOGS/message-bus.log"; die "message-bus did not publish its address"; }
+log "  message-bus ready: $(cat "$RUNTIME/message-bus.url")"
+
 for svc in "${SERVICES[@]}"; do
-  [ "$svc" = gateway ] && continue
+  case "$svc" in gateway|message-bus) continue ;; esac
   log "Starting $svc..."
   ( cd "$BACKEND/$svc" && exec "$BIN/$svc" -c "$CONF/$svc.conf" ) >> "$LOGS/$svc.log" 2>&1 &
   echo $! >> "$RUNTIME/powerlab.pids"

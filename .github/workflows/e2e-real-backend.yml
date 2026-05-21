@@ -75,11 +75,20 @@ jobs:
 
       - name: Run browser @smoke against the real backend
         working-directory: ui
-        # journald-stream needs systemd units (packaged install) — excluded here.
-        # --workers=1: real-backend login is rate-limited (HTTP 429); the
-        # token cache is per-process, so parallel workers each log in and
-        # trip the limit. Serial → one cached login for the whole run.
-        run: npx playwright test --grep "@smoke" --grep-invert "journald" --workers=1 --reporter=line
+        # Golden-path real-backend @smoke that a synthetic (no-systemd)
+        # stack can reliably run: the auth contract + app lifecycle. The
+        # audit/logs/journald specs need the full packaged install (their
+        # pipelines aren't wired in this background-process stack) and are
+        # covered by the Go backend-integration job + manual Lima checks.
+        # --workers=1 + --retries=0: real-backend login is rate-limited
+        # (HTTP 429) and the token cache is per-process, so parallel workers
+        # or retries each re-login and trip the limit — serial, no retry.
+        run: |
+          npx playwright test \
+            tests/login-flow.smoke.spec.ts \
+            tests/install-uninstall.smoke.spec.ts \
+            tests/adventurelog-install.smoke.spec.ts \
+            --workers=1 --retries=0 --reporter=line
 
       - name: Dump backend logs on failure
         if: failure()
