@@ -75,17 +75,24 @@ jobs:
 
       - name: Run browser @smoke against the real backend
         working-directory: ui
-        # Golden-path real-backend @smoke that a synthetic (no-systemd)
-        # stack can reliably run: the auth contract + app lifecycle. The
-        # audit/logs/journald specs need the full packaged install (their
-        # pipelines aren't wired in this background-process stack) and are
-        # covered by the Go backend-integration job + manual Lima checks.
+        # App-lifecycle golden path that a synthetic (no-systemd) stack runs
+        # reliably end-to-end: install (Docker pull → compose up → SSE phase
+        # markers) → container present → uninstall. This is the highest-value
+        # real-backend browser check.
+        #
+        # Deliberately NOT here: the auth-contract (login-flow), audit, and
+        # logs/journald specs depend on the packaged install's gateway
+        # config (JWT enforcement, audit pipeline, systemd units) that this
+        # background-process stack doesn't replicate — they're covered by the
+        # Go backend-integration job + manual Lima checks. Revisit if the
+        # stack is later built from the real install (run install.sh on the
+        # runner) rather than raw binaries.
+        #
         # --workers=1 + --retries=0: real-backend login is rate-limited
         # (HTTP 429) and the token cache is per-process, so parallel workers
         # or retries each re-login and trip the limit — serial, no retry.
         run: |
           npx playwright test \
-            tests/login-flow.smoke.spec.ts \
             tests/install-uninstall.smoke.spec.ts \
             tests/adventurelog-install.smoke.spec.ts \
             --workers=1 --retries=0 --reporter=line
