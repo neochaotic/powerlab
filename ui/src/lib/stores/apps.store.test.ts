@@ -164,4 +164,36 @@ describe('useAppStore — catalog loading', () => {
 
 		expect(store.isPowerLabApp(customApp)).toBe(false);
 	});
+
+	it('isPowerLabApp uses baked provenance, NOT catalog membership (catalog disabled → still a store app)', async () => {
+		// Opt-in / catalog disabled: the browse list comes back empty.
+		vi.stubGlobal('fetch', mockStoreResponse({}));
+		const store = useAppStore();
+		await store.fetchAppStore();
+		expect(store.appStoreCatalog).toHaveLength(0);
+
+		// An installed store app carries provenance in its own compose
+		// (source.catalog + author). It must stay a PowerLab app even with
+		// nothing in the live catalog — this is the regression where
+		// disabling the catalog flipped every installed app to Custom.
+		const installedStoreApp = {
+			store_info: {
+				store_app_id: 'enclosed',
+				title: { en_us: 'Enclosed' },
+				icon: '',
+				tagline: {},
+				description: {},
+				image: {},
+				author: 'Corentin Thomasset',
+				developer: 'Corentin Thomasset',
+				category: '',
+				thumbnail: '',
+				source: { catalog: 'umbrel-apps' }
+			},
+			compose: null,
+			status: 'running'
+		};
+
+		expect(store.isPowerLabApp(installedStoreApp)).toBe(true);
+	});
 });

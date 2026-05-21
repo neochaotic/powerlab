@@ -9,14 +9,20 @@ import CatalogPane from './CatalogPane.svelte';
 vi.mock('$lib/api/catalog', () => ({
 	listCatalogSources: vi.fn(),
 	addCatalogSource: vi.fn(),
-	removeCatalogSource: vi.fn()
+	removeCatalogSource: vi.fn(),
+	getCatalogStatus: vi.fn(),
+	setCatalogEnabled: vi.fn()
 }));
 
 import {
 	listCatalogSources,
 	addCatalogSource,
-	removeCatalogSource
+	removeCatalogSource,
+	getCatalogStatus,
+	setCatalogEnabled
 } from '$lib/api/catalog';
+
+const CATALOG_SOURCE = 'github.com/neochaotic/powerlab-store';
 
 const DEFAULT_SOURCE = {
 	id: 0,
@@ -33,6 +39,9 @@ const OPERATOR_SOURCE = {
 describe('CatalogPane', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		// Default: catalog disabled (the shipped default). Individual
+		// tests override as needed.
+		vi.mocked(getCatalogStatus).mockResolvedValue({ enabled: false, source: CATALOG_SOURCE });
 	});
 
 	it('renders the default PowerLab Curated source with Curated badge', async () => {
@@ -143,6 +152,40 @@ describe('CatalogPane', () => {
 
 		await waitFor(() => {
 			expect(addCatalogSource).toHaveBeenCalledWith('https://github.com/o/r');
+		});
+	});
+
+	it('shows "Enable catalog" when the catalog is disabled (default)', async () => {
+		vi.mocked(listCatalogSources).mockResolvedValue([DEFAULT_SOURCE]);
+		vi.mocked(getCatalogStatus).mockResolvedValue({ enabled: false, source: CATALOG_SOURCE });
+		const { container } = render(CatalogPane);
+		await waitFor(() => {
+			const btn = container.querySelector('[data-testid="catalog-toggle-button"]');
+			expect(btn?.textContent).toContain('Enable catalog');
+		});
+	});
+
+	it('shows "Disable" when the catalog is enabled', async () => {
+		vi.mocked(listCatalogSources).mockResolvedValue([DEFAULT_SOURCE]);
+		vi.mocked(getCatalogStatus).mockResolvedValue({ enabled: true, source: CATALOG_SOURCE });
+		const { container } = render(CatalogPane);
+		await waitFor(() => {
+			const btn = container.querySelector('[data-testid="catalog-toggle-button"]');
+			expect(btn?.textContent).toContain('Disable');
+		});
+	});
+
+	it('toggling from disabled calls setCatalogEnabled(true)', async () => {
+		vi.mocked(listCatalogSources).mockResolvedValue([DEFAULT_SOURCE]);
+		vi.mocked(getCatalogStatus).mockResolvedValue({ enabled: false, source: CATALOG_SOURCE });
+		vi.mocked(setCatalogEnabled).mockResolvedValueOnce({ enabled: true, source: CATALOG_SOURCE });
+		const { container } = render(CatalogPane);
+		await waitFor(() =>
+			expect(container.querySelector('[data-testid="catalog-toggle-button"]')).toBeTruthy()
+		);
+		await fireEvent.click(container.querySelector('[data-testid="catalog-toggle-button"]')!);
+		await waitFor(() => {
+			expect(setCatalogEnabled).toHaveBeenCalledWith(true);
 		});
 	});
 

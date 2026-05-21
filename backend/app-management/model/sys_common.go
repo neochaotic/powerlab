@@ -25,6 +25,13 @@ type APPModel struct {
 // the catalog refresher pulls from.
 type ServerModel struct {
 	AppStoreList []string `ini:"appstore,,allowshadow"`
+
+	// CatalogEnabled gates the app catalog. Default false (zero value):
+	// the store ships dark — the operator opts in explicitly (first-run
+	// prompt / Settings → Catalog). Enterprise/security posture: don't
+	// surface installable apps until consciously enabled. The source is
+	// fixed to the bundled powerlab-store catalog (not operator-editable).
+	CatalogEnabled bool `ini:"catalog_enabled"`
 }
 
 // GlobalModel holds runtime-injected secrets (currently just the

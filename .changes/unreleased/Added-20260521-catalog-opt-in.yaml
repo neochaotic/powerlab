@@ -1,0 +1,5 @@
+kind: Added
+body: 'Catalog is now opt-in (disabled by default). The store ships dark — ComposeAppStoreInfoList returns an empty catalog until the operator enables it via Settings → Catalog (source fixed to the bundled powerlab-store, not editable). New config flag ServerModel.CatalogEnabled (default false) + GET /v2/app_management/catalog/status and PUT /v2/app_management/catalog/enabled.'
+time: 2026-05-21T14:00:00Z
+custom:
+    Issue: "483"

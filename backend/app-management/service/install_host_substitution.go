@@ -89,9 +89,15 @@ func stripPort(s string) string {
 		}
 		return s
 	}
+	// A bare (unbracketed) IPv6 has multiple colons and is never a
+	// host:port form (RFC 3986 / Host headers bracket IPv6). Stripping
+	// its last ":<hextet>" would corrupt the address — "::1" → ":",
+	// "fe80::1234" → "fe80:". Leave any multi-colon input untouched;
+	// only single-colon IPv4/hostname forms get the port stripped.
+	if strings.Count(s, ":") > 1 {
+		return s
+	}
 	// IPv4 / hostname with colon-port: 192.168.1.1:8765 → 192.168.1.1.
-	// A bare IPv6 (multiple colons, no brackets) trips LastIndex, so
-	// only strip when the suffix is purely digits.
 	if i := strings.LastIndex(s, ":"); i >= 0 {
 		port := s[i+1:]
 		allDigits := port != ""

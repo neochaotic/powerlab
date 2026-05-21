@@ -130,13 +130,25 @@ async function uninstallApp(id: string) {
 }
 
 /**
- * Returns true when an installed app's store_app_id is present in the current
- * store catalog — meaning it was installed directly from a PowerLab store source.
- * Apps created from scratch (or renamed forks) will not match and are Custom Apps.
+ * Returns true when an installed app came from a PowerLab store source.
+ *
+ * Identity is baked into the app's own compose at install time: a store
+ * app carries provenance (`x-powerlab.source.catalog` and/or `author`)
+ * in its extension block. We classify from THAT — never from whether the
+ * catalog is currently loaded. The opt-in gate empties the browse list
+ * when the operator disables the catalog, but already-installed apps must
+ * keep their identity (otherwise every installed app would flip to
+ * "Custom" the moment the catalog is turned off). Catalog membership
+ * stays as a fallback for apps that predate baked provenance.
+ *
+ * Custom apps (built from scratch / renamed forks) carry only a
+ * store_app_id equal to their own name, with no author or source.
  */
 function isPowerLabApp(app: ComposeAppWithStoreInfo): boolean {
-	const id = app.store_info?.store_app_id;
+	const info = app.store_info;
+	const id = info?.store_app_id;
 	if (!id) return false;
+	if (info?.source?.catalog || info?.author) return true;
 	return id in appStoreCatalog;
 }
 

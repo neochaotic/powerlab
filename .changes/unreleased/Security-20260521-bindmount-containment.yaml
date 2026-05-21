@@ -1,0 +1,5 @@
+kind: Security
+body: 'Install-time bind-mount preparation is now contained to the app-data root. PrepareBindMountSources previously created + chmod 0o777 *any* absolute path a compose declared as a bind source, so a malicious or compromised catalog entry (or a future operator-added source) using `volumes: ["/etc:/x"]` could weaken permissions on a host system path. It now only touches paths inside config.AppInfo.StoragePath (fail-closed: empty root prepares nothing), with `<root>/../escape` traversal rejected. Defense-in-depth for the enterprise threat model (untrusted apps). Legitimate catalog apps are unaffected — their sources are always under the data root.'
+time: 2026-05-21T14:30:00Z
+custom:
+    Issue: "483"
