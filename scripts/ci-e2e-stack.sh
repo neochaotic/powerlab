@@ -131,18 +131,31 @@ for i in $(seq 1 30); do
 done
 curl -fsS -o /dev/null "$BASE/" || { cat "$LOGS/gateway.log"; die "gateway not answering on $BASE"; }
 
-# Provision the admin the @smoke login expects.
+# Provision the admin the @smoke login expects. Print the real response
+# each attempt — a 4xx here is NOT "already exists" (that was a wrong
+# assumption); user-service may still be wiring up to the gateway.
 log "Registering admin '$E2E_USER'..."
-for i in $(seq 1 15); do
+for i in $(seq 1 20); do
   code=$(curl -s -o /tmp/reg.out -w "%{http_code}" -X POST "$BASE/v1/users/register" \
     -H "Content-Type: application/json" \
-    -d "{\"username\":\"$E2E_USER\",\"password\":\"$E2E_PASS\"}" || true)
-  case "$code" in
-    2*) log "  registered."; break ;;
-    409|400) log "  user already exists (ok)."; break ;;
-    *) sleep 1 ;;
-  esac
+    -d "{\"username\":\"$E2E_USER\",\"password\":\"$E2E_PASS\"}" || echo "000")
+  body=$(cat /tmp/reg.out 2>/dev/null)
+  log "  register attempt $i: HTTP $code ${body:0:160}"
+  [[ "$code" == 2* ]] && { log "  registered."; break; }
+  # USER_EXIST from a prior attempt is fine — the sanity login below decides.
+  echo "$body" | grep -q "exist" && { log "  user reported existing — verifying via login."; break; }
+  sleep 2
 done
+
+# Authoritative gate: a real login must work, or the stack is unusable
+# for the @smoke specs. Fail loudly with the body rather than hand
+# Playwright a broken backend (which only shows up as cascading 400/429).
+log "Sanity login as '$E2E_USER'..."
+lcode=$(curl -s -o /tmp/login.out -w "%{http_code}" -X POST "$BASE/v1/users/login" \
+  -H "Content-Type: application/json" \
+  -d "{\"username\":\"$E2E_USER\",\"password\":\"$E2E_PASS\"}" || echo "000")
+log "  login: HTTP $lcode $(head -c 200 /tmp/login.out 2>/dev/null)"
+[[ "$lcode" == 2* ]] || { echo "--- user-service log ---"; tail -n 60 "$LOGS/user-service.log" 2>/dev/null; die "sanity login failed (HTTP $lcode) — admin not provisioned"; }
 
 log "Stack up. Base: $BASE"
 echo "POWERLAB_E2E_BASE=$BASE"
