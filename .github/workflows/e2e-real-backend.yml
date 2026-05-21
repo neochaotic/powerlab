@@ -15,8 +15,6 @@ name: Browser E2E (real backend)
 # it is excluded via --grep-invert.
 
 on:
-  schedule:
-    - cron: '0 6 * * *' # nightly 06:00 UTC
   push:
     # TEMP (remove before merge): run on this branch so the workflow can
     # be validated on real CI — workflow_dispatch/schedule only fire from
@@ -55,7 +53,7 @@ jobs:
       - name: Build UI
         working-directory: ui
         run: |
-          npm ci
+          npm install
           npm run build
 
       - name: Install Playwright chromium

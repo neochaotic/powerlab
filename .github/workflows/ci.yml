@@ -606,7 +606,22 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────
   release:
     name: Publish GitHub Release
-    needs: package
+    # Gate: the public release publishes ONLY if every correctness +
+    # security gate is green. Previously `needs: package` alone meant a
+    # tag would publish even with red tests (package has no test deps).
+    # If any needed job fails, this job is skipped → nothing is published
+    # (the git tag still exists; re-tag after the fix). The browser
+    # @smoke real-backend job is added to this list once it lands in CI.
+    needs:
+      - package
+      - changelog-fragment
+      - frontend
+      - frontend-e2e
+      - backend
+      - backend-integration
+      - backend-vuln-scan
+      - catalog-hostnames
+      - catalog-app-safety
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:

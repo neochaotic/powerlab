@@ -1,0 +1,5 @@
+kind: Changed
+body: 'The GitHub Release job is now gated on the full correctness + security suite (changelog-fragment, frontend, frontend-e2e, backend, backend-integration, backend-vuln-scan, catalog-hostnames, catalog-app-safety) — previously it only depended on the build (`package`), so a tag could publish a release even with red tests. If any gate fails on a tag push, the release job is skipped and nothing is published.'
+time: 2026-05-21T18:50:00Z
+custom:
+    Issue: "483"
