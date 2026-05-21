@@ -31,12 +31,10 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Opt-in app catalog: disabled by default, enable in
-  Settings → Catalog (curated powerlab-store, 137 apps).
-  Fixes a gateway boot regression and a restart hang on
-  long-lived streams. Security: install-time bind-mount
-  containment + host/secret hardening. Releases now gate
-  on a real-backend install→uninstall smoke in CI.
+  Opt-in app catalog (off by default; enable in Settings →
+  Catalog). Gateway boot + restart-hang fixes. Install-time
+  bind-mount/secret hardening. Releases now gate on a
+  real-backend install→uninstall smoke in CI.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
