@@ -19,7 +19,8 @@
 set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
-allowlist="${repo_root}/.govulncheck-allowlist.txt"
+# Allowlist path is overridable for testing (see govulncheck-gate_test.sh).
+allowlist="${GOVULNCHECK_ALLOWLIST:-${repo_root}/.govulncheck-allowlist.txt}"
 
 # Resolve the scanner: PATH first, then GOPATH/bin (where `go install` puts it).
 gv="$(command -v govulncheck || true)"
@@ -63,10 +64,12 @@ reachable="$(jq -r '
   | .finding.osv
 ' "$json" | sort -u)"
 
-# Allowed ids = first token of each non-comment, non-blank line.
+# Allowed ids = first token of each non-comment, non-blank line. The `|| true`
+# keeps an empty/all-comment allowlist from tripping set -e (grep -v exits 1
+# when nothing matches). [[:space:]] is portable (BSD grep lacks \s).
 allowed=""
 if [[ -f "$allowlist" ]]; then
-  allowed="$(grep -vE '^\s*(#|$)' "$allowlist" | awk '{print $1}' | sort -u)"
+  allowed="$(grep -vE '^[[:space:]]*(#|$)' "$allowlist" | awk '{print $1}' | sort -u || true)"
 fi
 
 blocking=""

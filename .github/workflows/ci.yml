@@ -110,6 +110,9 @@ jobs:
       - name: ESLint raw-fetch ban (Sprint 15 #353)
         run: bash scripts/check-eslint-fetch-ban_test.sh
 
+      - name: govulncheck gate logic (#518)
+        run: bash scripts/govulncheck-gate_test.sh
+
       - name: Type check (svelte-check)
         working-directory: ui
         run: npx svelte-check --tsconfig ./tsconfig.json --threshold error
