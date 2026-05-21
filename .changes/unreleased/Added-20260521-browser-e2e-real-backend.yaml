@@ -1,5 +1,5 @@
 kind: Added
-body: 'CI workflow that runs the browser @smoke Playwright specs against a real, full PowerLab stack (gateway + services + UI + provisioned admin) brought up via scripts/ci-e2e-stack.sh on a GitHub Actions runner. This is the browser-level counterpart to the Go backend-integration job — the @smoke specs previously only skipped in per-PR CI (no backend URL) or ran manually against staging. Runs nightly, on release tags, and on demand (not per-PR, to keep PR CI fast). The journald-stream spec is excluded as it needs systemd units (packaged install), not this background-process stack.'
-time: 2026-05-21T18:30:00Z
+body: 'CI now runs the browser @smoke install→uninstall golden path against a REAL PowerLab stack and gates the release on it. A `browser-e2e-real` job (ci.yml) stands up the full stack via scripts/ci-e2e-stack.sh (gateway serving the built UI + all services + a provisioned admin) and runs the Playwright install→uninstall spec (install → SSE phase markers → uninstall). It runs on release tags + manual dispatch (not per-PR; the per-PR real-backend contract is the Go backend-integration job) and is in the `release` job''s needs, so a tag will not publish if it fails. Auth/audit/logs @smoke remain covered by backend-integration + manual checks since they need the packaged install''s gateway config.'
+time: 2026-05-21T19:40:00Z
 custom:
     Issue: "483"

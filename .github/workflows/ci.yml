@@ -519,6 +519,75 @@ jobs:
   # dependency that fails on the linux/arm64 toolchain), so we keep
   # it on every push as the safety net for tag-time releases.
   # ─────────────────────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────────────────
+  # Browser @smoke vs a REAL PowerLab stack — UI-level counterpart to
+  # backend-integration. Stands up the full stack (scripts/ci-e2e-stack.sh)
+  # and runs the install→uninstall golden path. Tags + manual dispatch only
+  # (slow/heavier than the mock suite). `release` needs it, so a tag won't
+  # publish if it fails. Auth/audit/logs @smoke need the packaged install's
+  # gateway config — covered by backend-integration + manual Lima.
+  # ─────────────────────────────────────────────────────────────────────
+  browser-e2e-real:
+    name: Browser @smoke vs real stack
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      POWERLAB_E2E_PORT: '8085'
+      POWERLAB_E2E_USER: ci-admin
+      POWERLAB_E2E_PASSWORD: ci-smoke-pass-12345
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify Docker is available
+        run: docker version
+      - name: Install CGO build deps
+        # user-service links libpam, local-storage links libfuse.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libpam0g-dev libfuse-dev pkg-config
+      - name: Build UI
+        working-directory: ui
+        run: |
+          npm install
+          npm run build
+      - name: Install Playwright chromium
+        working-directory: ui
+        run: npx playwright install --with-deps chromium
+      - name: Bring up the real PowerLab stack
+        run: |
+          chmod +x scripts/ci-e2e-stack.sh
+          scripts/ci-e2e-stack.sh
+          echo "POWERLAB_E2E_BASE=http://127.0.0.1:${POWERLAB_E2E_PORT}" >> "$GITHUB_ENV"
+      - name: Run browser @smoke against the real backend
+        working-directory: ui
+        # install-uninstall = stable golden path (install → SSE phase
+        # markers → uninstall). Serial + no-retry: login is rate-limited.
+        run: |
+          npx playwright test \
+            tests/install-uninstall.smoke.spec.ts \
+            --workers=1 --retries=0 --reporter=line
+      - name: Dump backend logs on failure
+        if: failure()
+        run: |
+          echo "=== gateway ===";        tail -n 120 backend/logs/gateway.log        2>/dev/null || true
+          echo "=== app-management ==="; tail -n 120 backend/logs/app-management.log 2>/dev/null || true
+          echo "=== user-service ===";   tail -n 120 backend/logs/user-service.log   2>/dev/null || true
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-real-backend
+          path: ui/playwright-report/
+          retention-days: 7
+
   package:
     name: Package smoke (${{ matrix.arch }})
     runs-on: ubuntu-latest
@@ -622,6 +691,7 @@ jobs:
       - backend-vuln-scan
       - catalog-hostnames
       - catalog-app-safety
+      - browser-e2e-real
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
