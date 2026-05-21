@@ -134,6 +134,27 @@ Claims you can defend.
 "trustworthy for demanding technical individuals/small teams in ~6 months" is.
 Calibrate the claim to that, not SOC2.
 
+### Cross-cutting objective — external trust badges
+
+Two third-party, externally-verifiable signals are among the cheapest high-trust
+wins for the target profile (technical evaluators read README badges before code).
+Tracked by #505 (OpenSSF) / #506 (Go Report). They mostly *package and certify*
+the Tier-1 work rather than add new engineering — exactly the leverage a 1+1 team
+wants.
+
+- **Go Report Card → A+** (#506): gofmt / go vet / ineffassign / gocyclo /
+  misspell / license hygiene. Largely free once the Phase-1 `golangci-lint`
+  enforcement (T1.2) lands, plus a gofmt + misspell sweep. **Target: Phase 1.**
+- **OpenSSF Best Practices → passing** (#505): a checklist badge bundling
+  SECURITY.md (✅ T1.7), disclosure process (✅), automated tests + CI (✅),
+  SAST (Phase 1 T1.2), no-known-vulns (Phase 1 — govulncheck blocking), and
+  basic project docs. Most criteria are already met or land in Phases 1–3.
+  **Target: "passing" by end of Phase 3; "silver" later** once coverage (T1.1)
+  and signed releases (T2.6) are in.
+
+Both badges go in the README once earned — they convert the internal Tier-1
+work into a claim an outside evaluator can verify in five seconds.
+
 ## Section 4 — Consciously NOT doing (12-month horizon)
 
 - **T3.1 bus factor** — solo owner can't fix without a co-maintainer; it's a people problem. Genuine **veto for regulated B2B sale** → don't chase that buyer. Document the risk honestly.
