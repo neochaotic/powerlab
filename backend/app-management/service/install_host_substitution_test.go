@@ -155,3 +155,28 @@ func TestSubstituteHostPlaceholders_PreservesOtherPlaceholders(t *testing.T) {
 		t.Errorf("expected APP_PORT preserved (port-substitution territory)")
 	}
 }
+
+// Adversarial coverage for stripPort — IPv6 / malformed / port edges.
+// Caught a latent bug: bare (unbracketed) IPv6 "::1" was mangled to ":"
+// because the trailing "1" looked like a port. Host headers bracket
+// IPv6 so it wasn't hit in prod, but the defensive function should not
+// corrupt it.
+func TestStripPort_AdversarialEdges(t *testing.T) {
+	cases := []struct{ in, want string }{
+		{"", ""},
+		{"192.168.1.10:8765", "192.168.1.10"},
+		{"powerlab.local:80", "powerlab.local"},
+		{"powerlab.local", "powerlab.local"},
+		{"[::1]:8765", "::1"},
+		{"[fe80::1]:443", "fe80::1"},
+		{"[::1", "[::1"},          // unterminated bracket → unchanged
+		{"host:notaport", "host:notaport"}, // non-numeric suffix → unchanged
+		{"::1", "::1"},            // bare IPv6 → must NOT be mangled to ":"
+		{"fe80::1234", "fe80::1234"}, // bare IPv6 → unchanged
+	}
+	for _, c := range cases {
+		if got := stripPort(c.in); got != c.want {
+			t.Errorf("stripPort(%q) = %q, want %q", c.in, got, c.want)
+		}
+	}
+}
