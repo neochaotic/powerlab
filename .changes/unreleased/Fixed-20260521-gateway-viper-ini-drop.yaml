@@ -1,0 +1,5 @@
+kind: Fixed
+body: 'Gateway no longer panics at boot on a fresh install. A routine dependency bump raised viper to v1.21, which removed its built-in `ini` codec (dropped in v1.20), so the gateway crash-looped with `panic: While parsing config: decoder not found for this format` reading gateway.ini — a failure that compiled green and passed unit tests, surfacing only on a real boot. The gateway reads two keys, so viper is replaced with gopkg.in/ini.v1 directly behind a minimal Config type (GetString/Set/WriteConfig), with unit tests covering the real parse, defaults, set/get, and persistence paths.'
+time: 2026-05-21T16:30:00Z
+custom:
+    Issue: "483"
