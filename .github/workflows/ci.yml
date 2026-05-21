@@ -303,12 +303,14 @@ jobs:
           POWERLAB_DEADCODE_MODE: 'delta'
 
   # ─────────────────────────────────────────────────────────────────────
-  # govulncheck — SAST vuln scan per service (ADR-0040). Warn-only on
-  # first introduction (continue-on-error: true) because the codebase
-  # had 10 unpatched CVEs across 6 modules when this gate landed.
-  # Flips to strict once per-service dep bumps clear the backlog
-  # (tracked in v0.7.2 epic #483). Per-service matrix matches the
-  # build gate so we know exactly which service introduced what.
+  # govulncheck — SAST vuln scan per service (ADR-0040). BLOCKING via
+  # scripts/govulncheck-gate.sh: fails on any reachable (called-symbol),
+  # non-stdlib vuln not in .govulncheck-allowlist.txt. The allowlist is the
+  # tracked, accepted backlog (moby v28 migration #523 + no-fix CVEs); the
+  # gate now catches NEW regressions (e.g. the next viper-class boot break).
+  # Stdlib CVEs are handled by the floating go-version, not the gate.
+  # Per-service matrix matches the build gate so we know which service
+  # introduced what.
   # ─────────────────────────────────────────────────────────────────────
   backend-vuln-scan:
     name: Backend vuln scan (${{ matrix.service }})
@@ -350,16 +352,9 @@ jobs:
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
 
-      - name: govulncheck
-        # Warn-only first run — initial CI run found 10 CVEs across 6
-        # modules. Per-service dep bumps clear the backlog (v0.7.2
-        # epic #483); flip to strict in a one-line PR that drops
-        # this line. ADR-0040 amendment authorises the warn-only
-        # ratchet ("If too aggressive, ADR amended, not implementation
-        # rolled back").
-        continue-on-error: true
+      - name: govulncheck (blocking gate + allowlist)
         working-directory: backend/${{ matrix.service }}
-        run: govulncheck ./...
+        run: bash "$GITHUB_WORKSPACE/scripts/govulncheck-gate.sh"
 
   # ─────────────────────────────────────────────────────────────────────
   # Catalog hostname lint (Sprint 20 PR 4a). Scans every

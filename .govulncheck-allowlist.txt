@@ -1,0 +1,43 @@
+# govulncheck allowlist — reachable (called) CVEs we knowingly accept FOR NOW.
+#
+# scripts/govulncheck-gate.sh blocks CI on any reachable, non-stdlib vuln that
+# is NOT listed here. This file is the ratchet: the gate catches NEW regressions
+# (the next viper-class boot break) while the known backlog is tracked below.
+# Shrink this list as remediations land; never grow it without a tracking issue.
+#
+# Format: one OSV id per line (first whitespace-delimited token). Everything
+# after is a comment: module — reason — tracking.
+#
+# Stdlib CVEs are NOT listed here: the gate ignores them by design (they are
+# handled by keeping the Go toolchain current via CI's floating go-version).
+
+# ── moby/docker stack — cleared only by the docker v28 / compose-go v2
+#    migration (#523). These deps are coupled and must move as one set.
+GO-2026-4887  # docker/docker — moby v28 migration — #523
+GO-2026-4883  # docker/docker — moby v28 migration — #523
+GO-2025-3829  # docker/docker — moby v28 migration — #523
+GO-2026-4859  # moby/buildkit — moby v28 migration — #523
+GO-2026-4858  # moby/buildkit — moby v28 migration — #523
+GO-2026-4762  # google.golang.org/grpc — moby v28 migration — #523
+GO-2025-4108  # containerd — moby v28 migration — #523
+GO-2025-4100  # containerd — moby v28 migration — #523
+GO-2025-3528  # containerd — moby v28 migration — #523
+GO-2025-4098  # opencontainers/runc — moby v28 migration — #523
+GO-2024-3110  # opencontainers/runc — moby v28 migration — #523
+GO-2025-4077  # docker/compose/v2 — moby v28 migration — #523
+GO-2025-3527  # docker/buildx — moby v28 migration — #523
+GO-2023-2331  # otelgrpc — moby v28 migration (otel moves with grpc) — #523
+
+# ── no upstream fix available (advisory marks Fixed: N/A). Reassess on each
+#    govulncheck run; remove if/when a fixed release ships.
+GO-2025-4020  # nwaples/rardecode — no upstream fix — #518
+
+# ── other reachable deps with an independent fix path (not moby-coupled).
+#    Candidates for opportunistic bumps; tracked under the #518 umbrella.
+GO-2025-3605  # mholt/archiver/v3 — independent bump candidate — #518
+GO-2024-2698  # mholt/archiver/v3 — independent bump candidate — #518
+GO-2025-3533  # getkin/kin-openapi — independent bump candidate — #518
+GO-2023-1989  # golang.org/x/image (core) — independent bump candidate — #518
+GO-2023-1990  # golang.org/x/image (core) — independent bump candidate — #518
+GO-2024-2937  # golang.org/x/image (core) — independent bump candidate — #518
+GO-2026-4815  # golang.org/x/image (core) — independent bump candidate — #518
