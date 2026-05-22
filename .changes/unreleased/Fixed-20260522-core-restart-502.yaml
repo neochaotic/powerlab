@@ -1,0 +1,5 @@
+kind: Fixed
+body: 'Restarting the core service from Settings → Power no longer returns HTTP 502. core handles the restart request itself, so a synchronous restart tore down the in-flight response; it now forks via systemd-run (like the gateway) so the response returns before the unit restarts.'
+time: 2026-05-22T15:40:00Z
+custom:
+    Issue: "545"

@@ -119,14 +119,30 @@ func queryAllServiceStatesWith(run commandRunner) ([]ServiceState, []error) {
 	return states, errs
 }
 
-// GatewayService is the systemd unit name for the PowerLab gateway.
-// Restarting it requires the delayed-exec path (see restartPowerLabServiceWith).
-const GatewayService = "powerlab-gateway"
+// GatewayService and CoreService are the systemd unit names for the two
+// units that sit on the path of the restart request itself: the gateway
+// proxies it and core handles it. Restarting either one synchronously
+// would tear the process down before the HTTP response flushes, so they
+// take the delayed-exec path (see restartPowerLabServiceWith).
+const (
+	GatewayService = "powerlab-gateway"
+	CoreService    = "powerlab-core"
+)
+
+// requiresDetachedRestart reports whether restarting name would kill the
+// process serving or proxying the current request — in which case the
+// restart must be forked via systemd-run so the response can return
+// first. A synchronous restart of these returns HTTP 502 to the client
+// even though the unit restarts fine.
+func requiresDetachedRestart(name string) bool {
+	return name == GatewayService || name == CoreService
+}
 
 // RestartPowerLabService restarts a single PowerLab unit. The unit
-// MUST be in PowerLabServices. For the gateway service itself, the
-// restart is forked via systemd-run so the HTTP response can be sent
-// before the process is torn down; all other units restart synchronously.
+// MUST be in PowerLabServices. The gateway (proxy) and core (handler)
+// sit on the request path, so their restart is forked via systemd-run
+// to let the HTTP response return before the process is torn down; all
+// other units restart synchronously.
 func RestartPowerLabService(name string) ([]byte, error) {
 	return restartPowerLabServiceWith(defaultRunner, name)
 }
@@ -135,11 +151,12 @@ func restartPowerLabServiceWith(run commandRunner, name string) ([]byte, error) 
 	if !IsAllowedPowerLabService(name) {
 		return nil, fmt.Errorf("service %q not in PowerLab whitelist", name)
 	}
-	if name == GatewayService {
-		// The gateway is restarting itself. A direct `systemctl restart`
-		// would kill this process (and its cgroup) before the HTTP
-		// response returns. systemd-run spawns a transient unit in a
-		// separate cgroup so the restart fires ~2 s after we reply.
+	if requiresDetachedRestart(name) {
+		// The unit serving/proxying this request is restarting itself. A
+		// direct `systemctl restart` would kill this process (and its
+		// cgroup) before the HTTP response returns. systemd-run spawns a
+		// transient unit in a separate cgroup so the restart fires ~2 s
+		// after we reply.
 		out, err := run("systemd-run", "--no-block", "--quiet",
 			"/bin/sh", "-c", "sleep 2 && systemctl restart "+name) //nolint:gosec
 		if err != nil {
