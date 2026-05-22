@@ -1,0 +1,5 @@
+kind: Added
+body: 'Test coverage: added a unit suite for common/utils/file (GetExt, CommonPrefix, and tempdir round-trips for MkDir/IsNotExistMkDir/RMDir/Exists/IsDir/IsFile/CreateFile/CreateFileAndWriteContent/ReadFullFile/GetFileOrDirSize) — 8.3% → 26.6%. Pure-logic + filesystem helpers; no mock teatro.'
+time: 2026-05-22T04:20:00Z
+custom:
+    Issue: ""
