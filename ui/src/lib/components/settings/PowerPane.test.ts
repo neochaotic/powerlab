@@ -96,6 +96,41 @@ describe('PowerPane', () => {
 		});
 	});
 
+	it('Restart button shows progress + disables until the unit cycles (new pid)', async () => {
+		// mount sees the original pid; once the restart fires, subsequent
+		// polls report a NEW pid → the button must confirm and re-enable.
+		const restarted = SERVICES.map((s) =>
+			s.name === 'powerlab-app-management' ? { ...s, pid: '2002' } : s
+		);
+		vi.mocked(listPowerLabServices)
+			.mockResolvedValueOnce(SERVICES)
+			.mockResolvedValue(restarted);
+		vi.mocked(restartPowerLabService).mockResolvedValue(undefined);
+
+		const { container } = render(PowerPane);
+		await waitFor(() => screen.getByText('powerlab-app-management'));
+
+		const row = container.querySelector('[data-testid="service-row-powerlab-app-management"]');
+		const restartBtn = row?.querySelector('[data-testid="service-restart-btn"]') as HTMLButtonElement;
+		await fireEvent.click(restartBtn);
+
+		// In-flight: button reports progress and is disabled (no multi-click).
+		await waitFor(() => {
+			expect(restartBtn.textContent).toContain('Restarting');
+			expect(restartBtn.disabled).toBe(true);
+		});
+
+		// After the unit cycles to a new pid, the poll confirms: button
+		// re-enables and briefly shows the success label.
+		await waitFor(
+			() => {
+				expect(restartBtn.disabled).toBe(false);
+				expect(restartBtn.textContent).toContain('Restarted');
+			},
+			{ timeout: 5000 }
+		);
+	});
+
 	it('Reboot button opens modal, not direct backend call', async () => {
 		vi.mocked(listPowerLabServices).mockResolvedValue(SERVICES);
 		const { container } = render(PowerPane);
