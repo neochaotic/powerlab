@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/compose-spec/compose-go/v2/types"
+	"github.com/docker/compose/v2/pkg/api"
+	"github.com/labstack/echo/v4"
 	"github.com/neochaotic/powerlab/backend/app-management/codegen"
 	"github.com/neochaotic/powerlab/backend/app-management/common"
 	"github.com/neochaotic/powerlab/backend/app-management/model"
 	"github.com/neochaotic/powerlab/backend/app-management/service"
 	"github.com/neochaotic/powerlab/backend/common/utils"
 	"github.com/neochaotic/powerlab/backend/common/utils/logger"
-	"github.com/compose-spec/compose-go/types"
-	"github.com/docker/compose/v2/pkg/api"
-	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 	"go.uber.org/zap"
 )
@@ -150,9 +150,11 @@ func WebAppGridItemAdapterV2(composeAppWithStoreInfo *codegen.ComposeAppWithStor
 		item.IsUncontrolled = composeAppStoreInfo.IsUncontrolled
 
 		var mainApp *types.ServiceConfig
-		for i, service := range composeApp.Services {
+		for _, service := range composeApp.Services {
 			if service.Name == *composeAppStoreInfo.Main {
-				mainApp = &composeApp.Services[i]
+				// compose-go v2 Services is a map; service is a per-iteration
+				// copy (Go 1.22+), safe to address.
+				mainApp = &service
 				item.Image = &mainApp.Image // Hengxin needs this image property for some reason...
 			}
 			break

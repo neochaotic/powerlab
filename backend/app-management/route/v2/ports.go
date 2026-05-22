@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/neochaotic/powerlab/backend/common/utils/port"
 	"github.com/labstack/echo/v4"
+	"github.com/neochaotic/powerlab/backend/common/utils/port"
 )
 
 // CheckPorts is a lightweight cross-platform port-availability probe used by

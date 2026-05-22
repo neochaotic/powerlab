@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/compose-spec/compose-go/cli"
-	"github.com/compose-spec/compose-go/loader"
-	"github.com/compose-spec/compose-go/types"
+	"github.com/compose-spec/compose-go/v2/cli"
+	"github.com/compose-spec/compose-go/v2/loader"
+	"github.com/compose-spec/compose-go/v2/types"
 	composeCmd "github.com/docker/compose/v2/cmd/compose"
 	"github.com/neochaotic/powerlab/backend/app-management/codegen"
 	"github.com/neochaotic/powerlab/backend/app-management/common"
@@ -89,6 +90,10 @@ func LoadComposeAppFromConfigFile(appID string, configFile string) (*ComposeApp,
 	options := composeCmd.ProjectOptions{
 		ProjectDir:  filepath.Dir(configFile),
 		ProjectName: appID,
+		// Local-only: our compose files never reference remote git/OCI
+		// includes, so disable remote resource loaders. This also lets
+		// ToProject run without a docker CLI instance.
+		Offline: true,
 	}
 
 	env := []string{fmt.Sprintf("%s=%s", "AppID", appID)}
@@ -97,9 +102,10 @@ func LoadComposeAppFromConfigFile(appID string, configFile string) (*ComposeApp,
 	}
 
 	// load project
-	project, err := options.ToProject(
-		nil,
-		nil,
+	project, _, err := options.ToProject(
+		context.Background(),
+		nil, // dockerCli: unused because Offline disables remote loaders
+		nil, // services: load all
 		cli.WithWorkingDirectory(options.ProjectDir), // this has to be the first option, otherwise it will assume the dir where this program is running is the working directory.
 
 		cli.WithOsEnv,
@@ -153,8 +159,11 @@ func removeRuntime(a *ComposeApp) {
 			// without nvidia-smi 	// no gpu or first time fetching gpu info failed
 		}
 		if len(*gpuCache) == 0 {
-			for i := range a.Services {
-				a.Services[i].Runtime = ""
+			// compose-go v2 Services is a map; values aren't addressable,
+			// so mutate a copy and write it back.
+			for name, svc := range a.Services {
+				svc.Runtime = ""
+				a.Services[name] = svc
 			}
 		}
 	}
@@ -183,7 +192,8 @@ func NewComposeAppFromYAML(yaml []byte, skipInterpolation, skipValidation bool) 
 	re := regexp.MustCompile(`(?m)^web:`)
 	yaml = re.ReplaceAll(yaml, []byte("x-web:"))
 
-	project, err := loader.Load(
+	project, err := loader.LoadWithContext(
+		context.Background(),
 		types.ConfigDetails{
 			ConfigFiles: []types.ConfigFile{
 				{
@@ -261,11 +271,14 @@ func NewComposeAppFromYAML(yaml []byte, skipInterpolation, skipValidation bool) 
 	// still using `func getContainerStats()` from `container.go` to get container stats
 	// (we are being lazy to upgrade that v1 API to v2 - please help if you can :D)
 	if err == nil && storeInfo != nil && storeInfo.Icon != "" {
-		for i := range composeApp.Services {
-			if composeApp.Services[i].Labels == nil {
-				composeApp.Services[i].Labels = map[string]string{}
+		// compose-go v2 Services is a map; values aren't addressable, so
+		// mutate a copy and write it back.
+		for i, svc := range composeApp.Services {
+			if svc.Labels == nil {
+				svc.Labels = map[string]string{}
 			}
-			composeApp.Services[i].Labels[v1.V1LabelIcon] = storeInfo.Icon
+			svc.Labels[v1.V1LabelIcon] = storeInfo.Icon
+			composeApp.Services[i] = svc
 		}
 	}
 

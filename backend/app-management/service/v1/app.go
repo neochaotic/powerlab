@@ -115,7 +115,7 @@ func GetCustomizationPostData(info types.ContainerJSON) model.CustomizationPostD
 		Position:      false,
 		Privileged:    info.HostConfig.Privileged,
 		Protocol:      common.LabelValue(info.Config.Labels, common.LabelProtocolKey),
-		Restart:       info.HostConfig.RestartPolicy.Name,
+		Restart:       string(info.HostConfig.RestartPolicy.Name),
 		Volumes:       vol,
 	}
 

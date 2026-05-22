@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/compose-spec/compose-go/loader"
+	"github.com/compose-spec/compose-go/v2/loader"
 	"github.com/neochaotic/powerlab/backend/app-management/codegen"
 	"github.com/neochaotic/powerlab/backend/app-management/common"
 	"github.com/neochaotic/powerlab/backend/common/utils/logger"

@@ -8,13 +8,13 @@ import (
 	"net/http"
 	"regexp"
 
+	"github.com/compose-spec/compose-go/v2/types"
+	"github.com/labstack/echo/v4"
 	"github.com/neochaotic/powerlab/backend/app-management/codegen"
 	"github.com/neochaotic/powerlab/backend/app-management/common"
 	"github.com/neochaotic/powerlab/backend/app-management/service"
 	"github.com/neochaotic/powerlab/backend/common/utils"
 	"github.com/neochaotic/powerlab/backend/common/utils/logger"
-	"github.com/compose-spec/compose-go/types"
-	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
@@ -111,9 +111,9 @@ func (a *AppManagement) MyComposeApp(ctx echo.Context, id codegen.ComposeAppID) 
 		// extension properties aren't marshalled - https://github.com/golang/go/issues/6213
 		Message: &message,
 		Data: &codegen.ComposeAppWithStoreInfo{
-			StoreInfo: storeInfo,
-			Compose:   (*types.Project)(composeApp),
-			Status:    &status,
+			StoreInfo:       storeInfo,
+			Compose:         (*types.Project)(composeApp),
+			Status:          &status,
 			UpdateAvailable: &updateAvailable,
 		},
 	})

@@ -30,7 +30,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 )
 
@@ -69,7 +69,7 @@ func TestDockerListImagesWorks(t *testing.T) {
 	// We don't care if there are 0 or 100 images — only that the
 	// API call succeeds. If the call errors, the entire Pull
 	// pipeline in prod would also fail.
-	if _, err := cli.ImageList(ctx, types.ImageListOptions{}); err != nil {
+	if _, err := cli.ImageList(ctx, image.ListOptions{}); err != nil {
 		t.Fatalf("list images: %v", err)
 	}
 }

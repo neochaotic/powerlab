@@ -12,14 +12,14 @@ import (
 // extension wins on a doc that has more than one.
 func TestLookupAppExtension_PriorityOrder(t *testing.T) {
 	cases := []struct {
-		name     string
-		ext      map[string]interface{}
-		wantKey  string
-		wantOK   bool
+		name    string
+		ext     map[string]interface{}
+		wantKey string
+		wantOK  bool
 	}{
 		{
-			name:    "x-powerlab wins over x-web and x-casaos",
-			ext:     map[string]interface{}{
+			name: "x-powerlab wins over x-web and x-casaos",
+			ext: map[string]interface{}{
 				common.ComposeExtensionNameXPowerLab: map[string]interface{}{"src": "powerlab"},
 				common.ComposeExtensionNameWeb:       map[string]interface{}{"src": "web"},
 				common.ComposeExtensionNameXCasaOS:   map[string]interface{}{"src": "casaos"},
@@ -28,8 +28,8 @@ func TestLookupAppExtension_PriorityOrder(t *testing.T) {
 			wantOK:  true,
 		},
 		{
-			name:    "x-web wins when x-powerlab absent",
-			ext:     map[string]interface{}{
+			name: "x-web wins when x-powerlab absent",
+			ext: map[string]interface{}{
 				common.ComposeExtensionNameWeb:     map[string]interface{}{"src": "web"},
 				common.ComposeExtensionNameXCasaOS: map[string]interface{}{"src": "casaos"},
 			},
@@ -37,8 +37,8 @@ func TestLookupAppExtension_PriorityOrder(t *testing.T) {
 			wantOK:  true,
 		},
 		{
-			name:    "x-casaos used as last resort",
-			ext:     map[string]interface{}{
+			name: "x-casaos used as last resort",
+			ext: map[string]interface{}{
 				common.ComposeExtensionNameXCasaOS: map[string]interface{}{"src": "casaos"},
 			},
 			wantKey: common.ComposeExtensionNameXCasaOS,
@@ -57,8 +57,8 @@ func TestLookupAppExtension_PriorityOrder(t *testing.T) {
 			wantOK:  false,
 		},
 		{
-			name:    "explicit nil value is skipped (treated as absent)",
-			ext:     map[string]interface{}{
+			name: "explicit nil value is skipped (treated as absent)",
+			ext: map[string]interface{}{
 				common.ComposeExtensionNameXPowerLab: nil,
 				common.ComposeExtensionNameXCasaOS:   map[string]interface{}{"src": "casaos"},
 			},

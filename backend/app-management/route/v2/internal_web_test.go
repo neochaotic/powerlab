@@ -52,8 +52,16 @@ func TestWebAppGridItemAdapter(t *testing.T) {
 	gridItem, err := v2.WebAppGridItemAdapterV2(&composeAppWithStoreInfo)
 	assert.NilError(t, err)
 
+	// compose-go v2 Services is a map; this fixture has one service, so grab
+	// its image key-agnostically (matches the adapter's main-service pick).
+	var mainImage string
+	for _, s := range composeApp.Services {
+		mainImage = s.Image
+		break
+	}
+
 	assert.Equal(t, *gridItem.Icon, storeInfo.Icon)
-	assert.Equal(t, *gridItem.Image, composeApp.Services[0].Image)
+	assert.Equal(t, *gridItem.Image, mainImage)
 	assert.Equal(t, gridItem.Hostname, storeInfo.Hostname)
 	assert.Equal(t, *gridItem.Port, storeInfo.PortMap)
 	assert.Equal(t, *gridItem.Index, storeInfo.Index)

@@ -103,7 +103,10 @@ func TestIsUpgradable(t *testing.T) {
 
 	storeComposeApp.SetStoreAppID("test")
 
-	storeMainAppImage, _ := docker.ExtractImageAndTag(storeComposeApp.Services[0].Image)
+	storeMainApp, err := storeComposeApp.MainService()
+	assert.NilError(t, err)
+	storeMainName := storeMainApp.Name
+	storeMainAppImage, _ := docker.ExtractImageAndTag(storeMainApp.Image)
 
 	storeComposeAppStoreInfo, err := storeComposeApp.StoreInfo(false)
 	assert.NilError(t, err)
@@ -126,7 +129,10 @@ func TestIsUpgradable(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Assert(t, !upgradable)
 
-	storeComposeApp.Services[0].Image = storeMainAppImage + ":test"
+	// compose-go v2 Services is a map; mutate a copy and write back.
+	mainSvc := storeComposeApp.Services[storeMainName]
+	mainSvc.Image = storeMainAppImage + ":test"
+	storeComposeApp.Services[storeMainName] = mainSvc
 
 	upgradable, err = appStoreManagement.IsUpdateAvailableWith(localComposeApp, storeComposeApp)
 	assert.NilError(t, err)

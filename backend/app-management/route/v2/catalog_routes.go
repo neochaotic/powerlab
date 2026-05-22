@@ -3,8 +3,8 @@ package v2
 import (
 	"net/http"
 
-	"github.com/neochaotic/powerlab/backend/app-management/pkg/config"
 	"github.com/labstack/echo/v4"
+	"github.com/neochaotic/powerlab/backend/app-management/pkg/config"
 )
 
 // catalogSource is the fixed catalog origin. It is intentionally not

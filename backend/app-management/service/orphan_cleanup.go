@@ -4,7 +4,7 @@ import (
 	"context"
 	"regexp"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"github.com/neochaotic/powerlab/backend/common/utils/logger"
@@ -63,7 +63,7 @@ func isAutoRenamedOrphan(containerName, project string) bool {
 // "force-cleanup" recovery endpoint — operations are idempotent
 // (containers that don't exist cause a NotFound which we ignore).
 func cleanupAutoRenamedOrphans(ctx context.Context, dockerClient client.APIClient, project string) (int, error) {
-	containers, err := dockerClient.ContainerList(ctx, types.ContainerListOptions{
+	containers, err := dockerClient.ContainerList(ctx, container.ListOptions{
 		All: true,
 		Filters: filters.NewArgs(
 			filters.Arg("label", "com.docker.compose.project="+project),
@@ -89,7 +89,7 @@ func cleanupAutoRenamedOrphans(ctx context.Context, dockerClient client.APIClien
 				zap.String("name", trimmed),
 				zap.String("id", c.ID),
 			)
-			if err := dockerClient.ContainerRemove(ctx, c.ID, types.ContainerRemoveOptions{
+			if err := dockerClient.ContainerRemove(ctx, c.ID, container.RemoveOptions{
 				Force: true,
 			}); err != nil {
 				// Best-effort: log via Error (the logger pkg has no

@@ -291,7 +291,7 @@ func baseInterpolationMap() map[string]string {
 	}
 }
 
-func apiService() (api.Service, client.APIClient, error) {
+func apiService() (api.Compose, client.APIClient, error) {
 	// Docker SDK v24 caps at API 1.43; daemons ≥25.0 require minimum 1.44.
 	// Setting DOCKER_API_VERSION lets the client negotiate above its compile-time cap.
 	if os.Getenv("DOCKER_API_VERSION") == "" {
@@ -312,11 +312,11 @@ func apiService() (api.Service, client.APIClient, error) {
 	return compose.NewComposeService(dockerCli), dockerCli.Client(), nil
 }
 
-// ApiService constructs a fresh docker-compose api.Service paired
+// ApiService constructs a fresh docker-compose api.Compose paired
 // with the underlying APIClient. Intended for one-shot operations
 // (rather than as a long-lived service); callers must Close the
 // APIClient when done.
-func ApiService() (api.Service, client.APIClient, error) {
+func ApiService() (api.Compose, client.APIClient, error) {
 	return apiService()
 }
 
@@ -339,7 +339,7 @@ func cleanup(workDir string) {
 // service convention (DNS etc.).
 func autoRemapPorts(app *ComposeApp) map[string]string {
 	type portRef struct {
-		svcIdx int // index into app.Services (it's a slice, not a map)
+		svcKey string // key into app.Services (compose-go v2 map, keyed by service name)
 		portJ  int
 		proto  string
 	}
@@ -410,7 +410,12 @@ func autoRemapPorts(app *ComposeApp) map[string]string {
 		}
 		// Apply to all services in the group
 		for _, r := range refs {
-			app.Services[r.svcIdx].Ports[r.portJ].Published = newStr
+			// compose-go v2 Services is a map; mutate a copy and write back.
+			// (Ports is a slice, so editing it in the copy is enough, but the
+			// write-back keeps the intent explicit.)
+			svc := app.Services[r.svcKey]
+			svc.Ports[r.portJ].Published = newStr
+			app.Services[r.svcKey] = svc
 		}
 	}
 	return remap

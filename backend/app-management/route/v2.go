@@ -10,16 +10,16 @@ import (
 	"github.com/neochaotic/powerlab/backend/app-management/codegen"
 	"github.com/neochaotic/powerlab/backend/app-management/pkg/config"
 
-	v2Route "github.com/neochaotic/powerlab/backend/app-management/route/v2"
-	common_middleware "github.com/neochaotic/powerlab/backend/common/middleware"
-	"github.com/neochaotic/powerlab/backend/common/external"
-	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
 	"github.com/deepmap/oapi-codegen/pkg/middleware"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
-	"github.com/labstack/echo/v4"
 	echojwt "github.com/labstack/echo-jwt/v4"
+	"github.com/labstack/echo/v4"
 	echo_middleware "github.com/labstack/echo/v4/middleware"
+	v2Route "github.com/neochaotic/powerlab/backend/app-management/route/v2"
+	"github.com/neochaotic/powerlab/backend/common/external"
+	common_middleware "github.com/neochaotic/powerlab/backend/common/middleware"
+	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
 )
 
 var (
