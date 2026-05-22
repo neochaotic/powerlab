@@ -32,14 +32,6 @@ GO-2023-2331  # otelgrpc — moby v28 migration (otel moves with grpc) — #523
 #    govulncheck run; remove if/when a fixed release ships.
 GO-2025-4020  # nwaples/rardecode — no upstream fix — #518
 
-# ── rclone (local-storage): reachable by static call-graph but NOT exposed.
-#    local-storage uses rclone only as a mount library (cmd/mountlib/fs/vfs);
-#    it never starts the rc/rcd remote-control daemon (GO-2026-4964's attack
-#    surface) nor the --links --metadata sync path (GO-2024-3271). Bump to
-#    >=1.73.5 tracked in #525.
-GO-2026-4964  # rclone — rc options/set auth-bypass; rcd not started — bump #525
-GO-2024-3271  # rclone — symlink perms (--links --metadata); unused path — bump #525
-
 # ── other reachable deps with an independent fix path (not moby-coupled).
 #    Candidates for opportunistic bumps; tracked under the #518 umbrella.
 GO-2025-3605  # mholt/archiver/v3 — independent bump candidate — #518
