@@ -232,10 +232,34 @@ func TestRestartGateway_DelayedCommandContainsSleepAndServiceName(t *testing.T) 
 	}
 }
 
-func TestRestartNonGateway_UsesSystemctlDirectly(t *testing.T) {
-	// All non-gateway services must still use the synchronous systemctl path.
+func TestRestartCore_UsesSystemdRun(t *testing.T) {
+	// core handles the restart request itself; a direct restart kills the
+	// in-flight HTTP response (client sees 502). It must fork via
+	// systemd-run, exactly like the gateway.
+	var capturedExe string
+	var capturedArgs []string
+	stub := func(name string, args ...string) ([]byte, error) {
+		capturedExe = name
+		capturedArgs = args
+		return []byte(""), nil
+	}
+	if _, err := restartPowerLabServiceWith(stub, "powerlab-core"); err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if capturedExe != "systemd-run" {
+		t.Errorf("expected systemd-run for core self-restart, got %q — the 502-on-restart bug returns", capturedExe)
+	}
+	shellCmd := strings.Join(capturedArgs, " ")
+	if !strings.Contains(shellCmd, "sleep") || !strings.Contains(shellCmd, "powerlab-core") {
+		t.Errorf("core restart command must encode a delay + the unit name; got args: %v", capturedArgs)
+	}
+}
+
+func TestRestartNonDetached_UsesSystemctlDirectly(t *testing.T) {
+	// Services not on the request path must still use the synchronous
+	// systemctl path (only gateway + core fork via systemd-run).
 	for _, svc := range PowerLabServices {
-		if svc == "powerlab-gateway" {
+		if requiresDetachedRestart(svc) {
 			continue
 		}
 		svc := svc
