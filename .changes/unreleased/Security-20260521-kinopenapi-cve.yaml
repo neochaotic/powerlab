@@ -1,0 +1,5 @@
+kind: Security
+body: 'Dependency security: bumped github.com/getkin/kin-openapi to v0.138.0 across core, message-bus, app-management, local-storage and user-service, clearing reachable CVE GO-2025-3533 (decompression data-amplification / DoS in the request/response validation filters; fixed upstream in 0.131.0) and removing it from the govulncheck allowlist. oapi-codegen-generated code is unaffected; verified by build + govulncheck reachability + the blocking gate on the Go-buildable modules (local-storage/user-service validated in CI).'
+time: 2026-05-21T23:05:00Z
+custom:
+    Issue: "518"
