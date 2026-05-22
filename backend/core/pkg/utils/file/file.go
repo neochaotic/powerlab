@@ -78,20 +78,12 @@ func RMDir(src string) error {
 	return nil
 }
 
+// RemoveAll removes dir and everything it contains, recursively. The previous
+// implementation only os.Remove'd non-directory entries and then the top dir,
+// which left empty subdirectories behind and errored "directory not empty" on
+// any nested tree (#533).
 func RemoveAll(dir string) error {
-	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() {
-			return os.Remove(path)
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	return os.Remove(dir)
+	return os.RemoveAll(dir)
 }
 
 // Open a file according to a specific mode
