@@ -435,21 +435,39 @@ func (a *ComposeApp) Apply(ctx context.Context, newComposeYAML []byte) error {
 		logger.Info("failed to update event properties from store info", zap.Error(err), zap.String("name", a.Name))
 	}
 
-	go func(ctx context.Context) {
-		go PublishEventWrapper(ctx, common.EventTypeAppApplyChangesBegin, nil)
-
-		defer PublishEventWrapper(ctx, common.EventTypeAppApplyChangesEnd, nil)
-
-		if err := a.PullAndApply(ctx, newComposeYAML); err != nil {
-			go PublishEventWrapper(ctx, common.EventTypeAppApplyChangesError, map[string]string{
-				common.PropertyTypeMessage.Name: err.Error(),
-			})
-
-			logger.Error("failed to apply changes to compose app", zap.Error(err), zap.String("name", a.Name))
-		}
-	}(ctx)
+	go a.runApplyChanges(ctx, newComposeYAML)
 
 	return nil
+}
+
+// applyChangesRunner is the seam that performs the actual pull+apply.
+// Production runs the real docker-driven PullAndApply; tests stub it to
+// exercise the task lifecycle without a docker daemon.
+var applyChangesRunner = func(a *ComposeApp, ctx context.Context, newComposeYAML []byte) error {
+	return a.PullAndApply(ctx, newComposeYAML)
+}
+
+// runApplyChanges performs the async apply and — crucially — drives the
+// per-app Task so the UI's task/{id}/logs SSE stream receives its
+// terminal `event: end`. The install path does the same; the update
+// path previously only published message-bus events, which left the
+// edit-app progress modal spinning forever because the task channel
+// was never finished.
+func (a *ComposeApp) runApplyChanges(ctx context.Context, newComposeYAML []byte) {
+	task := MyTaskService.GetOrCreate(a.Name)
+	defer task.Finish()
+
+	go PublishEventWrapper(ctx, common.EventTypeAppApplyChangesBegin, nil)
+
+	defer PublishEventWrapper(ctx, common.EventTypeAppApplyChangesEnd, nil)
+
+	if err := applyChangesRunner(a, ctx, newComposeYAML); err != nil {
+		go PublishEventWrapper(ctx, common.EventTypeAppApplyChangesError, map[string]string{
+			common.PropertyTypeMessage.Name: err.Error(),
+		})
+
+		logger.Error("failed to apply changes to compose app", zap.Error(err), zap.String("name", a.Name))
+	}
 }
 
 // SetStatus is the start/stop/restart dispatcher. Polls for the
