@@ -11,7 +11,7 @@ require (
 	github.com/neochaotic/powerlab/backend/pkg v0.0.0-00010101000000-000000000000
 	github.com/samber/lo v1.53.0
 	go.uber.org/goleak v1.3.0
-	gorm.io/gorm v1.25.7
+	gorm.io/gorm v1.31.1
 	gotest.tools v2.2.0+incompatible
 )
 
