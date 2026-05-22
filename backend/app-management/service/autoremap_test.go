@@ -17,8 +17,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/neochaotic/powerlab/backend/app-management/codegen"
-	"github.com/compose-spec/compose-go/types"
 	"gotest.tools/v3/assert"
 )
 
@@ -61,7 +61,7 @@ func makeApp(name string, ports ...struct{ pub, proto string }) *ComposeApp {
 	app := &ComposeApp{
 		Name: name,
 		Services: types.Services{
-			types.ServiceConfig{
+			"svc": types.ServiceConfig{
 				Name:  name,
 				Image: "test/image:latest",
 				Ports: svcPorts,
@@ -104,8 +104,8 @@ func TestAutoRemapPorts_AllFree(t *testing.T) {
 	remap := autoRemapPorts(app)
 
 	assert.Equal(t, len(remap), 0, "no remaps should happen when ports are free")
-	assert.Equal(t, app.Services[0].Ports[0].Published, strconv.Itoa(freeA))
-	assert.Equal(t, app.Services[0].Ports[1].Published, strconv.Itoa(freeB))
+	assert.Equal(t, onlySvc(app).Ports[0].Published, strconv.Itoa(freeA))
+	assert.Equal(t, onlySvc(app).Ports[1].Published, strconv.Itoa(freeB))
 }
 
 func TestAutoRemapPorts_TCPConflictRemaps(t *testing.T) {
@@ -125,7 +125,7 @@ func TestAutoRemapPorts_TCPConflictRemaps(t *testing.T) {
 
 	newInt, _ := strconv.Atoi(newStr)
 	assert.Assert(t, newInt > taken, "new port must be above the original")
-	assert.Equal(t, app.Services[0].Ports[0].Published, newStr,
+	assert.Equal(t, onlySvc(app).Ports[0].Published, newStr,
 		"the in-place mutation must apply to the compose project")
 }
 
@@ -149,8 +149,8 @@ func TestAutoRemapPorts_TCPandUDPPairedRemapTogether(t *testing.T) {
 	remap := autoRemapPorts(app)
 
 	assert.Equal(t, len(remap), 1, "tcp+udp share the same Published, so one entry in remap")
-	tcpNew := app.Services[0].Ports[0].Published
-	udpNew := app.Services[0].Ports[1].Published
+	tcpNew := onlySvc(app).Ports[0].Published
+	udpNew := onlySvc(app).Ports[1].Published
 	assert.Equal(t, tcpNew, udpNew,
 		"paired tcp+udp must remap to the same port to preserve protocol convention")
 	assert.Assert(t, tcpNew != strconv.Itoa(port), "should have moved off the original")
@@ -171,8 +171,8 @@ func TestAutoRemapPorts_PartialConflictMigratesPair(t *testing.T) {
 	remap := autoRemapPorts(app)
 
 	assert.Equal(t, len(remap), 1)
-	tcpNew := app.Services[0].Ports[0].Published
-	udpNew := app.Services[0].Ports[1].Published
+	tcpNew := onlySvc(app).Ports[0].Published
+	udpNew := onlySvc(app).Ports[1].Published
 	assert.Equal(t, tcpNew, udpNew, "even when only TCP conflicts, the pair migrates together")
 }
 
@@ -212,7 +212,7 @@ func TestUpdateStorePortMap_NoOpWhenNoRemap(t *testing.T) {
 func TestRemapVolumePaths_NoOpWhenStoragePathIsDataDefault(t *testing.T) {
 	app := &ComposeApp{
 		Services: types.Services{
-			types.ServiceConfig{
+			"svc": types.ServiceConfig{
 				Name: "x",
 				Volumes: []types.ServiceVolumeConfig{
 					{Type: "bind", Source: "/DATA/AppData/$AppID/config", Target: "/config"},
@@ -221,18 +221,18 @@ func TestRemapVolumePaths_NoOpWhenStoragePathIsDataDefault(t *testing.T) {
 		},
 	}
 	remapVolumePaths(app, "/DATA")
-	assert.Equal(t, app.Services[0].Volumes[0].Source, "/DATA/AppData/$AppID/config",
+	assert.Equal(t, onlySvc(app).Volumes[0].Source, "/DATA/AppData/$AppID/config",
 		"no rewrite when storage path equals /DATA")
 
 	// Empty string is treated the same as no-op.
 	remapVolumePaths(app, "")
-	assert.Equal(t, app.Services[0].Volumes[0].Source, "/DATA/AppData/$AppID/config")
+	assert.Equal(t, onlySvc(app).Volumes[0].Source, "/DATA/AppData/$AppID/config")
 }
 
 func TestRemapVolumePaths_RewritesDATAPrefix(t *testing.T) {
 	app := &ComposeApp{
 		Services: types.Services{
-			types.ServiceConfig{
+			"svc": types.ServiceConfig{
 				Name: "x",
 				Volumes: []types.ServiceVolumeConfig{
 					{Type: "bind", Source: "/DATA/AppData/syncthing/config", Target: "/config"},
@@ -244,7 +244,7 @@ func TestRemapVolumePaths_RewritesDATAPrefix(t *testing.T) {
 	}
 	remapVolumePaths(app, "/tmp/powerlab-data")
 
-	vols := app.Services[0].Volumes
+	vols := onlySvc(app).Volumes
 	assert.Equal(t, vols[0].Source, "/tmp/powerlab-data/AppData/syncthing/config")
 	assert.Equal(t, vols[1].Source, "/tmp/powerlab-data")
 	assert.Equal(t, vols[2].Source, "/etc/timezone", "non-/DATA paths are untouched")
@@ -253,7 +253,7 @@ func TestRemapVolumePaths_RewritesDATAPrefix(t *testing.T) {
 func TestRemapVolumePaths_IgnoresNonBindVolumes(t *testing.T) {
 	app := &ComposeApp{
 		Services: types.Services{
-			types.ServiceConfig{
+			"svc": types.ServiceConfig{
 				Name: "x",
 				Volumes: []types.ServiceVolumeConfig{
 					{Type: "volume", Source: "/DATA/named", Target: "/data"}, // named volume, not bind
@@ -262,19 +262,29 @@ func TestRemapVolumePaths_IgnoresNonBindVolumes(t *testing.T) {
 		},
 	}
 	remapVolumePaths(app, "/tmp/powerlab-data")
-	assert.Equal(t, app.Services[0].Volumes[0].Source, "/DATA/named",
+	assert.Equal(t, onlySvc(app).Volumes[0].Source, "/DATA/named",
 		"named volumes (non-bind) must NOT be rewritten")
 }
 
 // Sanity check: codegen alias ComposeApp == types.Project so we can construct one.
 var _ = codegen.ComposeApp{}
 
+// onlySvc returns the single service from a one-service test fixture.
+// compose-go v2 Services is a map, so tests can't index by position; every
+// fixture here has exactly one service, so we return it key-agnostically.
+func onlySvc(app *ComposeApp) types.ServiceConfig {
+	for _, s := range app.Services {
+		return s
+	}
+	return types.ServiceConfig{}
+}
+
 // ─── rewriteAppDataPathsToCanonical tests (#85 PR-C, ADR-0021) ──────────
 
 func TestRewriteAppDataPathsToCanonical_RewritesAppDataPrefix(t *testing.T) {
 	app := &ComposeApp{
 		Services: types.Services{
-			types.ServiceConfig{
+			"svc": types.ServiceConfig{
 				Name: "x",
 				Volumes: []types.ServiceVolumeConfig{
 					{Type: "bind", Source: "/DATA/AppData/syncthing/config", Target: "/config"},
@@ -287,7 +297,7 @@ func TestRewriteAppDataPathsToCanonical_RewritesAppDataPrefix(t *testing.T) {
 	}
 	rewriteAppDataPathsToCanonical(app, "/DATA")
 
-	vols := app.Services[0].Volumes
+	vols := onlySvc(app).Volumes
 	assert.Equal(t, vols[0].Source, "/DATA/PowerLabAppData/syncthing/config")
 	assert.Equal(t, vols[1].Source, "/DATA/PowerLabAppData/nextcloud/data")
 	assert.Equal(t, vols[2].Source, "/DATA/something-else", "non-AppData /DATA paths must NOT be rewritten")
@@ -300,7 +310,7 @@ func TestRewriteAppDataPathsToCanonical_RewritesAppDataPrefix(t *testing.T) {
 func TestRewriteAppDataPathsToCanonical_HonorsCustomStoragePath(t *testing.T) {
 	app := &ComposeApp{
 		Services: types.Services{
-			types.ServiceConfig{
+			"svc": types.ServiceConfig{
 				Name: "x",
 				Volumes: []types.ServiceVolumeConfig{
 					{Type: "bind", Source: "/tmp/pl-data/AppData/syncthing/config", Target: "/config"},
@@ -309,7 +319,7 @@ func TestRewriteAppDataPathsToCanonical_HonorsCustomStoragePath(t *testing.T) {
 		},
 	}
 	rewriteAppDataPathsToCanonical(app, "/tmp/pl-data")
-	assert.Equal(t, app.Services[0].Volumes[0].Source, "/tmp/pl-data/PowerLabAppData/syncthing/config")
+	assert.Equal(t, onlySvc(app).Volumes[0].Source, "/tmp/pl-data/PowerLabAppData/syncthing/config")
 }
 
 // TestRewriteAppDataPathsToCanonical_NoOpWhenStorageEmpty mirrors the
@@ -317,7 +327,7 @@ func TestRewriteAppDataPathsToCanonical_HonorsCustomStoragePath(t *testing.T) {
 func TestRewriteAppDataPathsToCanonical_NoOpWhenStorageEmpty(t *testing.T) {
 	app := &ComposeApp{
 		Services: types.Services{
-			types.ServiceConfig{
+			"svc": types.ServiceConfig{
 				Name: "x",
 				Volumes: []types.ServiceVolumeConfig{
 					{Type: "bind", Source: "/DATA/AppData/x/y", Target: "/y"},
@@ -326,7 +336,7 @@ func TestRewriteAppDataPathsToCanonical_NoOpWhenStorageEmpty(t *testing.T) {
 		},
 	}
 	rewriteAppDataPathsToCanonical(app, "")
-	assert.Equal(t, app.Services[0].Volumes[0].Source, "/DATA/AppData/x/y", "empty storagePath = no-op")
+	assert.Equal(t, onlySvc(app).Volumes[0].Source, "/DATA/AppData/x/y", "empty storagePath = no-op")
 }
 
 // TestRewriteAppDataPathsToCanonical_IgnoresNonBindVolumes — symmetry
@@ -334,7 +344,7 @@ func TestRewriteAppDataPathsToCanonical_NoOpWhenStorageEmpty(t *testing.T) {
 func TestRewriteAppDataPathsToCanonical_IgnoresNonBindVolumes(t *testing.T) {
 	app := &ComposeApp{
 		Services: types.Services{
-			types.ServiceConfig{
+			"svc": types.ServiceConfig{
 				Name: "x",
 				Volumes: []types.ServiceVolumeConfig{
 					{Type: "volume", Source: "/DATA/AppData/named", Target: "/d"},
@@ -343,5 +353,5 @@ func TestRewriteAppDataPathsToCanonical_IgnoresNonBindVolumes(t *testing.T) {
 		},
 	}
 	rewriteAppDataPathsToCanonical(app, "/DATA")
-	assert.Equal(t, app.Services[0].Volumes[0].Source, "/DATA/AppData/named", "non-bind not rewritten")
+	assert.Equal(t, onlySvc(app).Volumes[0].Source, "/DATA/AppData/named", "non-bind not rewritten")
 }

@@ -29,9 +29,9 @@ const curatedManifestFilename = ".curated-manifest"
 // Behaviour matrix:
 //   - Manifest missing       → noop (return nil, nil, nil)
 //   - Manifest empty         → noop (ambiguous: could be corruption,
-//                                  could be zero-app release; safer to
-//                                  skip — install.sh wipe-then-copy is
-//                                  the authoritative path)
+//     could be zero-app release; safer to
+//     skip — install.sh wipe-then-copy is
+//     the authoritative path)
 //   - Apps/ dir missing      → noop
 //   - File (not dir) in Apps → ignored, never removed
 //   - Dir in manifest        → kept

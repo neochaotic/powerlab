@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/labstack/echo/v4"
 	"github.com/neochaotic/powerlab/backend/app-management/codegen"
 	"github.com/neochaotic/powerlab/backend/app-management/common"
 	"github.com/neochaotic/powerlab/backend/app-management/pkg/config"
@@ -16,7 +17,6 @@ import (
 	"github.com/neochaotic/powerlab/backend/app-management/service"
 	"github.com/neochaotic/powerlab/backend/common/utils"
 	"github.com/neochaotic/powerlab/backend/common/utils/logger"
-	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"

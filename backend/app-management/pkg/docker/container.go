@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/neochaotic/powerlab/backend/common/utils"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
+	"github.com/neochaotic/powerlab/backend/common/utils"
 	"github.com/samber/lo"
 )
 
@@ -92,7 +92,7 @@ func RemoveContainer(ctx context.Context, id string) error {
 	}
 	defer cli.Close()
 
-	return cli.ContainerRemove(ctx, id, types.ContainerRemoveOptions{Force: true})
+	return cli.ContainerRemove(ctx, id, container.RemoveOptions{Force: true})
 }
 
 func RenameContainer(ctx context.Context, id string, name string) error {
@@ -118,7 +118,7 @@ func StartContainer(ctx context.Context, id string) error {
 	}
 
 	if !containerInfo.State.Running {
-		return cli.ContainerStart(ctx, id, types.ContainerStartOptions{})
+		return cli.ContainerStart(ctx, id, container.StartOptions{})
 	}
 
 	return nil
@@ -205,7 +205,7 @@ func runtimeConfig(containerInfo *types.ContainerJSON, imageInfo *types.ImageIns
 
 	// subtract ports exposed in image from container
 	for k := range config.ExposedPorts {
-		if _, ok := imageConfig.ExposedPorts[k]; ok {
+		if _, ok := imageConfig.ExposedPorts[string(k)]; ok {
 			delete(config.ExposedPorts, k)
 		}
 	}

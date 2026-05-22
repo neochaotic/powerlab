@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/compose-spec/compose-go/types"
+	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/compose/v2/pkg/api"
-	dockerTypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/neochaotic/powerlab/backend/app-management/codegen"
 	"github.com/neochaotic/powerlab/backend/app-management/common"
 	"github.com/neochaotic/powerlab/backend/common/utils/file"
@@ -50,8 +50,8 @@ func (a *ComposeApp) Update(ctx context.Context) error {
 		return ErrNotFoundInAppStore
 	}
 
-	localComposeAppServices := lo.Map(a.Services, func(service types.ServiceConfig, i int) string { return service.Name })
-	storeComposeAppServices := lo.Map(storeComposeApp.Services, func(service types.ServiceConfig, i int) string { return service.Name })
+	localComposeAppServices := lo.MapToSlice(a.Services, func(_ string, service types.ServiceConfig) string { return service.Name })
+	storeComposeAppServices := lo.MapToSlice(storeComposeApp.Services, func(_ string, service types.ServiceConfig) string { return service.Name })
 
 	localAbsentOfStore, storeAbsentOfLocal := lo.Difference(localComposeAppServices, storeComposeAppServices)
 	if len(localAbsentOfStore) > 0 {
@@ -256,16 +256,18 @@ func (a *ComposeApp) PullAndInstall(ctx context.Context, logWriter io.Writer) er
 			}
 
 			// check if each required device exists
-			deviceMapFiltered := []string{}
+			deviceMapFiltered := []types.DeviceMapping{}
 			for _, deviceMap := range app.Devices {
-				devicePath := strings.SplitN(deviceMap, ":", 2)[0]
+				devicePath := deviceMap.Source
 				if file.CheckNotExist(devicePath) {
 					logger.Info("device not found", zap.String("device", devicePath))
 					continue
 				}
 				deviceMapFiltered = append(deviceMapFiltered, deviceMap)
 			}
-			a.Services[i].Devices = deviceMapFiltered
+			// compose-go v2 Services is a map; write the modified copy back.
+			app.Devices = deviceMapFiltered
+			a.Services[i] = app
 		}
 
 		if err := a.Create(ctx, api.CreateOptions{}, service); err != nil {
@@ -287,8 +289,8 @@ func (a *ComposeApp) PullAndInstall(ctx context.Context, logWriter io.Writer) er
 	defer PublishEventWrapper(ctx, common.EventTypeContainerStartEnd, nil)
 
 	if err := service.Start(ctx, a.Name, api.StartOptions{
-		CascadeStop: true,
-		Wait:        true,
+		OnExit: api.CascadeStop,
+		Wait:   true,
 	}); err != nil {
 		// Tolerant fallback for #397: catalog entries that set
 		// explicit `container_name:` produce containers that lose
@@ -298,7 +300,7 @@ func (a *ComposeApp) PullAndInstall(ctx context.Context, logWriter io.Writer) er
 		// containers ARE running. Verify directly with a
 		// ContainerList() and a project-name fallback before
 		// surfacing the failure to the user.
-		all, listErr := dockerClient.ContainerList(ctx, dockerTypes.ContainerListOptions{All: true})
+		all, listErr := dockerClient.ContainerList(ctx, container.ListOptions{All: true})
 		if listErr == nil && projectHasContainers(all, a.Name) {
 			fmt.Fprintf(logWriter, "Note: compose-go reported no labeled containers for project %q; healthy containers detected via name fallback (likely explicit container_name in compose). Original: %v\n", a.Name, err)
 		} else {
@@ -493,8 +495,8 @@ func (a *ComposeApp) SetStatus(ctx context.Context, status codegen.RequestCompos
 			}
 
 			if err := service.Start(ctx, a.Name, api.StartOptions{
-				CascadeStop: true,
-				Wait:        true,
+				OnExit: api.CascadeStop,
+				Wait:   true,
 			}); err != nil {
 				go PublishEventWrapper(ctx, common.EventTypeAppStartError, map[string]string{
 					common.PropertyTypeMessage.Name: err.Error(),

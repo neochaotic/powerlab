@@ -51,9 +51,11 @@ func (a *ComposeApp) App(name string) *App {
 		return nil
 	}
 
-	for i, service := range a.Services {
+	for _, service := range a.Services {
 		if service.Name == name {
-			return (*App)(&a.Services[i])
+			// compose-go v2 Services is a map; values aren't addressable.
+			// service is a per-iteration copy (Go 1.22+), safe to return.
+			return (*App)(&service)
 		}
 	}
 
@@ -65,8 +67,8 @@ func (a *ComposeApp) App(name string) *App {
 func (a *ComposeApp) Apps() map[string]*App {
 	apps := make(map[string]*App)
 
-	for i, service := range a.Services {
-		apps[service.Name] = (*App)(&a.Services[i])
+	for _, service := range a.Services {
+		apps[service.Name] = (*App)(&service)
 	}
 
 	return apps

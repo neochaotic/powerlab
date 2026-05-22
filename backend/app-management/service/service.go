@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"net/http"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/neochaotic/powerlab/backend/app-management/codegen/message_bus"
 	"github.com/neochaotic/powerlab/backend/app-management/common"
 	"github.com/neochaotic/powerlab/backend/app-management/pkg/config"
 	"github.com/neochaotic/powerlab/backend/common/external"
 	"github.com/neochaotic/powerlab/backend/common/utils/logger"
-	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
 )
 

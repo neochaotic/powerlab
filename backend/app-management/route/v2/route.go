@@ -1,8 +1,8 @@
 package v2
 
 import (
-	"github.com/neochaotic/powerlab/backend/app-management/codegen"
 	"github.com/labstack/echo/v4"
+	"github.com/neochaotic/powerlab/backend/app-management/codegen"
 )
 
 type AppManagement struct{}

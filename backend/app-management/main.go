@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/coreos/go-systemd/daemon"
 	"github.com/neochaotic/powerlab/backend/app-management/common"
 	"github.com/neochaotic/powerlab/backend/app-management/pkg/config"
 	"github.com/neochaotic/powerlab/backend/app-management/route"
@@ -21,7 +22,6 @@ import (
 	"github.com/neochaotic/powerlab/backend/common/model"
 	"github.com/neochaotic/powerlab/backend/common/utils/file"
 	"github.com/neochaotic/powerlab/backend/common/utils/logger"
-	"github.com/coreos/go-systemd/daemon"
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 

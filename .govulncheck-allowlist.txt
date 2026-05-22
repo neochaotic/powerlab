@@ -11,22 +11,22 @@
 # Stdlib CVEs are NOT listed here: the gate ignores them by design (they are
 # handled by keeping the Go toolchain current via CI's floating go-version).
 
-# ── moby/docker stack — cleared only by the docker v28 / compose-go v2
-#    migration (#523). These deps are coupled and must move as one set.
-GO-2026-4887  # docker/docker — moby v28 migration — #523
-GO-2026-4883  # docker/docker — moby v28 migration — #523
-GO-2025-3829  # docker/docker — moby v28 migration — #523
-GO-2026-4859  # moby/buildkit — moby v28 migration — #523
-GO-2026-4858  # moby/buildkit — moby v28 migration — #523
-GO-2026-4762  # google.golang.org/grpc — moby v28 migration — #523
-GO-2025-4108  # containerd — moby v28 migration — #523
-GO-2025-4100  # containerd — moby v28 migration — #523
-GO-2025-3528  # containerd — moby v28 migration — #523
-GO-2025-4098  # opencontainers/runc — moby v28 migration — #523
-GO-2024-3110  # opencontainers/runc — moby v28 migration — #523
-GO-2025-4077  # docker/compose/v2 — moby v28 migration — #523
-GO-2025-3527  # docker/buildx — moby v28 migration — #523
-GO-2023-2331  # otelgrpc — moby v28 migration (otel moves with grpc) — #523
+# ── moby/docker stack — residual after the docker v28 / compose-go v2
+#    migration (#523, landed on this branch). The migration cleared runc,
+#    buildx, otelgrpc, containerd GO-2025-3528, docker GO-2025-3829, compose
+#    GO-2025-4077. What remains: docker/docker has NO upstream fix; buildkit/
+#    grpc/containerd-v2/compose/otel still ship vulnerable in compose v2.40.2's
+#    pinned set and clearing them needs a further bump that cascades into Go
+#    1.26 — tracked as a follow-up under #523.
+GO-2026-4887  # docker/docker — no upstream fix — #523
+GO-2026-4883  # docker/docker — no upstream fix — #523
+GO-2026-4859  # moby/buildkit — needs v0.28.1 (Go 1.26 cascade) — #523
+GO-2026-4858  # moby/buildkit — needs v0.28.1 (Go 1.26 cascade) — #523
+GO-2026-4762  # google.golang.org/grpc — needs v1.79.3 (Go 1.26 cascade) — #523
+GO-2025-4108  # containerd/v2 — needs newer (Go 1.26 cascade) — #523
+GO-2025-4100  # containerd/v2 — needs newer (Go 1.26 cascade) — #523
+GO-2026-4610  # docker/compose/v2 — needs newer compose (Go 1.26 cascade) — #523
+GO-2026-4394  # go.opentelemetry.io/otel/sdk — pulled by compose v2.40.2 — #523
 
 # ── no upstream fix available (advisory marks Fixed: N/A). Reassess on each
 #    govulncheck run; remove if/when a fixed release ships.
