@@ -1,0 +1,59 @@
+name: Watch compose/v2 for docker v29
+
+# The five residual moby-stack CVEs in the govulncheck allowlist
+# (.govulncheck-allowlist.txt) all converge on one upstream event: docker/compose
+# shipping a release built against docker v29 / the moby/moby v2 module rename.
+# Until then, bumping buildkit/compose/docker forces a compose<->docker v28/v29
+# API skew (see #523). This job polls the latest compose/v2 release weekly and
+# pings + assigns #523 once when that build appears, so nobody has to remember.
+
+on:
+  schedule:
+    - cron: '0 9 * * 1' # every Monday, 09:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+
+jobs:
+  check:
+    name: Check latest compose/v2 docker pin
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ISSUE: '523'
+      MAINTAINER: 'neochaotic'
+    steps:
+      - name: Inspect compose/v2 go.mod and notify #523 on docker v29
+        run: |
+          set -euo pipefail
+
+          latest=$(curl -fsSL "https://proxy.golang.org/github.com/docker/compose/v2/@latest" | jq -r .Version)
+          echo "latest compose/v2: $latest"
+          mod=$(curl -fsSL "https://proxy.golang.org/github.com/docker/compose/v2/@v/${latest}.mod")
+
+          # docker pin major (e.g. "v28.5.1+incompatible" -> 28); moby/moby presence
+          docker_ver=$(printf '%s\n' "$mod" | awk '$1=="github.com/docker/docker"{print $2}' | head -1)
+          docker_major=$(printf '%s\n' "${docker_ver:-v0}" | sed -E 's/^v?([0-9]+).*/\1/')
+          has_moby=$(printf '%s\n' "$mod" | grep -cE '^[[:space:]]*github.com/moby/moby(/v2)? ' || true)
+          echo "docker pin: ${docker_ver:-none} (major ${docker_major}); moby/moby lines: ${has_moby}"
+
+          if [ "${docker_major:-0}" -lt 29 ] && [ "${has_moby:-0}" -eq 0 ]; then
+            echo "compose/v2 still on docker v28 — no action."
+            exit 0
+          fi
+
+          marker="<!-- compose-v29-watch:${latest} -->"
+          if gh issue view "$ISSUE" --json comments -q '.comments[].body' | grep -qF "$marker"; then
+            echo "Already notified for ${latest}; nothing to do."
+            exit 0
+          fi
+
+          body=$(printf '%s\n@%s — **compose/v2 `%s` now targets docker v29 / moby v2** (docker pin: `%s`).\n\nThis unblocks the five residual moby-stack CVEs in `.govulncheck-allowlist.txt` (GO-2026-4887, GO-2026-4883, GO-2026-4859, GO-2026-4858, GO-2026-4610). They should now clear together with a mechanical `compose/v2` + docker/buildkit bump in `backend/app-management`, validated by the `integration` + `browser-e2e-real` gates.' \
+            "$marker" "$MAINTAINER" "$latest" "$docker_ver")
+
+          gh issue comment "$ISSUE" --body "$body"
+          # Assignment + @mention both generate a direct GitHub notification
+          # (Mentions filter + email), not just a "subscribed" one.
+          gh issue edit "$ISSUE" --add-assignee "$MAINTAINER" >/dev/null 2>&1 || true
+          echo "Pinged + assigned #${ISSUE}."
