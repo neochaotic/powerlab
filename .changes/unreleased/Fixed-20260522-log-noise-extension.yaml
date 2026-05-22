@@ -1,0 +1,5 @@
+kind: Fixed
+body: 'app-management no longer logs "store extension not found" at ERROR once per app on every app-list call. Apps without catalog metadata (e.g. custom apps) are an expected case, so the line is now debug-level (dropped by the default InfoLevel logger) instead of flooding the journal with red errors. Adds a logger.Debug helper.'
+time: 2026-05-22T17:30:00Z
+custom:
+    Issue: "554"
