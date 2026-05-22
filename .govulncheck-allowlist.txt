@@ -45,7 +45,3 @@ GO-2024-3271  # rclone — symlink perms (--links --metadata); unused path — b
 GO-2025-3605  # mholt/archiver/v3 — independent bump candidate — #518
 GO-2024-2698  # mholt/archiver/v3 — independent bump candidate — #518
 GO-2025-3533  # getkin/kin-openapi — independent bump candidate — #518
-GO-2023-1989  # golang.org/x/image (core) — independent bump candidate — #518
-GO-2023-1990  # golang.org/x/image (core) — independent bump candidate — #518
-GO-2024-2937  # golang.org/x/image (core) — independent bump candidate — #518
-GO-2026-4815  # golang.org/x/image (core) — independent bump candidate — #518
