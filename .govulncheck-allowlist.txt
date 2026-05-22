@@ -15,12 +15,23 @@
 #    migration (#523). grpc (v1.79.3), containerd/v2 (v2.2.1) and otel/sdk
 #    (v1.40.0) were independently bumpable without disturbing the docker
 #    v28.5.1 pin, so GO-2026-4762 / GO-2025-4108 / GO-2025-4100 / GO-2026-4394
-#    are now CLEARED. What remains is blocked on the docker v28→v29 / moby
-#    rename: buildkit's fix (v0.28.1) drags in docker/cli v29, which compose
-#    v2.40.3 (latest) is NOT yet built against — so bumping buildkit/compose
-#    forces a compose↔docker v28/v29 API skew. Tracked under #523.
-GO-2026-4887  # docker/docker — no upstream fix (only moby/moby v2 beta) — #523
-GO-2026-4883  # docker/docker — no upstream fix (only moby/moby v2 beta) — #523
+#    are now CLEARED. All FIVE entries below converge on ONE upstream event:
+#    the docker v28→v29 / `moby/moby` v2 rename. buildkit's fix (v0.28.1)
+#    pulls docker/cli v29; compose's fix is cli v29.2; docker/docker's fix is
+#    moby/moby v2. compose/v2 v2.40.3 (latest) is still built against docker
+#    v28.5.1, so forcing any of them creates a compose↔docker v28/v29 API
+#    skew. When compose ships a docker-v29 build, all five clear together —
+#    .github/workflows/compose-v29-watch.yml polls for that and pings #523.
+#
+# Exposure note for the docker/docker pair: both are DAEMON-side bugs in the
+# dockerd AuthZ-plugin path (4887: AuthZ bypass on oversized bodies; 4883:
+# off-by-one in plugin-privilege validation). The OSVs carry no symbol info,
+# so govulncheck flags the whole package as "called" — but app-management is
+# an API *client*; it does not run an authorization plugin in-process. Real
+# exposure requires running dockerd with `--authorization-plugin`, which
+# PowerLab neither ships nor configures. Tracked, low-risk, fixed in moby v2.
+GO-2026-4887  # docker/docker — daemon-side AuthZ bypass; fix in moby/moby v2 — #523
+GO-2026-4883  # docker/docker — daemon-side plugin-priv off-by-one; fix in moby/moby v2 — #523
 GO-2026-4859  # moby/buildkit — fix v0.28.1 pulls docker/cli v29; compose not ready — #523
 GO-2026-4858  # moby/buildkit — fix v0.28.1 pulls docker/cli v29; compose not ready — #523
 GO-2026-4610  # docker/compose/v2 — no v2 fix (fixed in cli v29.2 / compose v5) — #523
