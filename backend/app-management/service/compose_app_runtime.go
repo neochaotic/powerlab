@@ -110,16 +110,29 @@ func (a *ComposeApp) Pull(ctx context.Context, logWriter io.Writer) error {
 func (a *ComposeApp) Up(ctx context.Context, service api.Compose) error {
 	a.injectEnvVariableToComposeApp()
 
-	if err := service.Up(ctx, (*codegen.ComposeApp)(a), api.UpOptions{
-		Start: api.StartOptions{
-			OnExit: api.CascadeStop,
-			Wait:   true,
-		},
-	}); err != nil {
+	if err := service.Up(ctx, (*codegen.ComposeApp)(a), composeUpOptions()); err != nil {
 		logger.Error("failed to start original compose app", zap.Error(err), zap.String("name", a.Name))
 		return err
 	}
 	return nil
+}
+
+// composeUpOptions are the options PowerLab passes for every
+// install/redeploy `compose up`. RemoveOrphans tears down containers
+// that carry the project's labels but no longer correspond to a
+// service in the current model: without it, editing an app's compose
+// to rename or drop a service leaves the old service's container
+// running indefinitely, so two containers answer for one app.
+func composeUpOptions() api.UpOptions {
+	return api.UpOptions{
+		Create: api.CreateOptions{
+			RemoveOrphans: true,
+		},
+		Start: api.StartOptions{
+			OnExit: api.CascadeStop,
+			Wait:   true,
+		},
+	}
 }
 
 // UpWithCheckRequire runs Up after the catalog's min-memory /
