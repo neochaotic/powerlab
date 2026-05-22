@@ -44,7 +44,20 @@
 	let loading = $state(false);
 	let error = $state<string | null>(null);
 	let restartInFlight = $state<Record<string, boolean>>({});
+	let justRestarted = $state<Record<string, boolean>>({});
 	let pollHandle: ReturnType<typeof setInterval> | null = null;
+
+	// Restart-confirmation poll. A restart can be detached (core restarts
+	// itself via a systemd-run timer that fires ~2s after the POST
+	// returns), so the immediate response proves nothing — poll until the
+	// unit is back `active` with a NEW pid (proof it actually cycled),
+	// keeping the button in its "Restarting…" state until then.
+	const RESTART_POLL_INTERVAL_MS = 800;
+	const RESTART_POLL_TIMEOUT_MS = 20000;
+
+	function sleep(ms: number): Promise<void> {
+		return new Promise((resolve) => setTimeout(resolve, ms));
+	}
 
 	let showRebootModal = $state(false);
 	let rebootAck = $state(false);
@@ -81,15 +94,45 @@
 		}
 		restartInFlight = { ...restartInFlight, [name]: true };
 		error = null;
+		const prevPid = services.find((s) => s.name === name)?.pid;
 		try {
 			await restartPowerLabService(name);
-			// Give systemd ~600ms to flip the state, then refresh.
-			setTimeout(load, 600);
+			// Hold the "Restarting…" state until the unit has actually
+			// cycled (new pid), rather than clearing immediately — the
+			// restart may be detached and fire ~2s later.
+			await waitForRestart(name, prevPid);
+			justRestarted = { ...justRestarted, [name]: true };
+			setTimeout(() => {
+				justRestarted = { ...justRestarted, [name]: false };
+			}, 2500);
 		} catch (e) {
 			const apiErr = e as { message?: string };
 			error = apiErr?.message ?? String(e);
 		} finally {
 			restartInFlight = { ...restartInFlight, [name]: false };
+		}
+	}
+
+	// waitForRestart polls the service list until `name` is back `active`
+	// with a pid different from prevPid — the definitive signal that the
+	// unit cycled. Transient errors (the unit briefly unreachable while
+	// it restarts) are swallowed so the poll keeps trying. Refreshes the
+	// rendered list as it goes, then gives up after RESTART_POLL_TIMEOUT_MS.
+	async function waitForRestart(name: string, prevPid?: string): Promise<void> {
+		const deadline = Date.now() + RESTART_POLL_TIMEOUT_MS;
+		while (Date.now() < deadline) {
+			await sleep(RESTART_POLL_INTERVAL_MS);
+			let latest: ServiceState[];
+			try {
+				latest = await listPowerLabServices();
+			} catch {
+				continue;
+			}
+			services = latest;
+			const svc = latest.find((s) => s.name === name);
+			if (svc && svc.active_state === 'active' && svc.pid && svc.pid !== prevPid) {
+				return;
+			}
 		}
 	}
 
@@ -286,7 +329,11 @@
 						data-testid="service-restart-btn"
 					>
 						<RotateCw class={cn('h-3 w-3', restartInFlight[svc.name] && 'animate-spin')} />
-						Restart
+						{restartInFlight[svc.name]
+							? 'Restarting…'
+							: justRestarted[svc.name]
+								? 'Restarted ✓'
+								: 'Restart'}
 					</button>
 				</div>
 			{/each}
