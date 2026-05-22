@@ -1,0 +1,5 @@
+kind: Security
+body: 'Bumped golang.org/x/net to v0.55.0 in app-management to clear GO-2026-5026 (CVE-2026-39821, idna Punycode label rejection), a newly-disclosed reachable vuln the blocking govulncheck gate caught on main.'
+time: 2026-05-22T16:20:00Z
+custom:
+    Issue: ""
