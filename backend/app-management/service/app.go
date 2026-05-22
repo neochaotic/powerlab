@@ -22,7 +22,11 @@ func (a *App) StoreInfo() (codegen.AppStoreInfo, error) {
 
 	ex, _, ok := LookupAppExtension(a.Extensions)
 	if !ok {
-		logger.Error("PowerLab/CasaOS extension not found (tried x-powerlab, x-web, x-casaos)")
+		// Expected for apps without catalog metadata (e.g. custom apps).
+		// Debug, not Error: this fires once per app on every app-list
+		// call, and the absence is handled gracefully below — logging it
+		// at ERROR floods the journal and misreports a healthy system.
+		logger.Debug("no PowerLab/CasaOS store extension (tried x-powerlab, x-web, x-casaos)")
 	}
 
 	// add image to store info for check stable version function.

@@ -40,6 +40,11 @@ func GetFileUpload(ctx echo.Context) error {
 	chunkNumber := ctx.QueryParam("chunkNumber")
 	totalChunks, _ := strconv.Atoi(utils.DefaultQuery(ctx, "totalChunks", "0"))
 	path := ctx.QueryParam("path")
+	if absP, ok := scopeOrDeny(ctx, path); ok {
+		path = absP
+	} else {
+		return nil
+	}
 	dirPath := ""
 	hash := file.GetHashByContent([]byte(fileName))
 	if file.Exists(path + "/" + relative) {
@@ -95,6 +100,11 @@ func PostFileUpload(ctx echo.Context) error {
 	if len(path) == 0 {
 		logger.Error("path should not be empty")
 		return ctx.JSON(http.StatusBadRequest, model.Result{Success: common_err.INVALID_PARAMS, Message: common_err.GetMsg(common_err.INVALID_PARAMS)})
+	}
+	if absP, ok := scopeOrDeny(ctx, path); ok {
+		path = absP
+	} else {
+		return nil
 	}
 	// Auto-create the destination directory if it doesn't exist.
 	// Mirrors `mkdir -p` semantics — the user is asking us to put a
