@@ -99,6 +99,10 @@ func extractTokenFromHTTP(r *http.Request) string {
 		}
 		return strings.TrimSpace(auth)
 	}
+	// HttpOnly cookie before the legacy ?token= fallback (#35).
+	if ck, err := r.Cookie("access_token"); err == nil && ck.Value != "" {
+		return ck.Value
+	}
 	return r.URL.Query().Get("token")
 }
 

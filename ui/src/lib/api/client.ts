@@ -135,6 +135,9 @@ async function request<T>(
 		baseHeaders['Authorization'] = authToken;
 	}
 	let config: RequestInit = {
+		// Send the HttpOnly access_token cookie on same-origin requests
+		// (#35) so auth no longer depends solely on the URL/header token.
+		credentials: 'include',
 		...options,
 		headers: {
 			...baseHeaders,

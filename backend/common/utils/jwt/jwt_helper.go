@@ -41,6 +41,13 @@ func ExtractTokenFromRequest(c echo.Context) string {
 		}
 		return auth
 	}
+	// HttpOnly cookie — preferred for browser-driven GETs (media
+	// <video>/<img>, downloads) so the JWT never lands in the URL,
+	// browser history, or access logs (#35). Checked before the legacy
+	// ?token= query fallback (which SSE/WebSocket still rely on).
+	if ck, err := c.Cookie("access_token"); err == nil && ck.Value != "" {
+		return ck.Value
+	}
 	return c.QueryParam("token")
 }
 
