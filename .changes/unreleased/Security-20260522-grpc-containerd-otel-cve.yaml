@@ -1,0 +1,5 @@
+kind: Security
+body: 'Cleared 4 reachable moby-stack CVEs in app-management by bumping deps that were independently upgradable without disturbing the docker v28.5.1 pin: grpc v1.74.2→v1.79.3 (GO-2026-4762), containerd/v2 v2.1.4→v2.2.1 (GO-2025-4108, GO-2025-4100), and otel/sdk v1.36.0→v1.40.0 (GO-2026-4394). Removed from the govulncheck allowlist; the 5 residual entries (docker/docker no-fix, buildkit/compose blocked on the docker v29 / moby rename) remain tracked under #523.'
+time: 2026-05-22T06:30:00Z
+custom:
+    Issue: "523"
