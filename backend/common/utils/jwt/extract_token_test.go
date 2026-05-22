@@ -61,3 +61,37 @@ func TestExtractTokenFromRequest(t *testing.T) {
 		})
 	}
 }
+
+// #35 — the HttpOnly access_token cookie lets browser GETs (media,
+// downloads) authenticate without the JWT in the URL. Precedence:
+// Authorization header > access_token cookie > ?token= query.
+func TestExtractTokenFromRequest_Cookie(t *testing.T) {
+	newCtx := func(header, cookie, query string) echo.Context {
+		e := echo.New()
+		path := "/"
+		if query != "" {
+			path = "/?token=" + query
+		}
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		if header != "" {
+			req.Header.Set(echo.HeaderAuthorization, header)
+		}
+		if cookie != "" {
+			req.AddCookie(&http.Cookie{Name: "access_token", Value: cookie})
+		}
+		return e.NewContext(req, httptest.NewRecorder())
+	}
+
+	if got := jwt.ExtractTokenFromRequest(newCtx("", "cookie.tok", "")); got != "cookie.tok" {
+		t.Errorf("cookie should be used when no header: got %q", got)
+	}
+	if got := jwt.ExtractTokenFromRequest(newCtx("header.tok", "cookie.tok", "query.tok")); got != "header.tok" {
+		t.Errorf("Authorization header must win over cookie: got %q", got)
+	}
+	if got := jwt.ExtractTokenFromRequest(newCtx("", "cookie.tok", "query.tok")); got != "cookie.tok" {
+		t.Errorf("cookie must win over ?token= query: got %q", got)
+	}
+	if got := jwt.ExtractTokenFromRequest(newCtx("", "", "query.tok")); got != "query.tok" {
+		t.Errorf("query is the last-resort fallback: got %q", got)
+	}
+}

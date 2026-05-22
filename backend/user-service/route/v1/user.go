@@ -198,6 +198,22 @@ func PostUserLogin(ctx echo.Context) error {
 	token.RefreshToken = refreshToken
 
 	token.ExpiresAt = time.Now().Add(3 * time.Hour * time.Duration(1)).Unix()
+
+	// Also deliver the access token as an HttpOnly cookie so browser-
+	// driven GETs (media <video>/<img>, downloads) authenticate without
+	// the JWT ever appearing in the URL/history/logs (#35). The JSON
+	// token stays for the api client (Authorization header) and for
+	// SSE/WebSocket which use the ?token= query param. SameSite=Strict
+	// blocks cross-site sends; HttpOnly keeps it out of JS.
+	ctx.SetCookie(&http.Cookie{
+		Name:     "access_token",
+		Value:    accessToken,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   int(3 * time.Hour / time.Second),
+	})
+
 	data := make(map[string]interface{}, 2)
 	user.Password = ""
 	data["token"] = token
