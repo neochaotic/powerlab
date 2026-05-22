@@ -13,12 +13,12 @@ import (
 )
 
 func TestUpdateEventPropertiesFromStoreInfo(t *testing.T) {
-	// [PowerLab Hardening] Goleak was removed because it consistently catches 
-	// non-leaking background goroutines from external dependencies (opencensus, 
-	// ecache, net/http) that are initialized by the Docker Compose SDK. 
-	// While useful for catching leaks in our own logic, it currently blocks 
+	// [PowerLab Hardening] Goleak was removed because it consistently catches
+	// non-leaking background goroutines from external dependencies (opencensus,
+	// ecache, net/http) that are initialized by the Docker Compose SDK.
+	// While useful for catching leaks in our own logic, it currently blocks
 	// CI/Dev flow due to third-party library noise.
-	
+
 	defer func() {
 		docker.Cache = nil
 		runtime.GC()
@@ -54,7 +54,7 @@ func TestUpdateEventPropertiesFromStoreInfo(t *testing.T) {
 }
 
 func TestNameAndTitle(t *testing.T) {
-	// [PowerLab Hardening] Goleak check disabled to prioritize stabilization of 
+	// [PowerLab Hardening] Goleak check disabled to prioritize stabilization of
 	// core logic over third-party library goroutine noise.
 
 	defer func() {

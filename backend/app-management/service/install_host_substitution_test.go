@@ -169,10 +169,10 @@ func TestStripPort_AdversarialEdges(t *testing.T) {
 		{"powerlab.local", "powerlab.local"},
 		{"[::1]:8765", "::1"},
 		{"[fe80::1]:443", "fe80::1"},
-		{"[::1", "[::1"},          // unterminated bracket → unchanged
+		{"[::1", "[::1"},                   // unterminated bracket → unchanged
 		{"host:notaport", "host:notaport"}, // non-numeric suffix → unchanged
-		{"::1", "::1"},            // bare IPv6 → must NOT be mangled to ":"
-		{"fe80::1234", "fe80::1234"}, // bare IPv6 → unchanged
+		{"::1", "::1"},                     // bare IPv6 → must NOT be mangled to ":"
+		{"fe80::1234", "fe80::1234"},       // bare IPv6 → unchanged
 	}
 	for _, c := range cases {
 		if got := stripPort(c.in); got != c.want {

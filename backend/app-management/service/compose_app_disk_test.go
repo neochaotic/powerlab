@@ -31,7 +31,7 @@ func TestComposeApp_DiskUsage(t *testing.T) {
 
 	bytes, err := app.DiskUsage()
 	assert.NoError(t, err)
-	
+
 	// du -sb might return slightly more due to block sizes or directory overhead
 	// but on most Linux it should be exactly 11 for the file + some for dir.
 	// We'll check if it's at least the file size.

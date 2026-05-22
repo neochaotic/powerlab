@@ -6,12 +6,12 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/neochaotic/powerlab/backend/app-management/pkg/docker"
-	"github.com/neochaotic/powerlab/backend/common/utils/random"
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
+	"github.com/neochaotic/powerlab/backend/app-management/pkg/docker"
+	"github.com/neochaotic/powerlab/backend/common/utils/random"
 	"github.com/samber/lo"
 	"go.uber.org/goleak"
 	"gotest.tools/v3/assert"
@@ -43,7 +43,7 @@ func setupTestContainer(ctx context.Context, t *testing.T) *container.CreateResp
 	hostConfig := &container.HostConfig{}
 	networkingConfig := &network.NetworkingConfig{}
 
-	out, err := cli.ImagePull(ctx, imageName, types.ImagePullOptions{})
+	out, err := cli.ImagePull(ctx, imageName, image.PullOptions{})
 	assert.NilError(t, err)
 
 	_, err = io.ReadAll(out)
@@ -76,7 +76,7 @@ func TestCloneContainer(t *testing.T) {
 	response := setupTestContainer(ctx, t)
 
 	defer func() {
-		err = cli.ContainerRemove(ctx, response.ID, types.ContainerRemoveOptions{})
+		err = cli.ContainerRemove(ctx, response.ID, container.RemoveOptions{})
 		assert.NilError(t, err)
 	}()
 

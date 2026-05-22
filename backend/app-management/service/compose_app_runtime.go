@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/compose-spec/compose-go/types"
+	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/compose/v2/cmd/formatter"
 	"github.com/docker/compose/v2/pkg/api"
-	dockerTypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/go-resty/resty/v2"
 	"github.com/neochaotic/powerlab/backend/app-management/codegen"
 	"github.com/neochaotic/powerlab/backend/app-management/common"
@@ -58,7 +58,11 @@ func (a *ComposeApp) Pull(ctx context.Context, logWriter io.Writer) error {
 	// pull
 	serviceNum := len(a.Services)
 
-	for i, app := range a.Services {
+	// compose-go v2 Services is a map (unordered); use an explicit counter
+	// for the "(N/M)" progress display instead of a slice index.
+	serviceIdx := 0
+	for _, app := range a.Services {
+		serviceIdx++
 		if err := func() error {
 			go PublishEventWrapper(ctx, common.EventTypeImagePullBegin, map[string]string{
 				common.PropertyTypeImageName.Name: app.Image,
@@ -68,7 +72,7 @@ func (a *ComposeApp) Pull(ctx context.Context, logWriter io.Writer) error {
 				common.PropertyTypeImageName.Name: app.Image,
 			})
 
-			fmt.Fprintf(logWriter, "Pulling %s (%d/%d)...\n", app.Image, i+1, serviceNum)
+			fmt.Fprintf(logWriter, "Pulling %s (%d/%d)...\n", app.Image, serviceIdx, serviceNum)
 
 			if err := docker.PullImage(ctx, app.Image, func(out io.ReadCloser) {
 				// We still want the percentage progress in message bus
@@ -82,7 +86,7 @@ func (a *ComposeApp) Pull(ctx context.Context, logWriter io.Writer) error {
 				// or just a "Pulling..." message.
 
 				// Actually, let's wrap pullImageProgress to also write to our logWriter.
-				pullImageProgress(ctx, out, "INSTALL", serviceNum, i+1, logWriter)
+				pullImageProgress(ctx, out, "INSTALL", serviceNum, serviceIdx, logWriter)
 			}); err != nil {
 				fmt.Fprintf(logWriter, "Error pulling %s: %v\n", app.Image, err)
 				go PublishEventWrapper(ctx, common.EventTypeImagePullError, map[string]string{
@@ -108,8 +112,8 @@ func (a *ComposeApp) Up(ctx context.Context, service api.Compose) error {
 
 	if err := service.Up(ctx, (*codegen.ComposeApp)(a), api.UpOptions{
 		Start: api.StartOptions{
-			CascadeStop: true,
-			Wait:        true,
+			OnExit: api.CascadeStop,
+			Wait:   true,
 		},
 	}); err != nil {
 		logger.Error("failed to start original compose app", zap.Error(err), zap.String("name", a.Name))
@@ -140,16 +144,18 @@ func (a *ComposeApp) UpWithCheckRequire(ctx context.Context, service api.Compose
 		}
 
 		// check if each required device exists
-		deviceMapFiltered := []string{}
+		deviceMapFiltered := []types.DeviceMapping{}
 		for _, deviceMap := range app.Devices {
-			devicePath := strings.SplitN(deviceMap, ":", 2)[0]
+			devicePath := deviceMap.Source
 			if file.CheckNotExist(devicePath) {
 				logger.Info("device not found", zap.String("device", devicePath))
 				continue
 			}
 			deviceMapFiltered = append(deviceMapFiltered, deviceMap)
 		}
-		a.Services[i].Devices = deviceMapFiltered
+		// compose-go v2 Services is a map; write the modified copy back.
+		app.Devices = deviceMapFiltered
+		a.Services[i] = app
 	}
 
 	if err := a.Up(ctx, service); err != nil {
@@ -184,7 +190,7 @@ func (a *ComposeApp) Logs(ctx context.Context, lines int) ([]byte, error) {
 
 	if err := service.Logs(ctx, a.Name, consumer, api.LogOptions{
 		Project:  (*codegen.ComposeApp)(a),
-		Services: lo.Map(a.Services, func(s types.ServiceConfig, i int) string { return s.Name }),
+		Services: lo.MapToSlice(a.Services, func(_ string, s types.ServiceConfig) string { return s.Name }),
 		Follow:   false,
 		Tail:     lo.If(lines < 0, "all").Else(strconv.Itoa(lines)),
 	}); err != nil {
@@ -273,7 +279,7 @@ func (a *ComposeApp) Stats(ctx context.Context) (*codegen.ComposeAppStats, error
 				continue
 			}
 
-			var v dockerTypes.StatsJSON
+			var v container.StatsResponse
 			if err := json.NewDecoder(stats.Body).Decode(&v); err != nil {
 				stats.Body.Close()
 				continue

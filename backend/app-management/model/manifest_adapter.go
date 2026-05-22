@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/neochaotic/powerlab/backend/app-management/codegen"
 	"github.com/neochaotic/powerlab/backend/app-management/common"
-	"github.com/compose-spec/compose-go/types"
 	"github.com/samber/lo"
 )
 
@@ -137,16 +137,42 @@ func (c *CustomizationPostData) ComposeAppStoreInfo() codegen.ComposeAppStoreInf
 	}
 }
 
+// toDeviceMappings converts raw Docker device specs ("source[:target
+// [:permissions]]") into compose-go v2's structured DeviceMapping slice.
+// compose-go v1 stored devices as []string; v2 requires the parsed form.
+func toDeviceMappings(devices []string) []types.DeviceMapping {
+	if len(devices) == 0 {
+		return nil
+	}
+	out := make([]types.DeviceMapping, 0, len(devices))
+	for _, d := range devices {
+		parts := strings.SplitN(d, ":", 3)
+		dm := types.DeviceMapping{Source: parts[0], Target: parts[0], Permissions: "rwm"}
+		if len(parts) > 1 && parts[1] != "" {
+			dm.Target = parts[1]
+		}
+		if len(parts) > 2 && parts[2] != "" {
+			dm.Permissions = parts[2]
+		}
+		out = append(out, dm)
+	}
+	return out
+}
+
+// Services builds the single-service compose map for a custom-app install
+// from the user-submitted CustomizationPostData, keyed by the (lower-cased)
+// container name and carrying the x-powerlab store metadata as an extension.
 func (c *CustomizationPostData) Services() types.Services {
+	name := strings.ToLower(c.ContainerName)
 	return types.Services{
-		{
+		name: {
 			CapAdd:      c.CapAdd,
 			Command:     emtpySliceThenNil(c.Cmd),
 			CPUShares:   c.CPUShares,
-			Devices:     c.Devices.ToSlice(),
+			Devices:     toDeviceMappings(c.Devices.ToSlice()),
 			Environment: c.Envs.ToMappingWithEquals(),
 			Image:       c.Image,
-			Name:        strings.ToLower(c.ContainerName),
+			Name:        name,
 			NetworkMode: c.NetworkModel,
 			Ports:       c.Ports.ServicePortConfigList(),
 			Privileged:  c.Privileged,

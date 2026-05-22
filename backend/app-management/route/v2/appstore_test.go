@@ -5,12 +5,12 @@ import (
 
 	"gotest.tools/v3/assert"
 
+	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/neochaotic/powerlab/backend/app-management/codegen"
 	"github.com/neochaotic/powerlab/backend/app-management/common"
 	v2 "github.com/neochaotic/powerlab/backend/app-management/route/v2"
 	"github.com/neochaotic/powerlab/backend/app-management/service"
 	"github.com/neochaotic/powerlab/backend/common/utils/logger"
-	"github.com/compose-spec/compose-go/types"
 )
 
 func TestFilterCatalogByCategory(t *testing.T) {
@@ -138,8 +138,8 @@ func TestFilterCatalogByAppStoreID(t *testing.T) {
 				"main": "test",
 			},
 		},
-		Services: []types.ServiceConfig{
-			{
+		Services: types.Services{
+			"test": {
 				Name: "test",
 				Extensions: map[string]interface{}{
 					common.ComposeExtensionNameXCasaOS: map[string]interface{}{
@@ -159,8 +159,8 @@ func TestFilterCatalogByAppStoreID(t *testing.T) {
 				"main": "test2",
 			},
 		},
-		Services: []types.ServiceConfig{
-			{
+		Services: types.Services{
+			"test2": {
 				Name: "test2",
 				Extensions: map[string]interface{}{
 					common.ComposeExtensionNameXCasaOS: map[string]interface{}{

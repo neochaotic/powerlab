@@ -339,7 +339,7 @@ func cleanup(workDir string) {
 // service convention (DNS etc.).
 func autoRemapPorts(app *ComposeApp) map[string]string {
 	type portRef struct {
-		svcIdx int // index into app.Services (it's a slice, not a map)
+		svcKey string // key into app.Services (compose-go v2 map, keyed by service name)
 		portJ  int
 		proto  string
 	}
@@ -410,7 +410,12 @@ func autoRemapPorts(app *ComposeApp) map[string]string {
 		}
 		// Apply to all services in the group
 		for _, r := range refs {
-			app.Services[r.svcIdx].Ports[r.portJ].Published = newStr
+			// compose-go v2 Services is a map; mutate a copy and write back.
+			// (Ports is a slice, so editing it in the copy is enough, but the
+			// write-back keeps the intent explicit.)
+			svc := app.Services[r.svcKey]
+			svc.Ports[r.portJ].Published = newStr
+			app.Services[r.svcKey] = svc
 		}
 	}
 	return remap
