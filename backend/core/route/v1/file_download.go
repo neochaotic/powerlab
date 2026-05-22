@@ -79,7 +79,7 @@ func GetDownloadFile(ctx echo.Context) error {
 		}
 	}
 
-	extension, ar, err := file.GetCompressionAlgorithm(t)
+	extension, format, err := file.GetCompressionAlgorithm(t)
 	if err != nil {
 		return ctx.JSON(common_err.CLIENT_ERROR, model.Result{
 			Success: common_err.INVALID_PARAMS,
@@ -87,15 +87,6 @@ func GetDownloadFile(ctx echo.Context) error {
 		})
 	}
 
-	err = ar.Create(ctx.Response().Writer)
-	if err != nil {
-		return ctx.JSON(common_err.SERVICE_ERROR, model.Result{
-			Success: common_err.SERVICE_ERROR,
-			Message: common_err.GetMsg(common_err.SERVICE_ERROR),
-			Data:    err.Error(),
-		})
-	}
-	defer ar.Close()
 	commonDir := file.CommonPrefix(filepath.Separator, list...)
 
 	currentPath := filepath.Base(commonDir)
@@ -103,11 +94,8 @@ func GetDownloadFile(ctx echo.Context) error {
 	name := "_" + currentPath
 	name += extension
 	ctx.Request().Header.Add("Content-Disposition", "attachment; filename*=utf-8''"+url.PathEscape(name))
-	for _, fname := range list {
-		err = file.AddFile(ar, fname, commonDir)
-		if err != nil {
-			log.Printf("Failed to archive %s: %v", fname, err)
-		}
+	if err := file.ArchiveFiles(ctx.Request().Context(), ctx.Response().Writer, format, list, commonDir); err != nil {
+		log.Printf("Failed to archive: %v", err)
 	}
 	return nil
 }

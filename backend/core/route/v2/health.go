@@ -6,12 +6,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/labstack/echo/v4"
 	"github.com/neochaotic/powerlab/backend/common/utils/constants"
 	"github.com/neochaotic/powerlab/backend/core/codegen"
 	"github.com/neochaotic/powerlab/backend/core/pkg/utils/file"
 	"github.com/neochaotic/powerlab/backend/core/service"
-	"github.com/labstack/echo/v4"
-	"github.com/mholt/archiver/v3"
 )
 
 func (s *Server) GetHealthServices(ctx echo.Context) error {
@@ -48,9 +47,6 @@ func (s *Server) GetHealthPorts(ctx echo.Context) error {
 	})
 }
 func (c *Server) GetHealthlogs(ctx echo.Context) error {
-	var name, currentPath, commonDir, extension string
-	var err error
-	var ar archiver.Writer
 	// constants.DefaultLogPath resolves per-platform: /var/log/powerlab
 	// on Linux, /Library/Logs/PowerLab on darwin, dev sandbox in dev.
 	logDir := constants.DefaultLogPath
@@ -61,7 +57,7 @@ func (c *Server) GetHealthlogs(ctx echo.Context) error {
 			Message: &message,
 		})
 	}
-	extension, ar, err = file.GetCompressionAlgorithm("zip")
+	extension, format, err := file.GetCompressionAlgorithm("zip")
 	if err != nil {
 		ctx.Response().Header().Set("Content-Type", "application/json")
 		message := err.Error()
@@ -69,36 +65,23 @@ func (c *Server) GetHealthlogs(ctx echo.Context) error {
 			Message: &message,
 		})
 	}
-	err = ar.Create(ctx.Response().Writer)
-	if err != nil {
-		ctx.Response().Header().Set("Content-Type", "application/json")
-		message := err.Error()
-		return ctx.JSON(http.StatusNotFound, codegen.ResponseInternalServerError{
-			Message: &message,
-		})
-	}
-	defer ar.Close()
 
-	commonDir = logDir
-
-	currentPath = filepath.Base(commonDir)
-
-	name = currentPath
-	name += extension
+	commonDir := logDir
+	name := filepath.Base(commonDir) + extension
 	ctx.Response().Header().Add("Content-Type", "application/octet-stream")
 	ctx.Response().Header().Add("Content-Transfer-Encoding", "binary")
 	ctx.Response().Header().Add("Cache-Control", "no-cache")
 	ctx.Response().Header().Add("Content-Disposition", "attachment; filename*=utf-8''"+url.PathEscape(name))
 
+	paths := make([]string, 0, len(fileList))
 	for _, fname := range fileList {
-		err := file.AddFile(ar, filepath.Join(logDir, fname.Name()), commonDir)
-		if err != nil {
-			message := err.Error()
-			return ctx.JSON(http.StatusInternalServerError, codegen.ResponseInternalServerError{
-				Message: &message,
-			})
-		}
-
+		paths = append(paths, filepath.Join(logDir, fname.Name()))
+	}
+	if err := file.ArchiveFiles(ctx.Request().Context(), ctx.Response().Writer, format, paths, commonDir); err != nil {
+		message := err.Error()
+		return ctx.JSON(http.StatusInternalServerError, codegen.ResponseInternalServerError{
+			Message: &message,
+		})
 	}
 	return nil
 }

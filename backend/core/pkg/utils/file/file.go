@@ -3,6 +3,7 @@ package file
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -17,7 +18,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mholt/archiver/v3"
+	"github.com/mholt/archives"
 )
 
 // GetSize get the file size
@@ -409,73 +410,77 @@ func SpliceFiles(dir, path string, length int, startPoint int) error {
 	return nil
 }
 
-func GetCompressionAlgorithm(t string) (string, archiver.Writer, error) {
+// GetCompressionAlgorithm returns the file extension and the archives.v4
+// format for the requested compression type t.
+func GetCompressionAlgorithm(t string) (string, archives.Archiver, error) {
 	switch t {
 	case "zip", "":
-		return ".zip", archiver.NewZip(), nil
+		return ".zip", archives.Zip{}, nil
 	case "tar":
-		return ".tar", archiver.NewTar(), nil
+		return ".tar", archives.Tar{}, nil
 	case "targz":
-		return ".tar.gz", archiver.NewTarGz(), nil
+		return ".tar.gz", archives.CompressedArchive{Compression: archives.Gz{}, Archival: archives.Tar{}}, nil
 	case "tarbz2":
-		return ".tar.bz2", archiver.NewTarBz2(), nil
+		return ".tar.bz2", archives.CompressedArchive{Compression: archives.Bz2{}, Archival: archives.Tar{}}, nil
 	case "tarxz":
-		return ".tar.xz", archiver.NewTarXz(), nil
+		return ".tar.xz", archives.CompressedArchive{Compression: archives.Xz{}, Archival: archives.Tar{}}, nil
 	case "tarlz4":
-		return ".tar.lz4", archiver.NewTarLz4(), nil
+		return ".tar.lz4", archives.CompressedArchive{Compression: archives.Lz4{}, Archival: archives.Tar{}}, nil
 	case "tarsz":
-		return ".tar.sz", archiver.NewTarSz(), nil
+		return ".tar.sz", archives.CompressedArchive{Compression: archives.Sz{}, Archival: archives.Tar{}}, nil
 	default:
 		return "", nil, errors.New("format not implemented")
 	}
 }
 
-func AddFile(ar archiver.Writer, path, commonPath string) error {
-	info, err := os.Stat(path)
+// ArchiveFiles writes a compressed archive of the given paths (files and/or
+// directories, recursed) to out using the archives.v4 format. Each entry is
+// named by its path relative to commonPath (matching the previous archiver/v3
+// naming). Non-regular files are skipped.
+func ArchiveFiles(ctx context.Context, out io.Writer, format archives.Archiver, paths []string, commonPath string) error {
+	fileMap := map[string]string{}
+	for _, p := range paths {
+		if err := collectArchiveFiles(p, commonPath, fileMap); err != nil {
+			log.Printf("Failed to collect %v", err)
+		}
+	}
+	files, err := archives.FilesFromDisk(ctx, nil, fileMap)
+	if err != nil {
+		return err
+	}
+	return format.Archive(ctx, out, files)
+}
+
+// collectArchiveFiles walks p (recursing directories, skipping non-regular
+// files) and records each regular file in fileMap, keyed by disk path →
+// name-in-archive (relative to commonPath).
+func collectArchiveFiles(p, commonPath string, fileMap map[string]string) error {
+	info, err := os.Stat(p)
 	if err != nil {
 		return err
 	}
 
-	if !info.IsDir() && !info.Mode().IsRegular() {
+	if !info.IsDir() {
+		if !info.Mode().IsRegular() {
+			return nil
+		}
+		if p != commonPath {
+			name := strings.TrimPrefix(p, commonPath)
+			name = strings.TrimPrefix(name, string(filepath.Separator))
+			fileMap[p] = name
+		}
 		return nil
 	}
 
-	file, err := os.Open(path)
+	entries, err := os.ReadDir(p)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-
-	if path != commonPath {
-		//filename := info.Name()
-		filename := strings.TrimPrefix(path, commonPath)
-		filename = strings.TrimPrefix(filename, string(filepath.Separator))
-		err = ar.Write(archiver.File{
-			FileInfo: archiver.FileInfo{
-				FileInfo:   info,
-				CustomName: filename,
-			},
-			ReadCloser: file,
-		})
-		if err != nil {
-			return err
+	for _, e := range entries {
+		if err := collectArchiveFiles(filepath.Join(p, e.Name()), commonPath, fileMap); err != nil {
+			log.Printf("Failed to archive %v", err)
 		}
 	}
-
-	if info.IsDir() {
-		names, err := file.Readdirnames(0)
-		if err != nil {
-			return err
-		}
-
-		for _, name := range names {
-			err = AddFile(ar, filepath.Join(path, name), commonPath)
-			if err != nil {
-				log.Printf("Failed to archive %v", err)
-			}
-		}
-	}
-
 	return nil
 }
 

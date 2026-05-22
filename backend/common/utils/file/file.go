@@ -2,6 +2,7 @@ package file
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -13,8 +14,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mholt/archives"
 	"github.com/neochaotic/powerlab/backend/common/utils/logger"
-	"github.com/mholt/archiver/v3"
 	"go.uber.org/zap"
 )
 
@@ -382,22 +383,24 @@ func SpliceFiles(dir, path string, length int, startPoint int) error {
 	return nil
 }
 
-func GetCompressionAlgorithm(t string) (string, archiver.Writer, error) {
+// GetCompressionAlgorithm returns the file extension and the archives.v4
+// format for the requested compression type t.
+func GetCompressionAlgorithm(t string) (string, archives.Archiver, error) {
 	switch t {
 	case "zip", "":
-		return ".zip", archiver.NewZip(), nil
+		return ".zip", archives.Zip{}, nil
 	case "tar":
-		return ".tar", archiver.NewTar(), nil
+		return ".tar", archives.Tar{}, nil
 	case "targz":
-		return ".tar.gz", archiver.NewTarGz(), nil
+		return ".tar.gz", archives.CompressedArchive{Compression: archives.Gz{}, Archival: archives.Tar{}}, nil
 	case "tarbz2":
-		return ".tar.bz2", archiver.NewTarBz2(), nil
+		return ".tar.bz2", archives.CompressedArchive{Compression: archives.Bz2{}, Archival: archives.Tar{}}, nil
 	case "tarxz":
-		return ".tar.xz", archiver.NewTarXz(), nil
+		return ".tar.xz", archives.CompressedArchive{Compression: archives.Xz{}, Archival: archives.Tar{}}, nil
 	case "tarlz4":
-		return ".tar.lz4", archiver.NewTarLz4(), nil
+		return ".tar.lz4", archives.CompressedArchive{Compression: archives.Lz4{}, Archival: archives.Tar{}}, nil
 	case "tarsz":
-		return ".tar.sz", archiver.NewTarSz(), nil
+		return ".tar.sz", archives.CompressedArchive{Compression: archives.Sz{}, Archival: archives.Tar{}}, nil
 	default:
 		return "", nil, errors.New("format not implemented")
 	}
@@ -429,63 +432,63 @@ func IsBrokenSymlink(path string) (bool, error) {
 	return false, nil
 }
 
-func AddFile(ar archiver.Writer, path, commonPath string) error {
-	info, err := os.Stat(path)
+// ArchiveFiles writes a compressed archive of the given paths (files and/or
+// directories, recursed) to out using the archives.v4 format. Each entry is
+// named under the basename of commonPath, preserving its path relative to it
+// (matching the previous archiver/v3 naming). Broken symlinks and non-regular
+// files are skipped.
+func ArchiveFiles(ctx context.Context, out io.Writer, format archives.Archiver, paths []string, commonPath string) error {
+	fileMap := map[string]string{}
+	for _, p := range paths {
+		if err := collectArchiveFiles(p, commonPath, fileMap); err != nil {
+			return err
+		}
+	}
+	files, err := archives.FilesFromDisk(ctx, nil, fileMap)
+	if err != nil {
+		return err
+	}
+	return format.Archive(ctx, out, files)
+}
+
+// collectArchiveFiles walks p (recursing directories, skipping broken symlinks
+// and non-regular files) and records each regular file in fileMap, keyed by
+// disk path → name-in-archive.
+func collectArchiveFiles(p, commonPath string, fileMap map[string]string) error {
+	info, err := os.Stat(p)
 	if err != nil {
 		return err
 	}
 
-	if !info.IsDir() && !info.Mode().IsRegular() {
+	if !info.IsDir() {
+		if !info.Mode().IsRegular() {
+			return nil
+		}
+		if p != commonPath {
+			rel := strings.Replace(p, commonPath, "", 1)
+			fileMap[p] = filepath.Join(filepath.Base(commonPath), rel)
+		}
 		return nil
 	}
 
-	file, err := os.Open(path)
+	entries, err := os.ReadDir(p)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-
-	if path != commonPath {
-		//filename := info.Name()
-		fpath := strings.Replace(path, commonPath, "", 1)
-		fpath = filepath.Join(filepath.Base(commonPath), fpath)
-		//filename := info.Name()
-		err = ar.Write(archiver.File{
-			FileInfo: archiver.FileInfo{
-				FileInfo:   info,
-				CustomName: fpath,
-			},
-			ReadCloser: file,
-		})
+	for _, e := range entries {
+		child := filepath.Join(p, e.Name())
+		isBroken, err := IsBrokenSymlink(child)
 		if err != nil {
+			logger.Error("Failed to check symlink", zap.Any("name", child), zap.Error(err))
+			continue
+		}
+		if isBroken {
+			continue
+		}
+		if err := collectArchiveFiles(child, commonPath, fileMap); err != nil {
 			return err
 		}
 	}
-
-	if info.IsDir() {
-		names, err := file.Readdirnames(0)
-		if err != nil {
-			return err
-		}
-
-		for _, name := range names {
-			filePath := filepath.Join(path, name)
-			isBroken, err := IsBrokenSymlink(filePath)
-			if err != nil {
-				logger.Error("Failed to check symlink", zap.Any("name", filePath), zap.Error(err))
-				continue
-			}
-			if isBroken {
-				continue
-			}
-
-			err = AddFile(ar, filePath, commonPath)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
 	return nil
 }
 
