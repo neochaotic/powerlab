@@ -1,0 +1,5 @@
+kind: Security
+body: 'Dependency security: bumped golang.org/x/image v0.6.0→v0.41.0 in core, clearing four reachable CVEs (GO-2023-1989, GO-2023-1990, GO-2024-2937, GO-2026-4815) and removing them from the govulncheck allowlist. x/image is an indirect dep (image decoding); no behavior change, verified by govulncheck reachability + the blocking gate.'
+time: 2026-05-21T22:50:00Z
+custom:
+    Issue: "518"
