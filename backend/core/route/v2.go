@@ -14,16 +14,16 @@ import (
 	"github.com/neochaotic/powerlab/backend/core/pkg/config"
 	"github.com/neochaotic/powerlab/backend/core/pkg/utils/file"
 
-	"github.com/neochaotic/powerlab/backend/common/external"
-	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
-	v2Route "github.com/neochaotic/powerlab/backend/core/route/v2"
 	"github.com/deepmap/oapi-codegen/pkg/middleware"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
-	"github.com/labstack/echo/v4"
 	echojwt "github.com/labstack/echo-jwt/v4"
+	"github.com/labstack/echo/v4"
 	echo_middleware "github.com/labstack/echo/v4/middleware"
+	"github.com/neochaotic/powerlab/backend/common/external"
 	common_middleware "github.com/neochaotic/powerlab/backend/common/middleware"
+	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
+	v2Route "github.com/neochaotic/powerlab/backend/core/route/v2"
 )
 
 var (
@@ -225,7 +225,7 @@ func InitDir() http.Handler {
 		//			}
 		//}
 
-		extension, ar, err := file.GetCompressionAlgorithm(t)
+		extension, format, err := file.GetCompressionAlgorithm(t)
 		if err != nil {
 			// w.JSON(common_err.CLIENT_ERROR, model.Result{
 			// 	Success: common_err.INVALID_PARAMS,
@@ -234,16 +234,6 @@ func InitDir() http.Handler {
 			return
 		}
 
-		err = ar.Create(w)
-		if err != nil {
-			//  return ctx.JSON(common_err.SERVICE_ERROR, model.Result{
-			// 	Success: common_err.SERVICE_ERROR,
-			// 	Message: common_err.GetMsg(common_err.SERVICE_ERROR),
-			// 	Data:    err.Error(),
-			// })
-			return
-		}
-		defer ar.Close()
 		commonDir := file.CommonPrefix(filepath.Separator, list...)
 
 		currentPath := filepath.Base(commonDir)
@@ -251,11 +241,8 @@ func InitDir() http.Handler {
 		name := "_" + currentPath
 		name += extension
 		w.Header().Add("Content-Disposition", "attachment; filename*=utf-8''"+url.PathEscape(name))
-		for _, fname := range list {
-			err = file.AddFile(ar, fname, commonDir)
-			if err != nil {
-				log.Printf("Failed to archive %s: %v", fname, err)
-			}
+		if err := file.ArchiveFiles(r.Context(), w, format, list, commonDir); err != nil {
+			log.Printf("Failed to archive: %v", err)
 		}
 	})
 }
