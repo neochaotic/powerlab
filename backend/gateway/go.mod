@@ -34,7 +34,7 @@ require (
 require (
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	go.uber.org/dig v1.19.0 // indirect
