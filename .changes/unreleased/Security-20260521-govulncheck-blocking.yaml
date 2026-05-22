@@ -1,0 +1,5 @@
+kind: Security
+body: 'govulncheck CI gate is now BLOCKING (was warn-only). scripts/govulncheck-gate.sh fails the build on any reachable, non-stdlib vulnerability not in .govulncheck-allowlist.txt — so the next dependency regression (the viper-class boot break) is caught at PR time. The allowlist is the tracked, accepted backlog: the coupled moby/docker stack (cleared by the docker v28 / compose-go v2 migration, #523), no-upstream-fix CVEs, and a few independent-bump candidates. Stdlib CVEs stay toolchain-managed via the floating Go version. Gate fails closed if the scanner is missing or errors.'
+time: 2026-05-21T21:30:00Z
+custom:
+    Issue: "518"
