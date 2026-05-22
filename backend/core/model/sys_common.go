@@ -73,6 +73,10 @@ type SystemConfig struct {
 type FileSetting struct {
 	ShareDir    []string `json:"share_dir" delim:"|"`
 	DownloadDir string   `json:"download_dir"`
+	// Scope sandboxes the Files API: every ?path= is resolved within
+	// this root and requests that escape it are rejected (#36). Empty
+	// means legacy whole-filesystem access (pre-#36 configs).
+	Scope string `json:"scope"`
 }
 
 // BaseInfo is the compact device-id payload sent in the auto-

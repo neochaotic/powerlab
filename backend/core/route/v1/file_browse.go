@@ -34,6 +34,11 @@ func GetFilerContent(ctx echo.Context) error {
 			Message: "path query parameter is required",
 		})
 	}
+	abs, ok := scopeOrDeny(ctx, filePath)
+	if !ok {
+		return nil
+	}
+	filePath = abs
 	if !file.Exists(filePath) {
 		// HTTP 404 instead of 500 — "file does not exist" is a
 		// CLIENT-shaped error, not a server failure. The UI's
@@ -73,6 +78,11 @@ func GetLocalFile(ctx echo.Context) error {
 			Message: common_err.GetMsg(common_err.INVALID_PARAMS),
 		})
 	}
+	abs, ok := scopeOrDeny(ctx, path)
+	if !ok {
+		return nil
+	}
+	path = abs
 	if !file.Exists(path) {
 		return ctx.JSON(http.StatusOK, model.Result{
 			Success: common_err.FILE_DOES_NOT_EXIST,
@@ -98,7 +108,11 @@ func GetLocalFile(ctx echo.Context) error {
 func DirPath(ctx echo.Context) error {
 	var req ListReq
 	path := ctx.QueryParam("path")
-	req.Path = path
+	abs, ok := scopeOrDeny(ctx, path)
+	if !ok {
+		return nil
+	}
+	req.Path = abs
 	req.Validate()
 	info, err := service.MyService.System().GetDirPath(req.Path)
 	if err != nil {
@@ -168,7 +182,11 @@ func GetSize(ctx echo.Context) error {
 	json := make(map[string]string)
 	ctx.Bind(&json)
 	path := json["path"]
-	size, err := file.GetFileOrDirSize(path)
+	abs, ok := scopeOrDeny(ctx, path)
+	if !ok {
+		return nil
+	}
+	size, err := file.GetFileOrDirSize(abs)
 	if err != nil {
 		return ctx.JSON(common_err.SERVICE_ERROR, model.Result{Success: common_err.SERVICE_ERROR, Message: common_err.GetMsg(common_err.SERVICE_ERROR), Data: err.Error()})
 	}
@@ -181,7 +199,11 @@ func GetFileCount(ctx echo.Context) error {
 	json := make(map[string]string)
 	ctx.Bind(&json)
 	path := json["path"]
-	list, err := ioutil.ReadDir(path)
+	abs, ok := scopeOrDeny(ctx, path)
+	if !ok {
+		return nil
+	}
+	list, err := ioutil.ReadDir(abs)
 	if err != nil {
 		return ctx.JSON(common_err.SERVICE_ERROR, model.Result{Success: common_err.SERVICE_ERROR, Message: common_err.GetMsg(common_err.SERVICE_ERROR), Data: err.Error()})
 	}
@@ -204,6 +226,11 @@ func GetFileCount(ctx echo.Context) error {
 func GetFileImage(ctx echo.Context) error {
 	t := ctx.QueryParam("type")
 	path := ctx.QueryParam("path")
+	abs, ok := scopeOrDeny(ctx, path)
+	if !ok {
+		return nil
+	}
+	path = abs
 	if !file.Exists(path) {
 		return ctx.JSON(common_err.SERVICE_ERROR, model.Result{Success: common_err.FILE_ALREADY_EXISTS, Message: common_err.GetMsg(common_err.FILE_ALREADY_EXISTS)})
 	}
