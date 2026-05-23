@@ -1,5 +1,0 @@
-kind: Security
-body: 'JWT no longer travels in media/download URLs (#35). Login now also sets an HttpOnly, SameSite=Strict `access_token` cookie, and the token extractor accepts it before the legacy `?token=` query param. The Files page builds download/media URLs without the token, so the JWT no longer lands in browser history, access logs, or the Referer header. `?token=` is still accepted as a fallback (SSE/WebSocket use it); existing sessions get the cookie on their next login.'
-time: 2026-05-22T19:15:00Z
-custom:
-    Issue: "35"

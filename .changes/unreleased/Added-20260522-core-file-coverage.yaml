@@ -1,5 +1,0 @@
-kind: Added
-body: 'Test coverage: added a unit suite for core/pkg/utils/file (GetExt, GetBlockInfo, MD5 hash helpers, PrefixLength/DataLength fixed-width encoders, CommonPrefix, and tempdir round-trips for MkDir/RMDir/Exists/IsDir/IsFile/CreateFile/ReadFullFile/dir-size) — 0.7% → 22.5%. Surfaced #533 (file.RemoveAll does not recurse into subdirectories).'
-time: 2026-05-22T03:50:00Z
-custom:
-    Issue: "533"
