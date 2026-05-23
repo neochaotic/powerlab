@@ -16,11 +16,4 @@ UserDataPath = /var/lib/powerlab/conf
 RunMode = release
 USBAutoMount =
 
-[file]
-# Files API sandbox root (#36). Every ?path= is resolved within this
-# directory; requests that escape it are rejected with 403. Leave EMPTY
-# for legacy whole-filesystem access (insecure — any logged-in user can
-# read /etc/shadow etc.). New installs default to /DATA.
-Scope = /DATA
-
 [system]

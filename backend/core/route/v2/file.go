@@ -3,12 +3,9 @@ package v2
 import (
 	"net/http"
 	"strconv"
-	"strings"
 
-	"github.com/labstack/echo/v4"
 	"github.com/neochaotic/powerlab/backend/core/codegen"
-	"github.com/neochaotic/powerlab/backend/core/pkg/config"
-	fileutil "github.com/neochaotic/powerlab/backend/core/pkg/utils/file"
+	"github.com/labstack/echo/v4"
 )
 
 // Path: route/v2/file.go
@@ -37,18 +34,6 @@ func (c *Server) CheckUploadChunk(ctx echo.Context, params codegen.CheckUploadCh
 
 func (c *Server) PostUploadFile(ctx echo.Context) error {
 	path := ctx.FormValue("path")
-
-	// Sandbox the upload destination (#36): reject paths that escape the
-	// configured file scope. Empty scope = legacy whole-fs.
-	scope := ""
-	if config.FileSettingInfo != nil {
-		scope = strings.TrimSpace(config.FileSettingInfo.Scope)
-	}
-	abs, err := fileutil.ResolveWithinScope(scope, path)
-	if err != nil {
-		return ctx.JSON(http.StatusForbidden, echo.Map{"message": "path is outside the permitted file scope"})
-	}
-	path = abs
 
 	// handle the request
 	chunkNumber, err := strconv.ParseInt(ctx.FormValue("chunkNumber"), 10, 64)
