@@ -53,7 +53,18 @@ async function fetchFiles(path?: string) {
 		files = result.data?.content ?? [];
 		currentPath = targetPath;
 	} catch (e) {
-		error = (e as { message?: string })?.message ?? 'Failed to load directory';
+		const err = e as { status?: number; message?: string; raw?: { data?: unknown } };
+		// Files sandbox (#36): the requested directory is outside the
+		// permitted scope. The backend returns the scope root in `data`;
+		// fall back to it once instead of stranding the user on a broken
+		// "outside scope" screen. The `!== targetPath` guard prevents an
+		// infinite retry if the scope root itself were ever rejected.
+		const scopeRoot = typeof err?.raw?.data === 'string' ? err.raw.data : '';
+		if (err?.status === 403 && scopeRoot && scopeRoot !== targetPath) {
+			loading = false;
+			return fetchFiles(scopeRoot);
+		}
+		error = err?.message ?? 'Failed to load directory';
 		files = [];
 	} finally {
 		loading = false;

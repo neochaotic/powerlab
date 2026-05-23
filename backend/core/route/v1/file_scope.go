@@ -30,10 +30,13 @@ func fileScope() string {
 func scopeOrDeny(ctx echo.Context, req string) (string, bool) {
 	abs, err := fileutil.ResolveWithinScope(fileScope(), req)
 	if err != nil {
+		// Data carries the scope root so a scope-aware client (the Files
+		// page) can fall back to it instead of stranding the user on the
+		// rejected out-of-scope path (#36).
 		_ = ctx.JSON(http.StatusForbidden, model.Result{
 			Success: common_err.INSUFFICIENT_PERMISSIONS,
 			Message: "path is outside the permitted file scope",
-			Data:    req,
+			Data:    fileScope(),
 		})
 		return "", false
 	}
