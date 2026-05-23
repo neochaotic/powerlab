@@ -1,5 +1,0 @@
-kind: Security
-body: 'app-management migrated to the modern moby stack: docker/docker + docker/cli v28.5.1, docker/compose/v2 v2.40.2, compose-go v2, containerd/v2, runc v1.2.8 (off the inherited docker v24 / compose-go v1). compose-go v2 makes Project.Services a map; all iteration/mutation sites, ServiceConfig field changes (Devices), loader/ToProject signatures, api.StartOptions.OnExit and the docker api/types package renames were adapted, with test fixtures moved to the v2 map. Validated: full unit suite green (incl. parsing characterization + port-remap tests) and all integration-tagged tests pass against real Docker 29.2.1. Clears the runc/buildx/otelgrpc/containerd-GO-2025-3528/docker-GO-2025-3829/compose-GO-2025-4077 reachable CVEs; the residual buildkit/grpc/containerd-v2/compose/otel ones need a further bump that cascades into Go 1.26 and stay allowlisted under #523.'
-time: 2026-05-22T01:30:00Z
-custom:
-    Issue: "523"
