@@ -65,11 +65,6 @@ func MkdirAll(ctx echo.Context) error {
 	if len(path) == 0 {
 		return ctx.JSON(common_err.CLIENT_ERROR, model.Result{Success: common_err.INVALID_PARAMS, Message: common_err.GetMsg(common_err.INVALID_PARAMS)})
 	}
-	abs, ok := scopeOrDeny(ctx, path)
-	if !ok {
-		return nil
-	}
-	path = abs
 	code, _ = service.MyService.System().MkdirAll(path)
 	return ctx.JSON(common_err.SUCCESS, model.Result{Success: code, Message: common_err.GetMsg(code)})
 }
@@ -93,20 +88,6 @@ func PostOperateFileOrDir(ctx echo.Context) error {
 
 	if len(list.Item) == 0 {
 		return ctx.JSON(common_err.CLIENT_ERROR, model.Result{Success: common_err.INVALID_PARAMS, Message: common_err.GetMsg(common_err.INVALID_PARAMS)})
-	}
-	// Sandbox both ends of every copy/move (#36): source and destination
-	// must stay within the configured file scope.
-	for i := range list.Item {
-		absFrom, ok := scopeOrDeny(ctx, list.Item[i].From)
-		if !ok {
-			return nil
-		}
-		list.Item[i].From = absFrom
-	}
-	if absTo, ok := scopeOrDeny(ctx, list.To); ok {
-		list.To = absTo
-	} else {
-		return nil
 	}
 	if list.To == list.Item[0].From[:strings.LastIndex(list.Item[0].From, "/")] {
 		return ctx.JSON(common_err.SERVICE_ERROR, model.Result{Success: common_err.SOURCE_DES_SAME, Message: common_err.GetMsg(common_err.SOURCE_DES_SAME)})
@@ -164,17 +145,6 @@ func DeleteFile(ctx echo.Context) error {
 		return ctx.JSON(common_err.CLIENT_ERROR, model.Result{Success: common_err.INVALID_PARAMS, Message: common_err.GetMsg(common_err.INVALID_PARAMS)})
 	}
 
-	// Sandbox every target before deleting anything (#36).
-	scoped := make([]string, 0, len(paths))
-	for _, v := range paths {
-		abs, ok := scopeOrDeny(ctx, v)
-		if !ok {
-			return nil
-		}
-		scoped = append(scoped, abs)
-	}
-	paths = scoped
-
 	for _, v := range paths {
 		mounted := service.IsMounted(v)
 		if mounted {
@@ -214,11 +184,6 @@ func PutFileContent(ctx echo.Context) error {
 	if fi.FilePath == "" {
 		return ctx.JSON(http.StatusBadRequest, model.Result{Success: common_err.INVALID_PARAMS, Message: "file_path is required"})
 	}
-	abs, ok := scopeOrDeny(ctx, fi.FilePath)
-	if !ok {
-		return nil
-	}
-	fi.FilePath = abs
 	if !file.Exists(fi.FilePath) {
 		return ctx.JSON(http.StatusNotFound, model.Result{
 			Success: common_err.FILE_DOES_NOT_EXIST,
@@ -272,11 +237,6 @@ func PostFileContent(ctx echo.Context) error {
 	}
 	if target == "" {
 		return ctx.JSON(http.StatusBadRequest, model.Result{Success: common_err.INVALID_PARAMS, Message: "file_path (or legacy `path`) is required"})
-	}
-	if abs, ok := scopeOrDeny(ctx, target); ok {
-		target = abs
-	} else {
-		return nil
 	}
 	override := ctx.QueryParam("override") == "true"
 	if file.Exists(target) && !override {

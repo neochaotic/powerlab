@@ -1,5 +1,0 @@
-kind: Security
-body: 'Files API is now sandboxed to a configurable root (#36). Every path the Files page sends is resolved within `[file] Scope` (default `/DATA` on new installs) and requests that escape it — e.g. `?path=/etc/shadow` or `..` traversals — are rejected with 403, across all read/write/upload/copy/move/delete handlers (v1 + v3). BREAKING for new installs: browsing outside `/DATA` now 403s; set `[file] Scope =` empty in core.conf for legacy whole-filesystem access. Existing installs keep their current (empty) scope until they opt in, so upgrades are not broken.'
-time: 2026-05-22T18:30:00Z
-custom:
-    Issue: "36"
