@@ -1,5 +1,0 @@
-kind: Added
-body: 'Test coverage: completed the unit suite for app-management/pkg/utils/envHelper (all ReplaceDefaultENV keys — password/username/PUID/PGID/TZ + unknown-key fallthrough — plus ReplaceStringDefaultENV passthrough/idempotence) — 66.7% → 100%. Locks the install-time env-substitution logic, including that the legacy upstream literal never leaks.'
-time: 2026-05-22T05:30:00Z
-custom:
-    Issue: ""

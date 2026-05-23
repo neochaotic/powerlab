@@ -1,5 +1,0 @@
-kind: Fixed
-body: 'Editing a custom app (e.g. changing its port) no longer leaves the progress modal spinning forever. The update flow now drives the per-app task so the UI''s task-log SSE stream receives its terminal event when the apply finishes — matching the install flow. The re-deploy itself already worked; only the progress UI hung.'
-time: 2026-05-22T16:50:00Z
-custom:
-    Issue: "550"
