@@ -52,7 +52,7 @@
 	<!-- Header -->
 	<div class="flex items-center justify-between p-6 border-b border-white/5">
 		<h2 class="text-sm font-bold text-white uppercase tracking-widest">Preview</h2>
-		<button onclick={onClose} class="text-zinc-500 hover:text-white transition-colors">
+		<button onclick={onClose} aria-label="Close preview" class="text-zinc-500 hover:text-white transition-colors">
 			<X class="h-5 w-5" />
 		</button>
 	</div>

@@ -458,7 +458,7 @@
 	{#if previewItem}
 		<FilePreview 
 			item={previewItem} 
-			onClose={() => store.selectFile(previewItem!.path, false)} 
+			onClose={() => store.clearSelection()}
 			onOpenEditor={(path) => { editingPath = path; }}
 		/>
 	{/if}

@@ -114,6 +114,43 @@ test.describe('/files page', () => {
 		await expect(page.getByTitle(/unsaved|nao|sin guardar/i)).toBeVisible({ timeout: 2000 });
 	});
 
+	// Regression: the image preview pane's close (X) button left the
+	// pane open. The pane is shown whenever exactly one file is
+	// selected; the close handler re-selected that same path instead
+	// of clearing the selection, so the pane could never be dismissed.
+	test('image preview close button dismisses the pane', async ({ page }) => {
+		await page.route('**/v1/folder?**', (route) =>
+			route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({
+					success: 200,
+					data: {
+						content: [
+							{ name: 'photo.png', path: '/photo.png', size: 2048, is_dir: false, type: 'image/png', modified: new Date().toISOString() }
+						],
+						total: 1,
+						index: 1,
+						size: 100000
+					}
+				})
+			})
+		);
+
+		await page.goto('/files');
+
+		// Single-click an image row opens the preview pane (not the editor).
+		await page.getByText('photo.png').click();
+
+		const closeBtn = page.getByRole('button', { name: /close preview/i });
+		await expect(closeBtn).toBeVisible({ timeout: 5000 });
+
+		await closeBtn.click();
+
+		// The pane must be gone — the close affordance disappears with it.
+		await expect(closeBtn).toBeHidden({ timeout: 2000 });
+	});
+
 	// Regression for #66: the Delete button only renders when
 	// selection > 0, but the only ways to select were Cmd-click or
 	// right-click → both undiscoverable. The row checkbox column
