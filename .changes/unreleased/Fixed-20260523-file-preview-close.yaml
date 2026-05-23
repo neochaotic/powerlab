@@ -1,0 +1,5 @@
+kind: Fixed
+body: 'Files: the image/media preview pane''s close (X) button now actually dismisses the pane. It previously re-selected the same file instead of clearing the selection, so the pane stayed open.'
+time: 2026-05-23T14:10:00Z
+custom:
+    Issue: ""
