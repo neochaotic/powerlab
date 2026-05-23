@@ -19,8 +19,8 @@
 	 * walkthrough.
 	 *
 	 * The component is silent on the happy paths:
-	 *   - First-ever visit (no stored fingerprint) — banner is
-	 *     handled by HttpBanner, not this one.
+	 *   - First-ever visit (no stored fingerprint) — nothing to warn
+	 *     about until a fingerprint has been pinned.
 	 *   - Match (server CA == stored fingerprint) — nothing to do.
 	 *   - Server cannot return a fingerprint (CA not generated yet,
 	 *     network error) — fail open, don't pester the user.
