@@ -1,5 +1,0 @@
-kind: Fixed
-body: 'Files page is now scope-aware (#36 follow-up): when a directory is outside the configured file Scope, the page falls back to the scope root the backend reports instead of stranding the user on a raw "path is outside the permitted file scope" error. The scope-403 now carries the scope root so the client knows where to land.'
-time: 2026-05-23T09:45:00Z
-custom:
-    Issue: "36"
