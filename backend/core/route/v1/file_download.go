@@ -44,21 +44,14 @@ func GetDownloadFile(ctx echo.Context) error {
 		})
 	}
 	list := strings.Split(files, ",")
-	scoped := make([]string, 0, len(list))
 	for _, v := range list {
-		abs, ok := scopeOrDeny(ctx, v)
-		if !ok {
-			return nil
-		}
-		if !file.Exists(abs) {
+		if !file.Exists(v) {
 			return ctx.JSON(common_err.SERVICE_ERROR, model.Result{
 				Success: common_err.FILE_DOES_NOT_EXIST,
 				Message: common_err.GetMsg(common_err.FILE_DOES_NOT_EXIST),
 			})
 		}
-		scoped = append(scoped, abs)
 	}
-	list = scoped
 	ctx.Request().Header.Add("Content-Type", "application/octet-stream")
 	ctx.Request().Header.Add("Content-Transfer-Encoding", "binary")
 	ctx.Request().Header.Add("Cache-Control", "no-cache")
@@ -119,11 +112,6 @@ func GetDownloadSingleFile(ctx echo.Context) error {
 			Message: common_err.GetMsg(common_err.INVALID_PARAMS),
 		})
 	}
-	abs, ok := scopeOrDeny(ctx, filePath)
-	if !ok {
-		return nil
-	}
-	filePath = abs
 	fileName := path.Base(filePath)
 	// c.Header("Content-Disposition", "inline")
 	ctx.Request().Header.Add("Content-Disposition", "attachment; filename*=utf-8''"+url2.PathEscape(fileName))
