@@ -1,0 +1,5 @@
+kind: Changed
+body: 'Test coverage: added pure-logic unit tests for app-management/service — `isDirEmpty` (image-seed guard, 50%→100%) and the compose metadata helpers `AuthorType` (store-badge classification: Official / ByCasaos / Community) and `SetStoreAppID` (idempotent — an existing id is never clobbered). No behavior change; locks the store-provenance and seed-skip logic against regression.'
+time: 2026-05-21T20:00:00Z
+custom:
+    Issue: ""

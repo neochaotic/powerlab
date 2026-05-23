@@ -1,0 +1,5 @@
+kind: Fixed
+body: 'Settings → Power: the per-service Restart button now shows progress and confirms completion instead of silently "blinking". It stays in a disabled "Restarting…" state (no accidental multi-restart) and polls the service until it is back active with a new pid, then shows "Restarted ✓". Fixes the no-feedback gap exposed once the core-restart 502 was resolved.'
+time: 2026-05-22T17:00:00Z
+custom:
+    Issue: "552"

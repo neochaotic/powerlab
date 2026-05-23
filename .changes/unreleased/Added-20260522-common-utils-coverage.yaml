@@ -1,0 +1,5 @@
+kind: Added
+body: 'Test coverage: added a unit suite for common/utils (CompareSlices, CompareStringSlices, Ptr, and Throttle immediate+coalescing paths) — 0% → 47.1%. DelayedExecutor left uncovered on purpose: it is dead code (no callers) with a time-unit bug (see #537), and locking the buggy behavior under test would be wrong.'
+time: 2026-05-22T05:10:00Z
+custom:
+    Issue: "537"

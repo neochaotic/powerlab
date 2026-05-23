@@ -1,0 +1,5 @@
+kind: Changed
+body: 'Dependency hygiene: app-management now depends on the stable github.com/opencontainers/image-spec v1.1.1 instead of the v1.1.0-rc5 pre-release it inherited. The only usage is the stable OCI `MediaTypeImageIndex` constant (pkg/docker/digest.go), already locked by digest_test.go — bumped green-before/green-after with no behavior change. First of the beta/RC pre-release eliminations (#519).'
+time: 2026-05-21T22:20:00Z
+custom:
+    Issue: "519"

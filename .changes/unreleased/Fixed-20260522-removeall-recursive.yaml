@@ -1,0 +1,5 @@
+kind: Fixed
+body: 'core/pkg/utils/file.RemoveAll now removes nested directory trees correctly. The previous implementation only removed files and the top directory, leaving empty subdirectories behind and erroring "directory not empty" on any tree with subdirs. Replaced with os.RemoveAll semantics (matching the name); locked by a regression test (#533).'
+time: 2026-05-22T04:40:00Z
+custom:
+    Issue: "533"
