@@ -4,7 +4,6 @@
 	import LoginScreen from '$lib/components/auth/LoginScreen.svelte';
 	import SetupWizard from '$lib/components/auth/SetupWizard.svelte';
 	import ToastContainer from '$lib/components/ui/Toast.svelte';
-	import HttpBanner from '$lib/components/security/HttpBanner.svelte';
 	import TrustStateChecker from '$lib/components/security/TrustStateChecker.svelte';
 	import UpgradeProgressOverlay from '$lib/components/system/UpgradeProgressOverlay.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -126,7 +125,6 @@
 </svelte:head>
 
 <ToastContainer />
-<HttpBanner />
 <UpgradeProgressOverlay />
 <TrustStateChecker />
 

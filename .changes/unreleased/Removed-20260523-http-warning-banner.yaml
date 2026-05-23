@@ -1,0 +1,5 @@
+kind: Removed
+body: 'Removed the top-right "HTTP · Enable HTTPS" warning pill. HTTPS-by-default is deprioritized and the "Enable HTTPS" walkthrough leads to the known trust-dance friction, so the banner only nagged without a working path forward. It will return when the HTTPS re-enable lands (#294).'
+time: 2026-05-23T10:10:00Z
+custom:
+    Issue: "294"

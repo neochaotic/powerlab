@@ -42,8 +42,7 @@
 	let isTestingConnection = $state(false);
 
 	// Deep-link support: a URL hash like /settings#security or
-	// /settings#network jumps straight to that tab. Used by HttpBanner
-	// to bring the user here from anywhere in the app.
+	// /settings#network jumps straight to that tab.
 	const VALID_SECTIONS: Section[] = ['general', 'network', 'apps', 'catalog', 'security', 'audit', 'logs', 'power', 'about'];
 	function applyHash() {
 		const h = window.location.hash.replace(/^#/, '') as Section;
