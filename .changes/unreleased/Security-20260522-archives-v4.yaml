@@ -1,5 +1,0 @@
-body: 'Dependency security: migrated the file/log download-as-archive feature from the deprecated github.com/mholt/archiver/v3 (no upstream fix) to github.com/mholt/archives v0.1.5, clearing three reachable CVEs (GO-2025-3605, GO-2024-2698 in archiver/v3 and GO-2025-4020 in nwaples/rardecode v1 — archives v4 uses the non-vulnerable rardecode/v2) and removing them from the govulncheck allowlist. The incremental archiver.Writer model was replaced with archives'' batch FilesFromDisk + Archive across core + common, preserving the entry-naming semantics. Verified by a new archive round-trip test (build → read-back → assert structure) + the existing core/common suites.'
-kind: Security
-time: 2026-05-22T02:40:00Z
-custom:
-    Issue: "528"

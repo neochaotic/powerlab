@@ -1,5 +1,0 @@
-kind: Added
-body: 'Test coverage: added an adversarial table test for common/pkg/security.ShouldIncludeIP (cert-SAN IP classification, ADR-0001) — 0% → 100% on the function. Locks the RFC1918 / CGNAT-mesh-VPN / IPv6-ULA boundaries (172.16–31, 100.64–127, fc/fd vs fe80) where a misclassification would leak or omit a cert SAN entry. No bug found; behavior confirmed correct.'
-time: 2026-05-22T04:05:00Z
-custom:
-    Issue: ""

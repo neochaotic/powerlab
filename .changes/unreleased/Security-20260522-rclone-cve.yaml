@@ -1,5 +1,0 @@
-kind: Security
-body: 'Dependency security: bumped github.com/rclone/rclone v1.62.2→v1.73.5 in local-storage, clearing two reachable CVEs (GO-2026-4964 rc options/set auth-bypass, GO-2024-3271 symlink-target permissions) and removing them from the govulncheck allowlist. Adapted PowerLab''s rclone-vfs mount wrapper to the v1.73 API: fs.Duration is now an int64 (time.Duration conversions) and vfscommon.FileMode replaced os.FileMode for dir/file perms. Verified by GOOS=linux cross-compile + govulncheck reachability (both IDs gone); the bump stays on the Go 1.25 line (no toolchain cascade).'
-time: 2026-05-22T02:00:00Z
-custom:
-    Issue: "525"

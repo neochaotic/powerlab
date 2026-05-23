@@ -1,5 +1,0 @@
-kind: Fixed
-body: 'Custom App re-deploy no longer leaves orphan containers: editing an app''s compose to rename or drop a service now tears down the old service''s container instead of leaving it running. The install/redeploy compose-up now sets RemoveOrphans.'
-time: 2026-05-22T15:10:00Z
-custom:
-    Issue: "544"

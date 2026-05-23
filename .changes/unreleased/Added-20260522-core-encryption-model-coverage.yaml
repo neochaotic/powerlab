@@ -1,5 +1,0 @@
-kind: Added
-body: 'Test coverage: locked two pure 0% core packages — pkg/utils/encryption (GetMD5ByStr against RFC 1321 vectors + determinism/length) and service/model (GORM TableName mappings o_notify/o_rely) — both 0% → 100%.'
-time: 2026-05-22T05:50:00Z
-custom:
-    Issue: ""

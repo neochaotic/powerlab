@@ -31,10 +31,10 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  Opt-in app catalog (off by default; enable in Settings →
-  Catalog). Gateway boot + restart-hang fixes. Install-time
-  bind-mount/secret hardening. Releases now gate on a
-  real-backend install→uninstall smoke in CI.
+  Security + reliability hardening: cleared the reachable
+  Docker/dependency CVEs (govulncheck now blocking) and moved the auth
+  token out of the URL into an HttpOnly cookie. Fixes: custom-app
+  orphans, core-restart 502, edit-app progress hang, log noise.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
