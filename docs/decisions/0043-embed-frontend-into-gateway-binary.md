@@ -1,6 +1,6 @@
 # 0043 — Embed the frontend (and static resources) into the gateway binary
 
-- **Status:** proposed
+- **Status:** accepted
 - **Date:** 2026-05-25
 - **Trigger:** Recurring UI↔binary version-skew bugs (the upgrade-401 class, v0.6.7→v0.6.10) plus the enterprise/security pivot raised the question: should PowerLab ship the web UI *inside* the Go binary via `go:embed` instead of serving it from a directory on disk?
 
