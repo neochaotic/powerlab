@@ -2,8 +2,7 @@ package route
 
 import (
 	"net/http"
-	"os"
-	"path/filepath"
+	"path"
 	"regexp"
 	"strings"
 	"time"
@@ -13,10 +12,12 @@ import (
 	"github.com/neochaotic/powerlab/backend/gateway/service"
 )
 
-// StaticRoute serves the embedded SvelteKit SPA bundle from the
-// gateway. Single-page-app routing falls back to index.html for any
-// path that doesn't match a real asset, so client-side router takes
-// over after first load.
+// StaticRoute serves the SvelteKit SPA bundle from the gateway. The
+// bundle comes from an fs.FS — either the UI embedded in the binary
+// (ADR-0043) or an on-disk directory via the `-w` override — resolved
+// by service.State.GetWWWFS(). Single-page-app routing falls back to
+// index.html for any path that doesn't match a real asset, so the
+// client-side router takes over after first load.
 type StaticRoute struct {
 	state *service.State
 }
@@ -80,16 +81,17 @@ func (s *StaticRoute) GetRoute() http.Handler {
 	// this chain, deep links / refreshes / direct URL-bar navigation
 	// to any client-side route return 404.
 	//
-	// We use http.ServeFile (not http.FileServer) so we can pick the
+	// We use http.ServeContent (not http.FileServer) so we can pick the
 	// exact file to serve without triggering FileServer's automatic
-	// "/index.html → /" 301 dance.
-	wwwRoot := s.state.GetWWWPath()
+	// "/index.html → /" 301 dance. GetWWWFS resolves to the on-disk
+	// bundle (dev/`-w`/legacy install) or the embedded one (ADR-0043).
+	wwwFS := http.FS(s.state.GetWWWFS())
 
 	e.GET("/*", func(ctx echo.Context) error {
-		path := ctx.Request().URL.Path
+		urlPath := ctx.Request().URL.Path
 		req := ctx.Request()
 		w := ctx.Response().Writer
-		served := serveSPAPath(w, req, wwwRoot, path)
+		served := serveSPAPath(w, req, wwwFS, urlPath)
 		if !served {
 			return echo.NewHTTPError(http.StatusNotFound)
 		}
@@ -100,8 +102,9 @@ func (s *StaticRoute) GetRoute() http.Handler {
 }
 
 // serveSPAPath resolves a request path against an adapter-static
-// build directory and writes the response. Returns false ONLY when
-// no candidate exists (the caller turns that into 404).
+// bundle (any http.FileSystem — embedded or on-disk) and writes the
+// response. Returns false ONLY when no candidate exists (the caller
+// turns that into 404).
 //
 // Resolution order:
 //
@@ -114,63 +117,53 @@ func (s *StaticRoute) GetRoute() http.Handler {
 //	  → try `<path>/index.html` (just in case)
 //	  → fall back to `index.html` (SPA shell — handles unknown
 //	    routes via client-side routing).
-func serveSPAPath(w http.ResponseWriter, req *http.Request, wwwRoot, urlPath string) bool {
-	clean := strings.TrimPrefix(urlPath, "/")
+//
+// Path traversal is structurally impossible: http.FS rejects any name
+// that is not a valid slash-rooted path (no `..`, no absolute escape),
+// so a malicious URL simply misses every candidate and 404s.
+func serveSPAPath(w http.ResponseWriter, req *http.Request, hfs http.FileSystem, urlPath string) bool {
+	clean := strings.TrimPrefix(path.Clean("/"+urlPath), "/")
 
 	if isAssetPath(urlPath) {
-		full := filepath.Join(wwwRoot, clean)
-		if !pathInsideRoot(wwwRoot, full) {
-			return false
-		}
-		if info, err := os.Stat(full); err == nil && !info.IsDir() {
-			http.ServeFile(w, req, full)
-			return true
-		}
-		return false
+		return serveFileFS(w, req, hfs, clean)
 	}
 
 	candidates := []string{
 		clean,
 		clean + ".html",
-		filepath.Join(clean, "index.html"),
+		path.Join(clean, "index.html"),
 		"index.html",
 	}
 	for _, c := range candidates {
 		if c == "" || c == "." {
 			c = "index.html"
 		}
-		full := filepath.Join(wwwRoot, c)
-		if !pathInsideRoot(wwwRoot, full) {
-			continue
-		}
-		if info, err := os.Stat(full); err == nil && !info.IsDir() {
-			http.ServeFile(w, req, full)
+		if serveFileFS(w, req, hfs, c) {
 			return true
 		}
 	}
 	return false
 }
 
-// pathInsideRoot defends against `..`-style traversal in any path the
-// caller derived from a URL. We rely on filepath.Rel against the
-// non-eval'd absolute paths — symlinks are intentional here (dev maps
-// backend/data/www → ui/build) and we want them followed. The check is
-// purely textual: target's path must be reachable from root without
-// stepping out via "..".
-func pathInsideRoot(root, target string) bool {
-	rootAbs, err := filepath.Abs(filepath.Clean(root))
+// serveFileFS serves a single named file from hfs, returning false if
+// the name does not resolve to a regular file (missing, a directory,
+// or rejected by http.FS as an invalid path). name is a slash path
+// relative to the FS root, without a leading slash.
+func serveFileFS(w http.ResponseWriter, req *http.Request, hfs http.FileSystem, name string) bool {
+	if name == "" {
+		return false
+	}
+	f, err := hfs.Open("/" + name)
 	if err != nil {
 		return false
 	}
-	targetAbs, err := filepath.Abs(filepath.Clean(target))
-	if err != nil {
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil || info.IsDir() {
 		return false
 	}
-	rel, err := filepath.Rel(rootAbs, targetAbs)
-	if err != nil {
-		return false
-	}
-	return !strings.HasPrefix(rel, "..")
+	http.ServeContent(w, req, info.Name(), info.ModTime(), f)
+	return true
 }
 
 // isAssetPath returns true when a path looks like a versioned asset

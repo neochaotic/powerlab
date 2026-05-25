@@ -513,6 +513,7 @@ func run(
 				"Static web service is listening...",
 				slog.Any("address", listener.Addr().String()),
 				slog.Any("filepath", urlFilePath),
+				slog.String("ui_source", _state.GetWWWMode()),
 			)
 			return staticServer.Serve(listener)
 		},

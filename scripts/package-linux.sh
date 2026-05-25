@@ -90,6 +90,62 @@ LDFLAGS_VERSION_STAMP="-s -w \
   -X github.com/neochaotic/powerlab/backend/core/common.POWERLAB_VERSION=$VERSION \
   -X github.com/neochaotic/powerlab/backend/core/route/v1.powerLabVersionAtCompileTime=$VERSION"
 
+# ─── 1.5 Build frontend FIRST, stage into the gateway embed dir ──────────
+# ADR-0043: the gateway embeds the static UI via //go:embed, so the
+# bundle must exist on disk BEFORE the gateway `go build` below. Build
+# the frontend here, then stage ui/build into backend/gateway/web/build
+# so the embed picks up the real UI (not the committed placeholder).
+#
+# Honour an existing ui/build/ if the caller already built it (e.g. from
+# the Mac host before invoking this script in a Linux container that
+# does not have a recent enough Node). Skipping the rebuild also makes
+# repeated package runs much faster — but ONLY when we can prove the
+# existing bundle was built for THIS version, otherwise we'd ship a
+# stale UI (the v0.2.5 first-attempt bug — bundle had 0.2.0 because
+# CI cached an old build). Stamp the version into the build dir and
+# refuse to reuse a mismatched one.
+log "Building frontend (static SPA)..."
+cd "$ROOT/ui"
+export POWERLAB_VERSION="$VERSION"
+
+# L1 (defense-in-depth, v0.6.6 retro): sync ui/package.json `version`
+# field with the release VERSION so the Vite fallback path (when
+# POWERLAB_VERSION env is somehow lost) cannot stamp a stale literal.
+npm version "$VERSION" --no-git-tag-version --allow-same-version > /dev/null 2>&1 || true
+
+BUILD_STAMP_FILE="build/.powerlab-version"
+SKIP_OK=0
+if [[ "${POWERLAB_SKIP_FRONTEND_BUILD:-}" == "1" ]] && [[ -f "build/index.html" ]] && [[ -f "$BUILD_STAMP_FILE" ]] && [[ "$(cat "$BUILD_STAMP_FILE")" == "$VERSION" ]]; then
+  log "  POWERLAB_SKIP_FRONTEND_BUILD=1 — reusing build for v$VERSION"
+  SKIP_OK=1
+elif [[ "${POWERLAB_SKIP_FRONTEND_BUILD:-}" == "1" ]] && [[ -f "build/index.html" ]]; then
+  STAMP="(none)"
+  [[ -f "$BUILD_STAMP_FILE" ]] && STAMP="$(cat "$BUILD_STAMP_FILE")"
+  log "  POWERLAB_SKIP_FRONTEND_BUILD=1 set but stamp is $STAMP, want $VERSION — rebuilding"
+elif [[ -f "build/index.html" ]] && command -v node >/dev/null && [[ "$(node --version | sed 's/^v//' | cut -d. -f1)" -lt 18 ]]; then
+  log "  node $(node --version) is too old for SvelteKit — reusing existing ui/build"
+  SKIP_OK=1
+fi
+if (( SKIP_OK == 0 )); then
+  npm run build > /dev/null
+  echo "$VERSION" > "$BUILD_STAMP_FILE"
+fi
+
+# L3 (defense-in-depth, v0.6.6 retro): sanity-check the built JS for
+# the version literal via the dedicated check-built-ui-version.sh
+# script (regression-tested in check-built-ui-version_test.sh).
+bash "$ROOT/scripts/check-built-ui-version.sh" "$VERSION" "build"
+
+# ADR-0043: stage the built UI into the gateway embed source dir so the
+# gateway `go build` below embeds the real bundle. The dir is gitignored
+# (only the placeholder index.html is tracked); wipe-then-copy avoids
+# leaving stale files from a previous build.
+log "  staging UI into gateway embed dir (ADR-0043)..."
+rm -rf "$ROOT/backend/gateway/web/build"
+mkdir -p "$ROOT/backend/gateway/web/build"
+cp -R "$ROOT/ui/build/." "$ROOT/backend/gateway/web/build/"
+cd "$ROOT"
+
 for svc in "${SERVICES[@]}"; do
   log "  building $svc..."
   cd "$ROOT/backend/$svc"
@@ -129,55 +185,13 @@ GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
   -o "$STAGE/bin/powerlab-logs" \
   .
 
-# ─── 3. Build frontend ───────────────────────────────────────────────────
-# Honour an existing ui/build/ if the caller already built it (e.g. from
-# the Mac host before invoking this script in a Linux container that
-# does not have a recent enough Node). Skipping the rebuild also makes
-# repeated package runs much faster — but ONLY when we can prove the
-# existing bundle was built for THIS version, otherwise we'd ship a
-# stale UI (the v0.2.5 first-attempt bug — bundle had 0.2.0 because
-# CI cached an old build). Stamp the version into the build dir and
-# refuse to reuse a mismatched one.
-log "Building frontend (static SPA)..."
-cd "$ROOT/ui"
-export POWERLAB_VERSION="$VERSION"
-
-# L1 (defense-in-depth, v0.6.6 retro): sync ui/package.json `version`
-# field with the release VERSION so the Vite fallback path (when
-# POWERLAB_VERSION env is somehow lost) cannot stamp a stale literal.
-# `--allow-same-version` makes this a no-op on idempotent re-runs;
-# `--no-git-tag-version` keeps npm from creating its own tag (we
-# create release tags ourselves). `|| true` because npm version
-# exits non-zero on a same-version run on some npm releases — we
-# don't care, the result is still the right number.
-npm version "$VERSION" --no-git-tag-version --allow-same-version > /dev/null 2>&1 || true
-
-BUILD_STAMP_FILE="build/.powerlab-version"
-SKIP_OK=0
-if [[ "${POWERLAB_SKIP_FRONTEND_BUILD:-}" == "1" ]] && [[ -f "build/index.html" ]] && [[ -f "$BUILD_STAMP_FILE" ]] && [[ "$(cat "$BUILD_STAMP_FILE")" == "$VERSION" ]]; then
-  log "  POWERLAB_SKIP_FRONTEND_BUILD=1 — reusing build for v$VERSION"
-  SKIP_OK=1
-elif [[ "${POWERLAB_SKIP_FRONTEND_BUILD:-}" == "1" ]] && [[ -f "build/index.html" ]]; then
-  STAMP="(none)"
-  [[ -f "$BUILD_STAMP_FILE" ]] && STAMP="$(cat "$BUILD_STAMP_FILE")"
-  log "  POWERLAB_SKIP_FRONTEND_BUILD=1 set but stamp is $STAMP, want $VERSION — rebuilding"
-elif [[ -f "build/index.html" ]] && command -v node >/dev/null && [[ "$(node --version | sed 's/^v//' | cut -d. -f1)" -lt 18 ]]; then
-  log "  node $(node --version) is too old for SvelteKit — reusing existing ui/build"
-  SKIP_OK=1
-fi
-if (( SKIP_OK == 0 )); then
-  npm run build > /dev/null
-  echo "$VERSION" > "$BUILD_STAMP_FILE"
-fi
-
-# L3 (defense-in-depth, v0.6.6 retro): sanity-check the built JS for
-# the version literal via the dedicated check-built-ui-version.sh
-# script. The script is regression-tested with injected positive +
-# negative scenarios in check-built-ui-version_test.sh (proving the
-# gate actually catches the bug class, not just structurally present).
-bash "$ROOT/scripts/check-built-ui-version.sh" "$VERSION" "build"
-
-cp -R build/* "$STAGE/www/"
+# ─── 3. Stage the static UI into the tarball's www/ ──────────────────────
+# The frontend was built earlier (step 1.5) so the gateway could embed
+# it. We still ship the on-disk www/ for the disk-precedence path
+# (ADR-0043: the gateway serves from `-w <dir>` when that dir exists,
+# falling back to its embedded copy otherwise). Phase 3 of the ADR drops
+# this once embedded delivery is verified on a release.
+cp -R "$ROOT/ui/build/"* "$STAGE/www/"
 
 # ─── 3.4. Bundle shell helpers ───────────────────────────────────────────
 # Shell helpers shipped under /usr/share/powerlab/shell on the target.

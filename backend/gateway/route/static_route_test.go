@@ -42,12 +42,14 @@ func makeFixture(t *testing.T) string {
 	return dir
 }
 
-// callServeSPA wraps serveSPAPath in a minimal http test rig.
+// callServeSPA wraps serveSPAPath in a minimal http test rig, serving
+// from an on-disk root via http.FS(os.DirFS(...)) — the same
+// http.FileSystem shape GetRoute hands the handler in production.
 func callServeSPA(t *testing.T, wwwRoot, path string) (int, string, string) {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodGet, path, nil)
 	rr := httptest.NewRecorder()
-	served := serveSPAPath(rr, req, wwwRoot, path)
+	served := serveSPAPath(rr, req, http.FS(os.DirFS(wwwRoot)), path)
 	if !served {
 		// Mirror the GetRoute handler's 404 behavior.
 		rr.WriteHeader(http.StatusNotFound)
@@ -216,39 +218,11 @@ func TestIsAssetPath(t *testing.T) {
 	}
 }
 
-// pathInsideRoot must accept legitimate sub-paths and reject parent
-// escapes. Catches the dev-mode regression that this test file was
-// written to pin: rootEval + targetAbs mismatch would silently
-// reject every request when wwwRoot was a symlink.
-func TestPathInsideRoot(t *testing.T) {
-	root := makeFixture(t)
-
-	cases := []struct {
-		name   string
-		target string
-		want   bool
-	}{
-		{"direct file", filepath.Join(root, "settings.html"), true},
-		{"nested file", filepath.Join(root, "apps", "index.html"), true},
-		{"root itself", root, true},
-		{"sibling", filepath.Join(filepath.Dir(root), "elsewhere"), false},
-		{"escape via ..", filepath.Join(root, "..", "elsewhere"), false},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			got := pathInsideRoot(root, c.target)
-			if got != c.want {
-				t.Errorf("pathInsideRoot(%q, %q) = %v, want %v", root, c.target, got, c.want)
-			}
-		})
-	}
-}
-
-// pathInsideRoot must work when wwwRoot is a symlink — the dev mode
-// configuration symlinks backend/data/www → ui/build, and an earlier
-// implementation called EvalSymlinks on root only, then compared
-// against a non-eval'd target, which always returned false.
-func TestPathInsideRoot_ResolvesSymlinkedRoot(t *testing.T) {
+// Serving must work when wwwRoot is a symlink — the dev-mode
+// configuration symlinks backend/data/www → ui/build. os.DirFS follows
+// a symlinked root, so a request through the link resolves to the real
+// file. (Pins the dev workflow the `-w` override depends on.)
+func TestServeSPAPath_SymlinkedRootServes(t *testing.T) {
 	real := makeFixture(t)
 	link, err := os.MkdirTemp("", "powerlab-static-link-")
 	if err != nil {
@@ -260,12 +234,6 @@ func TestPathInsideRoot_ResolvesSymlinkedRoot(t *testing.T) {
 		t.Fatalf("symlink: %v", err)
 	}
 
-	target := filepath.Join(linkPath, "settings.html")
-	if !pathInsideRoot(linkPath, target) {
-		t.Fatalf("pathInsideRoot rejected legitimate target through symlinked root")
-	}
-
-	// And serving through the symlinked root works end-to-end.
 	code, _, body := callServeSPA(t, linkPath, "/settings")
 	if code != http.StatusOK {
 		t.Fatalf("serve through symlinked root: got %d", code)
