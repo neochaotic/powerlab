@@ -1,0 +1,22 @@
+# Per-module Go coverage FLOORS — the no-regression ratchet.
+# check-coverage-ratchet.sh fails a backend matrix job if its module's
+# `go tool cover` total drops below the floor here.
+#
+# Floors are set a few pp BELOW the measured baseline so normal CI/local
+# variance (race+atomic mode, CGO on user-service/local-storage) does not
+# false-fail. They are a FLOOR, not a target: ratchet them UP as coverage
+# climbs (per the coverage-cadence policy — pure-logic surfaces first, no
+# mock teatro). Lowering a floor requires a written justification in the
+# PR (an intentional, explained regression — e.g. deleting a tested file).
+#
+# Format: <service><TAB><floor-percent>
+# Measured 2026-05-25 (local, non-race): common 33.0, gateway 40.7,
+# core 8.3, app-management 14.8, message-bus 12.9, local-storage 7.0,
+# user-service 3.9. `pkg` has no floor yet (advisory until measured in CI).
+common	30
+gateway	38
+core	6
+app-management	12
+message-bus	10
+local-storage	5
+user-service	2
