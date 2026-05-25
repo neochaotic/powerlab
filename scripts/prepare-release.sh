@@ -66,6 +66,14 @@ if ! command -v changie >/dev/null; then
   exit 1
 fi
 
+# Refuse to re-cut a version that is ALREADY a published release (the
+# v0.7.2 collision: a published number kept accruing content via
+# hand-edited changelog instead of bumping). `changie batch` below also
+# refuses if .changes/vX.md exists, but that misses the
+# "published + someone edited the batched file" path — check explicitly.
+log "Verifying v$VERSION is not already a published release..."
+bash "$REPO_ROOT/scripts/check-version-not-released.sh" "$VERSION"
+
 log "Running 'changie batch v$VERSION'..."
 changie batch "v$VERSION"
 

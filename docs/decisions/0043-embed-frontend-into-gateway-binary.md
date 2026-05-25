@@ -80,9 +80,11 @@ Once the UI ships *inside* the binary, the version-skew compensations (L1.5, L2,
 1. **Wire embed + serve, keep `-w` override** (one gateway PR). Add a real-server test: (a) embedded mode serves `index.html` + an `_app/` asset + SPA fallback; (b) `-w <dir>` override still serves from disk.
 2. **CI/build ordering** — ensure `ui/build/` is produced and staged into the gateway embed dir before `go build`; `package-linux.sh` honours `POWERLAB_SKIP_FRONTEND_BUILD` the same way it does today.
 3. **Drop `www/` from packaging + the systemd `-w` flag** once embedded serving is verified on a release (Lima + a real box).
-4. **Retire L1.5 / L2 / L3 version-skew compensations** in a follow-up, leaving L1 (build-time sync) only if still useful for the dev `-w` path.
+4. ~~**Retire L1.5 / L2 / L3 version-skew compensations**~~ — **reassessed 2026-05-25: do NOT retire.** Phases 1–3 (embedding) eliminate the *bundle-presence* drift — "new binary, stale `www/` on disk." But L1/L1.5/L2/L3 guard a **different, still-live invariant**: that the UI's *stamped version string* (the version the UI displays + feeds to the in-UI update check) matches the release. That string comes from the build stamp (`POWERLAB_VERSION` / `ui/package.json`), not from where the bundle is served — so embedding does not make it redundant. Retiring these would reopen the false-"Update available" bug class (issue #159). They stay.
 
 Each phase is independently shippable and reversible; the `-w` override means we can fall back to disk serving at any point without a code change.
+
+**Status note (2026-05-25):** Phases 1–3 shipped to `main` (PRs #567, #568). The in-place upgrade transition (www-model → embedded) is locked by an automated CI gate, `scripts/check-upgrade-smoke.sh` (PR #569), which installs the latest published release, upgrades to the build under test, and asserts the gateway serves the embedded UI with the legacy `www/` removed.
 
 ### Documentation to update (with phase 3, when `www/` is dropped)
 
