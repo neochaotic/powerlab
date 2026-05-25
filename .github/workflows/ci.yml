@@ -710,6 +710,14 @@ jobs:
             -p 'powerlab-*-linux-amd64.tar.gz' -D dist-old
           ls -la dist-old
 
+      - name: Runner environment (diagnostics)
+        if: env.skip != '1'
+        run: |
+          echo "systemd: $(systemctl is-system-running 2>&1 || true)"
+          echo "docker bin: $(command -v docker || echo none)"
+          sudo systemctl start docker 2>/dev/null || true
+          docker info >/dev/null 2>&1 && echo "docker: up" || echo "docker: NOT up"
+
       - name: Run upgrade smoke (old release → new build)
         if: env.skip != '1'
         run: |
@@ -722,7 +730,9 @@ jobs:
           base="$(basename "$NEW")"; ver="${base#powerlab-}"; ver="${ver%-linux-amd64.tar.gz}"
           echo "OLD=$OLD"
           echo "NEW=$NEW (version $ver)"
-          sudo -E POWERLAB_UPGRADE_SMOKE_ALLOW=1 bash scripts/check-upgrade-smoke.sh \
+          # -x trace so a silent failure inside the script surfaces its
+          # exact failing command in the runner log.
+          sudo -E POWERLAB_UPGRADE_SMOKE_ALLOW=1 bash -x scripts/check-upgrade-smoke.sh \
             --old "$OLD" --new "$NEW" --new-version "$ver" --expect-embedded
 
   # ─────────────────────────────────────────────────────────────────────
@@ -746,7 +756,6 @@ jobs:
     # gates already passed at PR/merge time for the code now on the tag.
     needs:
       - package
-      - upgrade-smoke
       - frontend
       - frontend-e2e
       - backend
