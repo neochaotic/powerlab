@@ -1,0 +1,7 @@
+# ADR-0043: the real UI (ui/build output) is staged into this directory
+# at release-build time by scripts/package-linux.sh and embedded via
+# //go:embed. Those staged artifacts must NOT be committed — only the
+# placeholder index.html is tracked so the package always compiles.
+*
+!.gitignore
+!index.html
