@@ -129,10 +129,15 @@ if [[ "$EXPECT_EMBEDDED" == "1" ]]; then
     fail "/usr/share/powerlab/www still exists after upgrade — stale on-disk UI not removed (version-skew risk)"
   fi
   log "  legacy /usr/share/powerlab/www removed"
-  if journalctl -u powerlab-gateway --no-pager 2>/dev/null | grep -q 'ui_source=embedded'; then
-    log "  gateway log shows ui_source=embedded"
+  # Check the MOST RECENT "Static web service is listening" line (the
+  # current gateway), not any historical one — otherwise a future
+  # embedded→disk regression could pass on a stale line. Match both the
+  # JSON ("ui_source":"embedded") and logfmt (ui_source=embedded) shapes.
+  last_static="$(journalctl -u powerlab-gateway --no-pager 2>/dev/null | grep 'Static web service is listening' | tail -1)"
+  if printf '%s' "$last_static" | grep -Eq 'ui_source"?[:=] ?"?embedded'; then
+    log "  gateway log shows ui_source=embedded (latest static-web line)"
   else
-    fail "gateway log does not show ui_source=embedded — UI is not being served from the binary"
+    fail "latest gateway static-web line does not report ui_source=embedded: ${last_static:-<none>}"
   fi
 fi
 
