@@ -756,6 +756,7 @@ jobs:
     # gates already passed at PR/merge time for the code now on the tag.
     needs:
       - package
+      - upgrade-smoke
       - frontend
       - frontend-e2e
       - backend
