@@ -1,0 +1,5 @@
+kind: Added
+body: 'CI: a per-module Go coverage no-regression ratchet (`scripts/check-coverage-ratchet.sh` + `scripts/coverage-baseline.tsv`), wired into the backend matrix. Each module fails the build if its coverage drops below a committed floor; floors are bumped up as coverage climbs. Locks the coverage already earned without chasing an unrealistic absolute target (per the coverage-cadence policy — ratchet pure-logic surfaces, no mock teatro).'
+time: 2026-05-25T19:00:00Z
+custom:
+    Issue: ""

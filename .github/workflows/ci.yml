@@ -240,6 +240,12 @@ jobs:
           echo "=== ${{ matrix.service }} coverage ==="
           go tool cover -func=coverage.out | tail -1
 
+      # No-regression ratchet: fail if this module's coverage dropped
+      # below its floor in scripts/coverage-baseline.tsv. Floors get
+      # bumped UP as coverage climbs; lowering one needs a justification.
+      - name: Coverage ratchet (no regression)
+        run: bash scripts/check-coverage-ratchet.sh ${{ matrix.service }}
+
       - name: Upload coverage profile
         if: always()
         uses: actions/upload-artifact@v4
