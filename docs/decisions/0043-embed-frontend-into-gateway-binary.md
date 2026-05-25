@@ -84,6 +84,16 @@ Once the UI ships *inside* the binary, the version-skew compensations (L1.5, L2,
 
 Each phase is independently shippable and reversible; the `-w` override means we can fall back to disk serving at any point without a code change.
 
+### Documentation to update (with phase 3, when `www/` is dropped)
+
+The in-app help content (the `docs/security/*` certificate guides served by the UI) does **not** change — those assets are simply embedded alongside the rest. But the project docs that describe the *serving model* must be updated when the filesystem `www/` is retired, so they do not strand the old model:
+
+- `README.md` — the architecture diagram line ("static UI").
+- `docs/architecture/data-persistence.md` — the `/usr/share/powerlab/www/` table row (no longer a managed path).
+- `docs/operations/lockout-recovery.md` — "the gateway serves the UI" wording.
+- `docs/UPDATE_MANIFEST.md` — the install step that copies the UI to `www`.
+- `docs/api/core/service.md` — the "Replace binaries / static UI / systemd units" upgrade note.
+
 ## Verification
 
 - Real-browser E2E (Playwright) against the embedded gateway: the SPA loads, client routes resolve via the `index.html` fallback, and a hashed `_app/immutable/*` asset is served with the right content-type.
