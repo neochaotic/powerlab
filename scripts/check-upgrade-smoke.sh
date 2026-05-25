@@ -78,7 +78,11 @@ install_tarball() {
   # tarball extracts to a single top dir
   local root; root="$(find "$d" -maxdepth 1 -mindepth 1 -type d | head -1)"
   [[ -x "$root/install.sh" ]] || fail "install.sh not found/executable in $tb"
-  ( cd "$root" && ./install.sh )
+  # POWERLAB_NO_INSTALL_LOG=1 stops install.sh from redirecting its
+  # output into /var/log/powerlab/install-*.log via `exec > >(tee ...)`.
+  # Without it an install failure prints NOTHING to our console (the
+  # error is buried in that log file) and the smoke fails opaquely.
+  ( cd "$root" && POWERLAB_NO_INSTALL_LOG=1 ./install.sh )
 }
 
 wait_for_gateway() {
