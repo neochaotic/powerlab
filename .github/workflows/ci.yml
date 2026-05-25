@@ -666,6 +666,76 @@ jobs:
             dist/powerlab-linux-${{ matrix.arch }}.tar.gz
 
   # ─────────────────────────────────────────────────────────────────────
+  # Upgrade smoke: real install → in-place upgrade regression gate
+  # (ADR-0043 follow-up; scripts/check-upgrade-smoke.sh). Installs the
+  # latest PUBLISHED release, upgrades to the tarball this run just
+  # built, and asserts post-upgrade health (gateway 200, version stamp
+  # moved, no failed units, embedded UI + stale www removed). The
+  # automated version-update test PowerLab lacked — would have caught
+  # the upgrade-401 saga + the v0.6.12 stale-UI cut.
+  #
+  # NOT run on PRs (installs system-wide + needs docker/systemd — too
+  # heavy per-PR). Runs on main pushes, tags, and manual dispatch, and
+  # gates the release job below. If no release exists yet to upgrade
+  # FROM, it self-skips green (nothing to test).
+  # ─────────────────────────────────────────────────────────────────────
+  upgrade-smoke:
+    name: Upgrade smoke (amd64)
+    needs: package
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download freshly built tarball
+        uses: actions/download-artifact@v4
+        with:
+          name: powerlab-linux-amd64
+          path: dist-new
+
+      - name: Download latest published release (amd64)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          latest="$(gh release list -L 1 --json tagName -q '.[0].tagName' 2>/dev/null || true)"
+          if [[ -z "$latest" ]]; then
+            echo "No published release to upgrade FROM — self-skipping the upgrade smoke."
+            echo "skip=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          echo "Latest published release: $latest"
+          mkdir -p dist-old
+          gh release download "$latest" -R "$GITHUB_REPOSITORY" \
+            -p 'powerlab-*-linux-amd64.tar.gz' -D dist-old
+          ls -la dist-old
+
+      - name: Runner environment (diagnostics)
+        if: env.skip != '1'
+        run: |
+          echo "systemd: $(systemctl is-system-running 2>&1 || true)"
+          echo "docker bin: $(command -v docker || echo none)"
+          sudo systemctl start docker 2>/dev/null || true
+          docker info >/dev/null 2>&1 && echo "docker: up" || echo "docker: NOT up"
+
+      - name: Run upgrade smoke (old release → new build)
+        if: env.skip != '1'
+        run: |
+          set -euo pipefail
+          # The versioned tarball matches `powerlab-<ver>-linux-amd64`
+          # (the stable `powerlab-linux-amd64` name lacks the version
+          # segment and is excluded by this glob).
+          NEW="$(ls dist-new/powerlab-*-linux-amd64.tar.gz | head -1)"
+          OLD="$(ls dist-old/powerlab-*-linux-amd64.tar.gz | head -1)"
+          base="$(basename "$NEW")"; ver="${base#powerlab-}"; ver="${ver%-linux-amd64.tar.gz}"
+          echo "OLD=$OLD"
+          echo "NEW=$NEW (version $ver)"
+          # -x trace so a silent failure inside the script surfaces its
+          # exact failing command in the runner log.
+          sudo -E POWERLAB_UPGRADE_SMOKE_ALLOW=1 bash -x scripts/check-upgrade-smoke.sh \
+            --old "$OLD" --new "$NEW" --new-version "$ver" --expect-embedded
+
+  # ─────────────────────────────────────────────────────────────────────
   # Release: only runs on `vX.Y.Z` tag pushes. Pulls the tarballs the
   # `package` matrix just built, attaches them to a GitHub Release.
   # Requires the default GITHUB_TOKEN to have `contents: write` (set
@@ -686,6 +756,7 @@ jobs:
     # gates already passed at PR/merge time for the code now on the tag.
     needs:
       - package
+      - upgrade-smoke
       - frontend
       - frontend-e2e
       - backend
