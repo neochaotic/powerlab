@@ -41,8 +41,9 @@ Capture the output before destroying state. File an issue with this excerpt.
 
 ## Gateway down — UI unreachable
 
-The gateway is what serves the UI on `http://<host>:80` (or `:8765`). If it's
-down, no UI. Try SSH first:
+The gateway is what serves the UI (embedded in the gateway binary —
+ADR-0043) on `http://<host>:80` (or `:8765`). If it's down, no UI. Try
+SSH first:
 
 ```bash
 ssh root@<host>

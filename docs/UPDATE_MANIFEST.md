@@ -322,10 +322,12 @@ upgrade is dominated by **two** post-extract steps, not the
 download:
 
 1. **Service restart cycle** (~3–5 s). `install.sh` stops the six
-   PowerLab systemd units, swaps binaries in `/usr/bin`, copies the
-   UI to `/usr/share/powerlab/www`, then starts the units. Fast and
-   bounded; the running services hold their own state in
-   `/var/lib/powerlab/` so this is just a binary swap.
+   PowerLab systemd units and swaps binaries in `/usr/bin`, then starts
+   the units. The web UI is embedded in the gateway binary (ADR-0043),
+   so swapping the binary swaps the UI atomically — no separate
+   `/usr/share/powerlab/www` to keep in sync. Fast and bounded; the
+   running services hold their own state in `/var/lib/powerlab/` so this
+   is just a binary swap.
 
 2. **Catalog wipe-and-replace** (~1 s). `install.sh` removes
    `/var/lib/powerlab/community-catalog/Apps/` and replaces it with
