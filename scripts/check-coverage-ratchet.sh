@@ -42,10 +42,13 @@ fi
 if [[ -n "${POWERLAB_COVERAGE_PCT_OVERRIDE:-}" ]]; then
   pct="$POWERLAB_COVERAGE_PCT_OVERRIDE"
 else
-  cov="$ROOT/backend/$SVC/coverage.out"
-  [[ -f "$cov" ]] || { echo "[coverage-ratchet] no coverage profile at $cov — run tests with -coverprofile first" >&2; exit 2; }
-  pct="$(go tool cover -func="$cov" | awk '/^total:/{gsub("%","",$NF); print $NF}')"
-  [[ -n "$pct" ]] || { echo "[coverage-ratchet] could not parse total from $cov" >&2; exit 2; }
+  mod="$ROOT/backend/$SVC"
+  [[ -f "$mod/coverage.out" ]] || { echo "[coverage-ratchet] no coverage profile at $mod/coverage.out — run tests with -coverprofile first" >&2; exit 2; }
+  # `go tool cover -func` resolves the profile's packages against the
+  # module, so it MUST run from inside the module dir (running from the
+  # go.work repo root fails with "no required module provides package").
+  pct="$(cd "$mod" && go tool cover -func=coverage.out | awk '/^total:/{gsub("%","",$NF); print $NF}')"
+  [[ -n "$pct" ]] || { echo "[coverage-ratchet] could not parse total from $mod/coverage.out" >&2; exit 2; }
 fi
 
 # Float compare: fail iff pct < floor.
