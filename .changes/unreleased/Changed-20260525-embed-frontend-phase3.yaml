@@ -1,0 +1,5 @@
+kind: Changed
+body: 'Gateway: the web UI is now served exclusively from the embedded bundle in production (ADR-0043 phase 3). The release tarball no longer ships /usr/share/powerlab/www, the systemd unit drops the `-w` flag, and install.sh removes any stale on-disk UI from a prior install so an upgraded gateway serves its embedded copy (no version skew). The `-w <dir>` flag still works as a dev override. Adds scripts/check-upgrade-smoke.sh — a reusable automated install→upgrade regression gate.'
+time: 2026-05-25T16:30:00Z
+custom:
+    Issue: ""

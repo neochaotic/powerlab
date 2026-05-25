@@ -332,7 +332,7 @@ CI runs all of the above on every push to `main` (`.github/workflows/ci.yml`).
                             ▼
 ┌────────────────────────────────────────────────────────────┐
 │  Gateway   :8765 (HTTP) / :8443 (HTTPS opt-in)              │
-│  · JWT auth · static UI · WebSocket bridge                  │
+│  · JWT auth · embedded UI · WebSocket bridge                │
 │  · mDNS announcer (powerlab.local)                          │
 └──┬──────────┬──────────┬──────────┬──────────┬──────────┬──┘
    ▼          ▼          ▼          ▼          ▼          ▼

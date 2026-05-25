@@ -55,7 +55,6 @@ flowchart TD
 | `/DATA/AppData/` | apps themselves | ✅ yes | **Shared with CasaOS today**; will move to `/DATA/PowerLabAppData/` in Sprint 4 (#85) |
 | `/var/run/powerlab/*.sock` | individual services | ❌ ephemeral | Recreated on boot |
 | `/var/run/powerlab/*.url` | individual services | ❌ ephemeral | Boot-order sentinels |
-| `/usr/share/powerlab/www/` | install.sh | 🔄 replaced | Fresh on each install/upgrade |
 | `/usr/share/powerlab/shell/` | install.sh | 🔄 replaced | Fresh on each install/upgrade |
 | `/usr/bin/powerlab-*` | install.sh | 🔄 replaced | Fresh on each install/upgrade |
 | `/etc/systemd/system/powerlab-*.service` | install.sh | 🔄 replaced | Fresh on each install/upgrade (snapshot kept) |

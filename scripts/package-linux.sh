@@ -27,7 +27,7 @@ log() { echo "[powerlab-pkg] $*"; }
 # ─── 1. Clean & prepare ──────────────────────────────────────────────────
 log "Packaging PowerLab v$VERSION for linux/$ARCH"
 rm -rf "$STAGE" "$TARBALL"
-mkdir -p "$STAGE/bin" "$STAGE/www" "$STAGE/conf" "$STAGE/systemd" "$STAGE/store" "$STAGE/community-catalog" "$STAGE/shell"
+mkdir -p "$STAGE/bin" "$STAGE/conf" "$STAGE/systemd" "$STAGE/store" "$STAGE/community-catalog" "$STAGE/shell"
 
 # ─── 2. Cross-compile Go services ────────────────────────────────────────
 log "Cross-compiling backend services for linux/$ARCH..."
@@ -185,13 +185,12 @@ GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
   -o "$STAGE/bin/powerlab-logs" \
   .
 
-# ─── 3. Stage the static UI into the tarball's www/ ──────────────────────
-# The frontend was built earlier (step 1.5) so the gateway could embed
-# it. We still ship the on-disk www/ for the disk-precedence path
-# (ADR-0043: the gateway serves from `-w <dir>` when that dir exists,
-# falling back to its embedded copy otherwise). Phase 3 of the ADR drops
-# this once embedded delivery is verified on a release.
-cp -R "$ROOT/ui/build/"* "$STAGE/www/"
+# ─── 3. (frontend) ───────────────────────────────────────────────────────
+# ADR-0043 phase 3: the UI is embedded in the gateway binary (staged into
+# the embed dir at step 1.5), so the tarball no longer ships a separate
+# www/ directory. The installer removes any stale /usr/share/powerlab/www
+# from a prior www-model install so the upgraded gateway serves its
+# embedded copy, not a leftover bundle (version-skew prevention).
 
 # ─── 3.4. Bundle shell helpers ───────────────────────────────────────────
 # Shell helpers shipped under /usr/share/powerlab/shell on the target.
@@ -318,8 +317,9 @@ log "Generating systemd unit files..."
 for svc in "${SERVICES[@]}"; do
   # Each service that takes `-c` reads its config that way. The gateway is
   # special: it loads gateway.ini from constants.DefaultConfigPath itself
-  # (no `-c` flag exists on its binary) and only takes `-w` for the www
-  # directory. We emit the gateway unit separately below.
+  # (no `-c` flag exists on its binary) and serves its UI embedded in the
+  # binary (ADR-0043 — no `-w` flag in production). We emit the gateway
+  # unit separately below.
   if [[ "$svc" == "gateway" ]]; then
     continue
   fi
@@ -394,8 +394,9 @@ WantedBy=multi-user.target
 EOF
 done
 
-# Gateway: no -c flag (config is loaded from constants.DefaultConfigPath
-# /gateway.ini at startup), only -w for the www directory. Gateway is
+# Gateway: no flags. Config is loaded from constants.DefaultConfigPath
+# (/gateway.ini) at startup, and the web UI is embedded in the binary
+# (ADR-0043 phase 3 — no more `-w /usr/share/powerlab/www`). Gateway is
 # the FIRST PowerLab service to come up — every backend reads
 # management.url that gateway writes.
 cat > "$STAGE/systemd/powerlab-gateway.service" <<EOF
@@ -413,7 +414,7 @@ StartLimitIntervalSec=60
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/powerlab-gateway -w /usr/share/powerlab/www
+ExecStart=/usr/bin/powerlab-gateway
 Restart=always
 RestartSec=5
 PIDFile=/var/run/powerlab/gateway.pid
@@ -653,9 +654,13 @@ install -d -m 0755 /mnt/powerlab
 echo "[powerlab-install] Installing binaries to /usr/bin..."
 install -m 0755 "$HERE/bin/powerlab-"* /usr/bin/
 
-echo "[powerlab-install] Installing static UI to /usr/share/powerlab/www..."
+# ADR-0043 phase 3: the UI is embedded in the gateway binary. Remove any
+# stale on-disk bundle from a prior www-model install so the upgraded
+# gateway serves its embedded copy (the old systemd unit's `-w` flag is
+# also gone after the unit is reinstalled + reloaded below). Without this
+# the gateway would keep serving the previous release's UI from disk.
+echo "[powerlab-install] Removing legacy on-disk UI (now embedded, ADR-0043)..."
 rm -rf /usr/share/powerlab/www
-cp -R "$HERE/www" /usr/share/powerlab/www
 
 # Install shell helpers under /usr/share/powerlab/shell. Currently:
 #   - local-storage-helper.sh — USB/SD auto-mount lifecycle (#464,
@@ -1083,8 +1088,7 @@ App data in \`/DATA/AppData\` is preserved by default.
 
 | Path | Contents |
 |---|---|
-| /usr/bin/powerlab-* | Service binaries |
-| /usr/share/powerlab/www | Static SPA |
+| /usr/bin/powerlab-* | Service binaries (gateway embeds the static UI — ADR-0043) |
 | /etc/powerlab/*.conf | Configuration |
 | /var/lib/powerlab | App store cache, app YAMLs |
 | /var/log/powerlab | Service logs |
