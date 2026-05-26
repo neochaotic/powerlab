@@ -1,5 +1,0 @@
-kind: Changed
-body: 'Gateway: the web UI is now embedded into the gateway binary via go:embed (ADR-0043) instead of being read from /usr/share/powerlab/www at runtime. The on-disk `-w <dir>` path still wins when the directory exists (dev override + the current install layout), so this is a no-op for existing installs; the embedded copy is the fallback. Removes the UI-vs-binary version-skew bug class at the root.'
-time: 2026-05-25T15:30:00Z
-custom:
-    Issue: ""

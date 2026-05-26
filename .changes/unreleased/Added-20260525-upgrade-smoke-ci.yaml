@@ -1,5 +1,0 @@
-kind: Added
-body: 'CI: an automated install→upgrade regression gate (`upgrade-smoke` job, runs scripts/check-upgrade-smoke.sh). It installs the latest published release, upgrades in place to the build under test, and asserts post-upgrade health — gateway responds, version stamp moved, no failed units, embedded UI served + stale on-disk UI removed. Runs on main pushes, tags, and manual dispatch, and gates the GitHub release. The version-update safety net PowerLab lacked.'
-time: 2026-05-25T17:30:00Z
-custom:
-    Issue: ""
