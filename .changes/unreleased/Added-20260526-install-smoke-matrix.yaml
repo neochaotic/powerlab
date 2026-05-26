@@ -1,5 +1,0 @@
-kind: Added
-body: 'CI: the install/upgrade smoke is now a matrix across amd64 AND arm64 (GitHub native arm64 runner), with two scenarios — `fresh` (fresh-install the build + assert boot health, closes #509) and `upgrade-from-www` (install the last www-model release v0.7.3, upgrade in place, assert the on-disk www is removed and the gateway serves the EMBEDDED UI — the ADR-0043 migration guard). check-upgrade-smoke.sh gains a --fresh mode. Gates the release.'
-time: 2026-05-26T12:30:00Z
-custom:
-    Issue: "509"

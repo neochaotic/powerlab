@@ -1,5 +1,0 @@
-kind: Added
-body: 'Release tooling: `prepare-release.sh` now refuses to cut a version number that is already a published GitHub release (`scripts/check-version-not-released.sh`). Prevents the v0.7.2 collision class — where a published, immutable version kept accruing content via hand-edited changelog instead of bumping to the next number. The changie "version already exists" refusal is the same signal; this makes it impossible to work around silently.'
-time: 2026-05-25T18:30:00Z
-custom:
-    Issue: ""
