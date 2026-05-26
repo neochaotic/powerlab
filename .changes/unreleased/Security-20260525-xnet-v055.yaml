@@ -1,0 +1,5 @@
+kind: Security
+body: 'Bumped golang.org/x/net to v0.55.0 across all backend modules to clear GO-2026-5026 (CVE-2026-39821 — idna Punycode label rejection), a reachable vuln. Several modules were still on v0.25.0/v0.53.0; the prior fix had only landed on an unmerged branch.'
+time: 2026-05-25T20:30:00Z
+custom:
+    Issue: "518"
