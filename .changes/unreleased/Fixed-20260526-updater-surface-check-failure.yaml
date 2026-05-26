@@ -1,0 +1,5 @@
+kind: Fixed
+body: 'Settings → About: when you click "Check now" and the update check fails, the card now shows the reason — "HTTP 401 — your session expired", "the host is unreachable", or the gateway''s status code — instead of falling through to the silent "Background check did not complete" text, which read as "no update available". A user-initiated check always surfaces its outcome; a single failed background poll still stays quiet.'
+time: 2026-05-26T18:00:00Z
+custom:
+    Issue: ""

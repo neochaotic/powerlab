@@ -63,14 +63,18 @@
 			</div>
 			<button
 				class="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-[11px] font-medium text-zinc-300 transition-colors hover:border-white/10 hover:bg-white/[0.04] hover:text-white disabled:opacity-50"
-				onclick={() => updaterStore.refresh()}
+				onclick={() => updaterStore.refresh(true)}
 				disabled={updaterStore.loading}
 			>
 				{updaterStore.loading ? 'Checking…' : 'Check now'}
 			</button>
 		</div>
 
-		{#if updaterStore.failureState.persistentFailure}
+		{#if updaterStore.lastCheckFailedManually}
+			<p class="text-[12px] text-rose-400">
+				Update check failed — {updaterStore.error}.
+			</p>
+		{:else if updaterStore.failureState.persistentFailure}
 			<p class="text-[12px] text-amber-400">
 				Update check is unavailable right now{updaterStore.failureState
 					.lastCheckedHumanRelative
