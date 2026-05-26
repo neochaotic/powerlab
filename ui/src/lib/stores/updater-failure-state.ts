@@ -69,6 +69,40 @@ function isPersistent(): boolean {
 	return age >= STALE_SUCCESS_MS;
 }
 
+/**
+ * Turns whatever `checkForUpdate()` rejected with into a human reason
+ * that names the HTTP status. The api client rejects with an ApiError
+ * (`{ status, message }`): status 0 means the host was unreachable
+ * (network/CORS/DNS), 401 means the session token is stale, any other
+ * non-2xx is a gateway-side error. A 401 and a timeout are different
+ * problems the user fixes differently — so we never collapse them into
+ * a single opaque "check failed".
+ */
+export function describeCheckFailure(e: unknown): string {
+	const status =
+		typeof e === 'object' && e !== null && 'status' in e
+			? (e as { status: unknown }).status
+			: undefined;
+
+	if (status === 0) {
+		return 'the host is unreachable — check your network connection';
+	}
+	if (status === 401) {
+		return 'HTTP 401 — your session expired; sign in again and retry';
+	}
+	if (typeof status === 'number' && status > 0) {
+		return `HTTP ${status} — the gateway could not complete the check`;
+	}
+
+	const msg =
+		typeof e === 'object' && e !== null && 'message' in e
+			? String((e as { message: unknown }).message)
+			: e instanceof Error
+				? e.message
+				: '';
+	return msg || 'the update check failed for an unknown reason';
+}
+
 function formatRelative(ts: number | null): string | null {
 	if (ts === null) return null;
 	const ageMs = Date.now() - ts;

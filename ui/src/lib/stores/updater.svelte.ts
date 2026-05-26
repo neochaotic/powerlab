@@ -21,7 +21,8 @@ import { toast } from '$lib/stores/toast.svelte';
 import {
 	recordCheckSuccess,
 	recordCheckFailure,
-	getUpdaterFailureState
+	getUpdaterFailureState,
+	describeCheckFailure
 } from './updater-failure-state';
 
 const POLL_INTERVAL_MS = 60 * 60 * 1000; // 1 h
@@ -30,6 +31,17 @@ class UpdaterStore {
 	check: CheckResult | null = $state(null);
 	loading: boolean = $state(false);
 	error: string | null = $state(null);
+
+	/**
+	 * True when the most recent check was triggered by the user (the
+	 * "Check now" button) AND it failed. A user who explicitly asked
+	 * for a check must always see the outcome — including the reason —
+	 * whereas a single failed *background* poll stays quiet (the
+	 * failure-state machine only escalates a streak). Without this the
+	 * manual failure fell through to the silent transient branch and
+	 * read as "no update available".
+	 */
+	lastCheckFailedManually: boolean = $state(false);
 
 	preflight: PreflightResult | null = $state(null);
 	preflightLoading: boolean = $state(false);
@@ -47,19 +59,24 @@ class UpdaterStore {
 	private pollTimer: ReturnType<typeof setInterval> | null = null;
 	private statusPollTimer: ReturnType<typeof setInterval> | null = null;
 
-	async refresh(): Promise<void> {
+	async refresh(userInitiated = false): Promise<void> {
 		this.loading = true;
 		this.error = null;
 		try {
 			this.check = await checkForUpdate();
 			recordCheckSuccess();
+			this.lastCheckFailedManually = false;
 		} catch (e) {
 			// Non-fatal — the user might be offline or behind a captive
 			// portal. The failure-state machine decides whether to
-			// surface a banner (3+ consecutive AND no recent success);
-			// transient failures stay silent.
-			recordCheckFailure((e as Error).message);
-			this.error = (e as Error).message;
+			// surface a banner for *background* polls (3+ consecutive AND
+			// no recent success); transient ones stay silent. A
+			// user-initiated check is different: they asked, so always
+			// surface the reason (with the HTTP status).
+			const reason = describeCheckFailure(e);
+			recordCheckFailure(reason);
+			this.error = reason;
+			this.lastCheckFailedManually = userInitiated;
 		} finally {
 			this.loading = false;
 		}
