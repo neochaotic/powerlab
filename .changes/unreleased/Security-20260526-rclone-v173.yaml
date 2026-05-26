@@ -1,0 +1,5 @@
+kind: Security
+body: 'Bumped github.com/rclone/rclone v1.62.2 → v1.73.5 in local-storage to clear its CVE series (#525). The rclone v1.73 config-type changes (AttrTimeout/DaemonTimeout/DirPerms/FilePerms) were already accommodated by forward-compatible casts in pkg/mount; only the module bump was missing. Verified pkg/mount cross-compiles for linux against v1.73.5.'
+time: 2026-05-26T11:30:00Z
+custom:
+    Issue: "525"
