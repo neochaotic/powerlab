@@ -1,0 +1,5 @@
+kind: Security
+body: 'Bumped golang.org/x/image v0.6.0 → v0.41.0 (core) and github.com/getkin/kin-openapi v0.114–0.117 → v0.138.0 across app-management, core, message-bus, local-storage, user-service — clears the x/image decode CVEs and GO-2025-3533 (kin-openapi). Re-lands the fixes that were stranded on the deps/x-image-cve branch.'
+time: 2026-05-26T11:00:00Z
+custom:
+    Issue: "518"
