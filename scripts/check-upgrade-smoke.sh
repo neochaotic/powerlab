@@ -37,6 +37,7 @@ OLD_TARBALL=""
 NEW_TARBALL=""
 NEW_VERSION=""
 EXPECT_EMBEDDED=0
+FRESH=0
 PORT="8765"
 
 while [[ $# -gt 0 ]]; do
@@ -45,6 +46,7 @@ while [[ $# -gt 0 ]]; do
     --new) NEW_TARBALL="$2"; shift 2 ;;
     --new-version) NEW_VERSION="$2"; shift 2 ;;
     --expect-embedded) EXPECT_EMBEDDED=1; shift ;;
+    --fresh) FRESH=1; shift ;;
     --port) PORT="$2"; shift 2 ;;
     *) echo "unknown arg: $1" >&2; exit 2 ;;
   esac
@@ -55,13 +57,19 @@ if [[ "${POWERLAB_UPGRADE_SMOKE_ALLOW:-}" != "1" ]]; then
   echo "Set POWERLAB_UPGRADE_SMOKE_ALLOW=1 and run on an ephemeral host (CI/Lima) only." >&2
   exit 2
 fi
-if [[ -z "$OLD_TARBALL" || -z "$NEW_TARBALL" || -z "$NEW_VERSION" ]]; then
-  echo "usage: $0 --old <tarball> --new <tarball> --new-version <X.Y.Z> [--expect-embedded] [--port N]" >&2
+# --fresh installs only the NEW build (no prior version) and asserts boot
+# health — the dedicated fresh-install smoke (#509). Otherwise it's the
+# in-place upgrade test, which needs --old.
+if [[ -z "$NEW_TARBALL" || -z "$NEW_VERSION" ]]; then
+  echo "usage: $0 [--fresh] --new <tarball> --new-version <X.Y.Z> [--old <tarball>] [--expect-embedded] [--port N]" >&2
   exit 2
 fi
-for t in "$OLD_TARBALL" "$NEW_TARBALL"; do
-  [[ -f "$t" ]] || { echo "tarball not found: $t" >&2; exit 2; }
-done
+if [[ "$FRESH" != "1" && -z "$OLD_TARBALL" ]]; then
+  echo "usage: upgrade mode needs --old <tarball> (or pass --fresh for a fresh-install smoke)" >&2
+  exit 2
+fi
+[[ -f "$NEW_TARBALL" ]] || { echo "tarball not found: $NEW_TARBALL" >&2; exit 2; }
+[[ "$FRESH" == "1" || -f "$OLD_TARBALL" ]] || { echo "tarball not found: $OLD_TARBALL" >&2; exit 2; }
 if ! command -v systemctl >/dev/null; then
   echo "SKIP: no systemd on this host — upgrade smoke needs a real init." >&2
   exit 0
@@ -96,20 +104,27 @@ wait_for_gateway() {
   return 1
 }
 
-# ── 1. Install the OLD release ───────────────────────────────────────────
-log "Installing OLD release from $(basename "$OLD_TARBALL")..."
-install_tarball "$OLD_TARBALL"
-wait_for_gateway || fail "gateway did not come up after OLD install"
-OLD_VER="$(cat /etc/powerlab/version 2>/dev/null | tr -dc '0-9.a-zA-Z-' || true)"
-log "OLD install healthy; version stamp: ${OLD_VER:-<none>}"
+# ── 1. Install the OLD release (skipped in --fresh mode) ─────────────────
+OLD_VER="(none — fresh install)"
+if [[ "$FRESH" != "1" ]]; then
+  log "Installing OLD release from $(basename "$OLD_TARBALL")..."
+  install_tarball "$OLD_TARBALL"
+  wait_for_gateway || fail "gateway did not come up after OLD install"
+  OLD_VER="$(cat /etc/powerlab/version 2>/dev/null | tr -dc '0-9.a-zA-Z-' || true)"
+  log "OLD install healthy; version stamp: ${OLD_VER:-<none>}"
+fi
 
-# ── 2. Upgrade in place to the NEW build ─────────────────────────────────
-log "Upgrading to NEW build from $(basename "$NEW_TARBALL")..."
+# ── 2. Install the NEW build (fresh, or in-place upgrade) ─────────────────
+if [[ "$FRESH" == "1" ]]; then
+  log "Fresh-installing NEW build from $(basename "$NEW_TARBALL")..."
+else
+  log "Upgrading to NEW build from $(basename "$NEW_TARBALL")..."
+fi
 install_tarball "$NEW_TARBALL"
-wait_for_gateway || fail "gateway did not come up after NEW (upgrade) install"
+wait_for_gateway || fail "gateway did not come up after NEW install"
 
-# ── 3. Assert the upgrade invariants ─────────────────────────────────────
-log "Asserting post-upgrade invariants..."
+# ── 3. Assert the invariants ─────────────────────────────────────────────
+log "Asserting post-install invariants..."
 
 # (a) version stamp moved to NEW
 got_ver="$(cat /etc/powerlab/version 2>/dev/null | tr -dc '0-9.a-zA-Z-' || true)"
@@ -145,4 +160,8 @@ if [[ "$EXPECT_EMBEDDED" == "1" ]]; then
   fi
 fi
 
-log "PASS — upgrade $OLD_VER → $got_ver healthy."
+if [[ "$FRESH" == "1" ]]; then
+  log "PASS — fresh install of $got_ver healthy."
+else
+  log "PASS — upgrade $OLD_VER → $got_ver healthy."
+fi
