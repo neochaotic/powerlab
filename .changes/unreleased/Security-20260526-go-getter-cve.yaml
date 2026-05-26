@@ -1,0 +1,5 @@
+kind: Security
+body: 'Bumped github.com/hashicorp/go-getter v1.7.0 → v1.7.9 in app-management to clear its CVE patch series. (The stale CVE branch also pinned protobuf to v1.33.0, which would now force a k8s downgrade — main already carries a patched protobuf v1.36.x, so only go-getter needed the bump.)'
+time: 2026-05-26T10:00:00Z
+custom:
+    Issue: "518"
