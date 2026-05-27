@@ -62,6 +62,10 @@ class UpdaterStore {
 	async refresh(userInitiated = false): Promise<void> {
 		this.loading = true;
 		this.error = null;
+		// Clear the previous manual-failure flag up front so an in-flight
+		// re-check never renders "Update check failed — ." (the reason is
+		// null while the request is pending); the catch re-sets it.
+		this.lastCheckFailedManually = false;
 		try {
 			this.check = await checkForUpdate();
 			recordCheckSuccess();

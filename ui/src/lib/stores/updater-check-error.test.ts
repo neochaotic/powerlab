@@ -91,6 +91,36 @@ describe('Updater store — user-initiated check failure surfacing', () => {
 		expect(updaterStore.lastCheckFailedManually).toBe(false);
 	});
 
+	it('clears the stale manual-failure flag while a re-check is in flight', async () => {
+		// First manual check fails → flag set, red line shown.
+		vi.mocked(checkForUpdate).mockRejectedValueOnce({
+			status: 401,
+			message: 'unauthorized'
+		});
+		await updaterStore.refresh(true);
+		expect(updaterStore.lastCheckFailedManually).toBe(true);
+
+		// User clicks "Check now" again. While the request is in flight,
+		// `error` is null — so the flag must NOT still be true, or the
+		// AboutPane renders "Update check failed — ." (empty reason)
+		// under a "Checking…" button.
+		let resolveCheck: (v: { current: string; decision: 'up_to_date' }) => void;
+		vi.mocked(checkForUpdate).mockReturnValueOnce(
+			new Promise((res) => {
+				resolveCheck = res;
+			})
+		);
+		const inflight = updaterStore.refresh(true);
+
+		expect(updaterStore.loading).toBe(true);
+		expect(updaterStore.error).toBeNull();
+		expect(updaterStore.lastCheckFailedManually).toBe(false);
+
+		resolveCheck!({ current: '0.7.4', decision: 'up_to_date' });
+		await inflight;
+		expect(updaterStore.lastCheckFailedManually).toBe(false);
+	});
+
 	it('a successful manual check clears the manual-failure flag and error', async () => {
 		vi.mocked(checkForUpdate).mockRejectedValueOnce({
 			status: 401,
