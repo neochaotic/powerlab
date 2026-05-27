@@ -1,0 +1,74 @@
+package config
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+// A fresh PowerLab box has no /etc/powerlab/mcp.conf until the first
+// install writes one — and the service still has to boot. Load on a
+// missing path must therefore return the defaults, NOT an error.
+func TestLoad_MissingFileReturnsDefaults(t *testing.T) {
+	got, err := Load(filepath.Join(t.TempDir(), "does-not-exist.conf"))
+	if err != nil {
+		t.Fatalf("Load(missing) returned error %v; want nil (boot must not depend on the conf existing)", err)
+	}
+	if got != Default() {
+		t.Fatalf("Load(missing) = %+v; want defaults %+v", got, Default())
+	}
+}
+
+// The whole point of the conf is to move the listener off :9090 when an
+// operator needs to. A written ListenAddr must win over the default.
+func TestLoad_OverridesListenAddr(t *testing.T) {
+	path := writeConf(t, "ListenAddr = 127.0.0.1:9595\n")
+	got, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if got.ListenAddr != "127.0.0.1:9595" {
+		t.Fatalf("ListenAddr = %q; want %q", got.ListenAddr, "127.0.0.1:9595")
+	}
+	// Keys the conf didn't mention must keep their defaults — a partial
+	// conf must not blank out the rest of the config.
+	if got.AuditDir != Default().AuditDir {
+		t.Fatalf("AuditDir = %q; a conf that only set ListenAddr must leave AuditDir at the default %q", got.AuditDir, Default().AuditDir)
+	}
+}
+
+// Operators comment configs; future PowerLab versions add keys this
+// binary predates. Neither may break Load — comments and blank lines are
+// skipped, and an unknown key is ignored (forward-compatible), not fatal.
+func TestLoad_IgnoresCommentsBlanksAndUnknownKeys(t *testing.T) {
+	path := writeConf(t, "# managed by powerlab installer\n\n  \nListenAddr = :7000\nFutureKnob = whatever\n")
+	got, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if got.ListenAddr != ":7000" {
+		t.Fatalf("ListenAddr = %q; want %q (comments/blanks must not derail parsing)", got.ListenAddr, ":7000")
+	}
+}
+
+// A syntactically broken line (no '=') must be skipped, not abort the
+// load — a single fat-fingered line should never take the service down.
+func TestLoad_SkipsMalformedLines(t *testing.T) {
+	path := writeConf(t, "this line has no equals sign\nListenAddr = :8181\n")
+	got, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load returned error on a malformed line %v; want it skipped", err)
+	}
+	if got.ListenAddr != ":8181" {
+		t.Fatalf("ListenAddr = %q; want %q (a bad line must not stop later valid lines)", got.ListenAddr, ":8181")
+	}
+}
+
+func writeConf(t *testing.T, body string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "mcp.conf")
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatalf("write temp conf: %v", err)
+	}
+	return path
+}

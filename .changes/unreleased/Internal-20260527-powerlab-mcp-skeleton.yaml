@@ -1,0 +1,5 @@
+kind: Internal
+body: 'Scaffold the `powerlab-mcp` service module (ADR-0034 Foundation): a CGO-free binary serving the control endpoints (/healthz, /version) and the MCP Streamable-HTTP transport at /mcp over HTTP+SSE on :9090, with a forgiving `mcp.conf` loader (missing file → defaults so a fresh box boots). No resources or tools registered yet; CI builds, tests, deadcode- and vuln-scans the module. Not yet wired into the installer — it ships to users with the first real resources.'
+time: 2026-05-27T22:25:00Z
+custom:
+    Issue: ""

@@ -193,6 +193,7 @@ jobs:
           - app-management
           - local-storage
           - pkg
+          - powerlab-mcp
     steps:
       - uses: actions/checkout@v4
 
@@ -281,6 +282,7 @@ jobs:
           - message-bus
           - app-management
           - local-storage
+          - powerlab-mcp
     steps:
       - uses: actions/checkout@v4
 
@@ -336,6 +338,7 @@ jobs:
           - message-bus
           - app-management
           - local-storage
+          - powerlab-mcp
     steps:
       - uses: actions/checkout@v4
 
