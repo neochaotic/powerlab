@@ -34,6 +34,17 @@ type Config struct {
 	// resolves the JWT public key (JWKS) from there to validate LAN
 	// callers' tokens. Defaults to the platform runtime path.
 	RuntimePath string
+
+	// Disabled is the operator kill-switch. When true the binary logs
+	// a single notice and exits 0 *before* binding the listener —
+	// systemd records the start as successful and never restarts it
+	// (Restart=always honours exit code semantics: a clean exit doesn't
+	// retry-loop). This gives any homelab/enterprise operator a
+	// surgical opt-out without `systemctl mask` or hand-editing the
+	// unit file: flip Disabled=true in /etc/powerlab/mcp.conf, run
+	// `systemctl restart powerlab-mcp`, MCP stays down. The unit can
+	// be re-enabled by flipping it back. Default false (ship enabled).
+	Disabled bool
 }
 
 // Default returns the configuration used when no conf file is present
@@ -43,6 +54,7 @@ func Default() Config {
 		ListenAddr:  ":9090",
 		AuditDir:    "/var/log/powerlab",
 		RuntimePath: constants.DefaultRuntimePath,
+		Disabled:    false,
 	}
 }
 
@@ -83,6 +95,8 @@ func Load(path string) (Config, error) {
 			cfg.AuditDir = val
 		case "runtimepath":
 			cfg.RuntimePath = val
+		case "disabled":
+			cfg.Disabled = parseBool(val)
 			// unknown keys: ignored on purpose (forward-compatible)
 		}
 	}
@@ -90,4 +104,16 @@ func Load(path string) (Config, error) {
 		return Default(), err
 	}
 	return cfg, nil
+}
+
+// parseBool accepts the standard truthy strings (case-insensitive) for
+// the kill-switch key. Anything else is false — operators flipping
+// `Disabled = 1` or `Disabled = on` get the intuitive result, anything
+// ambiguous defaults to "service runs" rather than silently stopping it.
+func parseBool(s string) bool {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "true", "t", "yes", "y", "1", "on":
+		return true
+	}
+	return false
 }
