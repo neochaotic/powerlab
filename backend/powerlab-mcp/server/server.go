@@ -18,6 +18,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
@@ -88,9 +89,61 @@ func (s *Server) Handler() http.Handler {
 	// StreamableHTTPServer.ServeHTTP dispatches by HTTP method (it does
 	// not re-check the path), so mounting the gated handler at the exact
 	// endpoint path is enough.
-	gated := jwt.HTTPJWT(s.pubKey)(s.httpMCP)
+	//
+	// TRUST BOUNDARY: jwt.HTTPJWT grants the loopback skip purely from
+	// the TCP peer (r.RemoteAddr == 127.0.0.1/::1). powerlab-mcp is
+	// designed to bind its own port directly (ADR-0034: standalone, NOT
+	// behind the gateway) — so the peer is the real client. If it were
+	// ever fronted by a same-host reverse proxy, every forwarded request
+	// would arrive from 127.0.0.1 and inherit loopback trust — an auth
+	// bypass. preventProxyLoopbackTrust closes that: a "loopback" request
+	// that carries proxy headers is treated as remote, forcing the JWT
+	// check. Fails safe (deny), and the genuine local-agent path (no
+	// proxy headers) keeps its zero-config trust.
+	gated := preventProxyLoopbackTrust(jwt.HTTPJWT(s.pubKey)(s.httpMCP))
 	mux.Handle(MCPEndpointPath, gated)
 	return mux
+}
+
+// proxyHeaders are the request headers a reverse proxy adds. Their
+// presence on a "loopback" request means the real client is upstream of
+// a proxy, not the local machine.
+var proxyHeaders = []string{"X-Forwarded-For", "Forwarded", "X-Real-Ip"}
+
+// preventProxyLoopbackTrust strips the loopback trust from a request
+// that claims to come from loopback but carries reverse-proxy headers.
+// It does so by rewriting RemoteAddr to a non-loopback sentinel before
+// the JWT gate sees it, so the gate enforces the token instead of
+// skipping. Requests with no proxy headers are passed through untouched
+// (genuine local agents keep loopback trust).
+func preventProxyLoopbackTrust(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if isLoopbackAddr(r.RemoteAddr) && hasAnyProxyHeader(r) {
+			// 192.0.2.1 is TEST-NET-1 — guaranteed non-loopback, so the
+			// downstream gate will require a valid token.
+			r.RemoteAddr = "192.0.2.1:0"
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func hasAnyProxyHeader(r *http.Request) bool {
+	for _, h := range proxyHeaders {
+		if r.Header.Get(h) != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// isLoopbackAddr mirrors jwt.HTTPJWT's host check: strip the port, then
+// compare against the loopback literals.
+func isLoopbackAddr(remoteAddr string) bool {
+	host := remoteAddr
+	if i := strings.LastIndexByte(host, ':'); i > 0 {
+		host = host[:i]
+	}
+	return host == "127.0.0.1" || host == "::1"
 }
 
 // handleHealthz is the unauthenticated liveness probe.
