@@ -131,12 +131,17 @@ func readAndAssert(ctx context.Context, cs *mcp.ClientSession, uri string) int {
 		return assertSystemMetrics(payload)
 	case uri == "system://utilization",
 		uri == "system://disk",
-		uri == "system://network":
-		// All three are thin proxies to core (ADR-0044). On a box where
-		// core is up the payload is the upstream JSON; with core down
-		// they share the same core_unavailable shape — assertProxiedPayload
-		// handles both, treating the degraded path as WARN with an
-		// audit + journal fallback hint.
+		uri == "system://network",
+		uri == "apps://list",
+		strings.HasPrefix(uri, "apps://state/"),
+		strings.HasPrefix(uri, "docker://logs/"):
+		// All of these are thin proxies (system://* → core per ADR-0044,
+		// apps://* + docker://* → app-management per ADR-0045). On a
+		// running box the payload is the upstream JSON; with the
+		// upstream down each shares the canonical <service>_unavailable
+		// shape — assertProxiedPayload handles every variant, treating
+		// the degraded path as WARN with the audit + journal fallback
+		// hint preserved.
 		return assertProxiedPayload(uri, payload)
 	case uri == "system://gpu":
 		return assertSystemGPU(payload)
@@ -199,34 +204,47 @@ func assertProxiedPayload(uri, payload string) int {
 		fmt.Fprintf(os.Stderr, "FAIL  %s — payload is not valid JSON: %v\n", uri, err)
 		return 1
 	}
-	if probe.Error == "core_unavailable" || strings.HasPrefix(probe.Error, "core_status_") {
-		// Canonical core-down shape — not a smoke failure, but call
-		// it out so the operator sees that the surface is degraded.
-		fmt.Printf("      → WARN: core is down (%s: %s) — proxy resource degraded, audit + journal still readable\n", probe.Error, probe.Detail)
+	// Match every <service>_unavailable / <service>_status_NNN shape
+	// — same template across core (ADR-0044) and apps (ADR-0045) and
+	// any future upstream. The Code suffix is what distinguishes
+	// which upstream is degraded; the report tells the operator.
+	if isDegradedCode(probe.Error) {
+		fmt.Printf("      → WARN: %s — proxy resource degraded (%s); audit + journal still readable\n", probe.Error, probe.Detail)
 		if !strings.Contains(probe.Fallback, "audit") || !strings.Contains(probe.Fallback, "journal") {
 			fmt.Fprintf(os.Stderr, "FAIL  %s — degraded payload missing fallback hint pointing at audit + journal\n", uri)
 			return 1
 		}
 		return 0
 	}
-	// Real upstream payload: confirm it parsed as a JSON object and
-	// isn't empty. Resource-specific shape checks live in the
+	// Real upstream payload: confirm it parsed as a JSON object/array
+	// and isn't empty. Resource-specific shape checks live in the
 	// resource-dedicated assertions (this is the catch-all).
 	if len(payload) < 2 || payload == "null" {
 		fmt.Fprintf(os.Stderr, "FAIL  %s — proxied payload is empty / null\n", uri)
 		return 1
 	}
-	fmt.Printf("      → proxied payload OK (%d bytes from core)\n", len(payload))
+	fmt.Printf("      → proxied payload OK (%d bytes from upstream)\n", len(payload))
 	return 0
 }
 
-// assertSchemaPayload validates that a self-describing schema parses as
-// JSON and carries a non-empty "description" + at least one
-// fields-style map. Audit + journal schemas use a single "fields" key;
-// system://schema uses one per resource ("fields_metrics", "fields_gpu",
-// …) because each system:// resource has a different shape. Either
-// pattern is acceptable — the contract is "the schema tells the agent
-// what fields it will see."
+// isDegradedCode recognises the canonical proxy-error wire codes —
+// `<service>_unavailable` or `<service>_status_NNN`. Centralised so a
+// new upstream (future "service_unavailable" umbrella, etc.) doesn't
+// require touching every per-resource branch.
+func isDegradedCode(code string) bool {
+	return strings.HasSuffix(code, "_unavailable") || strings.Contains(code, "_status_")
+}
+
+// assertSchemaPayload validates that a self-describing schema parses
+// as JSON and carries a non-empty "description" + a meaningful body.
+// The body can be either:
+//   - a "fields" map (audit + journal pattern — own data shape)
+//   - per-resource "fields_*" maps (system pattern — distinct shapes
+//     per resource in the namespace)
+//   - a "resources" routing map (apps + docs pattern — the resource
+//     IS a proxy; field shapes live in the upstream and are
+//     discoverable via docs://api)
+// Any of the three counts as "the agent has documentation."
 func assertSchemaPayload(uri, payload string) int {
 	var s map[string]interface{}
 	if err := json.Unmarshal([]byte(payload), &s); err != nil {
@@ -239,18 +257,31 @@ func assertSchemaPayload(uri, payload string) int {
 		return 1
 	}
 	fieldCount := 0
+	resourceCount := 0
 	for k, v := range s {
-		if k == "fields" || strings.HasPrefix(k, "fields_") {
-			if m, ok := v.(map[string]interface{}); ok {
-				fieldCount += len(m)
-			}
+		m, ok := v.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		switch {
+		case k == "fields" || strings.HasPrefix(k, "fields_"):
+			fieldCount += len(m)
+		case k == "resources":
+			resourceCount += len(m)
 		}
 	}
-	if fieldCount == 0 {
-		fmt.Fprintf(os.Stderr, "FAIL  %s — schema documents zero fields (no 'fields' or 'fields_*' map with entries)\n", uri)
+	if fieldCount == 0 && resourceCount == 0 {
+		fmt.Fprintf(os.Stderr, "FAIL  %s — schema documents zero entries (no 'fields', 'fields_*', or 'resources' map with content)\n", uri)
 		return 1
 	}
-	fmt.Printf("      → description set + %d field(s) documented across fields/fields_* maps\n", fieldCount)
+	switch {
+	case fieldCount > 0 && resourceCount > 0:
+		fmt.Printf("      → description set + %d field(s) + %d resource(s) documented\n", fieldCount, resourceCount)
+	case fieldCount > 0:
+		fmt.Printf("      → description set + %d field(s) documented\n", fieldCount)
+	default:
+		fmt.Printf("      → description set + %d resource(s) documented (proxy schema — field shapes via docs://api)\n", resourceCount)
+	}
 	return 0
 }
 

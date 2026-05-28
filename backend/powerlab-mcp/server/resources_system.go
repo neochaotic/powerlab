@@ -134,7 +134,7 @@ func registerProxiedSystem(s *mcp.Server, proxy *coreproxy.Client, uri, name, de
 			})
 			return &mcp.ReadResourceResult{Contents: []*mcp.ResourceContents{textJSON(uri, string(payload))}}, nil
 		}
-		body, err := proxy.Get(ctx, corePath, "")
+		body, err := proxy.GetFrom(ctx, coreproxy.ServiceCore, corePath, "")
 		if err != nil {
 			return &mcp.ReadResourceResult{Contents: []*mcp.ResourceContents{textJSON(uri, string(coreproxy.AsErrorPayload(err)))}}, nil
 		}

@@ -18,7 +18,7 @@ import (
 // agent, with a fallback hint pointing at journal + audit.
 func TestResolveCore_MissingURLFileSurfacesAsCoreUnavailable(t *testing.T) {
 	c := NewClient(t.TempDir(), nil)
-	_, err := c.ResolveCore()
+	_, err := c.Resolve(ServiceCore)
 	pe, ok := err.(*Error)
 	if !ok {
 		t.Fatalf("missing url file returned %T; want *Error", err)
@@ -40,7 +40,7 @@ func TestResolveCore_NormalisesBareHostPort(t *testing.T) {
 		t.Fatalf("write url file: %v", err)
 	}
 	c := NewClient(dir, nil)
-	got, err := c.ResolveCore()
+	got, err := c.Resolve(ServiceCore)
 	if err != nil {
 		t.Fatalf("ResolveCore: %v", err)
 	}
@@ -61,7 +61,7 @@ func TestResolveCore_CachesWithinTTL(t *testing.T) {
 	}
 	c := NewClient(dir, nil)
 
-	first, err := c.ResolveCore()
+	first, err := c.Resolve(ServiceCore)
 	if err != nil {
 		t.Fatalf("first ResolveCore: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestResolveCore_CachesWithinTTL(t *testing.T) {
 	if err := os.Remove(urlFile); err != nil {
 		t.Fatalf("remove url file: %v", err)
 	}
-	second, err := c.ResolveCore()
+	second, err := c.Resolve(ServiceCore)
 	if err != nil {
 		t.Fatalf("cached ResolveCore returned %v; want cache hit", err)
 	}
@@ -98,7 +98,7 @@ func TestGet_RoundTripsBodyFromCore(t *testing.T) {
 		t.Fatalf("write url file: %v", err)
 	}
 
-	got, err := NewClient(dir, core.Client()).Get(context.Background(), "/v1/sys/utilization", "")
+	got, err := NewClient(dir, core.Client()).GetFrom(context.Background(), ServiceCore, "/v1/sys/utilization", "")
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -125,7 +125,7 @@ func TestGet_ForwardsBearerTokenWhenPresent(t *testing.T) {
 	}
 
 	const fakeToken = "eyJtest.payload.sig"
-	if _, err := NewClient(dir, core.Client()).Get(context.Background(), "/anything", fakeToken); err != nil {
+	if _, err := NewClient(dir, core.Client()).GetFrom(context.Background(), ServiceCore, "/anything", fakeToken); err != nil {
 		t.Fatalf("Get: %v", err)
 	}
 	if gotAuth != "Bearer "+fakeToken {
@@ -149,7 +149,7 @@ func TestGet_DoesNotForwardEmptyToken(t *testing.T) {
 		t.Fatalf("write url file: %v", err)
 	}
 
-	if _, err := NewClient(dir, core.Client()).Get(context.Background(), "/anything", ""); err != nil {
+	if _, err := NewClient(dir, core.Client()).GetFrom(context.Background(), ServiceCore, "/anything", ""); err != nil {
 		t.Fatalf("Get: %v", err)
 	}
 	if gotAuth != "" {
@@ -173,7 +173,7 @@ func TestGet_NonOKStatusSurfacesAsTypedError(t *testing.T) {
 		t.Fatalf("write url file: %v", err)
 	}
 
-	_, err := NewClient(dir, core.Client()).Get(context.Background(), "/anything", "")
+	_, err := NewClient(dir, core.Client()).GetFrom(context.Background(), ServiceCore, "/anything", "")
 	pe, ok := err.(*Error)
 	if !ok {
 		t.Fatalf("non-2xx returned %T; want *Error", err)
@@ -198,11 +198,11 @@ func TestGet_TransportFailureInvalidatesCache(t *testing.T) {
 	}
 	c := NewClient(dir, &http.Client{Timeout: 500 * time.Millisecond})
 	// Prime the cache.
-	if _, err := c.ResolveCore(); err != nil {
+	if _, err := c.Resolve(ServiceCore); err != nil {
 		t.Fatalf("ResolveCore: %v", err)
 	}
 
-	_, err := c.Get(context.Background(), "/anything", "")
+	_, err := c.GetFrom(context.Background(), ServiceCore, "/anything", "")
 	pe, ok := err.(*Error)
 	if !ok {
 		t.Fatalf("transport error returned %T; want *Error", err)
@@ -222,7 +222,7 @@ func TestGet_TransportFailureInvalidatesCache(t *testing.T) {
 		t.Fatalf("rewrite url file: %v", err)
 	}
 	c.httpClient = core.Client()
-	if _, err := c.Get(context.Background(), "/anything", ""); err != nil {
+	if _, err := c.GetFrom(context.Background(), ServiceCore, "/anything", ""); err != nil {
 		t.Fatalf("after cache invalidation Get should succeed against the new URL; got %v", err)
 	}
 }
