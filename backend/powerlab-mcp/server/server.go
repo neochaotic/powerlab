@@ -137,6 +137,10 @@ func newMCPServer(info BuildInfo, rc resourcesConfig, journalRun journal.Runner)
 	// gated on cfg.EnableDestructiveTools (separate registration
 	// call when that knob arrives).
 	registerReadOnlyTools(m, journalRun)
+	// ADR-0046 batch 2 — reversible side-effect tool (restart_app).
+	// Not gated on EnableDestructiveTools because the blast radius
+	// is bounded (containers cycle, end up in the same state).
+	registerRestartApp(m, rc.coreClient)
 	return m
 }
 
