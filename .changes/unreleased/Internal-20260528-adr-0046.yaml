@@ -1,0 +1,5 @@
+kind: Internal
+body: 'ADR-0046 — powerlab-mcp tool curation strategy: hand-curated tools for the top 5–10 PowerLab actions (journal_search, check_disk_free, restart_app, prune_orphans, install_app), with docs://api kept as the OpenAPI discovery escape hatch. Reserves explicit flexibility for emerging MCP patterns (meta-prompt for small contexts, OpenAPI-to-tools auto-gen when community tooling matures, MCP prompts/sampling primitives, active resources). Ordered rollout: read-only tools first, stateful-but-reversible (restart_app) next, net-new-resource tools (install_app, prune_orphans) last and gated on panel approval flow OR mcp.conf opt-in until RBAC (#603) ships. Custom-compose validation required before any install_app. Commits to revisiting this ADR per major release since the MCP ecosystem is rapidly evolving.'
+time: 2026-05-28T21:00:00Z
+custom:
+    Issue: ""
