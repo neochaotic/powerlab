@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"path/filepath"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -70,24 +71,26 @@ type Server struct {
 // No resources or tools are registered yet; the follow-up PRs will
 // reach the underlying MCPServer to register them.
 func New(cfg config.Config, info BuildInfo) (*Server, error) {
-	return newServer(info, func() (*ecdsa.PublicKey, error) {
-		return external.GetPublicKey(cfg.RuntimePath)
-	}), nil
+	pubKey := func() (*ecdsa.PublicKey, error) { return external.GetPublicKey(cfg.RuntimePath) }
+	return newServer(info, pubKey, filepath.Join(cfg.AuditDir, "audit.jsonl")), nil
 }
 
 // newServer is the dependency-injected constructor: tests pass a
 // pubKeyFunc backed by a known test key so the gate's JWT validation is
 // exercised for real (no mock), without standing up a user-service. It
-// reads host metrics from the real /proc.
-func newServer(info BuildInfo, pubKey publicKeyFunc) *Server {
-	return newServerWithProcRoot(info, pubKey, "/proc")
+// reads host metrics from the real /proc; auditPath is the per-deploy
+// JSONL log location (an empty string is fine for tests that don't read
+// audit — audittail treats a missing file as empty).
+func newServer(info BuildInfo, pubKey publicKeyFunc, auditPath string) *Server {
+	return newServerWithProcRoot(info, pubKey, "/proc", auditPath)
 }
 
 // newServerWithProcRoot additionally lets a test point the system://
-// resource at a fixture /proc directory, so the MCP read path is
-// exercised end-to-end with deterministic data on any OS.
-func newServerWithProcRoot(info BuildInfo, pubKey publicKeyFunc, procRoot string) *Server {
-	m := newMCPServer(info, procRoot, journal.Exec)
+// resource at a fixture /proc directory and the audit:// resources at a
+// fixture audit log, so the MCP read path is exercised end-to-end with
+// deterministic data on any OS.
+func newServerWithProcRoot(info BuildInfo, pubKey publicKeyFunc, procRoot, auditPath string) *Server {
+	m := newMCPServer(info, procRoot, journal.Exec, auditPath)
 	// The same server instance handles every request; the getServer
 	// callback hands it to each incoming MCP session.
 	httpMCP := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return m }, nil)
@@ -95,14 +98,16 @@ func newServerWithProcRoot(info BuildInfo, pubKey publicKeyFunc, procRoot string
 }
 
 // newMCPServer builds the MCP server and registers its resources/tools.
-// procRoot backs system://; journalRun backs journal:// (production
-// passes journal.Exec, tests a fixture). Factored out so the integration
-// test can drive it directly through an in-process MCP client (no HTTP
-// transport, no auth gate) and exercise the real protocol path.
-func newMCPServer(info BuildInfo, procRoot string, journalRun journal.Runner) *mcp.Server {
+// procRoot backs system://; journalRun backs journal://; auditPath backs
+// audit:// (production passes the real paths + journal.Exec, tests pass
+// fixtures). Factored out so the integration test can drive it directly
+// through an in-process MCP client (no HTTP transport, no auth gate) and
+// exercise the real protocol path.
+func newMCPServer(info BuildInfo, procRoot string, journalRun journal.Runner, auditPath string) *mcp.Server {
 	m := mcp.NewServer(&mcp.Implementation{Name: "powerlab-mcp", Version: info.Version}, nil)
 	registerSystemMetrics(m, procRoot)
 	registerJournal(m, journalRun)
+	registerAudit(m, auditPath)
 	return m
 }
 

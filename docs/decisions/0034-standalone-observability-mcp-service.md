@@ -60,9 +60,9 @@ Ship a new standalone binary **`powerlab-mcp`** that:
 
    | URI pattern | Source | Tier |
    |---|---|---|
-   | `audit://<service>/recent?limit=N&since=T` | `<service>` JSONL audit file (RO tail) | read |
-   | `audit://<service>/stats` | JSONL ring buffer | read |
-   | `audit://action/<correlation_id>` | JSONL filtered by `request_id` | read |
+   | `audit://recent{?limit}` | JSONL audit file (RO tail), default 100 / max 1000 | read |
+   | `audit://action/{correlation_id}` | JSONL filtered by `request_id` | read |
+   | `audit://schema` | hardcoded (record + parameter reference, self-describing) | read |
    | `journal://<unit>?lines=N&since=T&priority=P` | `journalctl -u <unit> -o json` | read |
    | `journal://schema` | hardcoded (fields + ADR-0013 error codes) | read |
    | `system://metrics` | `/proc/stat`, `/proc/meminfo`, `/proc/diskstats`, `/proc/net/dev` direct | read |

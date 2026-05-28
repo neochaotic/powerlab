@@ -11,6 +11,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/neochaotic/powerlab/backend/powerlab-mcp/audittail"
 	"github.com/neochaotic/powerlab/backend/powerlab-mcp/journal"
 	"github.com/neochaotic/powerlab/backend/powerlab-mcp/metrics"
 )
@@ -96,7 +97,7 @@ func assertMetricsResource(t *testing.T, ctx context.Context, cs *mcp.ClientSess
 // resources/list → resources/read) works against the registered
 // resources, bypassing the HTTP transport and auth.
 func TestMCP_InProcess_ReadSystemMetrics(t *testing.T) {
-	srv := newMCPServer(BuildInfo{Version: "test"}, writeProcFixtures(t), fixtureJournalRunner(""))
+	srv := newMCPServer(BuildInfo{Version: "test"}, writeProcFixtures(t), fixtureJournalRunner(""), "")
 	cs := connectInProcess(t, srv)
 	assertMetricsResource(t, t.Context(), cs)
 }
@@ -109,7 +110,7 @@ func TestMCP_InProcess_ReadSystemMetrics(t *testing.T) {
 func TestMCP_OverHTTPTransport_ReadSystemMetrics(t *testing.T) {
 	srv := newServerWithProcRoot(BuildInfo{Version: "test"},
 		func() (*ecdsa.PublicKey, error) { return nil, nil },
-		writeProcFixtures(t))
+		writeProcFixtures(t), "")
 
 	ts := httptest.NewServer(srv.Handler())
 	defer ts.Close()
@@ -129,7 +130,7 @@ func TestMCP_OverHTTPTransport_ReadSystemMetrics(t *testing.T) {
 // from the (fixture) journalctl output.
 func TestMCP_InProcess_ReadJournal(t *testing.T) {
 	out := `{"__REALTIME_TIMESTAMP":"1716854400000000","_SYSTEMD_UNIT":"powerlab-core.service","PRIORITY":"3","MESSAGE":"disk full"}` + "\n"
-	srv := newMCPServer(BuildInfo{Version: "test"}, t.TempDir(), fixtureJournalRunner(out))
+	srv := newMCPServer(BuildInfo{Version: "test"}, t.TempDir(), fixtureJournalRunner(out), "")
 	cs := connectInProcess(t, srv)
 	ctx := t.Context()
 
@@ -157,6 +158,55 @@ func TestMCP_InProcess_ReadJournal(t *testing.T) {
 	// params. The template must still match.
 	if _, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "journal://core"}); err != nil {
 		t.Fatalf("ReadResource(journal://core) with no query: %v", err)
+	}
+}
+
+// audit:// over the MCP protocol: schema is discoverable, recent tails
+// the JSONL, and action/{id} filters by correlation id.
+func TestMCP_InProcess_ReadAudit(t *testing.T) {
+	auditPath := filepath.Join(t.TempDir(), "audit.jsonl")
+	body := `{"ts":"2026-05-28T00:00:01Z","ts_us":1,"method":"POST","path":"/v2/app_management/compose","status":200,"request_id":"req-aaa"}` + "\n" +
+		`{"ts":"2026-05-28T00:00:02Z","ts_us":2,"method":"GET","path":"/v1/audit/recent","status":200,"request_id":"req-bbb"}` + "\n"
+	if err := os.WriteFile(auditPath, []byte(body), 0o600); err != nil {
+		t.Fatalf("write audit fixture: %v", err)
+	}
+
+	srv := newMCPServer(BuildInfo{Version: "test"}, t.TempDir(), fixtureJournalRunner(""), auditPath)
+	cs := connectInProcess(t, srv)
+	ctx := t.Context()
+
+	list, err := cs.ListResources(ctx, nil)
+	if err != nil {
+		t.Fatalf("ListResources: %v", err)
+	}
+	if !hasResource(list.Resources, auditSchemaURI) {
+		t.Fatalf("audit://schema not advertised in resources/list")
+	}
+
+	// recent → both records.
+	rec, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "audit://recent?limit=10"})
+	if err != nil {
+		t.Fatalf("ReadResource(audit://recent): %v", err)
+	}
+	var recent []audittail.Record
+	if err := json.Unmarshal([]byte(rec.Contents[0].Text), &recent); err != nil {
+		t.Fatalf("audit recent payload not []Record: %v (%q)", err, rec.Contents[0].Text)
+	}
+	if len(recent) != 2 {
+		t.Fatalf("audit://recent = %d records; want 2", len(recent))
+	}
+
+	// action/req-aaa → only the matching record.
+	act, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "audit://action/req-aaa"})
+	if err != nil {
+		t.Fatalf("ReadResource(audit://action/req-aaa): %v", err)
+	}
+	var byAction []audittail.Record
+	if err := json.Unmarshal([]byte(act.Contents[0].Text), &byAction); err != nil {
+		t.Fatalf("audit action payload not []Record: %v (%q)", err, act.Contents[0].Text)
+	}
+	if len(byAction) != 1 || byAction[0].RequestID != "req-aaa" {
+		t.Fatalf("audit://action/req-aaa = %+v; want one record with request_id req-aaa", byAction)
 	}
 }
 
