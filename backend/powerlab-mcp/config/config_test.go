@@ -35,6 +35,23 @@ func TestLoad_OverridesListenAddr(t *testing.T) {
 	if got.AuditDir != Default().AuditDir {
 		t.Fatalf("AuditDir = %q; a conf that only set ListenAddr must leave AuditDir at the default %q", got.AuditDir, Default().AuditDir)
 	}
+	if got.RuntimePath != Default().RuntimePath {
+		t.Fatalf("RuntimePath = %q; a conf that only set ListenAddr must leave RuntimePath at the default %q", got.RuntimePath, Default().RuntimePath)
+	}
+}
+
+// The auth gate resolves the JWT public key from RuntimePath, so an
+// operator who relocates the PowerLab runtime dir must be able to point
+// the gate at it via the conf.
+func TestLoad_OverridesRuntimePath(t *testing.T) {
+	path := writeConf(t, "RuntimePath = /run/custom-powerlab\n")
+	got, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if got.RuntimePath != "/run/custom-powerlab" {
+		t.Fatalf("RuntimePath = %q; want %q", got.RuntimePath, "/run/custom-powerlab")
+	}
 }
 
 // Operators comment configs; future PowerLab versions add keys this

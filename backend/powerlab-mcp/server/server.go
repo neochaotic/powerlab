@@ -3,21 +3,26 @@
 // poll, plus the MCP transport (Streamable HTTP, the 2025-06-18 spec
 // transport) mounted at /mcp.
 //
-// This is the Foundation skeleton: the MCP server is created and
-// mounted but registers no resources or tools yet — those land in the
-// follow-up PRs (system://, journal://, audit://) once the auth-tier
-// middleware is in place. Keeping the skeleton dependency-light (only
-// the MCP SDK) is deliberate; the foundation middleware chain
-// (correlation-id, recover, audit) is wired when the first real
-// resource needs it.
+// The MCP endpoint is gated at the read tier (ADR-0034): reachable
+// freely from loopback (the trusted local agent / dogfood case), but a
+// LAN caller must present a valid PowerLab user-service JWT. The
+// control endpoints stay open — a health probe that needs a token is
+// not a health probe. The auth/admin tiers for state-changing tools are
+// enforced per-tool via MCP middleware once tools exist.
+//
+// No resources or tools are registered yet — those land in the
+// follow-up PRs (system://, journal://, audit://).
 package server
 
 import (
+	"crypto/ecdsa"
 	"encoding/json"
 	"net/http"
 
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
+	"github.com/neochaotic/powerlab/backend/common/external"
+	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
 	"github.com/neochaotic/powerlab/backend/powerlab-mcp/config"
 )
 
@@ -34,35 +39,57 @@ type BuildInfo struct {
 	Date    string `json:"date"`
 }
 
-// Server holds the constructed MCP transport and the build identity.
-// Build it with New, mount it with Handler.
+// publicKeyFunc resolves the JWT-validation public key. It matches the
+// signature jwt.Validate / jwt.HTTPJWT expect so the gate can be reused
+// as-is.
+type publicKeyFunc func() (*ecdsa.PublicKey, error)
+
+// Server holds the constructed MCP transport, the build identity, and
+// the JWT public-key resolver used by the read-tier gate. Build it with
+// New, mount it with Handler.
 type Server struct {
 	info    BuildInfo
 	httpMCP *mcpserver.StreamableHTTPServer
+	pubKey  publicKeyFunc
 }
 
-// New constructs the MCP server and its Streamable-HTTP transport. It
-// does not bind a listener — Handler returns the mux for the caller to
-// serve, which also keeps the whole surface testable via httptest.
+// New constructs the MCP server and its Streamable-HTTP transport,
+// resolving the JWT public key from the user-service JWKS published
+// under cfg.RuntimePath. It does not bind a listener — Handler returns
+// the mux for the caller to serve.
 //
-// The skeleton registers no resources or tools yet; the follow-up PRs
-// will reach the underlying MCPServer to register them.
+// No resources or tools are registered yet; the follow-up PRs will
+// reach the underlying MCPServer to register them.
 func New(cfg config.Config, info BuildInfo) (*Server, error) {
+	return newServer(info, func() (*ecdsa.PublicKey, error) {
+		return external.GetPublicKey(cfg.RuntimePath)
+	}), nil
+}
+
+// newServer is the dependency-injected constructor: tests pass a
+// pubKeyFunc backed by a known test key so the gate's JWT validation is
+// exercised for real (no mock), without standing up a user-service.
+func newServer(info BuildInfo, pubKey publicKeyFunc) *Server {
 	m := mcpserver.NewMCPServer("powerlab-mcp", info.Version)
 	httpMCP := mcpserver.NewStreamableHTTPServer(m, mcpserver.WithEndpointPath(MCPEndpointPath))
-	return &Server{info: info, httpMCP: httpMCP}, nil
+	return &Server{info: info, httpMCP: httpMCP, pubKey: pubKey}
 }
 
-// Handler returns the HTTP handler serving the control endpoints and
-// the mounted MCP transport.
+// Handler returns the HTTP handler serving the open control endpoints
+// and the read-tier-gated MCP transport.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", s.handleHealthz)
 	mux.HandleFunc("/version", s.handleVersion)
+
+	// Read-tier gate: jwt.HTTPJWT skips loopback (trusted local agent)
+	// and requires a valid Bearer token from the LAN, writing the
+	// identity headers downstream consumers (audit, tool tiers) read.
 	// StreamableHTTPServer.ServeHTTP dispatches by HTTP method (it does
-	// not re-check the path), so mounting it at the exact endpoint path
-	// is enough.
-	mux.Handle(MCPEndpointPath, s.httpMCP)
+	// not re-check the path), so mounting the gated handler at the exact
+	// endpoint path is enough.
+	gated := jwt.HTTPJWT(s.pubKey)(s.httpMCP)
+	mux.Handle(MCPEndpointPath, gated)
 	return mux
 }
 
