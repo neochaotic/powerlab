@@ -3,18 +3,15 @@
 // reading system metrics, journal logs, and the JSONL audit store
 // directly — and exposes them to operators (browser) and AI agents
 // (MCP) over HTTP+SSE on :9090.
-//
-// This is the Foundation skeleton: it boots, loads config, serves the
-// control endpoints (/healthz, /version) and the MCP transport, and
-// shuts down cleanly. Resources and tools are registered in follow-up
-// changes.
 package main
 
 import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -50,39 +47,60 @@ func main() {
 		log.Warn("config load fell back to defaults", "path", *confPath, "err", err)
 	}
 
-	srv, err := server.New(cfg, server.BuildInfo{Version: version, Commit: commit, Date: date})
-	if err != nil {
-		log.Error("build server", "err", err)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	info := server.BuildInfo{Version: version, Commit: commit, Date: date}
+	if err := run(ctx, cfg, info, log); err != nil {
+		log.Error("powerlab-mcp exited with error", "err", err)
 		os.Exit(1)
+	}
+}
+
+// run binds the listener, serves until ctx is cancelled, then shuts down
+// gracefully. It returns an error if the listener can't bind or the
+// server fails mid-flight — so a bind failure (e.g. the port is already
+// in use) surfaces as a non-zero exit, not the silent clean stop systemd
+// would otherwise misread as a successful shutdown. Extracted from main
+// so this lifecycle is testable.
+func run(ctx context.Context, cfg config.Config, info server.BuildInfo, log *slog.Logger) error {
+	srv, err := server.New(cfg, info)
+	if err != nil {
+		return fmt.Errorf("build server: %w", err)
+	}
+
+	// Bind synchronously so "address already in use" is caught here —
+	// before we announce readiness to systemd or background the serve
+	// loop.
+	ln, err := net.Listen("tcp", cfg.ListenAddr)
+	if err != nil {
+		return fmt.Errorf("listen on %s: %w", cfg.ListenAddr, err)
 	}
 
 	httpServer := &http.Server{
-		Addr:              cfg.ListenAddr,
 		Handler:           srv.Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-
+	serveErr := make(chan error, 1)
 	go func() {
-		log.Info("powerlab-mcp listening", "addr", cfg.ListenAddr, "version", version)
-		// Tell systemd we're ready (no-op outside a notify unit).
+		log.Info("powerlab-mcp listening", "addr", cfg.ListenAddr, "version", info.Version)
+		// Ready only now that the listener is bound.
 		_, _ = daemon.SdNotify(false, daemon.SdNotifyReady)
-		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Error("http server stopped", "err", err)
-			stop()
+		if err := httpServer.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serveErr <- err
 		}
+		close(serveErr)
 	}()
 
-	<-ctx.Done()
-	log.Info("shutting down")
-	_, _ = daemon.SdNotify(false, daemon.SdNotifyStopping)
-
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	if err := httpServer.Shutdown(shutdownCtx); err != nil {
-		log.Error("graceful shutdown failed", "err", err)
-		os.Exit(1)
+	select {
+	case <-ctx.Done():
+		log.Info("shutting down")
+		_, _ = daemon.SdNotify(false, daemon.SdNotifyStopping)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		return httpServer.Shutdown(shutdownCtx)
+	case err := <-serveErr:
+		return err
 	}
 }
