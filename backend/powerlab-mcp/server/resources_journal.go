@@ -7,8 +7,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	mcpserver "github.com/mark3labs/mcp-go/server"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/neochaotic/powerlab/backend/powerlab-mcp/journal"
 )
@@ -43,24 +42,24 @@ const journalSchemaDoc = `{
 
 // registerJournal exposes journal://schema (self-describing) and the
 // journal://{unit} template backed by run.
-func registerJournal(m *mcpserver.MCPServer, run journal.Runner) {
-	schema := mcp.NewResource(
-		journalSchemaURI,
-		"Journal schema",
-		mcp.WithResourceDescription("Field and parameter reference for the journal:// resource."),
-		mcp.WithMIMEType("application/json"),
-	)
-	m.AddResource(schema, func(_ context.Context, _ mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-		return []mcp.ResourceContents{textJSON(journalSchemaURI, journalSchemaDoc)}, nil
+func registerJournal(s *mcp.Server, run journal.Runner) {
+	schema := &mcp.Resource{
+		URI:         journalSchemaURI,
+		Name:        "Journal schema",
+		Description: "Field and parameter reference for the journal:// resource.",
+		MIMEType:    "application/json",
+	}
+	s.AddResource(schema, func(_ context.Context, _ *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		return &mcp.ReadResourceResult{Contents: []*mcp.ResourceContents{textJSON(journalSchemaURI, journalSchemaDoc)}}, nil
 	})
 
-	tmpl := mcp.NewResourceTemplate(
-		journalURITemplate,
-		"PowerLab journal",
-		mcp.WithTemplateDescription("Systemd journal entries for a PowerLab unit (scoped to powerlab-*.service). Query params: lines, since, priority. See journal://schema."),
-		mcp.WithTemplateMIMEType("application/json"),
-	)
-	m.AddResourceTemplate(tmpl, func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+	tmpl := &mcp.ResourceTemplate{
+		URITemplate: journalURITemplate,
+		Name:        "PowerLab journal",
+		Description: "Systemd journal entries for a PowerLab unit (scoped to powerlab-*.service). Query params: lines, since, priority. See journal://schema.",
+		MIMEType:    "application/json",
+	}
+	s.AddResourceTemplate(tmpl, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
 		entries, err := journal.Read(ctx, run, parseJournalURI(req.Params.URI))
 		if err != nil {
 			return nil, fmt.Errorf("read journal: %w", err)
@@ -69,7 +68,7 @@ func registerJournal(m *mcpserver.MCPServer, run journal.Runner) {
 		if err != nil {
 			return nil, fmt.Errorf("marshal journal entries: %w", err)
 		}
-		return []mcp.ResourceContents{textJSON(req.Params.URI, string(b))}, nil
+		return &mcp.ReadResourceResult{Contents: []*mcp.ResourceContents{textJSON(req.Params.URI, string(b))}}, nil
 	})
 }
 
@@ -94,7 +93,7 @@ func parseJournalURI(raw string) journal.Query {
 	return q
 }
 
-// textJSON builds a JSON TextResourceContents for uri.
-func textJSON(uri, body string) mcp.TextResourceContents {
-	return mcp.TextResourceContents{URI: uri, MIMEType: "application/json", Text: body}
+// textJSON builds JSON resource contents for uri.
+func textJSON(uri, body string) *mcp.ResourceContents {
+	return &mcp.ResourceContents{URI: uri, MIMEType: "application/json", Text: body}
 }

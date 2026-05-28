@@ -44,7 +44,7 @@ Ship a new standalone binary **`powerlab-mcp`** that:
    - **MCP over stdio** (local agent, Claude Code/Cursor on the same host) — **deferred**, add on demand.
    - **MCP over HTTP** for remote agents — folds into the HTTP transport; remote *pairing* is a later block.
 
-   Built on the `mark3labs/mcp-go` SDK (v0.54.x — stdio + SSE + streamable-HTTP, resources with URI templates, tools with JSON schema), pending the 2-day implementation spike. A thin PowerLab wrapper adds auth tiers, audit, and validation. Tool/resource schemas are **code-first** via struct tags (`invopop/jsonschema`) — not a YAML→Go generator (FastMCP itself is code-first, and our `oapi-codegen` is the deprecated `deepmap` v1).
+   Built on the **official `modelcontextprotocol/go-sdk`** (v1.x, GA, maintained in collaboration with Google, tracks the current spec; provides `AddResource` / `AddResourceTemplate`, `AddTool`, and a `StreamableHTTPHandler`). A thin PowerLab wrapper adds auth tiers, audit, and validation. Tool/resource schemas are **code-first** via struct tags — not a YAML→Go generator (and our `oapi-codegen` is the deprecated `deepmap` v1). _(Amended 2026-05-28: the first cut shipped on the third-party `mark3labs/mcp-go` v0.54.x; once the official SDK was found to be GA with full feature parity, the module was migrated to it while the surface was still small — see Q6.)_
 
 4. **Auth tiers — three levels, single JWT issuer (user-service):**
 
@@ -136,7 +136,7 @@ Ship a new standalone binary **`powerlab-mcp`** that:
 3. **Deployment model.** Single instance per host (decided). Multiple PowerLab instances on one box (rare) would need port/name disambiguation.
 4. **MCP Apps `ui://` timeline.** Re-evaluate when the draft spec stabilizes.
 5. ~~SQLite cross-process attach locking.~~ **Moot** — audit is JSONL (ADR-0035); the surface tails the file.
-6. **Go MCP SDK.** `mark3labs/mcp-go` is the lead candidate (active, supports the transports/resources/tools we need); confirm via the 2-day spike vs `metoro-io/mcp-golang` / from-scratch, with attention to resource-subscription support (needed later for install-log streaming, not the MVP).
+6. ~~Go MCP SDK.~~ **Resolved → the official `modelcontextprotocol/go-sdk`** (v1.x GA). The initial spike picked `mark3labs/mcp-go` (most popular) and missed the official SDK; on review the official one was GA, spec-current, and feature-complete (resources, resource templates, streamable HTTP, typed tools), so the module migrated to it while only `system://` + `journal://` existed (cheapest moment). Resource-subscription support (for later install-log streaming) to be confirmed against the official SDK when that block lands.
 
 ## Acceptance — Foundation MVP (release-keyed, v0.7.x)
 
@@ -157,7 +157,7 @@ Ship a new standalone binary **`powerlab-mcp`** that:
 
 - [MCP — Resources spec (2025-06-18)](https://modelcontextprotocol.io/specification/2025-06-18/server/resources)
 - [MCP Registry](https://registry.modelcontextprotocol.io/) · [MCP Apps draft (`ui://`)](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx) · [reference servers](https://github.com/modelcontextprotocol/servers)
-- [mark3labs/mcp-go](https://github.com/mark3labs/mcp-go) · [metoro-io/mcp-golang](https://github.com/metoro-io/mcp-golang) · [invopop/jsonschema](https://github.com/invopop/jsonschema)
+- [modelcontextprotocol/go-sdk](https://github.com/modelcontextprotocol/go-sdk) (official, in use) · [mark3labs/mcp-go](https://github.com/mark3labs/mcp-go) (initial cut, superseded) · [invopop/jsonschema](https://github.com/invopop/jsonschema)
 - [RFC 6570 — URI Templates](https://datatracker.ietf.org/doc/html/rfc6570) · [RFC 6750 — Bearer tokens](https://datatracker.ietf.org/doc/html/rfc6750)
 - ADR-0033 (audit middleware) · **ADR-0035 (audit JSONL — provides the data this ADR tails)** · ADR-0026 (slog → journald) · ADR-0015 (correlation-id) · ADR-0027 (Uber FX) · #150 (powerlab-logs CLI)
 - [PowerLab landscape research note](../research/mcp-linux-server-landscape-2026.md)

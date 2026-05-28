@@ -1,0 +1,5 @@
+kind: Internal
+body: 'powerlab-mcp: migrate from the third-party mark3labs/mcp-go (v0.54.x, pre-1.0) to the official modelcontextprotocol/go-sdk (v1.x, GA, maintained with Google/Anthropic, tracks the current spec). Done while the surface was still small (system:// + journal://, no tools): server construction, both resources, the streamable-HTTP mount, and the MCP integration tests re-ported; the pure-logic packages (metrics/journal/config) are untouched. ADR-0034 amended (open question Q6 resolved).'
+time: 2026-05-28T03:30:00Z
+custom:
+    Issue: ""
