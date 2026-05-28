@@ -32,6 +32,13 @@ import (
 // can address it without hardcoding the string twice.
 const MCPEndpointPath = "/mcp"
 
+// maxMCPRequestBytes caps the /mcp request body. MCP JSON-RPC messages
+// are tiny (a few KB at most); the transport otherwise reads the whole
+// body into memory, so an unbounded POST is an OOM/DoS vector — sharper
+// because loopback callers are unauthenticated. 1 MiB is generous
+// headroom while bounding the blast radius.
+const maxMCPRequestBytes = 1 << 20
+
 // BuildInfo carries the ldflags-injected build identity surfaced by
 // /version. main sets these from -X main.{version,commit,date}.
 type BuildInfo struct {
@@ -118,9 +125,23 @@ func (s *Server) Handler() http.Handler {
 	// that carries proxy headers is treated as remote, forcing the JWT
 	// check. Fails safe (deny), and the genuine local-agent path (no
 	// proxy headers) keeps its zero-config trust.
-	gated := preventProxyLoopbackTrust(jwt.HTTPJWT(s.pubKey)(s.httpMCP))
+	// limitBody is outermost so the body cap applies before anything
+	// reads the request — even on the auth-rejected path.
+	gated := limitBody(preventProxyLoopbackTrust(jwt.HTTPJWT(s.pubKey)(s.httpMCP)), maxMCPRequestBytes)
 	mux.Handle(MCPEndpointPath, gated)
 	return mux
+}
+
+// limitBody caps the request body at max bytes via http.MaxBytesReader,
+// so the MCP transport (which reads the whole body into memory) can't be
+// driven to OOM by an oversized POST.
+func limitBody(next http.Handler, max int64) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Body != nil {
+			r.Body = http.MaxBytesReader(w, r.Body, max)
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // proxyHeaders are the request headers a reverse proxy adds. Their

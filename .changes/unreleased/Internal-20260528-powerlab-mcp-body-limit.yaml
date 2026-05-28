@@ -1,0 +1,5 @@
+kind: Internal
+body: 'powerlab-mcp (meta-review hardening): cap the /mcp request body at 1 MiB via http.MaxBytesReader. The MCP transport reads the whole body into memory, so an unbounded POST was an OOM/DoS vector — sharper because loopback callers are unauthenticated. Legitimate JSON-RPC requests are a few KB, so the cap is invisible to real use.'
+time: 2026-05-28T02:05:00Z
+custom:
+    Issue: ""
