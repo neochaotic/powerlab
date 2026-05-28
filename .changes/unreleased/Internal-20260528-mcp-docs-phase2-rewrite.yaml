@@ -1,0 +1,5 @@
+kind: Internal
+body: 'docs(mcp): rewrite of docs/concepts/mcp-server.md + README "Talk to your homelab" section to reflect the complete Phase 2 surface — 12 advertised resources (system://, journal://, audit://, apps://, docker://, docs://api), the ADR-0044 hybrid architecture (independent reads stay raw; system/apps/docker thin-proxy through core + app-management), and the ADR-0045 storage-agnostic promise (PostgreSQL migration becomes a no-op for MCP). New Mermaid topology shows core + app-management as the two proxied upstreams. New "Journey of a proxied read" sequence diagram alongside the journal one. Defense-in-depth table grew: Docker socket explicitly NOT in MCP, upstream URLs cached + invalidated, audittail OOM bound, docs:// path-traversal regression. apps:// + docker:// flagged "🔜 stabilisation" until the live battery on real hardware lands. Forward-pointer to a forthcoming ADR-0046 on MCP tool curation strategy.'
+time: 2026-05-28T20:30:00Z
+custom:
+    Issue: ""

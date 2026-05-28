@@ -1,46 +1,72 @@
 # MCP server — talk to your homelab
 
-PowerLab ships a built-in **MCP (Model Context Protocol) server** that exposes the box's read-only observability data to AI agents — Claude Desktop, Cursor, Claude Code CLI, and any other MCP-compatible client.
+PowerLab ships a built-in **MCP (Model Context Protocol) server** that exposes the box's read-only observability + app surface to AI agents — Claude Desktop, Cursor, Claude Code CLI, and any other MCP-compatible client.
 
 The PowerLab UI is the pane of glass **for you**. The MCP server is the pane of glass **for your agent**. Same data, two surfaces.
 
-!!! info "MVP scope (v0.7.5)"
-    This is the **read-only Foundation MVP** — three resources (`system://metrics`, `journal://`, `audit://`) over the official MCP Streamable HTTP transport, gated by your PowerLab login. Destructive tools, the pairing UX, and the UI button all land in later releases. The MCP server is **isolated by design**: if it crashes, the rest of PowerLab keeps running.
+!!! info "Current scope (12 advertised resources)"
+    Read-only across the **whole PowerLab observability + apps surface**. Sysadmin telemetry (CPU, RAM, disk, network, GPU, temperature, SMART) thin-proxies through core; installed-apps + container logs thin-proxy through app-management; audit trail + PowerLab service journals are read directly so they survive any other service being down. Destructive tools, the pairing UX, and the UI header button are tracked roadmap. The MCP service is **isolated where it matters** (audit + journal of PowerLab units) and **proxies where it makes sense** (everything else) — see the architecture section below.
 
-## What it does (and doesn't)
+## What ships today
 
-### What ships today
+12 resources advertised on `resources/list`, grouped by namespace.
 
-| Resource | What an agent reads | Example question it answers |
+!!! tip "🔜 Coming soon — apps:// and docker:// (in stabilisation)"
+    The `apps://*` and `docker://*` families just landed per [ADR-0045](../decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md). The wire shape, error contract, and the proxy round-trip are unit-tested and verified locally, but the live battery on real hardware (real installed apps, real running containers) is still being rolled out. Expect rough edges during the first weeks of v0.7.5 — please report any odd behaviour. The system://* + audit:// + journal:// surfaces are stable and dogfooded.
+
+Resources by namespace:
+
+| Namespace | Resource | Where the data comes from |
 |---|---|---|
-| `system://metrics` | CPU load, memory, uptime, disk, network — from `/proc` direct | "Is my box's load average climbing?" |
-| `journal://<unit>{?lines,since,priority}` | systemd journal, **PowerLab-scoped only** (cannot escape to SSH/PAM/etc.) | "Why did powerlab-gateway restart 10 minutes ago?" |
-| `journal://schema` | self-describing journal field reference + ADR-0013 error codes | (used by the agent to understand what it just read) |
-| `audit://recent{?limit}` | newest entries of the gateway's audit trail (`/var/log/powerlab/audit.jsonl`) | "What was the last admin action on the box?" |
-| `audit://action/{correlation_id}` | every audit record tied to a single request ID — the whole cascade | "Trace what happened after the user clicked 'Install Plex'" |
-| `audit://schema` | record-shape + parameter reference | (self-describing) |
+| **system://** | `system://schema` | self-describing index |
+| | `system://metrics` | `/proc` direct (mem + load + uptime + cores) |
+| | `system://utilization` | proxy → core `/v1/sys/utilization` (CPU% + temp + power + model + mem + net) |
+| | `system://disk` | proxy → core `/v1/sys/disk` (physical + per-mount + SMART) |
+| | `system://network` | proxy → core `/v1/sys/net` (per-interface throughput + state) |
+| | `system://gpu` | direct import — Apple Silicon (ioreg) + Nvidia (nvidia-smi); empty model = no GPU |
+| **journal://** | `journal://schema` | self-describing index |
+| | `journal://units` | discovery — lists installed `powerlab-*.service` stems |
+| | `journal://{unit}{?lines,since,priority}` | `journalctl -u powerlab-<unit>.service` — **scope-locked to PowerLab units** |
+| **audit://** | `audit://schema` | self-describing index |
+| | `audit://recent{?limit}` | tail of `/var/log/powerlab/audit.jsonl` (gateway-written) |
+| | `audit://action/{correlation_id}` | filter by X-Request-Id — the whole cascade of one request |
+| **apps:// 🔜** | `apps://schema` | self-describing index |
+| | `apps://list` | proxy → app-management `/v2/app_management/compose` |
+| | `apps://state/{id}` | per-app detail |
+| | `apps://state/{id}/containers` | live containers |
+| | `apps://state/{id}/health` | aggregate health |
+| | `apps://state/{id}/stats` | per-container CPU/RAM/IO |
+| | `apps://state/{id}/disk` | per-app disk footprint |
+| **docker:// 🔜** | `docker://logs/{id}` | proxy → app-management's `ComposeAppLogs` — **MCP never touches the Docker socket** |
+| **docs://** | `docs://api` | manifest of bundled OpenAPI specs |
+| | `docs://api/{service}` | raw OpenAPI YAML for one service — Scalar-equivalent for agents |
 
-### What's **NOT** in MVP
+## What's NOT in scope yet
 
-- **No destructive tools.** No `restart_app`, no `prune_orphans`, no `reset_audit`. MCP "tools" land in a later release with their own threat-model review.
-- **No write paths whatsoever.** The MVP is 100% read. It cannot start, stop, install, delete, or restart anything.
-- **No automatic pairing UX.** Connecting Claude Desktop to your PowerLab requires manually pasting a JWT into your client config. A `powerlab pair` CLI that mints + shows the token is roadmap.
-- **No internet exposure.** The server binds `:9090` on the LAN. Loopback is unauthenticated (trusted local agent); LAN requires a PowerLab JWT. PowerLab does **not** configure port-forwarding for you.
-- **No RBAC.** Any user with a valid PowerLab JWT has the same access. Today every PowerLab user is hardcoded `admin` anyway (see [ADR-0034](../decisions/0034-standalone-observability-mcp-service.md) amendment). Real role-based access is backlog [#603](https://github.com/neochaotic/powerlab/issues/603).
-- **No Docker / message-bus integration.** The MCP service is deliberately isolated — no shared state with the rest of the stack.
+- **No destructive tools.** No `restart_app`, no `install_app`, no `prune_orphans`. MCP "tools" (write actions) land with their own threat-model ADR.
+- **No pairing UX.** Connecting Claude Desktop today still means pasting a JWT into the client config by hand. A `powerlab pair` CLI that mints + displays the token is roadmap ([#596](https://github.com/neochaotic/powerlab/issues/596)).
+- **No internet exposure.** Bind is `:9090` on the LAN, gated by JWT. PowerLab does not configure port-forwarding for you.
+- **No RBAC.** Any user with a valid PowerLab JWT has the same access. Today every PowerLab user is hardcoded `admin` anyway (see the [ADR-0034 amendment](../decisions/0034-standalone-observability-mcp-service.md)). Real role-based access is backlog [#603](https://github.com/neochaotic/powerlab/issues/603).
+- **No agent-identity forwarding (yet).** Today every MCP-to-upstream call hits the upstream's loopback skip — the upstream's audit trail records "loopback" for the call, not the agent's user. JWT forwarding will land when the MCP SDK exposes the request context cleanly to handlers.
+- **No UI header button.** Roadmap; the resources work today via any MCP client.
 
 ## Product positioning
 
-PowerLab is a **single pane of glass for your homelab** — apps, files, dashboards, store, the whole hardware nightstand. The MCP surface is **complementary**, not a pivot. Goals:
+PowerLab is a **single pane of glass for your homelab** — apps, files, dashboards, store, the whole hardware nightstand. The MCP surface is **complementary**, not a pivot:
 
 1. **Keep the homelab essence intact.** Nothing about the human UI changes because MCP exists.
-2. **Open a parallel surface for agents.** Same data, different consumer (machine instead of human).
-3. **Stay isolated.** MCP runs in its own process, on its own port, with soft systemd dependencies. If it explodes, the rest keeps working.
-4. **Bring "observability-first" to the AI-on-Linux story.** Agents that can read your box's metrics + logs + audit trail are dramatically more useful than agents flying blind.
+2. **Open a parallel surface for agents.** Same data, different consumer (machine instead of human). Whatever the panel shows, the agent can read.
+3. **Storage-agnostic by construction.** When PowerLab migrates from SQLite to PostgreSQL (or any future backend), MCP requires no changes — the HTTP contract of each PowerLab service is the abstraction (ADR-0045).
+4. **Bring "observability-first" to the AI-on-Linux story.** Agents that can read your box's metrics + logs + audit trail + app state are dramatically more useful than agents flying blind.
 
 ## Architecture
 
-### Topology
+### Hybrid: independent reads + thin proxies
+
+powerlab-mcp uses a **hybrid architecture** — some resources read raw, others proxy to the relevant PowerLab service. The split is deliberate ([ADR-0044](../decisions/0044-mcp-hybrid-architecture-thin-proxy-to-core.md) + [ADR-0045](../decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md)):
+
+- **Independent reads** (audit + journal of PowerLab units): survive every other service being down — exactly when the operator most needs them.
+- **Proxied reads** (system, apps, docker, docs): reuse the same code path the panel reads. Single source of truth. Zero duplication. Storage-agnostic.
 
 ```mermaid
 flowchart LR
@@ -50,36 +76,50 @@ flowchart LR
     subgraph Box["PowerLab box (e.g. m900, Pi 5)"]
         Gateway["powerlab-gateway<br/>:8765 (UI + API)"]
         UserSvc["powerlab-user-service<br/>(JWT signer + JWKS)"]
+        Core["powerlab-core<br/>:8810 (system telemetry)"]
+        AppMgmt["powerlab-app-management<br/>(apps + Docker)"]
         MCP["powerlab-mcp<br/>:9090"]
         Proc["/proc/*"]
-        Journal["journalctl"]
-        Audit["/var/log/powerlab/audit.jsonl<br/>(written by Gateway only)"]
+        Journal["journalctl<br/>(powerlab-* units only)"]
+        Audit["/var/log/powerlab/audit.jsonl<br/>(gateway-written)"]
+        OpenAPI["/usr/share/powerlab/openapi/*.yaml"]
     end
 
     User -->|HTTPS/HTTP| Gateway
     Agent -->|HTTP + JWT Bearer| MCP
 
+    %% Independent reads
     MCP -.->|reads| Proc
     MCP -.->|spawns + reads| Journal
     MCP -.->|tails| Audit
+    MCP -.->|reads| OpenAPI
     Gateway -->|writes| Audit
 
-    MCP -.->|JWKS fetch on first verify| UserSvc
+    %% Proxied reads
+    MCP -->|HTTP proxy<br/>system://*| Core
+    MCP -->|HTTP proxy<br/>apps:// + docker://*| AppMgmt
+
+    %% Auth
+    MCP -.->|JWKS fetch on first verify<br/>cached 10s| UserSvc
 
     classDef agent fill:#5b3e96,color:white,stroke:#5b3e96
     classDef pl fill:#1a4b8c,color:white,stroke:#1a4b8c
+    classDef proxy fill:#7a5a1a,color:white,stroke:#7a5a1a
     classDef data fill:#2a5d3a,color:white,stroke:#2a5d3a
     class Agent,User agent
     class Gateway,UserSvc,MCP pl
-    class Proc,Journal,Audit data
+    class Core,AppMgmt proxy
+    class Proc,Journal,Audit,OpenAPI data
 ```
 
-Key invariants:
+### Key invariants
 
-- **MCP has no upstream**. It depends on gateway + user-service only for **soft** systemd ordering (`After=`/`Wants=`, not `Requires=`). If MCP fails to boot, gateway/core/etc. continue unaffected.
-- **Audit is single-source**. Only the gateway runs the audit middleware (ADR-0033). MCP **tails** the file read-only.
-- **JWKS is cached**. MCP fetches the user-service public key once per 10 seconds, then reuses it — so MCP's auth gate works even if user-service is briefly down.
-- **Journal scope is hard-coded to powerlab units**. The MCP `journal://` package prefixes any requested unit with `powerlab-` and suffixes `.service` — an agent cannot escape to read `/var/log/auth.log` or the kernel ring buffer.
+- **Audit + journal of PowerLab units stay raw.** When core or app-management are down, the agent still reads `audit://` and `journal://gateway` — exactly when the operator needs to find out *why* things are broken.
+- **Proxied resources degrade with a structured payload, not an error.** When core is down `system://utilization` returns `{"error":"core_unavailable","detail":"…","fallback":"audit:// and journal:// remain readable"}`. Same shape for `apps_unavailable` when app-management is down. The agent pattern-matches and pivots.
+- **Docker socket stays out of MCP.** `docker://logs/{id}` proxies through app-management's `ComposeAppLogs` (which already speaks to the Docker socket). MCP never has Docker socket access. This is [ADR-0045 win #2](../decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md).
+- **Journal scope is hard-coded to PowerLab units.** The MCP `journal://` package prefixes any requested unit with `powerlab-` and suffixes `.service` — an agent cannot escape to `/var/log/auth.log` or the kernel ring buffer.
+- **JWKS is cached.** MCP fetches the user-service public key once per 10 seconds, then reuses it — auth gate works even if user-service is briefly down.
+- **Storage-agnostic.** A future SQLite → PostgreSQL migration on app-management requires zero changes in MCP. The HTTP contract is the abstraction; storage is an implementation detail the owner service handles.
 
 ### The wire protocol
 
@@ -122,153 +162,148 @@ sequenceDiagram
 
 The **proxy-trust guard** is the subtle bit. `jwt.HTTPJWT` skips auth on `RemoteAddr ∈ {127.0.0.1, ::1}` — but if MCP is ever fronted by a same-host reverse proxy, every LAN request arrives looking like loopback. Mitigation: the gate detects proxy headers (`X-Forwarded-For`, `X-Real-IP`, `Forwarded`) on a "loopback" connection, rewrites `RemoteAddr` to a sentinel (`192.0.2.1`, TEST-NET-1), and forces the JWT path. Net effect: even if you accidentally proxy MCP, it fails closed instead of bypassing auth.
 
-### Resource model
+### Journey of an independent read
 
-Resources are advertised via MCP `resources/list` and read via `resources/read`. Schemas use the SDK's code-first model (`*mcp.Resource{URI, Name, Description, MIMEType}`) — no separate YAML or OpenAPI step.
-
-URI templates follow [RFC 6570](https://datatracker.ietf.org/doc/html/rfc6570) form-style query expansion:
-
-- `journal://{unit}{?lines,since,priority}` — `unit` is path-segment, the query keys are optional
-- `audit://recent{?limit}` — `limit` is optional, defaults to 100, capped at 1000
-- `audit://action/{correlation_id}` — `correlation_id` is path-segment
-
-An agent that doesn't understand templates can still call concrete URIs (`journal://core?lines=200`) directly. The smoke client (see below) skips template URIs because there's no canonical concrete read to verify them with.
-
-### Journey of a resource read
-
-What happens when Claude Desktop asks for `journal://gateway?lines=10`:
+Reading `journal://gateway?lines=10`:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant C as Claude Desktop
+    participant C as Claude
     participant H as powerlab-mcp HTTP handler
     participant G as Auth gate
-    participant B as Body limit
     participant T as Streamable transport
     participant S as MCP server (SDK)
     participant J as journal package
     participant CTL as journalctl
 
-    C->>H: POST /mcp Authorization: Bearer eyJ…<br/>JSON-RPC: resources/read URI=journal://gateway?lines=10
-    H->>G: gated handler
-    G->>G: not loopback + no proxy headers → JWT verify
-    G->>G: jwt.Validate → claims OK
-    G->>B: pass to MaxBytesReader (1 MiB cap)
-    B->>T: stream into Streamable HTTP handler
-    T->>S: parse JSON-RPC, dispatch to registered template
+    C->>H: POST /mcp Authorization: Bearer eyJ…<br/>resources/read URI=journal://gateway?lines=10
+    H->>G: gated handler (loopback skip or JWT verify)
+    G->>T: body cap (1 MiB) + dispatch
+    T->>S: parse JSON-RPC, find registered template
     S->>J: BuildArgs(Query{Unit: "gateway", Lines: 10})
-    J->>J: canonicalUnit("gateway") → "powerlab-gateway.service"<br/>(hard scope; agent cannot escape)
+    J->>J: canonicalUnit("gateway") → "powerlab-gateway.service"<br/>(hard scope — agent cannot escape)
     J->>CTL: journalctl -u powerlab-gateway.service -o json --no-pager -n 10
     CTL-->>J: NDJSON stream
     J->>S: parsed []Entry
-    S->>T: MCP ResourceContents (text/json)
-    T->>H: HTTP response framed
-    H-->>C: 200 + ResourceContents
+    S-->>C: 200 + ResourceContents (JSON array of entries)
 ```
 
-The numbered steps mirror the package layout:
-1-2: `server.Handler()` mux entry → gated handler chain
-3-4: `preventProxyLoopbackTrust` + `jwt.HTTPJWT` from `backend/common/utils/jwt`
-5: `http.MaxBytesReader` 1 MiB cap (DoS protection — MCP messages are tiny)
-6: SDK's `StreamableHTTPHandler` (official `modelcontextprotocol/go-sdk`)
-7: `server/resources_journal.go` `registerJournal` callback
-8: `journal/journal.go` `BuildArgs` + `canonicalUnit`
-9: `journal/exec.go` (separate file so tests inject a `Runner`)
-10-11: response goes back through the same chain
+### Journey of a proxied read
+
+Reading `apps://list`:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Claude
+    participant M as powerlab-mcp
+    participant CP as coreproxy.Client
+    participant FS as /var/run/powerlab/
+    participant AM as app-management
+
+    C->>M: POST /mcp resources/read URI=apps://list
+    M->>CP: GetFrom(ctx, "apps", "/v2/app_management/compose", "")
+    CP->>FS: read app-management.url (cache miss)
+    FS-->>CP: "http://127.0.0.1:9890"
+    CP->>AM: GET /v2/app_management/compose
+    Note over CP,AM: No Authorization header → app-management's<br/>loopback skip applies (MCP is on the same box)
+    AM-->>CP: 200 + JSON body (the same the panel reads)
+    CP-->>M: body bytes verbatim
+    M-->>C: 200 + ResourceContents (upstream body, untouched)
+
+    Note over C,AM: Degraded path: if app-management is down,<br/>CP returns a *coreproxy.Error{Code:"apps_unavailable"}.<br/>M serves the canonical {error, detail, fallback} payload —<br/>agent pattern-matches and pivots to audit + journal.
+```
 
 ### Defense in depth
 
 | Layer | Mitigation |
 |---|---|
-| Bind address | `:9090` — distinct from gateway (`:8765`) so no port conflict + no shared TLS |
+| Bind address | `:9090` — distinct from gateway (`:8765`), no port conflict + no shared TLS |
 | Body limit | `http.MaxBytesReader` 1 MiB on `/mcp` — MCP messages are tiny, an unbounded POST is OOM/DoS, unauthenticated from loopback |
 | Loopback trust | Only `RemoteAddr ∈ {127.0.0.1, ::1}` — IPv6 brackets handled via `net.SplitHostPort` |
 | Proxy-trust guard | Proxy headers on a "loopback" connection rewrite `RemoteAddr` to TEST-NET-1 + force JWT (fail-closed) |
 | JWT verification | ECDSA via `jwt.Validate` — same gate the rest of the stack uses; issuer must be `powerlab` or `casaos` |
 | JWKS source | `external.GetPublicKey(cfg.RuntimePath)` — single-source, 10s cache |
 | Journal scope | `canonicalUnit` hard-prefixes `powerlab-` + `.service` — agent cannot escape to system units |
-| Audit access | Read-only tail (`audittail` package). The writer is the gateway, not MCP. File is `root:root 0600` — MCP runs as root (only via the systemd unit) to read it |
+| Audit access | Read-only tail (`audittail` package); writer is the gateway. File is `root:root 0600` — MCP runs as root (only via the systemd unit) to read it |
+| **Docker socket** | **Deliberately NOT in MCP** ([ADR-0045](../decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md)). `docker://logs/{id}` proxies through app-management's HTTP API, which is the only PowerLab service that talks to Docker |
+| Upstream URLs | Read from `/var/run/powerlab/<service>.url`, cached 10s with transparent invalidation on transport failure |
+| Audit log memory | `audittail.Recent` streams the JSONL via `bufio.Scanner` with a bounded ring buffer — a 500 MiB audit log costs ~few MiB RSS (the original `os.ReadFile` shape would have OOM'd a Pi 4) |
+| Path traversal | `docs://api/{service}` rejects names containing `/`, `\`, or `.` — planted-evidence regression test pins it |
 | Kill-switch | `Disabled = true` in `mcp.conf` — service exits 0 before binding; operator opt-out without `systemctl mask` |
 
 ## Test recipes
 
 ### Quick: from the box itself (loopback, no JWT)
 
-The loopback path skips JWT, so you can verify MCP is alive without paring anything:
-
 ```bash
-# Health + version (the systemd unit + monitoring use these — plain
-# HTTP, no MCP protocol overhead)
-curl -sf http://127.0.0.1:9090/healthz && echo "  /healthz OK"  # prints: ok
+# Health + version
+curl -sf http://127.0.0.1:9090/healthz && echo "  ok"
 curl -sf http://127.0.0.1:9090/version | jq .
-# {"version":"0.7.5","commit":"abc1234","date":"2026-05-28T…"}
 
-# MCP itself: the Streamable HTTP transport is stateful — every request
-# returns a Server-Sent Events stream framed as
-#   event: message
-#   data: {"jsonrpc":"2.0", …}
-# and the SDK expects a 3-step handshake (initialize → notifications/initialized →
-# whatever you actually want). Doing it by hand via curl is awkward — you
-# have to keep the Mcp-Session-Id header consistent across requests.
-# So for one-off MCP testing, prefer the Go smoke client below. Curl is
-# fine for /healthz + /version (above) and for confirming MCP is *listening*:
+# Confirm MCP is listening + speaking the right protocol version
 curl -sfv -X POST http://127.0.0.1:9090/mcp \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
   -H 'MCP-Protocol-Version: 2025-06-18' \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","clientInfo":{"name":"curl","version":"1"},"capabilities":{}}}'
-# Expect: a 200 response with `event: message\ndata: {"jsonrpc":"2.0","id":1,
-# "result":{"capabilities":…,"protocolVersion":"2025-06-18","serverInfo":{"name":"powerlab-mcp",…}}}`
 ```
 
-### From your laptop (LAN, needs a JWT)
-
-```bash
-# 1. Get a JWT from the user-service (login, returns access_token)
-JWT=$(curl -sf http://<box-ip>:8765/v1/users/login \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"<your-os-username>","password":"<your-os-password>"}' \
-  | jq -r '.data.token.access_token')
-
-# 2. Hit MCP with the JWT
-curl -sf http://<box-ip>:9090/mcp \
-  -H "Authorization: Bearer $JWT" \
-  -H 'Content-Type: application/json' \
-  -H 'Accept: application/json, text/event-stream' \
-  -H 'MCP-Protocol-Version: 2025-06-18' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"resources/list"}' | jq .
-```
+The MCP transport is **stateful** — the SDK expects a 3-step handshake (initialize → notifications/initialized → whatever you actually want) with a consistent `Mcp-Session-Id` header. Doing it by hand via curl is awkward. For one-off MCP testing prefer the Go smoke client below.
 
 ### Comprehensive: the Go smoke client
 
-`backend/powerlab-mcp/cmd/smoke/main.go` uses the official MCP SDK to connect, list, and read every advertised resource — the same code path real agents use:
+`backend/powerlab-mcp/cmd/smoke/main.go` uses the official MCP SDK to connect, list, and read every advertised resource — same code path real agents use:
 
 ```bash
 # Loopback (run on the box itself)
 cd backend/powerlab-mcp
 go run ./cmd/smoke
 
-# LAN (from your laptop, with a JWT from step 1 above)
-go run ./cmd/smoke \
-    -endpoint http://192.168.1.42:9090 \
-    -token "$JWT"
+# LAN (from your laptop)
+JWT=$(curl -sf http://<box-ip>:8765/v1/users/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"<your-os-user>","password":"<your-os-password>"}' \
+  | jq -r '.data.token.access_token')
+go run ./cmd/smoke -endpoint http://<box-ip>:9090 -token "$JWT"
 ```
 
-Sample output (every line is a check):
+Sample output on a healthy box:
 
 ```
 PASS  /healthz + /version
 PASS  mcp connect + initialize
-PASS  resources/list (6 advertised)
+PASS  resources/list (12 advertised)
+PASS  audit://schema (1668 bytes)
+      → description set + 12 field(s) documented
+PASS  apps://list (412 bytes)
+      → proxied payload OK (412 bytes from upstream)
+PASS  apps://schema (1497 bytes)
+      → description set + 8 resource(s) documented (proxy schema)
+PASS  docs://api (640 bytes)
+PASS  journal://schema (710 bytes)
+PASS  journal://units (126 bytes)
+PASS  system://disk (1432 bytes) → proxied payload OK
+PASS  system://gpu (72 bytes)
+      → Apple M5 (46.0% util, 538 MiB used, 0°C)
 PASS  system://metrics (412 bytes)
-PASS  audit://recent (1832 bytes)
-PASS  audit://schema (514 bytes)
-PASS  journal://schema (322 bytes)
-SKIP  journal://{unit}{?lines,since,priority} (URI template — provide a concrete read separately)
-SKIP  audit://action/{correlation_id} (URI template — provide a concrete read separately)
+PASS  system://network (1024 bytes) → proxied payload OK
+PASS  system://schema (2164 bytes)
+PASS  system://utilization (768 bytes) → proxied payload OK
+PASS  audit://recent?limit=5 (1024 bytes)
+      → 5 record(s) with valid ts / status / method / remote_ip
 
-OK — every advertised resource read successfully
+OK — every advertised resource read + data-quality assertions passed
+```
+
+On a degraded box (e.g. core stopped, app-management down) the proxied resources surface a **WARN** with the operator-facing detail + fallback hint:
+
+```
+PASS  apps://list (320 bytes)
+      → WARN: apps_unavailable — proxy resource degraded; audit + journal still readable
+PASS  system://utilization (310 bytes)
+      → WARN: core_unavailable — proxy resource degraded; audit + journal still readable
 ```
 
 Exit code is 0 on full pass, non-zero on any failure — slot it into a release-cut pre-flight or a systemd timer.
@@ -295,7 +330,7 @@ Exit code is 0 on full pass, non-zero on any failure — slot it into a release-
 }
 ```
 
-Restart Claude Desktop. Resources show up in the conversation under "Resources" → "powerlab-home".
+Restart Claude Desktop. Resources show up under "Resources" → "powerlab-home".
 
 ### Claude Code CLI
 
@@ -333,7 +368,7 @@ Why not `systemctl disable powerlab-mcp`? You can, but the config kill-switch su
 journalctl -u powerlab-mcp -f
 ```
 
-Every request is logged as JSON via `log/slog`. Real audit (recorder dogfood — MCP writing its own actions to `audit.jsonl`) is the next phase item.
+Every request is logged as JSON via `log/slog`.
 
 ### Binding off `:9090`
 
@@ -345,27 +380,47 @@ ListenAddr = 127.0.0.1:9595
 
 Restart MCP. Note that binding to `127.0.0.1` only blocks LAN access entirely — agents would have to come in via SSH tunnel.
 
-## Roadmap (what's NOT in MVP)
+### Pointing at custom paths
 
-Tracked as GitHub issues — none blocking the v0.7.5 cut:
+For non-standard deployments, `mcp.conf` exposes:
+
+```ini
+AuditDir = /var/log/powerlab          # where audit.jsonl lives
+RuntimePath = /var/run/powerlab       # where service .url files live (and JWKS lookup)
+OpenAPIDir = /usr/share/powerlab/openapi   # where docs:// reads YAML specs from
+SystemdSystemDir = /etc/systemd/system     # where journal://units enumerates powerlab-*.service files
+```
+
+All four have sensible production defaults. The forgiving conf loader treats unknown keys as harmless, so a newer installer's keys never break an older binary.
+
+## Roadmap (what's NOT here yet)
+
+Tracked as GitHub issues:
 
 - [**#594**](https://github.com/neochaotic/powerlab/issues/594) — `jwt.HTTPJWT` IPv6 loopback misclassification + JWKS fetch timeout (affects gateway too)
 - [**#595**](https://github.com/neochaotic/powerlab/issues/595) — minor MCP hardening (audit-IP logging, server timeouts, `/version` info-disclosure)
 - [**#596**](https://github.com/neochaotic/powerlab/issues/596) — real non-SDK pairing test (Claude Desktop end-to-end)
 - [**#597**](https://github.com/neochaotic/powerlab/issues/597) — `journal://` drops non-text `MESSAGE` lines (binary blobs)
 - [**#598**](https://github.com/neochaotic/powerlab/issues/598) — wire golangci-lint A+ gate in CI
-- [**#603**](https://github.com/neochaotic/powerlab/issues/603) — real RBAC (admin tier) — backlog after MVP
+- [**#603**](https://github.com/neochaotic/powerlab/issues/603) — real RBAC (admin tier) — backlog
+- [**#606**](https://github.com/neochaotic/powerlab/issues/606) — body-limit returns HTTP 400 instead of 413
+- [**#607**](https://github.com/neochaotic/powerlab/issues/607) — `/version` exposes commit hash unauthenticated on LAN
 
-Beyond that, the **Foundation MVP** (ADR-0034) tracks:
-- Tools — `restart_app`, `prune_orphans`, `check_disk_free`, `read_file`, `journal_search`, `reset_audit`
-- Audit-recorder dogfood (MCP writes its own actions into `audit.jsonl`)
-- `powerlab-logs` CLI as an MCP client of itself
-- UI header button
+Beyond that:
+
+- **MCP write tools** — `restart_app`, `install_app`, `prune_orphans`, `reset_audit`, `journal_search`, `read_file`. Each gets its own threat-model review.
+- **Audit-recorder dogfood** — MCP writing its own actions into `audit.jsonl` so the agent's reads are auditable too.
+- **`powerlab-logs` CLI as an MCP client of itself.**
+- **UI header button** — one-click launch of the MCP surface in a new tab.
+- **JWT forwarding from MCP to upstream** — today the upstream's loopback skip handles the call; LAN agent-identity propagation lands when the MCP SDK surfaces the request context to handlers.
 
 ## References
 
-- [ADR-0034](../decisions/0034-standalone-observability-mcp-service.md) — Standalone observability + MCP service (the source of record)
-- [ADR-0033](../decisions/0033-audit-system-design.md) — Audit middleware + JSONL design
+- [ADR-0034](../decisions/0034-standalone-observability-mcp-service.md) — original standalone observability + MCP service decision (amended by ADR-0044)
+- [ADR-0044](../decisions/0044-mcp-hybrid-architecture-thin-proxy-to-core.md) — hybrid architecture: audit + journal stay independent, system:// thin-proxies to core
+- [ADR-0045](../decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md) — apps:// + docker:// thin-proxy to app-management (storage-agnostic, PostgreSQL-future-proof)
+- [ADR-0033](../decisions/0033-audit-system-design.md) — audit middleware + JSONL design
 - [ADR-0035](../decisions/0035-audit-jsonl-migration.md) — SQLite → JSONL migration that enables `audit://`
+- [ADR-0008](../decisions/0008-api-docs-portal-scalar.md) — Scalar API docs portal — same OpenAPI specs `docs://` serves
 - [Model Context Protocol spec](https://modelcontextprotocol.io) — the protocol PowerLab implements
 - [`modelcontextprotocol/go-sdk`](https://github.com/modelcontextprotocol/go-sdk) — the official Go SDK powerlab-mcp builds on
