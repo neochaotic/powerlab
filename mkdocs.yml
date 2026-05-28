@@ -158,6 +158,7 @@ nav:
   - Concepts:
       - Glossary: concepts/glossary.md
       - Security model: concepts/security-model.md
+      - MCP server (talk to your homelab): concepts/mcp-server.md
   - Operations:
       - HTTPS setup: HTTPS.md
       - Backup and restore: operations/backup-restore.md

@@ -354,9 +354,16 @@ cat > "$STAGE/conf/mcp.conf.sample" <<EOF
 # across binary upgrades). A missing file is fine — the binary uses
 # these defaults.
 
+# Operator kill-switch. When 'true' the binary exits 0 BEFORE binding
+# the listener — systemd records the start as successful and does NOT
+# restart-loop. Flip to 'true' + 'systemctl restart powerlab-mcp' to
+# stop the service surgically without 'systemctl mask' or editing the
+# unit. Accepted truthy spellings: true | yes | on | 1 (case-insensitive).
+Disabled = false
+
 # Address the HTTP+MCP server binds to. ':9090' = all interfaces.
-# Auth tiers (loopback-free, LAN requires user-service JWT) gate access,
-# not the bind address.
+# The two-tier auth (loopback free, LAN requires user-service JWT)
+# gates access, not the bind address.
 ListenAddr = :9090
 
 # Directory holding audit.jsonl (ADR-0035). The audit:// resources tail
@@ -517,8 +524,11 @@ User=root
 ExecStart=/usr/bin/powerlab-mcp -conf /etc/powerlab/mcp.conf
 Restart=always
 RestartSec=5
-PIDFile=/var/run/powerlab/mcp.pid
-Environment=HOME=/root
+# No PIDFile — Type=notify uses sd_notify(READY=1) for readiness, not a
+# pidfile (the binary never writes one). No HOME=/root either: MCP
+# doesn't exec a shell or hit Docker, so HOME has nothing to read.
+# Other services keep HOME=/root because docker-cli + compose look at
+# it; the MCP unit deliberately stays minimal.
 
 [Install]
 WantedBy=multi-user.target

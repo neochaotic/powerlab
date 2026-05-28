@@ -96,6 +96,14 @@ assert_grep_extended "mcp.conf.sample contains AuditDir" \
   "AuditDir"
 assert_grep_extended "mcp.conf.sample contains RuntimePath" \
   "RuntimePath"
+# The operator kill-switch documented in mcp.conf — flipping this lets
+# the operator stop MCP surgically (Disabled = true) without
+# `systemctl mask` or editing the unit. The binary parses it via
+# config.parseBool — exits 0 before binding when truthy. Locking the
+# default 'false' value here keeps "MVP ships enabled" honest in the
+# sample even if a future commit accidentally swaps it.
+assert_grep "mcp.conf.sample documents the Disabled kill-switch" \
+  "Disabled = false"
 
 echo "Test: powerlab-mcp.service systemd unit is emitted with the right ExecStart"
 # The MCP binary uses `-conf`, not `-c` like the other services. Wiring
@@ -112,6 +120,36 @@ assert_grep "ExecStart uses -conf (matching main.go's flag name)" \
 # only choice that exposes the full observability surface.
 assert_grep "User=root is set on powerlab-mcp.service (audit.jsonl is root:root 0600)" \
   "User=root"
+
+# Dead config that should NOT appear in the MCP unit: PIDFile (the
+# binary doesn't write one; Type=notify uses sd_notify, not a pidfile)
+# and Environment=HOME (MCP doesn't exec a shell or hit Docker). They
+# leaked in via copy-paste from the cohort template in #601 and were
+# removed alongside the kill-switch. Locking them out so a future
+# bulk-edit on the cohort template can't sneak them back into MCP.
+echo "Test: powerlab-mcp.service has no dead config copy-pasted from the cohort"
+mcp_unit_body=$(awk '
+  /powerlab-mcp\.service" <<EOF/ {flag=1; next}
+  /^EOF$/ && flag {flag=0}
+  flag {print}
+' "$TARGET")
+if [[ -z "$mcp_unit_body" ]]; then
+  echo "  FAIL: could not extract powerlab-mcp.service heredoc body" >&2
+  failures=$((failures + 1))
+else
+  if grep -q -F 'PIDFile=' <<<"$mcp_unit_body"; then
+    echo "  FAIL: powerlab-mcp.service still has PIDFile= (binary doesn't write one; Type=notify doesn't use it)" >&2
+    failures=$((failures + 1))
+  else
+    echo "  PASS: no PIDFile= in powerlab-mcp.service"
+  fi
+  if grep -q -F 'Environment=HOME=' <<<"$mcp_unit_body"; then
+    echo "  FAIL: powerlab-mcp.service still has Environment=HOME= (MCP doesn't exec shell / hit Docker)" >&2
+    failures=$((failures + 1))
+  else
+    echo "  PASS: no Environment=HOME= in powerlab-mcp.service"
+  fi
+fi
 
 echo "Test: install.sh stops/enables/restarts powerlab-mcp"
 # install.sh has multiple SERVICES arrays (stop-before-probe, enable+restart,

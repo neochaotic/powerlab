@@ -182,6 +182,32 @@ What makes the AI experience effortless:
 
 ---
 
+## Talk to your homelab.
+
+PowerLab ships a built-in **MCP (Model Context Protocol) server** at `:9090`. Connect Claude Desktop, Cursor, or Claude Code to it and your agent can read your box's metrics, journald logs, and audit trail — the same data the dashboard shows you, exposed to the agent over the official MCP transport.
+
+The UI is the pane of glass **for you.** MCP is the pane of glass **for your agent.** Same data, two surfaces. PowerLab stays the homelab dashboard it always was; MCP is a complementary surface, not a pivot.
+
+What an agent can do today (MVP, v0.7.5):
+
+- **Read system metrics** — `system://metrics` exposes CPU load, memory, uptime, disk, network straight from `/proc`
+- **Read PowerLab service logs** — `journal://gateway?lines=200`, `journal://core`, etc. Hard-scoped to PowerLab units — an agent cannot escape to SSH/PAM logs
+- **Read the audit trail** — `audit://recent` (newest entries), `audit://action/<correlation_id>` (everything one request triggered), `audit://schema` (self-describing)
+
+What it does **not** do in MVP:
+- **No writes.** No `restart_app`, no `prune_orphans`, no destructive tools — that's the next phase, with its own threat model
+- **No automatic pairing.** Today you paste a JWT into your client config (see the docs); a `powerlab pair` CLI is roadmap
+- **No internet exposure.** Binds `:9090` on the LAN with two-tier auth (loopback free, LAN needs your PowerLab token); PowerLab does not configure port-forwarding for you
+- **No service coupling.** MCP is isolated — it doesn't talk to Docker, the message-bus, or shared DBs. If MCP crashes, the rest of PowerLab keeps running
+
+**Opt out anytime** — flip `Disabled = true` in `/etc/powerlab/mcp.conf` and restart the unit. The binary exits cleanly without binding `:9090`.
+
+Full architecture + test recipes + Claude Desktop / Cursor / Code wire-up in the [MCP server docs](https://neochaotic.github.io/powerlab/concepts/mcp-server/).
+
+<br>
+
+---
+
 ## Install
 
 <details>

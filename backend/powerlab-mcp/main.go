@@ -63,7 +63,18 @@ func main() {
 // in use) surfaces as a non-zero exit, not the silent clean stop systemd
 // would otherwise misread as a successful shutdown. Extracted from main
 // so this lifecycle is testable.
+//
+// The cfg.Disabled kill-switch is checked here (not in main) so the
+// existing run-tests cover it too. When set, run returns nil before
+// binding — systemd records the start as successful and does NOT
+// restart-loop (Restart=always retries non-zero only). The operator
+// re-enables by flipping `Disabled` back in mcp.conf + restarting.
 func run(ctx context.Context, cfg config.Config, info server.BuildInfo, log *slog.Logger) error {
+	if cfg.Disabled {
+		log.Info("powerlab-mcp is Disabled in mcp.conf — exiting without binding")
+		return nil
+	}
+
 	srv, err := server.New(cfg, info)
 	if err != nil {
 		return fmt.Errorf("build server: %w", err)

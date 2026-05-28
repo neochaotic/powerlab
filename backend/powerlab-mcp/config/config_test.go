@@ -68,6 +68,40 @@ func TestLoad_IgnoresCommentsBlanksAndUnknownKeys(t *testing.T) {
 	}
 }
 
+// The Disabled key is the operator kill-switch. Default is false (the
+// service runs). When flipped to a truthy value the daemon exits 0
+// before binding — see main.go. The conf parser must recognise the
+// standard truthy spellings so `Disabled = 1` / `Disabled = true` /
+// `Disabled = on` all work, anything else stays "service runs".
+func TestLoad_DisabledKey(t *testing.T) {
+	cases := []struct {
+		name string
+		body string
+		want bool
+	}{
+		{"true wins", "Disabled = true\n", true},
+		{"yes wins", "Disabled = yes\n", true},
+		{"on wins", "Disabled = on\n", true},
+		{"1 wins", "Disabled = 1\n", true},
+		{"uppercase TRUE wins (case-insensitive)", "Disabled = TRUE\n", true},
+		{"false stays false", "Disabled = false\n", false},
+		{"empty value stays false (no accidental shutdown)", "Disabled =\n", false},
+		{"garbage stays false (no accidental shutdown)", "Disabled = blargh\n", false},
+		{"missing key stays at default false", "ListenAddr = :7000\n", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := Load(writeConf(t, tc.body))
+			if err != nil {
+				t.Fatalf("Load: %v", err)
+			}
+			if got.Disabled != tc.want {
+				t.Fatalf("Disabled = %v (body %q); want %v", got.Disabled, tc.body, tc.want)
+			}
+		})
+	}
+}
+
 // A syntactically broken line (no '=') must be skipped, not abort the
 // load — a single fat-fingered line should never take the service down.
 func TestLoad_SkipsMalformedLines(t *testing.T) {
