@@ -3,6 +3,7 @@ package journal
 import (
 	"context"
 	"slices"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -45,6 +46,25 @@ func TestBuildArgs_LinesSincePriority(t *testing.T) {
 	}
 }
 
+// With no lines requested, journalctl would otherwise dump the entire
+// journal since boot — a token/memory blowout that violates the
+// "query, not dump" principle. BuildArgs must apply a default cap.
+func TestBuildArgs_DefaultsToLineCapWhenUnset(t *testing.T) {
+	got := BuildArgs(Query{}) // Lines unset
+	if !argPair(got, "-n", strconv.Itoa(defaultLines)) {
+		t.Fatalf("args %v: with no lines requested, want a default -n %d cap", got, defaultLines)
+	}
+}
+
+// An absurd lines value must be clamped so a single request can't pull
+// the whole journal into memory / the agent's context.
+func TestBuildArgs_ClampsExcessiveLines(t *testing.T) {
+	got := BuildArgs(Query{Lines: 10_000_000})
+	if !argPair(got, "-n", strconv.Itoa(maxLines)) {
+		t.Fatalf("args %v: an excessive lines request must clamp to -n %d", got, maxLines)
+	}
+}
+
 func TestParse_NDJSON(t *testing.T) {
 	const micros = int64(1716854400123456)
 	line := `{"__REALTIME_TIMESTAMP":"1716854400123456","_SYSTEMD_UNIT":"powerlab-core.service","PRIORITY":"6","MESSAGE":"started"}`
@@ -70,6 +90,23 @@ func TestParse_NDJSON(t *testing.T) {
 	}
 	if entries[1].Priority != 3 {
 		t.Fatalf("entry[1].Priority = %d; want 3", entries[1].Priority)
+	}
+}
+
+// An entry with no PRIORITY field must default to info (6), not 0 —
+// 0 is "emergency", and inflating every unprioritised line to emergency
+// would wreck an agent's triage.
+func TestParse_MissingPriorityDefaultsToInfo(t *testing.T) {
+	line := `{"__REALTIME_TIMESTAMP":"1716854400000000","_SYSTEMD_UNIT":"powerlab-core.service","MESSAGE":"no priority field"}`
+	entries, err := Parse([]byte(line + "\n"))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("got %d entries; want 1", len(entries))
+	}
+	if entries[0].Priority != 6 {
+		t.Fatalf("missing PRIORITY → %d; want 6 (info), not 0 (emergency)", entries[0].Priority)
 	}
 }
 

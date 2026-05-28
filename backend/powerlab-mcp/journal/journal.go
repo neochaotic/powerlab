@@ -23,6 +23,19 @@ import (
 	"time"
 )
 
+// Line-count bounds. journalctl with no -n dumps the entire journal
+// since boot; the resource always caps it. defaultLines applies when the
+// caller asks for none; maxLines is the hard ceiling so one request
+// can't pull the whole journal into memory / the agent's context.
+const (
+	defaultLines = 200
+	maxLines     = 2000
+)
+
+// priorityInfo is the syslog "info" level — the fallback for a journal
+// record with no PRIORITY field (0 would mean "emergency").
+const priorityInfo = 6
+
 // Entry is one journal record, flattened to the fields the MCP resource
 // exposes.
 type Entry struct {
@@ -35,7 +48,7 @@ type Entry struct {
 // Query is the agent-facing filter for a journal read.
 type Query struct {
 	Unit     string // bare or full unit; canonicalised to powerlab-<x>.service
-	Lines    int    // 0 = journalctl default
+	Lines    int    // 0 → defaultLines; clamped to maxLines
 	Since    string // passed to --since (e.g. "1h", "2026-05-28 00:00:00")
 	Priority string // passed to -p (e.g. "err", "3")
 }
@@ -53,9 +66,14 @@ func BuildArgs(q Query) []string {
 	} else {
 		args = append(args, "-u", canonicalUnit(q.Unit))
 	}
-	if q.Lines > 0 {
-		args = append(args, "-n", strconv.Itoa(q.Lines))
+	lines := q.Lines
+	if lines <= 0 {
+		lines = defaultLines
 	}
+	if lines > maxLines {
+		lines = maxLines
+	}
+	args = append(args, "-n", strconv.Itoa(lines))
 	if q.Since != "" {
 		args = append(args, "--since", q.Since)
 	}
@@ -115,7 +133,7 @@ func Parse(b []byte) ([]Entry, error) {
 		entries = append(entries, Entry{
 			Time:     realtimeToRFC3339(r.Realtime),
 			Unit:     r.Unit,
-			Priority: atoiOr(r.Priority, 0),
+			Priority: atoiOr(r.Priority, priorityInfo),
 			Message:  r.Message,
 		})
 	}
