@@ -122,8 +122,12 @@ func newServer(info BuildInfo, pubKey publicKeyFunc, rc resourcesConfig) *Server
 // the real protocol path.
 func newMCPServer(info BuildInfo, rc resourcesConfig, journalRun journal.Runner) *mcp.Server {
 	m := mcp.NewServer(&mcp.Implementation{Name: "powerlab-mcp", Version: info.Version}, nil)
+	registerSystemSchema(m)
 	registerSystemMetrics(m, rc.procRoot)
 	registerSystemUtilization(m, rc.coreClient)
+	registerSystemDisk(m, rc.coreClient)
+	registerSystemNetwork(m, rc.coreClient)
+	registerSystemGPU(m)
 	registerJournal(m, journalRun)
 	registerJournalUnits(m, rc.systemdSystemDir)
 	registerAudit(m, rc.auditPath)

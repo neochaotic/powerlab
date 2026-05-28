@@ -129,8 +129,55 @@ func readAndAssert(ctx context.Context, cs *mcp.ClientSession, uri string) int {
 		return assertAuditRecords(uri, payload)
 	case uri == "system://metrics":
 		return assertSystemMetrics(payload)
-	case uri == "system://utilization":
+	case uri == "system://utilization",
+		uri == "system://disk",
+		uri == "system://network":
+		// All three are thin proxies to core (ADR-0044). On a box where
+		// core is up the payload is the upstream JSON; with core down
+		// they share the same core_unavailable shape — assertProxiedPayload
+		// handles both, treating the degraded path as WARN with an
+		// audit + journal fallback hint.
 		return assertProxiedPayload(uri, payload)
+	case uri == "system://gpu":
+		return assertSystemGPU(payload)
+	}
+	return 0
+}
+
+// assertSystemGPU validates the system://gpu payload shape. The
+// resource imports common/external::GetGPUUtilization directly so it
+// never errors — on a no-GPU box it returns an empty struct (model=""),
+// on Apple Silicon / Nvidia it carries real numbers. The contract is:
+// every field present, never null, percent in 0..100, temperature
+// non-negative. An empty model is fine (it means "no GPU detected"),
+// not a failure.
+func assertSystemGPU(payload string) int {
+	if payload == "null" {
+		fmt.Fprintf(os.Stderr, "FAIL  system://gpu — payload is literal null (handler bug)\n")
+		return 1
+	}
+	var g struct {
+		Percent     float64 `json:"percent"`
+		MemoryUsed  int64   `json:"memoryUsed"`
+		Model       string  `json:"model"`
+		Temperature int     `json:"temperature"`
+	}
+	if err := json.Unmarshal([]byte(payload), &g); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  system://gpu — payload is not a JSON object: %v\n", err)
+		return 1
+	}
+	if g.Percent < 0 || g.Percent > 100 {
+		fmt.Fprintf(os.Stderr, "FAIL  system://gpu — percent=%v out of 0..100\n", g.Percent)
+		return 1
+	}
+	if g.Temperature < 0 {
+		fmt.Fprintf(os.Stderr, "FAIL  system://gpu — temperature=%d negative\n", g.Temperature)
+		return 1
+	}
+	if g.Model == "" {
+		fmt.Printf("      → no GPU detected (empty model — not a failure)\n")
+	} else {
+		fmt.Printf("      → %s (%.1f%% util, %d MiB used, %d°C)\n", g.Model, g.Percent, g.MemoryUsed/(1024*1024), g.Temperature)
 	}
 	return 0
 }
@@ -174,27 +221,36 @@ func assertProxiedPayload(uri, payload string) int {
 }
 
 // assertSchemaPayload validates that a self-describing schema parses as
-// JSON and carries a non-empty "description" + at least one documented
-// field — the contract every schema:// resource implements.
+// JSON and carries a non-empty "description" + at least one
+// fields-style map. Audit + journal schemas use a single "fields" key;
+// system://schema uses one per resource ("fields_metrics", "fields_gpu",
+// …) because each system:// resource has a different shape. Either
+// pattern is acceptable — the contract is "the schema tells the agent
+// what fields it will see."
 func assertSchemaPayload(uri, payload string) int {
-	var s struct {
-		Description string                 `json:"description"`
-		Resources   map[string]string      `json:"resources"`
-		Fields      map[string]interface{} `json:"fields"`
-	}
+	var s map[string]interface{}
 	if err := json.Unmarshal([]byte(payload), &s); err != nil {
 		fmt.Fprintf(os.Stderr, "FAIL  %s — schema is not valid JSON: %v\n", uri, err)
 		return 1
 	}
-	if s.Description == "" {
+	desc, _ := s["description"].(string)
+	if desc == "" {
 		fmt.Fprintf(os.Stderr, "FAIL  %s — schema missing 'description' (agents read this)\n", uri)
 		return 1
 	}
-	if len(s.Fields) == 0 {
-		fmt.Fprintf(os.Stderr, "FAIL  %s — schema documents zero fields\n", uri)
+	fieldCount := 0
+	for k, v := range s {
+		if k == "fields" || strings.HasPrefix(k, "fields_") {
+			if m, ok := v.(map[string]interface{}); ok {
+				fieldCount += len(m)
+			}
+		}
+	}
+	if fieldCount == 0 {
+		fmt.Fprintf(os.Stderr, "FAIL  %s — schema documents zero fields (no 'fields' or 'fields_*' map with entries)\n", uri)
 		return 1
 	}
-	fmt.Printf("      → description set + %d field(s) documented\n", len(s.Fields))
+	fmt.Printf("      → description set + %d field(s) documented across fields/fields_* maps\n", fieldCount)
 	return 0
 }
 
