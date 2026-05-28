@@ -1,0 +1,5 @@
+kind: Internal
+body: 'powerlab-mcp: add the journal:// resource — systemd journal entries (time/unit/priority/message) via journalctl, plus a self-describing journal://schema. Access is scoped to PowerLab units (powerlab-*.service): the agent-supplied unit is canonicalised, not passed through, and args go to exec as a literal argv (no shell), so there is no flag/shell-injection or cross-service log-read surface. Query params lines/since/priority via an RFC 6570 template.'
+time: 2026-05-28T02:30:00Z
+custom:
+    Issue: ""

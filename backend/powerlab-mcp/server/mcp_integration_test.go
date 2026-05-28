@@ -12,8 +12,18 @@ import (
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/mcp"
 
+	"github.com/neochaotic/powerlab/backend/powerlab-mcp/journal"
 	"github.com/neochaotic/powerlab/backend/powerlab-mcp/metrics"
 )
+
+// fixtureJournalRunner returns a journal.Runner that yields canned
+// journalctl NDJSON, so journal:// is exercised end-to-end without a
+// real journalctl.
+func fixtureJournalRunner(out string) journal.Runner {
+	return func(_ context.Context, _ []string) ([]byte, error) {
+		return []byte(out), nil
+	}
+}
 
 // writeProcFixtures lays down a deterministic /proc so the system://
 // resource serves known values on any OS (the macOS dev box has no
@@ -77,7 +87,7 @@ func assertMetricsResource(t *testing.T, ctx context.Context, cli *client.Client
 // resources/list → resources/read) works against the registered
 // resources, bypassing the HTTP transport and auth.
 func TestMCP_InProcess_ReadSystemMetrics(t *testing.T) {
-	srv := newMCPServer(BuildInfo{Version: "test"}, writeProcFixtures(t))
+	srv := newMCPServer(BuildInfo{Version: "test"}, writeProcFixtures(t), fixtureJournalRunner(""))
 	cli, err := client.NewInProcessClient(srv)
 	if err != nil {
 		t.Fatalf("NewInProcessClient: %v", err)
@@ -92,6 +102,72 @@ func TestMCP_InProcess_ReadSystemMetrics(t *testing.T) {
 		t.Fatalf("initialize: %v", err)
 	}
 	assertMetricsResource(t, ctx, cli)
+}
+
+// journal:// over the MCP protocol: the schema resource is discoverable
+// and the templated journal://{unit} read returns the parsed entries
+// from the (fixture) journalctl output.
+func TestMCP_InProcess_ReadJournal(t *testing.T) {
+	out := `{"__REALTIME_TIMESTAMP":"1716854400000000","_SYSTEMD_UNIT":"powerlab-core.service","PRIORITY":"3","MESSAGE":"disk full"}` + "\n"
+	srv := newMCPServer(BuildInfo{Version: "test"}, t.TempDir(), fixtureJournalRunner(out))
+	cli, err := client.NewInProcessClient(srv)
+	if err != nil {
+		t.Fatalf("NewInProcessClient: %v", err)
+	}
+	defer func() { _ = cli.Close() }()
+
+	ctx := t.Context()
+	if err := cli.Start(ctx); err != nil {
+		t.Fatalf("client.Start: %v", err)
+	}
+	if _, err := cli.Initialize(ctx, mcp.InitializeRequest{}); err != nil {
+		t.Fatalf("initialize: %v", err)
+	}
+
+	// journal://schema is a static resource — it must be advertised.
+	list, err := cli.ListResources(ctx, mcp.ListResourcesRequest{})
+	if err != nil {
+		t.Fatalf("ListResources: %v", err)
+	}
+	if !hasResource(list.Resources, journalSchemaURI) {
+		t.Fatalf("journal://schema not advertised in resources/list")
+	}
+
+	// Reading the templated journal://{unit} URI returns the parsed entry.
+	req := mcp.ReadResourceRequest{}
+	req.Params.URI = "journal://core?lines=10"
+	res, err := cli.ReadResource(ctx, req)
+	if err != nil {
+		t.Fatalf("ReadResource(journal://core): %v", err)
+	}
+	text, ok := mcp.AsTextResourceContents(res.Contents[0])
+	if !ok {
+		t.Fatalf("journal content is not text: %T", res.Contents[0])
+	}
+	var got []journal.Entry
+	if err := json.Unmarshal([]byte(text.Text), &got); err != nil {
+		t.Fatalf("journal payload is not []Entry JSON: %v (payload=%q)", err, text.Text)
+	}
+	if len(got) != 1 || got[0].Message != "disk full" || got[0].Priority != 3 {
+		t.Fatalf("journal entries = %+v; want one entry 'disk full' priority 3", got)
+	}
+
+	// The query is optional — an agent may read journal://<unit> with no
+	// params. The template must still match.
+	bare := mcp.ReadResourceRequest{}
+	bare.Params.URI = "journal://core"
+	if _, err := cli.ReadResource(ctx, bare); err != nil {
+		t.Fatalf("ReadResource(journal://core) with no query: %v", err)
+	}
+}
+
+func hasResource(rs []mcp.Resource, uri string) bool {
+	for _, r := range rs {
+		if r.URI == uri {
+			return true
+		}
+	}
+	return false
 }
 
 // Over the real HTTP Streamable transport: this closes the gap the
