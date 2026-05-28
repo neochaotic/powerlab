@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -175,7 +174,3 @@ func newMCPServerWithDocs(info BuildInfo, openAPIDir string) *mcp.Server {
 	registerDocs(m, openAPIDir)
 	return m
 }
-
-// connectInProcess is reused from mcp_integration_test.go — we don't
-// duplicate it here; the test file picks it up from the package.
-func _docsTestImport(_ context.Context) {}

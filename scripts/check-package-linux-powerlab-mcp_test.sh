@@ -104,6 +104,40 @@ assert_grep_extended "mcp.conf.sample contains RuntimePath" \
 # sample even if a future commit accidentally swaps it.
 assert_grep "mcp.conf.sample documents the Disabled kill-switch" \
   "Disabled = false"
+# ADR-0044 keys: the hybrid-architecture proxy needs operators to know
+# about OpenAPIDir (where docs:// reads YAML specs from) + SystemdSystemDir
+# (where journal://units enumerates installed PowerLab services).
+# Without these in the sample the keys exist in the Config struct but
+# are invisible to operators reading /etc/powerlab/mcp.conf.sample.
+assert_grep "mcp.conf.sample documents OpenAPIDir (ADR-0044)" \
+  "OpenAPIDir = /usr/share/powerlab/openapi"
+assert_grep "mcp.conf.sample documents SystemdSystemDir (ADR-0044)" \
+  "SystemdSystemDir = /etc/systemd/system"
+
+# ADR-0044 packaging contract: install.sh creates the OpenAPI dir and
+# the package-linux.sh stage step copies the per-service specs. Without
+# this the docs://api manifest returns empty in production — the
+# feature ships but doesn't work.
+echo "Test: ADR-0044 OpenAPI staging + install path"
+assert_grep "openapi STAGE dir is created" \
+  '"$STAGE/openapi"'
+assert_grep "OPENAPI_SERVICES list is iterated" \
+  "OPENAPI_SERVICES=(gateway core app-management user-service message-bus local-storage)"
+assert_grep "install.sh creates /usr/share/powerlab/openapi" \
+  "install -d -m 0755 /usr/share/powerlab/openapi"
+assert_grep "install.sh installs the specs" \
+  '/usr/share/powerlab/openapi/'
+
+# ADR-0044 systemd dependency: powerlab-mcp.service must soft-depend
+# on powerlab-core.service so proxy reads (system://utilization etc.)
+# can rely on core being up whenever it CAN be. Wants= (not Requires=)
+# keeps MCP startable when core is down — the resources serve a
+# structured core_unavailable payload instead of crashing the service.
+echo "Test: powerlab-mcp.service soft-depends on core (ADR-0044)"
+assert_grep "After= includes powerlab-core.service" \
+  "After=network.target powerlab-gateway.service powerlab-user-service.service powerlab-core.service"
+assert_grep "Wants= includes powerlab-core.service" \
+  "Wants=powerlab-gateway.service powerlab-user-service.service powerlab-core.service"
 
 echo "Test: powerlab-mcp.service systemd unit is emitted with the right ExecStart"
 # The MCP binary uses `-conf`, not `-c` like the other services. Wiring

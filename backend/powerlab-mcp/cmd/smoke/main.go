@@ -129,7 +129,47 @@ func readAndAssert(ctx context.Context, cs *mcp.ClientSession, uri string) int {
 		return assertAuditRecords(uri, payload)
 	case uri == "system://metrics":
 		return assertSystemMetrics(payload)
+	case uri == "system://utilization":
+		return assertProxiedPayload(uri, payload)
 	}
+	return 0
+}
+
+// assertProxiedPayload accepts EITHER a core-shaped payload (any valid
+// JSON object) OR the canonical core_unavailable shape from
+// coreproxy.AsErrorPayload. Treats core-down as a WARN (the box
+// running this smoke may be a Mac dev machine or have core stopped —
+// neither is a FAIL of the MCP layer itself), and an actual upstream
+// payload as a PASS. Used by every system://* / apps://* resource
+// that proxies through coreproxy (ADR-0044).
+func assertProxiedPayload(uri, payload string) int {
+	var probe struct {
+		Error    string `json:"error"`
+		Detail   string `json:"detail"`
+		Fallback string `json:"fallback"`
+	}
+	if err := json.Unmarshal([]byte(payload), &probe); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  %s — payload is not valid JSON: %v\n", uri, err)
+		return 1
+	}
+	if probe.Error == "core_unavailable" || strings.HasPrefix(probe.Error, "core_status_") {
+		// Canonical core-down shape — not a smoke failure, but call
+		// it out so the operator sees that the surface is degraded.
+		fmt.Printf("      → WARN: core is down (%s: %s) — proxy resource degraded, audit + journal still readable\n", probe.Error, probe.Detail)
+		if !strings.Contains(probe.Fallback, "audit") || !strings.Contains(probe.Fallback, "journal") {
+			fmt.Fprintf(os.Stderr, "FAIL  %s — degraded payload missing fallback hint pointing at audit + journal\n", uri)
+			return 1
+		}
+		return 0
+	}
+	// Real upstream payload: confirm it parsed as a JSON object and
+	// isn't empty. Resource-specific shape checks live in the
+	// resource-dedicated assertions (this is the catch-all).
+	if len(payload) < 2 || payload == "null" {
+		fmt.Fprintf(os.Stderr, "FAIL  %s — proxied payload is empty / null\n", uri)
+		return 1
+	}
+	fmt.Printf("      → proxied payload OK (%d bytes from core)\n", len(payload))
 	return 0
 }
 
