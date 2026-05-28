@@ -184,21 +184,28 @@ What makes the AI experience effortless:
 
 ## Talk to your homelab.
 
-PowerLab ships a built-in **MCP (Model Context Protocol) server** at `:9090`. Connect Claude Desktop, Cursor, or Claude Code to it and your agent can read your box's metrics, journald logs, and audit trail — the same data the dashboard shows you, exposed to the agent over the official MCP transport.
+PowerLab ships a built-in **MCP (Model Context Protocol) server** at `:9090`. Connect Claude Desktop, Cursor, or Claude Code to it and your agent reads your box's **metrics, journald logs, audit trail, installed apps, container logs, and the entire PowerLab OpenAPI surface** — the same data the dashboard shows you, exposed over the official MCP transport.
 
 The UI is the pane of glass **for you.** MCP is the pane of glass **for your agent.** Same data, two surfaces. PowerLab stays the homelab dashboard it always was; MCP is a complementary surface, not a pivot.
 
-What an agent can do today (MVP, v0.7.5):
+What an agent can do today — **12 advertised resources**:
 
-- **Read system metrics** — `system://metrics` exposes CPU load, memory, uptime, disk, network straight from `/proc`
-- **Read PowerLab service logs** — `journal://gateway?lines=200`, `journal://core`, etc. Hard-scoped to PowerLab units — an agent cannot escape to SSH/PAM logs
-- **Read the audit trail** — `audit://recent` (newest entries), `audit://action/<correlation_id>` (everything one request triggered), `audit://schema` (self-describing)
+- **`system://`** — CPU, memory, load, uptime, **disk + SMART, network, GPU (Apple Silicon + Nvidia), temperature**. Mix of `/proc` direct + thin-proxy to core's `/v1/sys/*`. Same data the dashboard widgets read.
+- **`journal://`** — PowerLab service logs (`journal://gateway?lines=200`, `journal://core`, ...). Hard-scoped to PowerLab units — an agent cannot escape to SSH / PAM logs.
+- **`audit://`** — newest audit entries, plus filter by correlation id (everything one request triggered).
+- 🔜 **`apps://`** — installed-apps manifest + per-app state, containers, health, stats, disk footprint. Thin-proxy through app-management.
+- 🔜 **`docker://logs/<app>`** — container logs proxied through app-management. **MCP never touches the Docker socket** (security win — see [ADR-0045](docs/decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md)).
+- **`docs://api`** — the OpenAPI specs of every PowerLab service. Agent self-discovers what's callable.
 
-What it does **not** do in MVP:
-- **No writes.** No `restart_app`, no `prune_orphans`, no destructive tools — that's the next phase, with its own threat model
-- **No automatic pairing.** Today you paste a JWT into your client config (see the docs); a `powerlab pair` CLI is roadmap
-- **No internet exposure.** Binds `:9090` on the LAN with two-tier auth (loopback free, LAN needs your PowerLab token); PowerLab does not configure port-forwarding for you
-- **No service coupling.** MCP is isolated — it doesn't talk to Docker, the message-bus, or shared DBs. If MCP crashes, the rest of PowerLab keeps running
+(🔜 = shipped, in stabilisation — first weeks of v0.7.5.)
+
+What it does **not** do yet:
+- **No write actions.** Read-only across the board. Destructive tools (`install_app`, `restart_app`, `prune_orphans`) land in the next phase with their own threat-model ADR — see [forthcoming ADR-0046](docs/decisions/) on the curation strategy.
+- **No automatic pairing.** Today you paste a JWT into your client config; a `powerlab pair` CLI is roadmap.
+- **No internet exposure.** Binds `:9090` on the LAN with two-tier auth (loopback free, LAN needs your PowerLab token); PowerLab does not configure port-forwarding for you.
+- **No RBAC.** Any authenticated agent has full read access — every PowerLab user is hardcoded admin today. Real role-based access is tracked separately.
+
+**Storage-agnostic by construction.** When PowerLab eventually migrates from SQLite to PostgreSQL, MCP requires zero changes — the HTTP contract is the abstraction.
 
 **Opt out anytime** — flip `Disabled = true` in `/etc/powerlab/mcp.conf` and restart the unit. The binary exits cleanly without binding `:9090`.
 
