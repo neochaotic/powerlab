@@ -66,9 +66,16 @@ func TestMCPEndpointIsMounted(t *testing.T) {
 	body := strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}`)
 	req := httptest.NewRequest(http.MethodPost, MCPEndpointPath, body)
 	req.Header.Set("Content-Type", "application/json")
+	// From loopback so the read-tier gate skips auth and the request
+	// actually reaches the MCP handler — otherwise we'd only be proving
+	// the gate 401s, not that the transport is mounted behind it.
+	req.RemoteAddr = "127.0.0.1:54321"
 	newTestHandler(t).ServeHTTP(rec, req)
 
 	if rec.Code == http.StatusNotFound {
 		t.Fatalf("POST %s returned 404 — the MCP transport is not mounted", MCPEndpointPath)
+	}
+	if rec.Code == http.StatusUnauthorized {
+		t.Fatalf("POST %s from loopback returned 401 — the read-tier gate must skip loopback", MCPEndpointPath)
 	}
 }

@@ -13,6 +13,8 @@ import (
 	"io/fs"
 	"os"
 	"strings"
+
+	"github.com/neochaotic/powerlab/backend/common/utils/constants"
 )
 
 // Config is powerlab-mcp's resolved runtime configuration.
@@ -26,14 +28,21 @@ type Config struct {
 	// (audit.jsonl) that the audit:// resources tail read-only.
 	// Matches the path the audit middleware writes to (ADR-0035).
 	AuditDir string
+
+	// RuntimePath is the PowerLab runtime directory where the
+	// user-service publishes its address file. The read-tier auth gate
+	// resolves the JWT public key (JWKS) from there to validate LAN
+	// callers' tokens. Defaults to the platform runtime path.
+	RuntimePath string
 }
 
 // Default returns the configuration used when no conf file is present
 // or for any key the conf omits.
 func Default() Config {
 	return Config{
-		ListenAddr: ":9090",
-		AuditDir:   "/var/log/powerlab",
+		ListenAddr:  ":9090",
+		AuditDir:    "/var/log/powerlab",
+		RuntimePath: constants.DefaultRuntimePath,
 	}
 }
 
@@ -70,6 +79,8 @@ func Load(path string) (Config, error) {
 			cfg.ListenAddr = val
 		case "auditdir":
 			cfg.AuditDir = val
+		case "runtimepath":
+			cfg.RuntimePath = val
 			// unknown keys: ignored on purpose (forward-compatible)
 		}
 	}
