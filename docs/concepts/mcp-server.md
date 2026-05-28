@@ -89,11 +89,11 @@ Two control endpoints sit alongside `/mcp` for systemd + monitoring:
 
 | Endpoint | Auth | What it returns |
 |---|---|---|
-| `GET /healthz` | open | `{"status":"ok"}` — used by `Type=notify` startup probe & operators |
-| `GET /version` | open | ldflags-injected `{version, commit, date}` — proves which build is running |
-| `POST /mcp` | two-tier | the Streamable HTTP transport |
+| `GET /healthz` | open | plain text `ok\n` (Content-Type `text/plain`) — cheapest possible probe |
+| `GET /version` | open | ldflags-injected `{"version":"…","commit":"…","date":"…"}` — proves which build is running |
+| `POST /mcp` | two-tier | the Streamable HTTP transport (response is Server-Sent Events; messages framed as `event: message\n data: <JSON-RPC>`) |
 
-Why `/healthz` and `/version` stay open: a probe that needs a token is not a probe. They expose no operator data — `/version` just says "powerlab-mcp 0.7.5 commit abc1234".
+Why `/healthz` and `/version` stay open: a probe that needs a token is not a probe. They expose no operator data — `/version` just says "powerlab-mcp 0.7.5 commit abc1234". A development build (no ldflags) reports the three fields as the literal string `"private build"`.
 
 ### The auth flow
 
@@ -198,23 +198,28 @@ The numbered steps mirror the package layout:
 The loopback path skips JWT, so you can verify MCP is alive without paring anything:
 
 ```bash
-# Health + version (the systemd unit + monitoring use these)
-curl -sf http://127.0.0.1:9090/healthz && echo "  /healthz OK"
+# Health + version (the systemd unit + monitoring use these — plain
+# HTTP, no MCP protocol overhead)
+curl -sf http://127.0.0.1:9090/healthz && echo "  /healthz OK"  # prints: ok
 curl -sf http://127.0.0.1:9090/version | jq .
+# {"version":"0.7.5","commit":"abc1234","date":"2026-05-28T…"}
 
-# JSON-RPC: list every resource MCP advertises
-curl -sf http://127.0.0.1:9090/mcp \
+# MCP itself: the Streamable HTTP transport is stateful — every request
+# returns a Server-Sent Events stream framed as
+#   event: message
+#   data: {"jsonrpc":"2.0", …}
+# and the SDK expects a 3-step handshake (initialize → notifications/initialized →
+# whatever you actually want). Doing it by hand via curl is awkward — you
+# have to keep the Mcp-Session-Id header consistent across requests.
+# So for one-off MCP testing, prefer the Go smoke client below. Curl is
+# fine for /healthz + /version (above) and for confirming MCP is *listening*:
+curl -sfv -X POST http://127.0.0.1:9090/mcp \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
   -H 'MCP-Protocol-Version: 2025-06-18' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"resources/list"}' | jq .
-
-# Read a specific resource (system://metrics is always available)
-curl -sf http://127.0.0.1:9090/mcp \
-  -H 'Content-Type: application/json' \
-  -H 'Accept: application/json, text/event-stream' \
-  -H 'MCP-Protocol-Version: 2025-06-18' \
-  -d '{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"system://metrics"}}' | jq .
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","clientInfo":{"name":"curl","version":"1"},"capabilities":{}}}'
+# Expect: a 200 response with `event: message\ndata: {"jsonrpc":"2.0","id":1,
+# "result":{"capabilities":…,"protocolVersion":"2025-06-18","serverInfo":{"name":"powerlab-mcp",…}}}`
 ```
 
 ### From your laptop (LAN, needs a JWT)
