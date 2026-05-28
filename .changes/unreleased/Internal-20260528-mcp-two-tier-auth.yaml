@@ -1,0 +1,5 @@
+kind: Internal
+body: 'powerlab-mcp: amend ADR-0034 to drop the three-tier auth fiction. The stack today has no Role claim on the JWT and every user is hardcoded admin at registration (user-service/route/v1/user.go:65,140), so a third "admin" tier would be doc-theatre without enforcement. The actual model is two-tier: loopback (trusted local) / authenticated (any valid PowerLab JWT). Tools added later inherit the same gate — any authenticated caller can call any tool until real RBAC lands (backlog #603). Updates ADR-0034 table + rationale + acceptance checklist; updates backend/powerlab-mcp/server/server.go package doc to match.'
+time: 2026-05-28T14:30:00Z
+custom:
+    Issue: "603"

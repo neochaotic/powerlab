@@ -3,15 +3,18 @@
 // poll, plus the MCP transport (Streamable HTTP, the 2025-06-18 spec
 // transport) mounted at /mcp.
 //
-// The MCP endpoint is gated at the read tier (ADR-0034): reachable
-// freely from loopback (the trusted local agent / dogfood case), but a
-// LAN caller must present a valid PowerLab user-service JWT. The
-// control endpoints stay open — a health probe that needs a token is
-// not a health probe. The auth/admin tiers for state-changing tools are
-// enforced per-tool via MCP middleware once tools exist.
+// The MCP endpoint is gated two-tier (ADR-0034): reachable freely from
+// loopback (the trusted local agent / dogfood case), but a LAN caller
+// must present a valid PowerLab user-service JWT. The control endpoints
+// stay open — a health probe that needs a token is not a health probe.
 //
-// No resources or tools are registered yet — those land in the
-// follow-up PRs (system://, journal://, audit://).
+// There is intentionally NO third "admin" tier: jwt.Claims carries no
+// role field today and every PowerLab user is hardcoded admin at
+// registration. Pretending a role gate exists would be doc-theatre
+// without enforcement. Real RBAC is a separate ADR + backlog item.
+//
+// Tools added later inherit the same two-tier gate — any caller that
+// passed the JWT check can call any tool until RBAC lands.
 package server
 
 import (
