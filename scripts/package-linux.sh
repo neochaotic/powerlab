@@ -27,7 +27,7 @@ log() { echo "[powerlab-pkg] $*"; }
 # ─── 1. Clean & prepare ──────────────────────────────────────────────────
 log "Packaging PowerLab v$VERSION for linux/$ARCH"
 rm -rf "$STAGE" "$TARBALL"
-mkdir -p "$STAGE/bin" "$STAGE/conf" "$STAGE/systemd" "$STAGE/store" "$STAGE/community-catalog" "$STAGE/shell"
+mkdir -p "$STAGE/bin" "$STAGE/conf" "$STAGE/systemd" "$STAGE/store" "$STAGE/community-catalog" "$STAGE/shell" "$STAGE/openapi"
 
 # ─── 2. Cross-compile Go services ────────────────────────────────────────
 log "Cross-compiling backend services for linux/$ARCH..."
@@ -216,6 +216,29 @@ GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
   -o "$STAGE/bin/powerlab-mcp" \
   .
 
+# ─── 2.7 Stage OpenAPI specs for docs:// (ADR-0044) ─────────────────────
+# powerlab-mcp's docs://api resource serves the OpenAPI specs of every
+# PowerLab service as MCP resources — the agent self-discovers the API
+# surface without us hand-coding tools. The MCP binary reads them at
+# runtime from cfg.OpenAPIDir (default /usr/share/powerlab/openapi/).
+# install.sh lays them down there from this staged directory.
+#
+# Each service publishes its canonical spec at backend/<svc>/api/<svc>/
+# openapi.yaml — copy each into $STAGE/openapi/<svc>.yaml. A missing
+# upstream spec is logged but not fatal: a future service that hasn't
+# published a spec yet shouldn't break the release.
+log "Staging OpenAPI specs for docs://api (ADR-0044)..."
+OPENAPI_SERVICES=(gateway core app-management user-service message-bus local-storage)
+for svc in "${OPENAPI_SERVICES[@]}"; do
+  src="$ROOT/backend/$svc/api/$svc/openapi.yaml"
+  if [[ -f "$src" ]]; then
+    cp "$src" "$STAGE/openapi/$svc.yaml"
+    log "  staged $svc.yaml ($(wc -c < "$src" | tr -d ' ') bytes)"
+  else
+    log "  WARN: $src missing — docs://api/$svc will be unavailable until the spec is published"
+  fi
+done
+
 # ─── 3. (frontend) ───────────────────────────────────────────────────────
 # ADR-0043 phase 3: the UI is embedded in the gateway binary (staged into
 # the embed dir at step 1.5), so the tarball no longer ships a separate
@@ -373,7 +396,21 @@ AuditDir = /var/log/powerlab
 
 # PowerLab runtime directory where user-service publishes its address
 # file. The read-tier JWT gate resolves the JWKS public key from there.
+# Also used by coreproxy to read core's .url file (ADR-0044) and proxy
+# system://utilization + other sysadmin resources.
 RuntimePath = /var/run/powerlab
+
+# Directory holding the bundled OpenAPI specs served by docs://api
+# (ADR-0044). One file per PowerLab service named "<service>.yaml".
+# Populated by install.sh at install time. A missing or empty
+# directory makes docs://api return an empty manifest (no error).
+OpenAPIDir = /usr/share/powerlab/openapi
+
+# Directory journal://units scans for powerlab-<svc>.service units
+# the agent can read via journal://{unit}. /etc/systemd/system is
+# where install.sh drops the unit files. Override only if you've
+# customised systemd's unit search path.
+SystemdSystemDir = /etc/systemd/system
 EOF
 
 # ─── 5. systemd units ────────────────────────────────────────────────────
@@ -509,8 +546,14 @@ EOF
 cat > "$STAGE/systemd/powerlab-mcp.service" <<EOF
 [Unit]
 Description=PowerLab MCP observability service
-After=network.target powerlab-gateway.service powerlab-user-service.service
-Wants=powerlab-gateway.service powerlab-user-service.service
+# Soft deps (Wants=, not Requires=) so MCP can boot when these are
+# down — audit:// + journal:// of powerlab units don't need any of
+# them. Core is included because ADR-0044's hybrid architecture
+# proxies system://* + apps://* to core; without it those resources
+# serve a structured core_unavailable payload and the agent pivots
+# to the independent resources.
+After=network.target powerlab-gateway.service powerlab-user-service.service powerlab-core.service
+Wants=powerlab-gateway.service powerlab-user-service.service powerlab-core.service
 # Looser StartLimit than systemd defaults, consistent with the rest of
 # the stack. MCP is independent enough that flapping wouldn't lock the
 # operator out of the UI, but matching the cohort simplifies
@@ -757,6 +800,7 @@ install -d -m 0755 /var/log/powerlab
 install -d -m 0755 /var/run/powerlab
 install -d -m 0755 /usr/share/powerlab
 install -d -m 0755 /usr/share/powerlab/shell
+install -d -m 0755 /usr/share/powerlab/openapi
 install -d -m 0755 /DATA/AppData
 install -d -m 0755 /mnt/powerlab
 
@@ -779,6 +823,17 @@ rm -rf /usr/share/powerlab/www
 if [[ -d "$HERE/shell" ]]; then
   echo "[powerlab-install] Installing shell helpers to /usr/share/powerlab/shell..."
   install -m 0755 "$HERE/shell/"*.sh /usr/share/powerlab/shell/ 2>/dev/null || true
+fi
+
+# Install OpenAPI specs under /usr/share/powerlab/openapi/. ADR-0044:
+# powerlab-mcp's docs:// resource family serves these to the agent so
+# it can self-discover the PowerLab API surface — same specs the
+# Scalar docs portal exposes (ADR-0008), MCP-shaped. mcp.conf points
+# at OpenAPIDir; default is this path. World-readable (0644) so a
+# non-root operator can curl / less the specs for debugging.
+if [[ -d "$HERE/openapi" ]]; then
+  echo "[powerlab-install] Installing OpenAPI specs to /usr/share/powerlab/openapi..."
+  install -m 0644 "$HERE/openapi/"*.yaml /usr/share/powerlab/openapi/ 2>/dev/null || true
 fi
 
 # Docker container log rotation — without this, a chatty app container
