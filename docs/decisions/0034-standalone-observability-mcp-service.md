@@ -46,27 +46,33 @@ Ship a new standalone binary **`powerlab-mcp`** that:
 
    Built on the **official `modelcontextprotocol/go-sdk`** (v1.x, GA, maintained in collaboration with Google, tracks the current spec; provides `AddResource` / `AddResourceTemplate`, `AddTool`, and a `StreamableHTTPHandler`). A thin PowerLab wrapper adds auth tiers, audit, and validation. Tool/resource schemas are **code-first** via struct tags — not a YAML→Go generator (and our `oapi-codegen` is the deprecated `deepmap` v1). _(Amended 2026-05-28: the first cut shipped on the third-party `mark3labs/mcp-go` v0.54.x; once the official SDK was found to be GA with full feature parity, the module was migrated to it while the surface was still small — see Q6.)_
 
-4. **Auth tiers — three levels, single JWT issuer (user-service):**
+4. **Auth tiers — two levels, single JWT issuer (user-service):**
 
    | Tier | Who | What |
    |---|---|---|
-   | **read** | loopback free; LAN requires a valid user-service JWT | observability resources (audit, journal, metrics) |
-   | **auth** | valid PowerLab JWT (Bearer per RFC 6750) | tools that mutate user-visible state (`restart_app`, `prune_orphans`) |
-   | **admin** | JWT + explicit `X-Powerlab-Admin-Confirm: true` header | destructive tools (`reset_audit`) |
+   | **loopback** | local processes on `127.0.0.1` / `::1`, modulo the proxy-trust guard | resources + tools (trusted local agent / dogfood case) |
+   | **authenticated** | any valid PowerLab JWT (Bearer per RFC 6750) | resources + tools |
 
    Reuses `backend/common/utils/jwt.Validate` + the loopback-skip pattern from `jwt.HTTPJWT`. MCP over stdio (when added) treats the OS user as trusted (loopback-equivalent); MCP over HTTP from LAN requires the JWT, issued through the existing user-service via a pairing step (later block).
+
+   *Amended 2026-05-28:* the original framing was a three-tier `read / auth / admin` model. Cross-checking against `backend/common/utils/jwt/jwt.go` and `backend/user-service/route/v1/user.go` showed:
+   - `jwt.Claims` carries `Username + ID + Issuer + ExpiresAt` only — there is **no role/scope field on the JWT**.
+   - Every user created (register + OS-PAM first-login) is hardcoded `Role = "admin"` (`user.go:65`, `user.go:140`).
+   - No `RequireAdmin` middleware exists anywhere in `gateway/`, `core/`, or `common/middleware/`.
+
+   So the stack today is a **two-tier** model (loopback / authenticated) regardless of how the ADR framed it. Pretending a third "admin" tier exists would be doc-only theatre. Every authenticated MCP caller has full access to every resource and tool until real RBAC lands (separate ADR + roadmap issue).
 
 5. **Resource URI namespace** — custom schemes per the MCP spec's "free to use additional schemes" allowance:
 
    | URI pattern | Source | Tier |
    |---|---|---|
-   | `audit://recent{?limit}` | JSONL audit file (RO tail), default 100 / max 1000 | read |
-   | `audit://action/{correlation_id}` | JSONL filtered by `request_id` | read |
-   | `audit://schema` | hardcoded (record + parameter reference, self-describing) | read |
-   | `journal://<unit>?lines=N&since=T&priority=P` | `journalctl -u <unit> -o json` | read |
-   | `journal://schema` | hardcoded (fields + ADR-0013 error codes) | read |
-   | `system://metrics` | `/proc/stat`, `/proc/meminfo`, `/proc/diskstats`, `/proc/net/dev` direct | read |
-   | `install-logs://recent` | `/var/log/powerlab/install-*.log` | read |
+   | `audit://recent{?limit}` | JSONL audit file (RO tail), default 100 / max 1000 | authenticated |
+   | `audit://action/{correlation_id}` | JSONL filtered by `request_id` | authenticated |
+   | `audit://schema` | hardcoded (record + parameter reference, self-describing) | authenticated |
+   | `journal://<unit>?lines=N&since=T&priority=P` | `journalctl -u <unit> -o json` | authenticated |
+   | `journal://schema` | hardcoded (fields + ADR-0013 error codes) | authenticated |
+   | `system://metrics` | `/proc/stat`, `/proc/meminfo`, `/proc/diskstats`, `/proc/net/dev` direct | authenticated |
+   | `install-logs://recent` | `/var/log/powerlab/install-*.log` | authenticated |
 
    URI templates per [RFC 6570](https://datatracker.ietf.org/doc/html/rfc6570). Product-surface resources (`catalog://`, `apps://`, `containers://`) land in a later block via local HTTP to the gateway.
 
@@ -74,12 +80,12 @@ Ship a new standalone binary **`powerlab-mcp`** that:
 
    | Tool | Action | Tier |
    |---|---|---|
-   | `restart_app(id)` | `docker compose restart` (via gateway HTTP) | auth |
-   | `prune_orphans(app)` | orphan-cleanup | auth |
-   | `check_disk_free()` | `df` wrap | read |
-   | `read_file(path)` | bounded read (size cap + deny-list) | read |
-   | `journal_search(query)` | `journalctl -g <pattern>` | read |
-   | `reset_audit(service)` | truncates the service's audit JSONL | admin |
+   | `restart_app(id)` | `docker compose restart` (via gateway HTTP) | authenticated |
+   | `prune_orphans(app)` | orphan-cleanup | authenticated |
+   | `check_disk_free()` | `df` wrap | authenticated |
+   | `read_file(path)` | bounded read (size cap + deny-list) | authenticated |
+   | `journal_search(query)` | `journalctl -g <pattern>` | authenticated |
+   | `reset_audit(service)` | truncates the service's audit JSONL | authenticated *(future: admin once RBAC lands — backlog)* |
 
    Each tool's input/output JSON schema is published via MCP `tools/list`. **Host-ops scope (enterprise lens):** OS maintenance tools land in a later block and are **PowerLab-scoped only** — `cleanup_powerlab_logs`, `systemctl_{status,restart}` (unit allowlist), `disk_usage`, `prune_docker`, `clear_app_cache`. Arbitrary `kill_process` and generic `list_directory` are **out** (CVE-class surface with no enterprise justification; `stop_app` covers the legitimate "stop a container" case).
 
@@ -101,7 +107,7 @@ Ship a new standalone binary **`powerlab-mcp`** that:
 
 - **Custom URI schemes are spec-blessed.** Reserving `file://` for actual filesystem reads (`read_file`) keeps the semantic boundary clean.
 
-- **Three-tier gating maps cleanly to today's auth.** `jwt.Validate` handles the auth tier; loopback-skip handles read; admin needs only a confirm header. No new auth machinery, one issuer.
+- **Two-tier gating matches today's actual auth.** `jwt.Validate` handles the authenticated tier; loopback-skip handles the trusted-local path. No `Role` claim exists on the JWT today (every user is hardcoded `admin` at registration), and no `RequireAdmin` middleware exists in the rest of the stack — so a third "admin" tier would be doc-theatre, not enforcement. Proper RBAC is a backlog item with its own ADR.
 
 - **Pivot-friendly without committing.** Homelab-agnostic URIs (`audit://`, `system://`) mean the binary could be repackaged for the broader Linux-MCP-connector vision without protocol changes — but the public commitment waits for the dogfood proof.
 
@@ -144,7 +150,7 @@ Ship a new standalone binary **`powerlab-mcp`** that:
 - [x] Listens on a configurable port (default `:9090`); config at `/etc/powerlab/mcp.conf`; `powerlab-mcp.service` systemd unit. *(#599)*
 - [x] **Tails the single gateway-written JSONL audit file read-only** (corrected from the original "per-service" framing — only the gateway mounts the audit middleware, ADR-0033); serves `audit://` resources without touching the writers. *(#600)*
 - [x] HTTP + Streamable transport for browser + remote MCP (stdio deferred). *(#584, #587, #593)*
-- [ ] Three auth tiers enforced + audited (recorder built into this service too — dogfood), reusing `jwt.Validate`. *(read tier done #585; auth/admin + recorder dogfood pending)*
+- [x] Two-tier enforcement (loopback / authenticated) reusing `jwt.Validate`. *(authenticated tier done #585; recorder dogfood pending — separate item)* RBAC (a real "admin" tier) is backlog'd as a follow-up ADR.
 - [x] Resource URI templates published via MCP `resources/list`; tool schemas via `tools/list` (code-first via struct tags). *(resources done #587/#591/#600; tools pending)*
 - [ ] Resources: `system://*` ✅ (#587/#588), `journal://*` ✅ (#591/#592), `audit://*` ✅ (#600), `install-logs://*` ⏳.
 - [ ] Tools: `restart_app`, `prune_orphans`, `journal_search`, `read_file`, `check_disk_free`, `reset_audit`.
