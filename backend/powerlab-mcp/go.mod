@@ -6,6 +6,7 @@ require (
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/neochaotic/powerlab/backend/common v0.4.4-alpha2
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 replace github.com/neochaotic/powerlab/backend/common => ../common
