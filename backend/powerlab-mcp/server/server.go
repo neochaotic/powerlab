@@ -28,6 +28,7 @@ import (
 
 	"github.com/neochaotic/powerlab/backend/common/external"
 	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
+	"github.com/neochaotic/powerlab/backend/powerlab-mcp/coreproxy"
 	"github.com/neochaotic/powerlab/backend/powerlab-mcp/config"
 	"github.com/neochaotic/powerlab/backend/powerlab-mcp/journal"
 )
@@ -80,18 +81,21 @@ func New(cfg config.Config, info BuildInfo) (*Server, error) {
 		procRoot:         "/proc",
 		openAPIDir:       cfg.OpenAPIDir,
 		systemdSystemDir: cfg.SystemdSystemDir,
+		coreClient:       coreproxy.NewClient(cfg.RuntimePath, nil),
 	}), nil
 }
 
-// resourcesConfig bags together the runtime paths the resource layer
-// reads from. Bundling them avoids a 6-arg `newMCPServer` signature as
-// the resource surface grows; tests construct it directly with t.TempDir
-// fixtures.
+// resourcesConfig bags together the runtime paths and clients the
+// resource layer reads from. Bundling them avoids a 6-arg
+// `newMCPServer` signature as the resource surface grows; tests
+// construct it directly with t.TempDir fixtures and (where they need
+// to) a coreproxy.Client backed by an httptest server.
 type resourcesConfig struct {
 	auditPath        string
 	procRoot         string
 	openAPIDir       string
 	systemdSystemDir string
+	coreClient       *coreproxy.Client
 }
 
 // newServer is the dependency-injected constructor: tests pass a
@@ -119,6 +123,7 @@ func newServer(info BuildInfo, pubKey publicKeyFunc, rc resourcesConfig) *Server
 func newMCPServer(info BuildInfo, rc resourcesConfig, journalRun journal.Runner) *mcp.Server {
 	m := mcp.NewServer(&mcp.Implementation{Name: "powerlab-mcp", Version: info.Version}, nil)
 	registerSystemMetrics(m, rc.procRoot)
+	registerSystemUtilization(m, rc.coreClient)
 	registerJournal(m, journalRun)
 	registerJournalUnits(m, rc.systemdSystemDir)
 	registerAudit(m, rc.auditPath)
