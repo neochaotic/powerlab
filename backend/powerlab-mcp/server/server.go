@@ -17,8 +17,8 @@ package server
 import (
 	"crypto/ecdsa"
 	"encoding/json"
+	"net"
 	"net/http"
-	"strings"
 
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
@@ -154,12 +154,14 @@ func hasAnyProxyHeader(r *http.Request) bool {
 	return false
 }
 
-// isLoopbackAddr mirrors jwt.HTTPJWT's host check: strip the port, then
-// compare against the loopback literals.
+// isLoopbackAddr reports whether remoteAddr's host is loopback. It uses
+// net.SplitHostPort so IPv6 forms like "[::1]:9090" are handled
+// correctly (a manual ':' split would leave the brackets and never
+// match "::1").
 func isLoopbackAddr(remoteAddr string) bool {
-	host := remoteAddr
-	if i := strings.LastIndexByte(host, ':'); i > 0 {
-		host = host[:i]
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		host = remoteAddr // no port present — treat the whole string as the host
 	}
 	return host == "127.0.0.1" || host == "::1"
 }
