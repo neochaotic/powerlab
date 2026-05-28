@@ -133,11 +133,11 @@ assert_grep "install.sh installs the specs" \
 # can rely on core being up whenever it CAN be. Wants= (not Requires=)
 # keeps MCP startable when core is down — the resources serve a
 # structured core_unavailable payload instead of crashing the service.
-echo "Test: powerlab-mcp.service soft-depends on core (ADR-0044)"
-assert_grep "After= includes powerlab-core.service" \
-  "After=network.target powerlab-gateway.service powerlab-user-service.service powerlab-core.service"
-assert_grep "Wants= includes powerlab-core.service" \
-  "Wants=powerlab-gateway.service powerlab-user-service.service powerlab-core.service"
+echo "Test: powerlab-mcp.service soft-depends on core (ADR-0044) + app-management (ADR-0045)"
+assert_grep "After= includes both proxied upstreams" \
+  "After=network.target powerlab-gateway.service powerlab-user-service.service powerlab-core.service powerlab-app-management.service"
+assert_grep "Wants= includes both proxied upstreams" \
+  "Wants=powerlab-gateway.service powerlab-user-service.service powerlab-core.service powerlab-app-management.service"
 
 echo "Test: powerlab-mcp.service systemd unit is emitted with the right ExecStart"
 # The MCP binary uses `-conf`, not `-c` like the other services. Wiring

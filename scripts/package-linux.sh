@@ -549,11 +549,12 @@ Description=PowerLab MCP observability service
 # Soft deps (Wants=, not Requires=) so MCP can boot when these are
 # down — audit:// + journal:// of powerlab units don't need any of
 # them. Core is included because ADR-0044's hybrid architecture
-# proxies system://* + apps://* to core; without it those resources
-# serve a structured core_unavailable payload and the agent pivots
-# to the independent resources.
-After=network.target powerlab-gateway.service powerlab-user-service.service powerlab-core.service
-Wants=powerlab-gateway.service powerlab-user-service.service powerlab-core.service
+# proxies system://* to core (ADR-0044) + apps://* + docker://logs
+# to app-management (ADR-0045). Without each soft dep the respective
+# resource serves a structured <service>_unavailable payload and the
+# agent pivots to the independent resources (audit + journal).
+After=network.target powerlab-gateway.service powerlab-user-service.service powerlab-core.service powerlab-app-management.service
+Wants=powerlab-gateway.service powerlab-user-service.service powerlab-core.service powerlab-app-management.service
 # Looser StartLimit than systemd defaults, consistent with the rest of
 # the stack. MCP is independent enough that flapping wouldn't lock the
 # operator out of the UI, but matching the cohort simplifies
