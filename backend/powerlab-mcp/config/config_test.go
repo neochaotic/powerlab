@@ -123,3 +123,46 @@ func writeConf(t *testing.T, body string) string {
 	}
 	return path
 }
+
+// EnableDestructiveTools is the operator opt-in for the install_app +
+// uninstall_app tools (ADR-0046 batch 3). Default must be false —
+// agents cannot mutate app state until the operator explicitly flips
+// the knob. Default-on would be a security-violation by surprise.
+func TestLoad_EnableDestructiveToolsDefaultFalse(t *testing.T) {
+	got, err := Load(writeConf(t, ""))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if got.EnableDestructiveTools {
+		t.Fatalf("EnableDestructiveTools=true on empty conf; want false (operators must opt in)")
+	}
+}
+
+// Truthy spellings flip the knob; garbage stays false. Mirrors the
+// Disabled key contract so an operator who knows one knows both.
+func TestLoad_EnableDestructiveToolsAcceptsTruthyOnly(t *testing.T) {
+	cases := []struct {
+		body string
+		want bool
+	}{
+		{"EnableDestructiveTools = true\n", true},
+		{"EnableDestructiveTools = yes\n", true},
+		{"EnableDestructiveTools = on\n", true},
+		{"EnableDestructiveTools = 1\n", true},
+		{"EnableDestructiveTools = TRUE\n", true},
+		{"EnableDestructiveTools = false\n", false},
+		{"EnableDestructiveTools = blargh\n", false},
+		{"EnableDestructiveTools =\n", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.body, func(t *testing.T) {
+			got, err := Load(writeConf(t, tc.body))
+			if err != nil {
+				t.Fatalf("Load: %v", err)
+			}
+			if got.EnableDestructiveTools != tc.want {
+				t.Fatalf("EnableDestructiveTools=%v (body %q); want %v", got.EnableDestructiveTools, tc.body, tc.want)
+			}
+		})
+	}
+}

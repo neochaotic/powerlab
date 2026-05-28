@@ -411,6 +411,20 @@ OpenAPIDir = /usr/share/powerlab/openapi
 # where install.sh drops the unit files. Override only if you've
 # customised systemd's unit search path.
 SystemdSystemDir = /etc/systemd/system
+
+# Operator opt-in for destructive MCP tools (ADR-0046 batch 3) —
+# install_app + uninstall_app. When false (the default) these tools
+# are NOT registered: they don't appear in tools/list and an agent
+# has no way to call them. Flipping to true means an authenticated
+# agent can install or uninstall apps autonomously. install_app
+# runs a deny-list compose validator first (no privileged: true,
+# no Docker socket bind, no host namespace sharing, no dangerous
+# cap_add, no raw devices, no sensitive host path binds) — but it
+# IS still autonomous mutation. The panel-side "pending agent
+# action" approval UI that would replace this gate is roadmap;
+# until then the operator opts in here with documented threat-model
+# acknowledgement.
+EnableDestructiveTools = false
 EOF
 
 # ─── 5. systemd units ────────────────────────────────────────────────────

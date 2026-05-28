@@ -104,6 +104,13 @@ assert_grep_extended "mcp.conf.sample contains RuntimePath" \
 # sample even if a future commit accidentally swaps it.
 assert_grep "mcp.conf.sample documents the Disabled kill-switch" \
   "Disabled = false"
+# ADR-0046 batch 3 — destructive tools (install_app + uninstall_app)
+# default OFF. Default-on would let an authenticated agent install or
+# uninstall apps autonomously the moment v0.7.5 lands. mcp.conf.sample
+# MUST document the knob AND ship false so the operator's opt-in is
+# explicit + auditable.
+assert_grep "mcp.conf.sample documents EnableDestructiveTools default false (ADR-0046)" \
+  "EnableDestructiveTools = false"
 # ADR-0044 keys: the hybrid-architecture proxy needs operators to know
 # about OpenAPIDir (where docs:// reads YAML specs from) + SystemdSystemDir
 # (where journal://units enumerates installed PowerLab services).
