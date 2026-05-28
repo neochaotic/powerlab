@@ -133,6 +133,10 @@ func newMCPServer(info BuildInfo, rc resourcesConfig, journalRun journal.Runner)
 	registerJournalUnits(m, rc.systemdSystemDir)
 	registerAudit(m, rc.auditPath)
 	registerDocs(m, rc.openAPIDir)
+	// ADR-0046 — read-only tools batch 1. Destructive tools land
+	// gated on cfg.EnableDestructiveTools (separate registration
+	// call when that knob arrives).
+	registerReadOnlyTools(m, journalRun)
 	return m
 }
 
