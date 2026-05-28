@@ -197,13 +197,20 @@ What an agent can do today — **12 advertised resources**:
 - 🔜 **`docker://logs/<app>`** — container logs proxied through app-management. **MCP never touches the Docker socket** (security win — see [ADR-0045](docs/decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md)).
 - **`docs://api`** — the OpenAPI specs of every PowerLab service. Agent self-discovers what's callable.
 
+Plus **5 curated MCP tools** — the agent doesn't just read, it can *act* (per [ADR-0046](docs/decisions/0046-mcp-tool-curation-strategy.md)):
+
+- **READ ONLY** — `journal_search` (literal substring + time-range over PowerLab journals); `check_disk_free` (one-path statfs).
+- **SIDE EFFECT (bounded)** — `restart_app` (cycle one app's containers; same end-state).
+- 🔜 **DESTRUCTIVE (operator opt-in)** — `install_app` (custom Compose, validated against a deny-list of dangerous patterns before app-management ever sees it) and `uninstall_app`. Both require `EnableDestructiveTools = true` in `/etc/powerlab/mcp.conf` — when false (the default), they're NOT registered and the agent can't call them.
+
 (🔜 = shipped, in stabilisation — first weeks of v0.7.5.)
 
 What it does **not** do yet:
-- **No write actions.** Read-only across the board. Destructive tools (`install_app`, `restart_app`, `prune_orphans`) land in the next phase with their own threat-model ADR — see [forthcoming ADR-0046](docs/decisions/) on the curation strategy.
+- **No autonomous destructive defaults.** `install_app` + `uninstall_app` exist but ship NOT REGISTERED until the operator flips `EnableDestructiveTools = true`. Default-on would be a surprise; default-off is a documented opt-in.
+- **No panel-side approval UI** — once destructive tools are enabled, the agent can install/uninstall apps without per-action human confirmation. The "pending agent action" approval surface is roadmap; until then `EnableDestructiveTools` is the gate.
 - **No automatic pairing.** Today you paste a JWT into your client config; a `powerlab pair` CLI is roadmap.
 - **No internet exposure.** Binds `:9090` on the LAN with two-tier auth (loopback free, LAN needs your PowerLab token); PowerLab does not configure port-forwarding for you.
-- **No RBAC.** Any authenticated agent has full read access — every PowerLab user is hardcoded admin today. Real role-based access is tracked separately.
+- **No RBAC.** Any authenticated agent has full access — every PowerLab user is hardcoded admin today. Real role-based access is tracked separately.
 
 **Storage-agnostic by construction.** When PowerLab eventually migrates from SQLite to PostgreSQL, MCP requires zero changes — the HTTP contract is the abstraction.
 

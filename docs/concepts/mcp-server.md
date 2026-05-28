@@ -348,6 +348,102 @@ claude mcp add powerlab-home \
 !!! warning "JWTs expire"
     PowerLab access tokens last 3 hours. You'll need to refresh the token in your client config periodically. The pairing UX (auto-renewing token via a CLI flow) is roadmap.
 
+## Tools (write surface — ADR-0046)
+
+Alongside the 12 read-only resources, powerlab-mcp ships **5 curated MCP tools** that let the agent *act* on the box, not just *read* it. Tools are advertised via `tools/list` and called via `tools/call` — the protocol distinguishes them from resources so Anthropic's clients (Claude Desktop, Claude Code) render "Claude wants to use the tool X" prompts with the side-effect class surfaced.
+
+[ADR-0046](../decisions/0046-mcp-tool-curation-strategy.md) locks the curation strategy: hand-written tools (not OpenAPI auto-gen) for the top PowerLab actions, with `docs://api` kept as the discovery escape hatch for the long tail. Explicit flexibility reserved for emerging patterns (meta-prompt for compact contexts, MCP prompts/sampling primitives, active resources). Tools land in **three tiers** by side-effect class:
+
+| Tier | Tools | When they ship | Gate |
+|---|---|---|---|
+| **READ ONLY** | `journal_search`, `check_disk_free` | Always | none |
+| **SIDE EFFECT** (bounded / reversible) | `restart_app` | Always | none — blast radius is bounded (containers cycle, end in same state) |
+| **DESTRUCTIVE** | `install_app`, `uninstall_app` | Operator opt-in | `EnableDestructiveTools = true` in `mcp.conf` (default false — agent cannot call until operator flips) |
+
+### Per-tool reference
+
+#### `journal_search` (READ ONLY)
+
+Search PowerLab service journals by literal substring + time range. Input:
+- `unit` (required) — PowerLab service stem (e.g. `core`, `gateway`)
+- `pattern` (optional) — literal substring filter on MESSAGE
+- `since` (optional) — `journalctl --since` value (e.g. `1h`, `yesterday`)
+- `lines` (optional) — max matching lines (default 200, max 2000)
+
+Scope-locked to PowerLab units via `canonicalUnit` — passing `core` or `powerlab-core.service` both work; an agent cannot escape to `auth.log` or system units.
+
+#### `check_disk_free` (READ ONLY)
+
+Free-space check at one path. Input:
+- `path` (optional) — defaults to `/` (the primary disk)
+
+Returns `{path, total_bytes, available_bytes, used_bytes, used_percent}`. For a per-mount survey with SMART metadata, the agent prefers `system://disk`; this tool is the friendly path for "is / full?" question shapes.
+
+#### `restart_app` (SIDE EFFECT)
+
+Restart every container of one installed PowerLab app. Input:
+- `id` (required) — compose app id (matches `apps://list`)
+
+Translates to `PUT /v2/app_management/compose/{id}/status` with body `"restart"`. Containers briefly go down then come back up; no data loss; app ends in the same state. Id validated at the tool layer (rejects path-traversal-shaped, dotted, query-shaped ids before any upstream call).
+
+#### `install_app` (DESTRUCTIVE — gated)
+
+Install a custom Docker Compose app. Input:
+- `compose_yaml` (required) — raw Docker Compose YAML
+- `dry_run` (optional) — when true, validates without installing
+
+**Layered defence (ADR-0046 §4):**
+
+1. **Local `composevalidator` deny-list runs FIRST.** YAML rejected at the tool layer never reaches app-management. The deny-list blocks:
+    - `privileged: true` (container escape)
+    - Bind mounts of `/var/run/docker.sock` and variants (Docker socket abuse)
+    - Host namespace sharing (`network_mode/pid/ipc/uts/userns_mode: host`; `network_mode: container:<id>`)
+    - Dangerous `cap_add` (SYS_ADMIN, NET_ADMIN, NET_RAW, ALL, SYS_PTRACE, SYS_MODULE, ...)
+    - Raw `/dev/*` device passthrough
+    - Bind mounts to sensitive host paths (`/proc`, `/sys`, `/etc`, `/root`, `/var/lib`, `/var/log`, `/dev`, `/boot`, library + binary dirs)
+
+2. **app-management's own validation runs SECOND** (compose syntax + image pull policy + storage layout). `dry_run=true` forwards to the upstream so the agent gets a full pre-flight answer.
+
+3. **`EnableDestructiveTools` gate gates the whole tool** — when false, the tool isn't registered, the agent can't see it.
+
+Rejected YAML returns a structured `{status: "rejected_by_validator", violations: [...]}` payload so the agent can explain *why* to the user.
+
+The same validator powers the standalone CLI `powerlab-mcp-validate`:
+
+```bash
+powerlab-mcp-validate ./my-app.yml          # human-readable
+powerlab-mcp-validate -json ./my-app.yml    # machine-readable
+cat my-app.yml | powerlab-mcp-validate -    # stdin
+```
+
+Exit 0 = clean, 1 = violations, 2 = I/O error. Operators can pre-validate any compose file without MCP involvement.
+
+#### `uninstall_app` (DESTRUCTIVE — gated)
+
+Uninstall a PowerLab app. Input:
+- `id` (required) — compose app id
+
+Translates to `DELETE /v2/app_management/compose/{id}`. **May cause data loss** depending on app-management's volume-retention policy; not reversible without a backup. Same id validation discipline as `restart_app`.
+
+### Enabling destructive tools
+
+`install_app` + `uninstall_app` ship NOT REGISTERED by default. To opt in:
+
+```ini
+# /etc/powerlab/mcp.conf
+EnableDestructiveTools = true
+```
+
+Then `sudo systemctl restart powerlab-mcp`. The tools appear in `tools/list` and an authenticated agent can call them. Threat model: any user with a valid PowerLab JWT (today every PowerLab user is hardcoded `admin`) can now drive `install_app` + `uninstall_app`. The composevalidator deny-list still applies — but it IS still autonomous mutation of app state.
+
+The panel-side "pending agent action" approval UI that would replace this opt-in is roadmap. Until then, `EnableDestructiveTools` is the documented operator consent.
+
+### What's NOT a tool yet
+
+- `prune_orphans` — named in ADR-0046 but the matching app-management endpoint doesn't exist yet (tracked in #619).
+- `restart_service` / `stop_service` for PowerLab's own services — out of scope (operator domain, not agent domain).
+- `read_file` — too broad; agent uses targeted resources instead (`system://disk`, `journal://`, `audit://`).
+
 ## Operator controls
 
 ### Disabling MCP without uninstalling
@@ -389,9 +485,10 @@ AuditDir = /var/log/powerlab          # where audit.jsonl lives
 RuntimePath = /var/run/powerlab       # where service .url files live (and JWKS lookup)
 OpenAPIDir = /usr/share/powerlab/openapi   # where docs:// reads YAML specs from
 SystemdSystemDir = /etc/systemd/system     # where journal://units enumerates powerlab-*.service files
+EnableDestructiveTools = false        # ADR-0046: when true, registers install_app + uninstall_app
 ```
 
-All four have sensible production defaults. The forgiving conf loader treats unknown keys as harmless, so a newer installer's keys never break an older binary.
+All five have sensible production defaults. The forgiving conf loader treats unknown keys as harmless, so a newer installer's keys never break an older binary.
 
 ## Roadmap (what's NOT here yet)
 
@@ -408,17 +505,20 @@ Tracked as GitHub issues:
 
 Beyond that:
 
-- **MCP write tools** — `restart_app`, `install_app`, `prune_orphans`, `reset_audit`, `journal_search`, `read_file`. Each gets its own threat-model review.
-- **Audit-recorder dogfood** — MCP writing its own actions into `audit.jsonl` so the agent's reads are auditable too.
+- [**#619**](https://github.com/neochaotic/powerlab/issues/619) — `prune_orphans` tool — named in ADR-0046 but waits on a matching app-management HTTP endpoint
+- **Panel-side "pending agent action" approval UI** — replaces the `EnableDestructiveTools` opt-in with a per-action human confirmation flow. Roadmap.
+- **Audit-recorder dogfood** — MCP writing its own actions (resource reads + tool calls) into `audit.jsonl` so the agent's trail is auditable end-to-end. ADR-0034 deferred item; until it lands, MCP-driven calls don't show up in the gateway-written `audit.jsonl` that `audit://` reads. The action trail today is `journal://mcp`.
+- **JWT forwarding from MCP to upstream** — today the upstream's loopback skip handles the call; LAN agent-identity propagation lands when the MCP SDK surfaces the request context to handlers.
 - **`powerlab-logs` CLI as an MCP client of itself.**
 - **UI header button** — one-click launch of the MCP surface in a new tab.
-- **JWT forwarding from MCP to upstream** — today the upstream's loopback skip handles the call; LAN agent-identity propagation lands when the MCP SDK surfaces the request context to handlers.
+- **Read-only sysadmin tools** — `system://processes`, `system://network` snapshots, `system://updates` — beyond what `system://utilization` already proxies.
 
 ## References
 
 - [ADR-0034](../decisions/0034-standalone-observability-mcp-service.md) — original standalone observability + MCP service decision (amended by ADR-0044)
 - [ADR-0044](../decisions/0044-mcp-hybrid-architecture-thin-proxy-to-core.md) — hybrid architecture: audit + journal stay independent, system:// thin-proxies to core
 - [ADR-0045](../decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md) — apps:// + docker:// thin-proxy to app-management (storage-agnostic, PostgreSQL-future-proof)
+- [ADR-0046](../decisions/0046-mcp-tool-curation-strategy.md) — MCP tool curation strategy (curated-first + escape hatches); the 5 tools above land per its ordered rollout
 - [ADR-0033](../decisions/0033-audit-system-design.md) — audit middleware + JSONL design
 - [ADR-0035](../decisions/0035-audit-jsonl-migration.md) — SQLite → JSONL migration that enables `audit://`
 - [ADR-0008](../decisions/0008-api-docs-portal-scalar.md) — Scalar API docs portal — same OpenAPI specs `docs://` serves
