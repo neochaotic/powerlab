@@ -69,11 +69,29 @@ func New(cfg config.Config, info BuildInfo) (*Server, error) {
 
 // newServer is the dependency-injected constructor: tests pass a
 // pubKeyFunc backed by a known test key so the gate's JWT validation is
-// exercised for real (no mock), without standing up a user-service.
+// exercised for real (no mock), without standing up a user-service. It
+// reads host metrics from the real /proc.
 func newServer(info BuildInfo, pubKey publicKeyFunc) *Server {
-	m := mcpserver.NewMCPServer("powerlab-mcp", info.Version)
+	return newServerWithProcRoot(info, pubKey, "/proc")
+}
+
+// newServerWithProcRoot additionally lets a test point the system://
+// resource at a fixture /proc directory, so the MCP read path is
+// exercised end-to-end with deterministic data on any OS.
+func newServerWithProcRoot(info BuildInfo, pubKey publicKeyFunc, procRoot string) *Server {
+	m := newMCPServer(info, procRoot)
 	httpMCP := mcpserver.NewStreamableHTTPServer(m, mcpserver.WithEndpointPath(MCPEndpointPath))
 	return &Server{info: info, httpMCP: httpMCP, pubKey: pubKey}
+}
+
+// newMCPServer builds the MCP server and registers its resources/tools.
+// Factored out so the integration test can drive it directly through an
+// in-process MCP client (no HTTP transport, no auth gate) and exercise
+// the real protocol path.
+func newMCPServer(info BuildInfo, procRoot string) *mcpserver.MCPServer {
+	m := mcpserver.NewMCPServer("powerlab-mcp", info.Version)
+	registerSystemMetrics(m, procRoot)
+	return m
 }
 
 // Handler returns the HTTP handler serving the open control endpoints
