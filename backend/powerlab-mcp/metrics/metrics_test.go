@@ -70,6 +70,7 @@ func TestCollect_FromFixtureProc(t *testing.T) {
 	writeFile(t, dir, "meminfo", "MemTotal:       1000 kB\nMemAvailable:     250 kB\n")
 	writeFile(t, dir, "loadavg", "1.50 0.75 0.25 1/100 5\n")
 	writeFile(t, dir, "uptime", "3600.00 7200.00\n")
+	writeFile(t, dir, "cpuinfo", "processor\t: 0\nmodel name\t: x\n\nprocessor\t: 1\nmodel name\t: x\n")
 
 	m, err := Collect(dir)
 	if err != nil {
@@ -88,6 +89,38 @@ func TestCollect_FromFixtureProc(t *testing.T) {
 	if m.UptimeSeconds != 3600.0 {
 		t.Fatalf("UptimeSeconds = %v; want 3600.0", m.UptimeSeconds)
 	}
+	// Without core count, an agent can't tell load 1.50 from saturation:
+	// on these 2 cores it's ~75% busy; on 1 core it'd be overloaded.
+	if m.CPUCores != 2 {
+		t.Fatalf("CPUCores = %d; want 2 (load is uninterpretable without it)", m.CPUCores)
+	}
+}
+
+func TestParseCPUCount(t *testing.T) {
+	const sample = `processor	: 0
+model name	: Cortex-A72
+processor	: 1
+model name	: Cortex-A72
+processor	: 2
+model name	: Cortex-A72
+processor	: 3
+model name	: Cortex-A72
+`
+	n, err := parseCPUCount([]byte(sample))
+	if err != nil {
+		t.Fatalf("parseCPUCount: %v", err)
+	}
+	if n != 4 {
+		t.Fatalf("CPU count = %d; want 4", n)
+	}
+}
+
+// A cpuinfo with no processor lines is an error, not a silent 0 that
+// would make every load value look like infinite saturation.
+func TestParseCPUCount_NoProcessorsIsError(t *testing.T) {
+	if _, err := parseCPUCount([]byte("model name\t: x\n")); err == nil {
+		t.Fatal("parseCPUCount with no processor lines returned nil error; want an error")
+	}
 }
 
 // A missing procRoot (or unreadable file) is a real error — the resource
@@ -100,7 +133,7 @@ func TestCollect_MissingProcIsError(t *testing.T) {
 
 func writeFile(t *testing.T, dir, name, body string) {
 	t.Helper()
-	if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o600); err != nil {
 		t.Fatalf("write fixture %s: %v", name, err)
 	}
 }
