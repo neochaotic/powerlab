@@ -16,6 +16,7 @@
 package coreproxy
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -174,6 +175,21 @@ func (c *Client) Resolve(service string) (string, error) {
 // "<service>_status_NNN" so the agent gets a predictable shape —
 // never a fake snapshot, never a leaked Go error string.
 func (c *Client) GetFrom(ctx context.Context, service, path, token string) ([]byte, error) {
+	return c.RequestFrom(ctx, http.MethodGet, service, path, token, nil, "")
+}
+
+// RequestFrom is the verb-and-body capable form used by write-class
+// MCP tools (ADR-0046 — restart_app, prune_orphans, install_app).
+// body is an optional payload sent as request body; contentType is
+// the Content-Type header (e.g. "application/json"). For GETs / DELETEs
+// without a body, pass body=nil and contentType="".
+//
+// The error contract is identical to GetFrom — failures surface as
+// *Error with Code "<service>_unavailable" or "<service>_status_NNN".
+// Writes that succeed with a 2xx return the upstream's response body
+// verbatim; the caller (a tool handler) is responsible for marshalling
+// it back to the agent.
+func (c *Client) RequestFrom(ctx context.Context, method, service, path, token string, body []byte, contentType string) ([]byte, error) {
 	base, err := c.Resolve(service)
 	if err != nil {
 		return nil, err
@@ -183,12 +199,19 @@ func (c *Client) GetFrom(ctx context.Context, service, path, token string) ([]by
 	}
 	url := base + path
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	var reqBody io.Reader
+	if body != nil {
+		reqBody = bytes.NewReader(body)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, url, reqBody)
 	if err != nil {
 		return nil, &Error{Code: unavailableCode(service), Detail: fmt.Sprintf("build request: %v", err)}
 	}
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
 	}
 	// Politeness header so an upstream log line says who called.
 	req.Header.Set("User-Agent", "powerlab-mcp/proxy")
@@ -199,22 +222,22 @@ func (c *Client) GetFrom(ctx context.Context, service, path, token string) ([]by
 		// file — handles the case where the upstream restarted on a
 		// new port.
 		c.invalidate(service)
-		return nil, &Error{Code: unavailableCode(service), Detail: fmt.Sprintf("GET %s: %v", url, err)}
+		return nil, &Error{Code: unavailableCode(service), Detail: fmt.Sprintf("%s %s: %v", method, url, err)}
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	body, readErr := io.ReadAll(resp.Body)
+	respBody, readErr := io.ReadAll(resp.Body)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, &Error{
 			Code:   fmt.Sprintf("%s_status_%d", service, resp.StatusCode),
-			Detail: fmt.Sprintf("GET %s returned HTTP %d", url, resp.StatusCode),
-			Body:   string(body),
+			Detail: fmt.Sprintf("%s %s returned HTTP %d", method, url, resp.StatusCode),
+			Body:   string(respBody),
 		}
 	}
 	if readErr != nil {
 		return nil, &Error{Code: unavailableCode(service), Detail: fmt.Sprintf("read response: %v", readErr)}
 	}
-	return body, nil
+	return respBody, nil
 }
 
 // invalidate drops the cached URL for one service so the next
