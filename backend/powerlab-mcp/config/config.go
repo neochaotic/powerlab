@@ -53,6 +53,8 @@ func Default() Config {
 func Load(path string) (Config, error) {
 	cfg := Default()
 
+	// #nosec G304 -- path is the operator-supplied --conf flag (default
+	// /etc/powerlab/mcp.conf), a trusted local path, not user input.
 	f, err := os.Open(path)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {

@@ -26,7 +26,11 @@ type Metrics struct {
 	Load1          float64 `json:"load1"`
 	Load5          float64 `json:"load5"`
 	Load15         float64 `json:"load15"`
-	UptimeSeconds  float64 `json:"uptime_seconds"`
+	// CPUCores is the logical CPU count. Reported alongside the load
+	// averages because load is only interpretable relative to it: load
+	// equal to CPUCores is ~full utilisation, above it is backlog.
+	CPUCores      int     `json:"cpu_cores"`
+	UptimeSeconds float64 `json:"uptime_seconds"`
 }
 
 // Collect reads and parses the relevant /proc files under procRoot
@@ -37,7 +41,7 @@ type Metrics struct {
 func Collect(procRoot string) (Metrics, error) {
 	var m Metrics
 
-	mem, err := os.ReadFile(filepath.Join(procRoot, "meminfo"))
+	mem, err := readProc(procRoot, "meminfo")
 	if err != nil {
 		return m, fmt.Errorf("read meminfo: %w", err)
 	}
@@ -49,7 +53,7 @@ func Collect(procRoot string) (Metrics, error) {
 		m.MemUsedPercent = round2(float64(m.MemTotalKB-m.MemAvailableKB) / float64(m.MemTotalKB) * 100)
 	}
 
-	load, err := os.ReadFile(filepath.Join(procRoot, "loadavg"))
+	load, err := readProc(procRoot, "loadavg")
 	if err != nil {
 		return m, fmt.Errorf("read loadavg: %w", err)
 	}
@@ -58,7 +62,7 @@ func Collect(procRoot string) (Metrics, error) {
 		return m, err
 	}
 
-	up, err := os.ReadFile(filepath.Join(procRoot, "uptime"))
+	up, err := readProc(procRoot, "uptime")
 	if err != nil {
 		return m, fmt.Errorf("read uptime: %w", err)
 	}
@@ -67,7 +71,47 @@ func Collect(procRoot string) (Metrics, error) {
 		return m, err
 	}
 
+	cpu, err := readProc(procRoot, "cpuinfo")
+	if err != nil {
+		return m, fmt.Errorf("read cpuinfo: %w", err)
+	}
+	m.CPUCores, err = parseCPUCount(cpu)
+	if err != nil {
+		return m, err
+	}
+
 	return m, nil
+}
+
+// parseCPUCount counts the logical CPUs in /proc/cpuinfo (one
+// "processor" line per logical CPU on every arch). Zero is an error: a
+// load average with no core count to divide by is meaningless.
+func parseCPUCount(b []byte) (int, error) {
+	n := 0
+	sc := bufio.NewScanner(bytes.NewReader(b))
+	for sc.Scan() {
+		key, _, ok := strings.Cut(sc.Text(), ":")
+		if ok && strings.TrimSpace(key) == "processor" {
+			n++
+		}
+	}
+	if err := sc.Err(); err != nil {
+		return 0, fmt.Errorf("scan cpuinfo: %w", err)
+	}
+	if n == 0 {
+		return 0, fmt.Errorf("cpuinfo: no processor entries found")
+	}
+	return n, nil
+}
+
+// readProc reads procRoot/name. procRoot is a trusted path (the constant
+// "/proc" in production, a fixture dir in tests) and name is always a
+// hardcoded literal, so there is no user-controlled path component — the
+// gosec G304 (file-inclusion-via-variable) finding is a false positive
+// here and is suppressed at this single, documented call site.
+func readProc(procRoot, name string) ([]byte, error) {
+	// #nosec G304 -- procRoot is trusted and name is a hardcoded literal.
+	return os.ReadFile(filepath.Join(procRoot, name))
 }
 
 // parseMeminfo extracts MemTotal and MemAvailable (both in kB) from the

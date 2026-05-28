@@ -84,7 +84,7 @@ func TestLoad_SkipsMalformedLines(t *testing.T) {
 func writeConf(t *testing.T, body string) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "mcp.conf")
-	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 		t.Fatalf("write temp conf: %v", err)
 	}
 	return path
