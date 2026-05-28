@@ -1,0 +1,5 @@
+kind: Internal
+body: 'powerlab-mcp (self-review hardening): a request that claims to come from loopback but carries reverse-proxy headers (X-Forwarded-For / Forwarded / X-Real-Ip) no longer inherits the loopback auth skip — it is forced through the JWT check. Closes a latent auth-bypass had the standalone service ever been fronted by a same-host reverse proxy. Genuine local agents (no proxy headers) keep zero-config trust; authenticated proxied callers still pass.'
+time: 2026-05-28T00:35:00Z
+custom:
+    Issue: ""
