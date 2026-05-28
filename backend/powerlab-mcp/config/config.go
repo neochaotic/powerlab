@@ -45,16 +45,30 @@ type Config struct {
 	// `systemctl restart powerlab-mcp`, MCP stays down. The unit can
 	// be re-enabled by flipping it back. Default false (ship enabled).
 	Disabled bool
+
+	// OpenAPIDir holds the bundled OpenAPI specs served by docs://
+	// (ADR-0044). One file per PowerLab service named "<svc>.yaml".
+	// Populated by package-linux.sh; on a dev box without the install
+	// in place the directory may be absent — docs://api returns an
+	// empty manifest in that case (graceful, no error).
+	OpenAPIDir string
+
+	// SystemdSystemDir is where journal://units enumerates the
+	// powerlab-<svc>.service unit files installed by install.sh.
+	// Overridable so a sandbox can point this at a fixture.
+	SystemdSystemDir string
 }
 
 // Default returns the configuration used when no conf file is present
 // or for any key the conf omits.
 func Default() Config {
 	return Config{
-		ListenAddr:  ":9090",
-		AuditDir:    "/var/log/powerlab",
-		RuntimePath: constants.DefaultRuntimePath,
-		Disabled:    false,
+		ListenAddr:       ":9090",
+		AuditDir:         "/var/log/powerlab",
+		RuntimePath:      constants.DefaultRuntimePath,
+		Disabled:         false,
+		OpenAPIDir:       "/usr/share/powerlab/openapi",
+		SystemdSystemDir: "/etc/systemd/system",
 	}
 }
 
@@ -97,6 +111,10 @@ func Load(path string) (Config, error) {
 			cfg.RuntimePath = val
 		case "disabled":
 			cfg.Disabled = parseBool(val)
+		case "openapidir":
+			cfg.OpenAPIDir = val
+		case "systemdsystemdir":
+			cfg.SystemdSystemDir = val
 			// unknown keys: ignored on purpose (forward-compatible)
 		}
 	}

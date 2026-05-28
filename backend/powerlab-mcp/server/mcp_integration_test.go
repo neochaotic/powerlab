@@ -97,7 +97,7 @@ func assertMetricsResource(t *testing.T, ctx context.Context, cs *mcp.ClientSess
 // resources/list → resources/read) works against the registered
 // resources, bypassing the HTTP transport and auth.
 func TestMCP_InProcess_ReadSystemMetrics(t *testing.T) {
-	srv := newMCPServer(BuildInfo{Version: "test"}, writeProcFixtures(t), fixtureJournalRunner(""), "")
+	srv := newMCPServer(BuildInfo{Version: "test"}, resourcesConfig{procRoot: writeProcFixtures(t)}, fixtureJournalRunner(""))
 	cs := connectInProcess(t, srv)
 	assertMetricsResource(t, t.Context(), cs)
 }
@@ -108,9 +108,9 @@ func TestMCP_InProcess_ReadSystemMetrics(t *testing.T) {
 // skip applies and no token is needed here; auth-over-the-LAN stays
 // covered by the gate unit tests and the live .142 smoke.)
 func TestMCP_OverHTTPTransport_ReadSystemMetrics(t *testing.T) {
-	srv := newServerWithProcRoot(BuildInfo{Version: "test"},
+	srv := newServer(BuildInfo{Version: "test"},
 		func() (*ecdsa.PublicKey, error) { return nil, nil },
-		writeProcFixtures(t), "")
+		resourcesConfig{procRoot: writeProcFixtures(t)})
 
 	ts := httptest.NewServer(srv.Handler())
 	defer ts.Close()
@@ -130,7 +130,7 @@ func TestMCP_OverHTTPTransport_ReadSystemMetrics(t *testing.T) {
 // from the (fixture) journalctl output.
 func TestMCP_InProcess_ReadJournal(t *testing.T) {
 	out := `{"__REALTIME_TIMESTAMP":"1716854400000000","_SYSTEMD_UNIT":"powerlab-core.service","PRIORITY":"3","MESSAGE":"disk full"}` + "\n"
-	srv := newMCPServer(BuildInfo{Version: "test"}, t.TempDir(), fixtureJournalRunner(out), "")
+	srv := newMCPServer(BuildInfo{Version: "test"}, resourcesConfig{procRoot: t.TempDir()}, fixtureJournalRunner(out))
 	cs := connectInProcess(t, srv)
 	ctx := t.Context()
 
@@ -171,7 +171,7 @@ func TestMCP_InProcess_ReadAudit(t *testing.T) {
 		t.Fatalf("write audit fixture: %v", err)
 	}
 
-	srv := newMCPServer(BuildInfo{Version: "test"}, t.TempDir(), fixtureJournalRunner(""), auditPath)
+	srv := newMCPServer(BuildInfo{Version: "test"}, resourcesConfig{procRoot: t.TempDir(), auditPath: auditPath}, fixtureJournalRunner(""))
 	cs := connectInProcess(t, srv)
 	ctx := t.Context()
 

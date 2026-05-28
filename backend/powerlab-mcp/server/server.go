@@ -28,6 +28,7 @@ import (
 
 	"github.com/neochaotic/powerlab/backend/common/external"
 	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
+	"github.com/neochaotic/powerlab/backend/powerlab-mcp/coreproxy"
 	"github.com/neochaotic/powerlab/backend/powerlab-mcp/config"
 	"github.com/neochaotic/powerlab/backend/powerlab-mcp/journal"
 )
@@ -75,42 +76,58 @@ type Server struct {
 // reach the underlying MCPServer to register them.
 func New(cfg config.Config, info BuildInfo) (*Server, error) {
 	pubKey := func() (*ecdsa.PublicKey, error) { return external.GetPublicKey(cfg.RuntimePath) }
-	return newServer(info, pubKey, filepath.Join(cfg.AuditDir, "audit.jsonl")), nil
+	return newServer(info, pubKey, resourcesConfig{
+		auditPath:        filepath.Join(cfg.AuditDir, "audit.jsonl"),
+		procRoot:         "/proc",
+		openAPIDir:       cfg.OpenAPIDir,
+		systemdSystemDir: cfg.SystemdSystemDir,
+		coreClient:       coreproxy.NewClient(cfg.RuntimePath, nil),
+	}), nil
+}
+
+// resourcesConfig bags together the runtime paths and clients the
+// resource layer reads from. Bundling them avoids a 6-arg
+// `newMCPServer` signature as the resource surface grows; tests
+// construct it directly with t.TempDir fixtures and (where they need
+// to) a coreproxy.Client backed by an httptest server.
+type resourcesConfig struct {
+	auditPath        string
+	procRoot         string
+	openAPIDir       string
+	systemdSystemDir string
+	coreClient       *coreproxy.Client
 }
 
 // newServer is the dependency-injected constructor: tests pass a
 // pubKeyFunc backed by a known test key so the gate's JWT validation is
-// exercised for real (no mock), without standing up a user-service. It
-// reads host metrics from the real /proc; auditPath is the per-deploy
-// JSONL log location (an empty string is fine for tests that don't read
-// audit — audittail treats a missing file as empty).
-func newServer(info BuildInfo, pubKey publicKeyFunc, auditPath string) *Server {
-	return newServerWithProcRoot(info, pubKey, "/proc", auditPath)
-}
-
-// newServerWithProcRoot additionally lets a test point the system://
-// resource at a fixture /proc directory and the audit:// resources at a
-// fixture audit log, so the MCP read path is exercised end-to-end with
-// deterministic data on any OS.
-func newServerWithProcRoot(info BuildInfo, pubKey publicKeyFunc, procRoot, auditPath string) *Server {
-	m := newMCPServer(info, procRoot, journal.Exec, auditPath)
+// exercised for real (no mock), without standing up a user-service.
+// resourcesConfig holds the per-deploy paths; a zero value is fine for
+// the tests that only exercise the auth/transport layers.
+func newServer(info BuildInfo, pubKey publicKeyFunc, rc resourcesConfig) *Server {
+	if rc.procRoot == "" {
+		rc.procRoot = "/proc"
+	}
+	m := newMCPServer(info, rc, journal.Exec)
 	// The same server instance handles every request; the getServer
 	// callback hands it to each incoming MCP session.
 	httpMCP := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return m }, nil)
 	return &Server{info: info, httpMCP: httpMCP, pubKey: pubKey}
 }
 
-// newMCPServer builds the MCP server and registers its resources/tools.
-// procRoot backs system://; journalRun backs journal://; auditPath backs
-// audit:// (production passes the real paths + journal.Exec, tests pass
-// fixtures). Factored out so the integration test can drive it directly
-// through an in-process MCP client (no HTTP transport, no auth gate) and
-// exercise the real protocol path.
-func newMCPServer(info BuildInfo, procRoot string, journalRun journal.Runner, auditPath string) *mcp.Server {
+// newMCPServer builds the MCP server and registers its resources. rc
+// bundles the read paths; journalRun is the runtime journalctl wrapper
+// (prod = journal.Exec; tests pass a fixture-backed Runner). Factored
+// out so the integration test can drive it directly through an
+// in-process MCP client (no HTTP transport, no auth gate) and exercise
+// the real protocol path.
+func newMCPServer(info BuildInfo, rc resourcesConfig, journalRun journal.Runner) *mcp.Server {
 	m := mcp.NewServer(&mcp.Implementation{Name: "powerlab-mcp", Version: info.Version}, nil)
-	registerSystemMetrics(m, procRoot)
+	registerSystemMetrics(m, rc.procRoot)
+	registerSystemUtilization(m, rc.coreClient)
 	registerJournal(m, journalRun)
-	registerAudit(m, auditPath)
+	registerJournalUnits(m, rc.systemdSystemDir)
+	registerAudit(m, rc.auditPath)
+	registerDocs(m, rc.openAPIDir)
 	return m
 }
 

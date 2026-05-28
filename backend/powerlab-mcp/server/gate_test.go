@@ -34,7 +34,7 @@ func mcpInitReq(remoteAddr, bearer string) *http.Request {
 func handlerWithKey(pub *ecdsa.PublicKey) http.Handler {
 	return newServer(BuildInfo{Version: "test"}, func() (*ecdsa.PublicKey, error) {
 		return pub, nil
-	}, "").Handler()
+	}, resourcesConfig{}).Handler()
 }
 
 // A LAN caller with no token must be rejected — the whole reason the
@@ -96,7 +96,7 @@ func TestGate_LoopbackBypassesAuthAndKeyLookup(t *testing.T) {
 	s := newServer(BuildInfo{Version: "test"}, func() (*ecdsa.PublicKey, error) {
 		keyResolved = true
 		return nil, errors.New("key lookup must not happen for loopback")
-	}, "")
+	}, resourcesConfig{})
 	rec := httptest.NewRecorder()
 	s.Handler().ServeHTTP(rec, mcpInitReq("127.0.0.1:54321", ""))
 	if rec.Code == http.StatusUnauthorized {
