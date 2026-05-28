@@ -25,6 +25,7 @@ import (
 	"github.com/neochaotic/powerlab/backend/common/external"
 	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
 	"github.com/neochaotic/powerlab/backend/powerlab-mcp/config"
+	"github.com/neochaotic/powerlab/backend/powerlab-mcp/journal"
 )
 
 // MCPEndpointPath is the single HTTP path the MCP Streamable-HTTP
@@ -86,18 +87,20 @@ func newServer(info BuildInfo, pubKey publicKeyFunc) *Server {
 // resource at a fixture /proc directory, so the MCP read path is
 // exercised end-to-end with deterministic data on any OS.
 func newServerWithProcRoot(info BuildInfo, pubKey publicKeyFunc, procRoot string) *Server {
-	m := newMCPServer(info, procRoot)
+	m := newMCPServer(info, procRoot, journal.Exec)
 	httpMCP := mcpserver.NewStreamableHTTPServer(m, mcpserver.WithEndpointPath(MCPEndpointPath))
 	return &Server{info: info, httpMCP: httpMCP, pubKey: pubKey}
 }
 
 // newMCPServer builds the MCP server and registers its resources/tools.
-// Factored out so the integration test can drive it directly through an
-// in-process MCP client (no HTTP transport, no auth gate) and exercise
-// the real protocol path.
-func newMCPServer(info BuildInfo, procRoot string) *mcpserver.MCPServer {
+// procRoot backs system://; journalRun backs journal:// (production
+// passes journal.Exec, tests a fixture). Factored out so the integration
+// test can drive it directly through an in-process MCP client (no HTTP
+// transport, no auth gate) and exercise the real protocol path.
+func newMCPServer(info BuildInfo, procRoot string, journalRun journal.Runner) *mcpserver.MCPServer {
 	m := mcpserver.NewMCPServer("powerlab-mcp", info.Version)
 	registerSystemMetrics(m, procRoot)
+	registerJournal(m, journalRun)
 	return m
 }
 
