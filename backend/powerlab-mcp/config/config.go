@@ -57,18 +57,35 @@ type Config struct {
 	// powerlab-<svc>.service unit files installed by install.sh.
 	// Overridable so a sandbox can point this at a fixture.
 	SystemdSystemDir string
+
+	// EnableDestructiveTools is the operator opt-in for the
+	// install_app and uninstall_app MCP tools (ADR-0046 batch 3).
+	// When false (the default), these tools are NOT registered —
+	// they don't show up in tools/list and an agent cannot call
+	// them. When true, they appear and the agent can install or
+	// uninstall apps autonomously, gated only by the composevalidator
+	// deny-list (install_app) and the JWT auth on /mcp.
+	//
+	// ADR-0046 §4 names this knob as one acceptable gate alongside
+	// the panel-side "pending agent action" approval UI (which is
+	// roadmap). For the homelab dogfood / autonomous-agent path,
+	// the operator flips this to true with full understanding that
+	// an authenticated agent can now mutate app state without a
+	// per-action confirmation. Documented threat model.
+	EnableDestructiveTools bool
 }
 
 // Default returns the configuration used when no conf file is present
 // or for any key the conf omits.
 func Default() Config {
 	return Config{
-		ListenAddr:       ":9090",
-		AuditDir:         "/var/log/powerlab",
-		RuntimePath:      constants.DefaultRuntimePath,
-		Disabled:         false,
-		OpenAPIDir:       "/usr/share/powerlab/openapi",
-		SystemdSystemDir: "/etc/systemd/system",
+		ListenAddr:             ":9090",
+		AuditDir:               "/var/log/powerlab",
+		RuntimePath:            constants.DefaultRuntimePath,
+		Disabled:               false,
+		OpenAPIDir:             "/usr/share/powerlab/openapi",
+		SystemdSystemDir:       "/etc/systemd/system",
+		EnableDestructiveTools: false,
 	}
 }
 
@@ -115,6 +132,8 @@ func Load(path string) (Config, error) {
 			cfg.OpenAPIDir = val
 		case "systemdsystemdir":
 			cfg.SystemdSystemDir = val
+		case "enabledestructivetools":
+			cfg.EnableDestructiveTools = parseBool(val)
 			// unknown keys: ignored on purpose (forward-compatible)
 		}
 	}

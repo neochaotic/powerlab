@@ -77,11 +77,12 @@ type Server struct {
 func New(cfg config.Config, info BuildInfo) (*Server, error) {
 	pubKey := func() (*ecdsa.PublicKey, error) { return external.GetPublicKey(cfg.RuntimePath) }
 	return newServer(info, pubKey, resourcesConfig{
-		auditPath:        filepath.Join(cfg.AuditDir, "audit.jsonl"),
-		procRoot:         "/proc",
-		openAPIDir:       cfg.OpenAPIDir,
-		systemdSystemDir: cfg.SystemdSystemDir,
-		coreClient:       coreproxy.NewClient(cfg.RuntimePath, nil),
+		auditPath:              filepath.Join(cfg.AuditDir, "audit.jsonl"),
+		procRoot:               "/proc",
+		openAPIDir:             cfg.OpenAPIDir,
+		systemdSystemDir:       cfg.SystemdSystemDir,
+		coreClient:             coreproxy.NewClient(cfg.RuntimePath, nil),
+		enableDestructiveTools: cfg.EnableDestructiveTools,
 	}), nil
 }
 
@@ -91,11 +92,12 @@ func New(cfg config.Config, info BuildInfo) (*Server, error) {
 // construct it directly with t.TempDir fixtures and (where they need
 // to) a coreproxy.Client backed by an httptest server.
 type resourcesConfig struct {
-	auditPath        string
-	procRoot         string
-	openAPIDir       string
-	systemdSystemDir string
-	coreClient       *coreproxy.Client
+	auditPath              string
+	procRoot               string
+	openAPIDir             string
+	systemdSystemDir       string
+	coreClient             *coreproxy.Client
+	enableDestructiveTools bool
 }
 
 // newServer is the dependency-injected constructor: tests pass a
@@ -141,6 +143,14 @@ func newMCPServer(info BuildInfo, rc resourcesConfig, journalRun journal.Runner)
 	// Not gated on EnableDestructiveTools because the blast radius
 	// is bounded (containers cycle, end up in the same state).
 	registerRestartApp(m, rc.coreClient)
+	// ADR-0046 batch 3 — destructive tools (install_app, uninstall_app).
+	// Gated on EnableDestructiveTools: when false (default) these are
+	// NOT registered at all, so tools/list doesn't advertise them and
+	// the agent has no way to call them. Operator opt-in is the threat-
+	// model gate until the panel-side approval UI lands.
+	if rc.enableDestructiveTools {
+		registerDestructiveTools(m, rc.coreClient)
+	}
 	return m
 }
 
