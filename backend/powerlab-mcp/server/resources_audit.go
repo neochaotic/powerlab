@@ -28,15 +28,18 @@ const auditSchemaDoc = `{
     "audit://action/{correlation_id}": "all audit records tagged with one correlation id (X-Request-Id) — e.g. everything a single request or tool-call triggered"
   },
   "fields": {
-    "ts": "RFC3339 timestamp, UTC",
-    "method": "HTTP method",
-    "path": "request path (carries the target service)",
-    "status": "HTTP status code",
-    "latency_us": "handler latency in microseconds",
-    "user_id": "authenticated user id (null for loopback / unauthenticated)",
-    "username": "denormalised username (null if no user)",
-    "remote_ip": "client IP, or 'loopback'",
-    "request_id": "correlation id (X-Request-Id) — the join key for audit://action"
+    "ts": "RFC3339 timestamp with microsecond precision, UTC",
+    "ts_us": "same instant as 'ts', as int64 microseconds since the Unix epoch (sortable; pair with 'ts' for human grep)",
+    "method": "HTTP method (GET, POST, PUT, DELETE, PATCH)",
+    "path": "request URL path without the query string (carries the target service: /v1/* core, /v2/* app-management, /v1/users/* user-service, etc.)",
+    "query": "URL query string with the 'token=' parameter stripped (omitted when the request had no query)",
+    "status": "HTTP response status code",
+    "latency_us": "handler latency in microseconds (entry → response complete)",
+    "user_id": "authenticated user id, or null for loopback / unauthenticated",
+    "username": "denormalised username (null when user_id is null)",
+    "remote_ip": "client IP, or the literal 'loopback' for 127.0.0.1 / ::1 (PII-safe per ADR-0033)",
+    "request_id": "correlation id (X-Request-Id) — the join key for audit://action; omitted when the caller did not send one",
+    "kind": "record-type discriminator; absent (the common case) for HTTP audit records produced by the request middleware; non-empty values flag records produced outside the middleware path (e.g. 'ui_error' for frontend window.onerror payloads)"
   }
 }`
 

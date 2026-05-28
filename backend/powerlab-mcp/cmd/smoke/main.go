@@ -20,11 +20,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -73,35 +75,174 @@ func main() {
 	}
 	fmt.Printf("PASS  resources/list (%d advertised)\n", len(list.Resources))
 
-	// 3. Read each resource the daemon advertised. We don't hardcode a
-	//    URI list — if a future release adds resources, this gates
-	//    them automatically. URI templates (with `{var}`) can't be
-	//    read directly; skip them and report.
+	// 3. Read each resource the daemon advertised + run resource-
+	//    specific data-quality assertions. Template URIs (`{var}`) get
+	//    a concrete probe right after — `audit://recent?limit=5` so the
+	//    record-shape checks fire on a real payload even when no agent
+	//    is wired up yet. We don't hardcode the resource list because
+	//    a future release adding more resources should be gated
+	//    automatically.
 	failures := 0
 	for _, r := range list.Resources {
 		if hasTemplatePlaceholder(r.URI) {
-			fmt.Printf("SKIP  %s (URI template — provide a concrete read separately)\n", r.URI)
+			fmt.Printf("SKIP  %s (URI template — concrete reads below where applicable)\n", r.URI)
 			continue
 		}
-		read, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: r.URI})
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "FAIL  %s — read: %v\n", r.URI, err)
-			failures++
-			continue
-		}
-		if len(read.Contents) == 0 {
-			fmt.Fprintf(os.Stderr, "FAIL  %s — empty contents\n", r.URI)
-			failures++
-			continue
-		}
-		fmt.Printf("PASS  %s (%d byte%s)\n", r.URI, len(read.Contents[0].Text), pluralS(len(read.Contents[0].Text)))
+		failures += readAndAssert(ctx, cs, r.URI)
+	}
+
+	// Concrete reads against the templates the MVP advertises. Empty
+	// payloads are NOT failures (a fresh box has no audit records);
+	// protocol errors ARE failures.
+	for _, uri := range []string{"audit://recent?limit=5"} {
+		failures += readAndAssert(ctx, cs, uri)
 	}
 
 	if failures > 0 {
-		fmt.Fprintf(os.Stderr, "\n%d resource read(s) failed\n", failures)
+		fmt.Fprintf(os.Stderr, "\n%d resource check(s) failed\n", failures)
 		os.Exit(1)
 	}
-	fmt.Println("\nOK — every advertised resource read successfully")
+	fmt.Println("\nOK — every advertised resource read + data-quality assertions passed")
+}
+
+// readAndAssert reads a resource and runs resource-specific quality
+// assertions against the payload. Returns 1 on any error / contract
+// break, 0 on success. Logs PASS / FAIL per check + a per-resource
+// note when meaningful.
+func readAndAssert(ctx context.Context, cs *mcp.ClientSession, uri string) int {
+	read, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: uri})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  %s — read: %v\n", uri, err)
+		return 1
+	}
+	if len(read.Contents) == 0 {
+		fmt.Fprintf(os.Stderr, "FAIL  %s — empty contents\n", uri)
+		return 1
+	}
+	payload := read.Contents[0].Text
+	fmt.Printf("PASS  %s (%d byte%s)\n", uri, len(payload), pluralS(len(payload)))
+
+	switch {
+	case strings.HasSuffix(uri, "://schema"):
+		return assertSchemaPayload(uri, payload)
+	case strings.HasPrefix(uri, "audit://recent"), strings.HasPrefix(uri, "audit://action/"):
+		return assertAuditRecords(uri, payload)
+	case uri == "system://metrics":
+		return assertSystemMetrics(payload)
+	}
+	return 0
+}
+
+// assertSchemaPayload validates that a self-describing schema parses as
+// JSON and carries a non-empty "description" + at least one documented
+// field — the contract every schema:// resource implements.
+func assertSchemaPayload(uri, payload string) int {
+	var s struct {
+		Description string                 `json:"description"`
+		Resources   map[string]string      `json:"resources"`
+		Fields      map[string]interface{} `json:"fields"`
+	}
+	if err := json.Unmarshal([]byte(payload), &s); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  %s — schema is not valid JSON: %v\n", uri, err)
+		return 1
+	}
+	if s.Description == "" {
+		fmt.Fprintf(os.Stderr, "FAIL  %s — schema missing 'description' (agents read this)\n", uri)
+		return 1
+	}
+	if len(s.Fields) == 0 {
+		fmt.Fprintf(os.Stderr, "FAIL  %s — schema documents zero fields\n", uri)
+		return 1
+	}
+	fmt.Printf("      → description set + %d field(s) documented\n", len(s.Fields))
+	return 0
+}
+
+// assertAuditRecords validates an audit:// payload against the contract
+// ADR-0033 promises operators + agents: 'ts' is RFC 3339, 'status' is
+// a valid HTTP code, 'method' is a known verb, 'remote_ip' is set
+// (the literal "loopback" sentinel is fine).
+func assertAuditRecords(uri, payload string) int {
+	var recs []map[string]interface{}
+	if err := json.Unmarshal([]byte(payload), &recs); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  %s — payload is not a JSON array of records: %v\n", uri, err)
+		return 1
+	}
+	if len(recs) == 0 {
+		fmt.Printf("      → zero records (fresh box / no matching correlation — not a failure)\n")
+		return 0
+	}
+	validMethods := map[string]bool{"GET": true, "POST": true, "PUT": true, "DELETE": true, "PATCH": true, "HEAD": true, "OPTIONS": true}
+	for i, r := range recs {
+		ts, _ := r["ts"].(string)
+		if _, err := time.Parse(time.RFC3339, ts); err != nil {
+			fmt.Fprintf(os.Stderr, "FAIL  %s record %d: ts %q is not RFC 3339 (%v)\n", uri, i, ts, err)
+			return 1
+		}
+		status, _ := r["status"].(float64)
+		if status < 100 || status > 599 {
+			fmt.Fprintf(os.Stderr, "FAIL  %s record %d: status %v out of HTTP range\n", uri, i, status)
+			return 1
+		}
+		method, _ := r["method"].(string)
+		if !validMethods[method] {
+			fmt.Fprintf(os.Stderr, "FAIL  %s record %d: method %q not a known HTTP verb\n", uri, i, method)
+			return 1
+		}
+		if remoteIP, _ := r["remote_ip"].(string); remoteIP == "" {
+			fmt.Fprintf(os.Stderr, "FAIL  %s record %d: remote_ip empty (should be IP or 'loopback')\n", uri, i)
+			return 1
+		}
+	}
+	fmt.Printf("      → %d record(s) with valid ts / status / method / remote_ip\n", len(recs))
+	return 0
+}
+
+// assertSystemMetrics validates the system://metrics payload against the
+// shape declared in metrics.Metrics — every documented field present,
+// counters in plausible ranges. Fails fast on Mac (no /proc), where
+// the resource itself errors out before we reach this check.
+//
+// The field list here is the product contract on the wire. If a future
+// change renames a field (e.g. load1 → load_avg_1m), this assertion is
+// where the rename surfaces: every operator running the smoke gets a
+// loud FAIL until the change is reconciled across the panel + this
+// smoke + downstream MCP clients.
+func assertSystemMetrics(payload string) int {
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(payload), &m); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  system://metrics — payload is not a JSON object: %v\n", err)
+		return 1
+	}
+	required := []string{
+		"mem_total_kb", "mem_available_kb", "mem_used_percent",
+		"load1", "load5", "load15",
+		"cpu_cores", "uptime_seconds",
+	}
+	for _, k := range required {
+		if _, ok := m[k]; !ok {
+			fmt.Fprintf(os.Stderr, "FAIL  system://metrics — missing %q (product contract)\n", k)
+			return 1
+		}
+	}
+	if up, _ := m["uptime_seconds"].(float64); up <= 0 {
+		fmt.Fprintf(os.Stderr, "FAIL  system://metrics — uptime_seconds=%v (must be > 0 on a running box)\n", up)
+		return 1
+	}
+	if cores, _ := m["cpu_cores"].(float64); cores < 1 {
+		fmt.Fprintf(os.Stderr, "FAIL  system://metrics — cpu_cores=%v (must be ≥ 1)\n", cores)
+		return 1
+	}
+	if mem, _ := m["mem_total_kb"].(float64); mem <= 0 {
+		fmt.Fprintf(os.Stderr, "FAIL  system://metrics — mem_total_kb=%v (must be > 0)\n", mem)
+		return 1
+	}
+	if pct, _ := m["mem_used_percent"].(float64); pct < 0 || pct > 100 {
+		fmt.Fprintf(os.Stderr, "FAIL  system://metrics — mem_used_percent=%v (out of 0..100)\n", pct)
+		return 1
+	}
+	fmt.Printf("      → all %d required fields present + sane\n", len(required))
+	return 0
 }
 
 // pingControl reaches /healthz then /version. /version returns a JSON
