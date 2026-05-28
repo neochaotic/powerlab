@@ -20,7 +20,7 @@ import (
 	"net"
 	"net/http"
 
-	mcpserver "github.com/mark3labs/mcp-go/server"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/neochaotic/powerlab/backend/common/external"
 	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
@@ -58,7 +58,7 @@ type publicKeyFunc func() (*ecdsa.PublicKey, error)
 // New, mount it with Handler.
 type Server struct {
 	info    BuildInfo
-	httpMCP *mcpserver.StreamableHTTPServer
+	httpMCP *mcp.StreamableHTTPHandler
 	pubKey  publicKeyFunc
 }
 
@@ -88,7 +88,9 @@ func newServer(info BuildInfo, pubKey publicKeyFunc) *Server {
 // exercised end-to-end with deterministic data on any OS.
 func newServerWithProcRoot(info BuildInfo, pubKey publicKeyFunc, procRoot string) *Server {
 	m := newMCPServer(info, procRoot, journal.Exec)
-	httpMCP := mcpserver.NewStreamableHTTPServer(m, mcpserver.WithEndpointPath(MCPEndpointPath))
+	// The same server instance handles every request; the getServer
+	// callback hands it to each incoming MCP session.
+	httpMCP := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return m }, nil)
 	return &Server{info: info, httpMCP: httpMCP, pubKey: pubKey}
 }
 
@@ -97,8 +99,8 @@ func newServerWithProcRoot(info BuildInfo, pubKey publicKeyFunc, procRoot string
 // passes journal.Exec, tests a fixture). Factored out so the integration
 // test can drive it directly through an in-process MCP client (no HTTP
 // transport, no auth gate) and exercise the real protocol path.
-func newMCPServer(info BuildInfo, procRoot string, journalRun journal.Runner) *mcpserver.MCPServer {
-	m := mcpserver.NewMCPServer("powerlab-mcp", info.Version)
+func newMCPServer(info BuildInfo, procRoot string, journalRun journal.Runner) *mcp.Server {
+	m := mcp.NewServer(&mcp.Implementation{Name: "powerlab-mcp", Version: info.Version}, nil)
 	registerSystemMetrics(m, procRoot)
 	registerJournal(m, journalRun)
 	return m
@@ -114,9 +116,8 @@ func (s *Server) Handler() http.Handler {
 	// Read-tier gate: jwt.HTTPJWT skips loopback (trusted local agent)
 	// and requires a valid Bearer token from the LAN, writing the
 	// identity headers downstream consumers (audit, tool tiers) read.
-	// StreamableHTTPServer.ServeHTTP dispatches by HTTP method (it does
-	// not re-check the path), so mounting the gated handler at the exact
-	// endpoint path is enough.
+	// The MCP StreamableHTTPHandler is a plain http.Handler, mounted at
+	// the endpoint path behind the gate.
 	//
 	// TRUST BOUNDARY: jwt.HTTPJWT grants the loopback skip purely from
 	// the TCP peer (r.RemoteAddr == 127.0.0.1/::1). powerlab-mcp is
