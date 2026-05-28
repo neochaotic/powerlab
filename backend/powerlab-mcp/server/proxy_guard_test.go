@@ -45,7 +45,7 @@ func TestProxyGuard_GenuineLoopbackStillTrusted(t *testing.T) {
 	s := newServer(BuildInfo{Version: "test"}, func() (*ecdsa.PublicKey, error) {
 		keyResolved = true
 		return nil, nil
-	}, "")
+	}, resourcesConfig{})
 	rec := httptest.NewRecorder()
 	s.Handler().ServeHTTP(rec, mcpInitReq("127.0.0.1:5000", "")) // no proxy headers
 	if rec.Code == http.StatusUnauthorized {
