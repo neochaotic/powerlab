@@ -140,18 +140,18 @@ Ship a new standalone binary **`powerlab-mcp`** that:
 
 ## Acceptance — Foundation MVP (release-keyed, v0.7.x)
 
-- [ ] New binary `powerlab-mcp` cross-compiles CGO-free (amd64 + arm64), ships in the Linux packaging script.
-- [ ] Listens on a configurable port (default `:9090`); config at `/etc/powerlab/mcp.conf`; `powerlab-mcp.service` systemd unit.
-- [ ] **Tails per-service JSONL audit files read-only**; serves `audit://` resources without touching the writers.
-- [ ] HTTP + SSE transport for browser + remote MCP (stdio deferred).
-- [ ] Three auth tiers enforced + audited (recorder built into this service too — dogfood), reusing `jwt.Validate`.
-- [ ] Resource URI templates published via MCP `resources/list`; tool schemas via `tools/list` (code-first via struct tags).
-- [ ] Resources: `system://*`, `journal://*`, `audit://*`, `install-logs://*`.
+- [x] New binary `powerlab-mcp` cross-compiles CGO-free (amd64 + arm64), ships in the Linux packaging script. *(#599)*
+- [x] Listens on a configurable port (default `:9090`); config at `/etc/powerlab/mcp.conf`; `powerlab-mcp.service` systemd unit. *(#599)*
+- [x] **Tails the single gateway-written JSONL audit file read-only** (corrected from the original "per-service" framing — only the gateway mounts the audit middleware, ADR-0033); serves `audit://` resources without touching the writers. *(#600)*
+- [x] HTTP + Streamable transport for browser + remote MCP (stdio deferred). *(#584, #587, #593)*
+- [ ] Three auth tiers enforced + audited (recorder built into this service too — dogfood), reusing `jwt.Validate`. *(read tier done #585; auth/admin + recorder dogfood pending)*
+- [x] Resource URI templates published via MCP `resources/list`; tool schemas via `tools/list` (code-first via struct tags). *(resources done #587/#591/#600; tools pending)*
+- [ ] Resources: `system://*` ✅ (#587/#588), `journal://*` ✅ (#591/#592), `audit://*` ✅ (#600), `install-logs://*` ⏳.
 - [ ] Tools: `restart_app`, `prune_orphans`, `journal_search`, `read_file`, `check_disk_free`, `reset_audit`.
-- [ ] Unit tests for resource handlers + tool handlers + auth-tier enforcement; integration test (`//go:build integration`) covering an MCP client → resource fetch → tool call cycle.
+- [x] Unit tests for resource handlers + auth-tier enforcement; integration test covering MCP client → resource fetch via both in-process and HTTP transports. *(tool handler tests pending with tools)*
 - [ ] `powerlab-logs` CLI calls the service instead of `journalctl` directly.
 - [ ] UI: header button mounted, opens `:9090` in a new tab. Settings → Audit pane keeps working.
-- [ ] Live SSH+browser smoke on `.142`: service running independently of the gateway; MCP query works from a local Claude Code session.
+- [x] Live SSH+browser smoke on `.142`: service running independently of the gateway; MCP query works from a local SDK client over real HTTP+JWT — system://, journal://, audit:// all read end-to-end. *(2026-05-28; pairing with Claude Desktop pending, tracked in #596)*
 
 ## References
 

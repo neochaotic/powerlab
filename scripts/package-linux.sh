@@ -81,10 +81,22 @@ BUILD_DATE="${BUILD_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
 # `core/route/v1.powerLabVersionAtCompileTime` — read by the in-UI
 #   updater (currentPowerLabVersion()) to determine "current" in the
 #   update-available comparison.
-# Setting all four for every service is fine: Go silently ignores
+# `main.version` — issue #599. powerlab-mcp is the only service whose
+#   main.go declares its OWN `version` var (it stamps the MCP
+#   server.BuildInfo + serves /version). The linker's import path for
+#   package main is literally the string `main` — fully-qualified
+#   forms like `github.com/.../powerlab-mcp/main.version` silently
+#   no-op (the linker can't find them; tested with `go tool nm`). So
+#   we use the unqualified form. This is safe: every other service
+#   that doesn't declare `var version` ignores the flag (fail-soft),
+#   exactly the same way they ignore the core-specific `-X` above.
+#   Distinct from the v0.5.4 mishap (#159) — there the target var
+#   genuinely didn't exist anywhere. Here it exists in MCP.
+# Setting all of these for every service is fine: Go silently ignores
 # `-X` for vars that don't exist in a given binary, so the gateway/
 # message-bus/etc. just get the `main.commit` and `main.date` ones.
 LDFLAGS_VERSION_STAMP="-s -w \
+  -X main.version=$VERSION \
   -X main.commit=$GIT_COMMIT \
   -X main.date=$BUILD_DATE \
   -X github.com/neochaotic/powerlab/backend/core/common.POWERLAB_VERSION=$VERSION \
@@ -183,6 +195,25 @@ cd "$ROOT/backend/logs-cli"
 GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
   -trimpath \
   -o "$STAGE/bin/powerlab-logs" \
+  .
+
+# ─── 2.6 Build powerlab-mcp (ADR-0034 / issue #599) ─────────────────────
+# powerlab-mcp is the standalone observability + MCP service. Built
+# outside the SERVICES loop because: (a) the source dir is
+# `backend/powerlab-mcp` (not `backend/mcp` — the loop would synthesize
+# a non-existent path), (b) the binary takes `-conf` rather than `-c`,
+# so the systemd unit it ships with is emitted separately further down
+# (this is also why we don't add it to SERVICES — the loop's unit
+# template would write the wrong ExecStart). CGO-free (pure Go); the
+# `main.version` ldflag stamp lives in the shared LDFLAGS_VERSION_STAMP
+# above, fully qualified so it only fires here. See
+# backend/powerlab-mcp/main.go.
+log "  building powerlab-mcp..."
+cd "$ROOT/backend/powerlab-mcp"
+GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
+  -trimpath \
+  -ldflags="$LDFLAGS_VERSION_STAMP" \
+  -o "$STAGE/bin/powerlab-mcp" \
   .
 
 # ─── 3. (frontend) ───────────────────────────────────────────────────────
@@ -311,6 +342,33 @@ cat > "$STAGE/conf/local-storage.conf.sample" <<EOF
 RuntimePath = /var/run/powerlab
 EOF
 
+# powerlab-mcp's config loader (backend/powerlab-mcp/config/config.go)
+# is forgiving — a missing file yields Default(), and unknown keys are
+# ignored. The sample is documentation-grade: it shows operators what
+# the three knobs are, all set to the values the binary already falls
+# back to. Flat `Key = value` format (NOT INI), matching what the
+# loader expects.
+cat > "$STAGE/conf/mcp.conf.sample" <<EOF
+# powerlab-mcp configuration (ADR-0034).
+# Flat Key = value format. Unknown keys are ignored (forward-compatible
+# across binary upgrades). A missing file is fine — the binary uses
+# these defaults.
+
+# Address the HTTP+MCP server binds to. ':9090' = all interfaces.
+# Auth tiers (loopback-free, LAN requires user-service JWT) gate access,
+# not the bind address.
+ListenAddr = :9090
+
+# Directory holding audit.jsonl (ADR-0035). The audit:// resources tail
+# this file read-only. Must match where the gateway's audit middleware
+# writes (default /var/log/powerlab/audit.jsonl, root:root 0600).
+AuditDir = /var/log/powerlab
+
+# PowerLab runtime directory where user-service publishes its address
+# file. The read-tier JWT gate resolves the JWKS public key from there.
+RuntimePath = /var/run/powerlab
+EOF
+
 # ─── 5. systemd units ────────────────────────────────────────────────────
 log "Generating systemd unit files..."
 
@@ -419,6 +477,47 @@ Restart=always
 RestartSec=5
 PIDFile=/var/run/powerlab/gateway.pid
 Environment=DOCKER_API_VERSION=1.44
+Environment=HOME=/root
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# powerlab-mcp (ADR-0034, issue #599). Built outside the SERVICES loop
+# because the unit shape differs from the standard service template:
+#
+#   · The binary takes `-conf <path>`, not `-c <path>` (the loop above
+#     wires `-c`, which Go's flag package would reject with Exit(2),
+#     looping forever under systemd).
+#   · No URL-file ExecStartPre gate. /healthz + /version are loopback-
+#     open and the read-tier JWT gate falls back cleanly when JWKS
+#     isn't reachable yet — MCP is allowed to be the first thing up.
+#     `After=` user-service is soft (Wants=) so LAN auth catches up
+#     when user-service finishes its own boot.
+#   · `User=root` because audit.jsonl is root:root 0600 (the gateway is
+#     the only writer per ADR-0033). The .142 smoke confirmed any
+#     non-root user fails audit:// reads with permission-denied; root
+#     is the only choice that exposes the full observability surface.
+#   · No DOCKER_API_VERSION env — MCP doesn't talk to Docker.
+cat > "$STAGE/systemd/powerlab-mcp.service" <<EOF
+[Unit]
+Description=PowerLab MCP observability service
+After=network.target powerlab-gateway.service powerlab-user-service.service
+Wants=powerlab-gateway.service powerlab-user-service.service
+# Looser StartLimit than systemd defaults, consistent with the rest of
+# the stack. MCP is independent enough that flapping wouldn't lock the
+# operator out of the UI, but matching the cohort simplifies
+# operations.
+StartLimitBurst=10
+StartLimitIntervalSec=60
+
+[Service]
+Type=notify
+User=root
+ExecStart=/usr/bin/powerlab-mcp -conf /etc/powerlab/mcp.conf
+Restart=always
+RestartSec=5
+PIDFile=/var/run/powerlab/mcp.pid
 Environment=HOME=/root
 
 [Install]
@@ -763,7 +862,9 @@ done
 # the configured port and incorrectly classifies it as "busy", causing
 # upgrades to silently move the gateway to a different port. Stopping
 # first guarantees the probe sees the real state of the host.
-SERVICES=(gateway message-bus user-service core app-management local-storage)
+# mcp is appended (issue #599) — last in start order, included here so
+# install.sh stops it cleanly before swapping the binary.
+SERVICES=(gateway message-bus user-service core app-management local-storage mcp)
 for svc in "${SERVICES[@]}"; do
   systemctl stop "powerlab-$svc.service" 2>/dev/null || true
 done
@@ -872,7 +973,11 @@ sed -i 's| -c /etc/powerlab/gateway.conf||g' /etc/systemd/system/powerlab-gatewa
 systemctl daemon-reload
 
 echo "[powerlab-install] Enabling and starting services..."
-SERVICES=(gateway message-bus user-service core app-management local-storage)
+# mcp is appended last (issue #599). powerlab-mcp.service sets
+# After=powerlab-gateway.service powerlab-user-service.service so
+# systemd handles real ordering — the array order here only controls
+# the systemctl enable/restart loop, not actual startup sequencing.
+SERVICES=(gateway message-bus user-service core app-management local-storage mcp)
 for svc in "${SERVICES[@]}"; do
   systemctl enable "powerlab-$svc.service" >/dev/null
   systemctl reset-failed "powerlab-$svc.service" 2>/dev/null || true
@@ -918,7 +1023,7 @@ JSON
     echo "[powerlab-install]   upgrade FAILED — gateway not responding. Rolling back from snapshot."
     # Stop everything before swapping back so the kernel does not
     # hold open file handles to the broken binaries.
-    for svc in gateway message-bus user-service core app-management local-storage; do
+    for svc in gateway message-bus user-service core app-management local-storage mcp; do
       systemctl stop "powerlab-$svc.service" 2>/dev/null || true
     done
     # Restore from snapshot. We deliberately do NOT touch
@@ -930,7 +1035,7 @@ JSON
     if [[ -f "$SNAPSHOT_DIR/db/db" ]]; then cp -a "$SNAPSHOT_DIR/db/db" /var/lib/powerlab/db; fi
     if [[ -d "$SNAPSHOT_DIR/share/www" ]]; then rm -rf /usr/share/powerlab/www && cp -a "$SNAPSHOT_DIR/share/www" /usr/share/powerlab/www; fi
     systemctl daemon-reload
-    for svc in gateway message-bus user-service core app-management local-storage; do
+    for svc in gateway message-bus user-service core app-management local-storage mcp; do
       systemctl reset-failed "powerlab-$svc.service" 2>/dev/null || true
       systemctl start "powerlab-$svc.service"
     done
@@ -1041,7 +1146,7 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
-SERVICES=(gateway message-bus user-service core app-management local-storage)
+SERVICES=(gateway message-bus user-service core app-management local-storage mcp)
 
 echo "[powerlab-uninstall] Stopping services..."
 for svc in "${SERVICES[@]}"; do

@@ -53,9 +53,19 @@ assert_grep "main.date ldflag set"          "-X main.date=\$BUILD_DATE"
 assert_grep "core POWERLAB_VERSION ldflag"  "-X github.com/neochaotic/powerlab/backend/core/common.POWERLAB_VERSION=\$VERSION"
 assert_grep "core powerLabVersionAtCompileTime ldflag" \
   "-X github.com/neochaotic/powerlab/backend/core/route/v1.powerLabVersionAtCompileTime=\$VERSION"
+# powerlab-mcp's main.go declares its OWN `version` var (the binary
+# reports it via /version and stamps server.BuildInfo). The linker's
+# import path for package main is literally `main` — fully-qualified
+# forms like `github.com/.../powerlab-mcp/main.version` silently
+# no-op (verified with `go tool nm`). So the only working shape is
+# `-X main.version=$VERSION`; Go fail-softs the flag on the other
+# services that don't declare `version`. This brings back unqualified
+# `-X main.version=` (banned post-#159), but the v0.5.4 mishap was
+# that the var existed NOWHERE. Now it exists in MCP.
+assert_grep "powerlab-mcp main.version ldflag (#599)" \
+  "-X main.version=\$VERSION"
 
 echo "Test: deprecated ldflag targets absent (would silently no-op)"
-assert_no_grep "old main.version target absent (var doesn't exist)"  "-X main.version="
 assert_no_grep "old IceWhaleTech path absent (renamed in #151)"      "-X github.com/IceWhaleTech/CasaOS/common.POWERLAB_VERSION="
 
 echo "Test: target Go vars actually exist in the source"
@@ -79,6 +89,11 @@ assert_grep_in_repo "core declares POWERLAB_VERSION" \
   "backend/core/common/constants.go" "var POWERLAB_VERSION"
 assert_grep_in_repo "core declares powerLabVersionAtCompileTime" \
   "backend/core/route/v1/powerlab_update.go" "var powerLabVersionAtCompileTime"
+# powerlab-mcp declares `version` in package main (block-form). Match
+# the literal token in case the declaration is moved between block-form
+# `var ( version = ... )` and single-line `var version = ...`.
+assert_grep_in_repo "powerlab-mcp declares main.version" \
+  "backend/powerlab-mcp/main.go" "version[[:space:]]*=[[:space:]]*\"private build\""
 
 echo
 if [[ "$failures" == "0" ]]; then
