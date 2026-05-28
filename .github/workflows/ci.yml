@@ -728,18 +728,35 @@ jobs:
           docker info >/dev/null 2>&1 && echo "docker: up" || echo "docker: NOT up"
 
       - name: Run install smoke
+        # POWERLAB_ALLOW_DEV_BUILD=1: the package step stamps CI tarballs
+        # with version "0.0.0-ci" (see the Compute version step) which
+        # the install.sh template refuses by default (the dev-bundle
+        # safety guard locked by check-install-refuses-dev-bundle_test.sh,
+        # added 2026-05-15 after a 0.0.0-e2e tarball escaped onto a
+        # production host). Without the override the gate cannot even
+        # start install — the script aborts at the version check and
+        # install-smoke turns chronically red on `main` post-merge
+        # without anyone noticing (PR runs skip this job entirely).
+        # On a tag push the version is X.Y.Z and the override is a
+        # silent no-op, so it's safe to set unconditionally.
+        # For the upgrade-from-www scenario the OLD baseline is a real
+        # version (v0.7.3) — sudo -E only re-exports the var to the
+        # install.sh that handles the NEW build; v0.7.3's install.sh
+        # predates the dev-block and ignores the var anyway.
         run: |
           set -euo pipefail
           NEW="$(ls dist-new/powerlab-*-linux-${{ matrix.arch }}.tar.gz | head -1)"
           base="$(basename "$NEW")"; ver="${base#powerlab-}"; ver="${ver%-linux-${{ matrix.arch }}.tar.gz}"
           echo "NEW=$NEW (version $ver)"
           if [[ "${{ matrix.scenario }}" == "fresh" ]]; then
-            sudo -E POWERLAB_UPGRADE_SMOKE_ALLOW=1 bash -x scripts/check-upgrade-smoke.sh \
+            sudo -E POWERLAB_UPGRADE_SMOKE_ALLOW=1 POWERLAB_ALLOW_DEV_BUILD=1 \
+              bash -x scripts/check-upgrade-smoke.sh \
               --fresh --new "$NEW" --new-version "$ver" --expect-embedded
           else
             OLD="$(ls dist-old/powerlab-*-linux-${{ matrix.arch }}.tar.gz | head -1)"
             echo "OLD (www-model baseline)=$OLD"
-            sudo -E POWERLAB_UPGRADE_SMOKE_ALLOW=1 bash -x scripts/check-upgrade-smoke.sh \
+            sudo -E POWERLAB_UPGRADE_SMOKE_ALLOW=1 POWERLAB_ALLOW_DEV_BUILD=1 \
+              bash -x scripts/check-upgrade-smoke.sh \
               --old "$OLD" --new "$NEW" --new-version "$ver" --expect-embedded
           fi
 
