@@ -48,7 +48,7 @@ const systemSchemaDoc = `{
     "system://metrics": "INDEPENDENT — /proc-direct snapshot of memory + load average + uptime. Always works when MCP is up.",
     "system://utilization": "PROXIED — core's /v1/sys/utilization: CPU percent / temperature / power / model, memory, network.",
     "system://disk": "PROXIED — core's /v1/sys/disk: physical disks + per-mount usage + SMART metadata (model, serial, temperature). Same surface the panel reads.",
-    "system://network": "PROXIED — core's /v1/sys/net: per-interface throughput counters + state (up/down/connected).",
+    "system://network": "PROXIED — core's /v1/sys/network/interfaces: per-interface state + addresses.",
     "system://gpu": "INDEPENDENT IMPORT — common/external::GetGPUUtilization. Apple Silicon (ioreg) + Nvidia (nvidia-smi). Returns {percent, memoryUsed, model, temperature}; an empty model means 'no GPU detected'. No network hop."
   },
   "fields_metrics": {
@@ -162,8 +162,8 @@ func registerSystemDisk(s *mcp.Server, proxy *coreproxy.Client) {
 func registerSystemNetwork(s *mcp.Server, proxy *coreproxy.Client) {
 	registerProxiedSystem(s, proxy, systemNetworkURI,
 		"System network (per-interface)",
-		"Per-interface throughput counters + state — proxied from core's /v1/sys/net. Agent can answer 'is this NIC up?' or 'how much traffic on eth0 right now?' against the same data the panel shows.",
-		"/v1/sys/net")
+		"Per-interface state + addresses — proxied from core's /v1/sys/network/interfaces. Agent can answer 'is this NIC up?' or 'what's eth0's IP?' against the same data the panel shows.",
+		"/v1/sys/network/interfaces")
 }
 
 // registerSystemGPU exposes system://gpu using common/external's
