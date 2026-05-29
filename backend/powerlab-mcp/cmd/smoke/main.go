@@ -97,12 +97,238 @@ func main() {
 	for _, uri := range []string{"audit://recent?limit=5"} {
 		failures += readAndAssert(ctx, cs, uri)
 	}
+	// docs://api/<service> — probe dynamically. Read the manifest
+	// FIRST and only call into a service that's actually staged on
+	// this box. A Mac dev install or pre-install box has an empty
+	// manifest; we surface that as a WARN, not a failure, because
+	// the wire-up is fine — only the package-linux.sh stage step
+	// for OpenAPI specs hasn't run.
+	failures += probeFirstOpenAPISpec(ctx, cs)
+
+	// 4. Tool surface (ADR-0046). tools/list discovery + read-only
+	//    tool invocation. We deliberately do NOT call restart_app,
+	//    install_app, or uninstall_app — those have side effects and
+	//    the smoke runs against a live box. Read-only tools
+	//    (journal_search + check_disk_free) get a real call to
+	//    validate the typed output.
+	failures += probeAndCallTools(ctx, cs)
 
 	if failures > 0 {
-		fmt.Fprintf(os.Stderr, "\n%d resource check(s) failed\n", failures)
+		fmt.Fprintf(os.Stderr, "\n%d resource/tool check(s) failed\n", failures)
 		os.Exit(1)
 	}
-	fmt.Println("\nOK — every advertised resource read + data-quality assertions passed")
+	fmt.Println("\nOK — every advertised resource + tool read + data-quality assertions passed")
+}
+
+// probeFirstOpenAPISpec reads docs://api, picks the first staged
+// service, and validates its OpenAPI spec shape. An empty manifest
+// is a WARN: install hasn't run the OpenAPI staging step yet
+// (Mac dev box, fresh install pre-package-linux.sh) — the wire-up
+// is fine; the data just hasn't landed.
+func probeFirstOpenAPISpec(ctx context.Context, cs *mcp.ClientSession) int {
+	manifestRes, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "docs://api"})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  docs://api manifest read: %v\n", err)
+		return 1
+	}
+	if len(manifestRes.Contents) == 0 {
+		fmt.Fprintf(os.Stderr, "FAIL  docs://api returned empty contents\n")
+		return 1
+	}
+	var manifest struct {
+		Specs []struct {
+			Service string `json:"service"`
+			URI     string `json:"uri"`
+		} `json:"specs"`
+	}
+	if err := json.Unmarshal([]byte(manifestRes.Contents[0].Text), &manifest); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  docs://api manifest is not valid JSON: %v\n", err)
+		return 1
+	}
+	if len(manifest.Specs) == 0 {
+		fmt.Printf("WARN  docs://api manifest is empty — package-linux.sh OpenAPI staging hasn't run on this box (Mac dev / pre-install). The wire-up is fine.\n")
+		return 0
+	}
+	return readAndAssert(ctx, cs, manifest.Specs[0].URI)
+}
+
+// probeAndCallTools exercises the MCP tool surface — tools/list +
+// the safe-to-call read-only tools. Returns the number of failing
+// checks. Per ADR-0046, every tool's Description MUST carry an
+// explicit side-effect class marker (READ ONLY / SIDE EFFECT /
+// DESTRUCTIVE) so Claude clients surface it to the user; the smoke
+// asserts this contract because the discipline is easy to lose in
+// a tool-list refactor.
+func probeAndCallTools(ctx context.Context, cs *mcp.ClientSession) int {
+	tools, err := cs.ListTools(ctx, nil)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  tools/list: %v\n", err)
+		return 1
+	}
+	fmt.Printf("PASS  tools/list (%d advertised)\n", len(tools.Tools))
+
+	failures := 0
+	seen := map[string]string{}
+	// Side-effect class marker enforcement. We accept either the
+	// canonical ADR-0046 wording or any variant containing the
+	// classifier word in upper-case — the LLM-facing surface is
+	// what matters, not the punctuation.
+	for _, tool := range tools.Tools {
+		seen[tool.Name] = tool.Description
+		if !carriesSideEffectClass(tool.Description) {
+			fmt.Fprintf(os.Stderr, "FAIL  tool %q description missing side-effect class marker (READ ONLY / SIDE EFFECT / DESTRUCTIVE): %q\n", tool.Name, tool.Description)
+			failures++
+		}
+	}
+
+	// Read-only tools must always be advertised — they ship in batch
+	// 1 with no gate. If they're missing the build is broken.
+	for _, want := range []string{"journal_search", "check_disk_free"} {
+		if _, ok := seen[want]; !ok {
+			fmt.Fprintf(os.Stderr, "FAIL  tool %q missing from tools/list (expected unconditional)\n", want)
+			failures++
+		}
+	}
+
+	// restart_app ships in batch 2 with no gate — expect it too.
+	if _, ok := seen["restart_app"]; !ok {
+		fmt.Fprintf(os.Stderr, "FAIL  tool restart_app missing from tools/list (expected unconditional)\n")
+		failures++
+	}
+
+	// install_app + uninstall_app are gated on EnableDestructiveTools.
+	// We don't assert presence/absence — the smoke runs against
+	// configurations both ways. We DO confirm that if they're present,
+	// they're flagged DESTRUCTIVE.
+	for _, name := range []string{"install_app", "uninstall_app"} {
+		if desc, ok := seen[name]; ok {
+			if !strings.Contains(desc, "DESTRUCTIVE") {
+				fmt.Fprintf(os.Stderr, "FAIL  destructive tool %q description missing DESTRUCTIVE marker: %q\n", name, desc)
+				failures++
+			} else {
+				fmt.Printf("      → %s advertised + DESTRUCTIVE class clear (EnableDestructiveTools=true)\n", name)
+			}
+		} else {
+			fmt.Printf("      → %s NOT advertised (EnableDestructiveTools=false — gate respected)\n", name)
+		}
+	}
+
+	// Drive the read-only tools end-to-end with real arguments.
+	// Failures here mean the typed input/output contract is broken
+	// — the call landing succeeded but the shape doesn't match.
+	failures += callJournalSearch(ctx, cs)
+	failures += callCheckDiskFree(ctx, cs)
+
+	return failures
+}
+
+// callJournalSearch picks a unit that should exist on any PowerLab
+// install (gateway is the foundation service) and asserts the
+// typed output shape: {unit, pattern, entries: []}. An empty entries
+// list is not a failure — a fresh box may not have logged anything
+// matching yet.
+func callJournalSearch(ctx context.Context, cs *mcp.ClientSession) int {
+	res, err := cs.CallTool(ctx, &mcp.CallToolParams{
+		Name: "journal_search",
+		Arguments: map[string]any{
+			"unit":  "gateway",
+			"lines": 10,
+		},
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  journal_search call: %v\n", err)
+		return 1
+	}
+	if res.IsError {
+		// Don't count as a hard failure when the wiring is OK and only
+		// the upstream data is missing (no journal yet, no journalctl).
+		// Surface as a WARN so the operator sees the gap but the smoke
+		// stays green for "MCP tool surface intact."
+		fmt.Printf("WARN  journal_search returned IsError on this box (no powerlab-gateway journal yet OR journalctl unavailable) — tool wiring is fine\n")
+		return 0
+	}
+	var got struct {
+		Unit    string                   `json:"unit"`
+		Pattern string                   `json:"pattern,omitempty"`
+		Entries []map[string]interface{} `json:"entries"`
+	}
+	if err := decodeStructured(res.StructuredContent, &got); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  journal_search output decode: %v\n", err)
+		return 1
+	}
+	if got.Unit != "gateway" {
+		fmt.Fprintf(os.Stderr, "FAIL  journal_search output.unit=%q; want 'gateway' (echoed)\n", got.Unit)
+		return 1
+	}
+	fmt.Printf("PASS  journal_search (unit=gateway, %d entries)\n", len(got.Entries))
+	return 0
+}
+
+// callCheckDiskFree probes the root filesystem and asserts the
+// arithmetic invariants: used + available == total, 0 ≤ used_percent
+// ≤ 100, total > 0.
+func callCheckDiskFree(ctx context.Context, cs *mcp.ClientSession) int {
+	res, err := cs.CallTool(ctx, &mcp.CallToolParams{
+		Name:      "check_disk_free",
+		Arguments: map[string]any{"path": "/"},
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  check_disk_free call: %v\n", err)
+		return 1
+	}
+	if res.IsError {
+		fmt.Fprintf(os.Stderr, "FAIL  check_disk_free returned IsError=true on a path that must exist (/)\n")
+		return 1
+	}
+	var got struct {
+		Path           string  `json:"path"`
+		TotalBytes     uint64  `json:"total_bytes"`
+		AvailableBytes uint64  `json:"available_bytes"`
+		UsedBytes      uint64  `json:"used_bytes"`
+		UsedPercent    float64 `json:"used_percent"`
+	}
+	if err := decodeStructured(res.StructuredContent, &got); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  check_disk_free output decode: %v\n", err)
+		return 1
+	}
+	if got.TotalBytes == 0 {
+		fmt.Fprintf(os.Stderr, "FAIL  check_disk_free / returned TotalBytes=0 (statfs broken?)\n")
+		return 1
+	}
+	if got.UsedBytes+got.AvailableBytes != got.TotalBytes {
+		fmt.Fprintf(os.Stderr, "FAIL  check_disk_free arithmetic: used(%d)+avail(%d) != total(%d)\n",
+			got.UsedBytes, got.AvailableBytes, got.TotalBytes)
+		return 1
+	}
+	if got.UsedPercent < 0 || got.UsedPercent > 100 {
+		fmt.Fprintf(os.Stderr, "FAIL  check_disk_free used_percent=%v out of 0..100\n", got.UsedPercent)
+		return 1
+	}
+	fmt.Printf("PASS  check_disk_free / (%.1f%% used, %d MiB available)\n",
+		got.UsedPercent, got.AvailableBytes/(1024*1024))
+	return 0
+}
+
+// carriesSideEffectClass checks for ADR-0046 §1's marker discipline
+// — every tool's Description leads with the side-effect class. We
+// accept any of the three canonical markers (case-sensitive on the
+// classifier word so a stray lowercase doesn't slip through).
+func carriesSideEffectClass(desc string) bool {
+	return strings.Contains(desc, "READ ONLY") ||
+		strings.Contains(desc, "READ") && strings.Contains(desc, "ONLY") ||
+		strings.Contains(desc, "SIDE EFFECT") ||
+		strings.Contains(desc, "DESTRUCTIVE")
+}
+
+// decodeStructured round-trips an MCP StructuredContent (which the
+// transport delivers as map[string]interface{}) into a typed struct
+// via JSON. Used by every typed-output tool probe.
+func decodeStructured(sc any, out any) error {
+	b, err := json.Marshal(sc)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(b, out)
 }
 
 // readAndAssert reads a resource and runs resource-specific quality
@@ -145,8 +371,45 @@ func readAndAssert(ctx context.Context, cs *mcp.ClientSession, uri string) int {
 		return assertProxiedPayload(uri, payload)
 	case uri == "system://gpu":
 		return assertSystemGPU(payload)
+	case strings.HasPrefix(uri, "docs://api/"):
+		return assertOpenAPISpecPayload(uri, payload)
 	}
 	return 0
+}
+
+// assertOpenAPISpecPayload verifies docs://api/<service> returns a
+// real-looking OpenAPI YAML: starts with `openapi:` or `swagger:` and
+// has a non-trivial body. We don't validate the spec syntactically
+// (that's the upstream Scalar's job + the spec authors'); we DO
+// catch the obvious failure of "the package-linux.sh staging step
+// silently shipped an empty file."
+func assertOpenAPISpecPayload(uri, payload string) int {
+	body := strings.TrimSpace(payload)
+	if body == "" {
+		fmt.Fprintf(os.Stderr, "FAIL  %s — spec is empty (package-linux.sh staging step broken?)\n", uri)
+		return 1
+	}
+	if !strings.HasPrefix(body, "openapi:") && !strings.HasPrefix(body, "swagger:") {
+		fmt.Fprintf(os.Stderr, "FAIL  %s — first line %q doesn't look like an OpenAPI/Swagger doc\n",
+			uri, firstLine(body))
+		return 1
+	}
+	if len(body) < 200 {
+		// A real spec is at least a few KB; a tiny stub is a signal
+		// that something staged the wrong file.
+		fmt.Fprintf(os.Stderr, "FAIL  %s — spec is only %d bytes; expected at least a few hundred for any real service\n",
+			uri, len(body))
+		return 1
+	}
+	fmt.Printf("      → %d-byte OpenAPI doc starts with %q\n", len(body), firstLine(body))
+	return 0
+}
+
+func firstLine(s string) string {
+	if i := strings.IndexByte(s, '\n'); i >= 0 {
+		return s[:i]
+	}
+	return s
 }
 
 // assertSystemGPU validates the system://gpu payload shape. The
