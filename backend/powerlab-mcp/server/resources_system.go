@@ -130,18 +130,19 @@ func registerSystemSchema(s *mcp.Server) {
 // the agent sees a real resource value either way and pattern-matches
 // on the `error` field to pivot.
 //
-// Bearer token forwarding intentionally absent in this iteration:
-// the MCP SDK's resource handler context does not currently surface
-// the original Authorization header. MCP-to-core calls rely on core's
-// loopback skip (MCP runs on the same box). LAN agent-identity
-// forwarding is a follow-up tracked separately.
+// Bearer token forwarding (ADR-0047): the SDK surfaces the original
+// HTTP request headers via req.Extra.Header. AgentIdentity() pulls
+// the Bearer token; when present (LAN call), we forward it to the
+// upstream so core's audit middleware records the same user. When
+// absent (loopback, trusted local agent), the token is empty and
+// core's own loopback-skip applies — same behaviour as before.
 func registerProxiedSystem(s *mcp.Server, proxy *coreproxy.Client, uri, name, description, corePath string) {
 	s.AddResource(&mcp.Resource{
 		URI:         uri,
 		Name:        name,
 		Description: description,
 		MIMEType:    "application/json",
-	}, func(ctx context.Context, _ *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+	}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
 		if proxy == nil {
 			payload := coreproxy.AsErrorPayload(&coreproxy.Error{
 				Code:   "core_unavailable",
@@ -149,7 +150,8 @@ func registerProxiedSystem(s *mcp.Server, proxy *coreproxy.Client, uri, name, de
 			})
 			return &mcp.ReadResourceResult{Contents: []*mcp.ResourceContents{textJSON(uri, string(payload))}}, nil
 		}
-		body, err := proxy.GetFrom(ctx, coreproxy.ServiceCore, corePath, "")
+		_, token, _ := tokenFromRequest(req)
+		body, err := proxy.GetFrom(ctx, coreproxy.ServiceCore, corePath, token)
 		if err != nil {
 			return &mcp.ReadResourceResult{Contents: []*mcp.ResourceContents{textJSON(uri, string(coreproxy.AsErrorPayload(err)))}}, nil
 		}

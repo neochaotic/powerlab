@@ -27,6 +27,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/neochaotic/powerlab/backend/common/external"
+	"github.com/neochaotic/powerlab/backend/common/utils/audit"
 	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
 	"github.com/neochaotic/powerlab/backend/powerlab-mcp/coreproxy"
 	"github.com/neochaotic/powerlab/backend/powerlab-mcp/config"
@@ -58,13 +59,19 @@ type BuildInfo struct {
 // as-is.
 type publicKeyFunc func() (*ecdsa.PublicKey, error)
 
-// Server holds the constructed MCP transport, the build identity, and
-// the JWT public-key resolver used by the read-tier gate. Build it with
-// New, mount it with Handler.
+// Server holds the constructed MCP transport, the build identity,
+// the JWT public-key resolver used by the read-tier gate, and the
+// optional audit service. Build it with New, mount it with Handler.
+//
+// The audit service is optional: when nil (a test build or a
+// box where audit.NewService failed to open the JSONL file) the
+// /mcp handler chain skips the audit middleware. The same defensive
+// pattern the gateway uses.
 type Server struct {
 	info    BuildInfo
 	httpMCP *mcp.StreamableHTTPHandler
 	pubKey  publicKeyFunc
+	audit   *audit.Service
 }
 
 // New constructs the MCP server and its Streamable-HTTP transport,
@@ -76,8 +83,16 @@ type Server struct {
 // reach the underlying MCPServer to register them.
 func New(cfg config.Config, info BuildInfo) (*Server, error) {
 	pubKey := func() (*ecdsa.PublicKey, error) { return external.GetPublicKey(cfg.RuntimePath) }
-	return newServer(info, pubKey, resourcesConfig{
-		auditPath:              filepath.Join(cfg.AuditDir, "audit.jsonl"),
+	auditPath := filepath.Join(cfg.AuditDir, "audit.jsonl")
+	// Open the audit service so the /mcp middleware records every
+	// tool call + resource read alongside gateway's records (ADR-0033
+	// per-service writer model; ADR-0047 powerlab-mcp adoption).
+	// A failure to open does NOT fail boot — same defensive pattern
+	// gateway uses: log + continue without audit. JSONL append is
+	// multi-writer-safe (ADR-0035).
+	auditSvc, _ := audit.NewService(audit.ServiceOptions{Path: auditPath})
+	s := newServer(info, pubKey, resourcesConfig{
+		auditPath:              auditPath,
 		procRoot:               "/proc",
 		openAPIDir:             cfg.OpenAPIDir,
 		systemdSystemDir:       cfg.SystemdSystemDir,
@@ -85,7 +100,9 @@ func New(cfg config.Config, info BuildInfo) (*Server, error) {
 		enableDestructiveTools: cfg.EnableDestructiveTools,
 		conceptsDir:            cfg.ConceptsDir,
 		catalogDir:             cfg.CatalogDir,
-	}), nil
+	})
+	s.audit = auditSvc
+	return s, nil
 }
 
 // resourcesConfig bags together the runtime paths and clients the
@@ -193,7 +210,18 @@ func (s *Server) Handler() http.Handler {
 	// proxy headers) keeps its zero-config trust.
 	// limitBody is outermost so the body cap applies before anything
 	// reads the request — even on the auth-rejected path.
-	gated := limitBody(preventProxyLoopbackTrust(jwt.HTTPJWT(s.pubKey)(s.httpMCP)), maxMCPRequestBytes)
+	// Chain (outermost → innermost):
+	//   limitBody → preventProxyLoopbackTrust → jwt.HTTPJWT → audit.HTTPMiddleware → MCP
+	//
+	// jwt.HTTPJWT runs BEFORE audit so the user_id / user_name headers
+	// it writes are visible to the audit middleware (ADR-0033 ordering
+	// requirement). When s.audit is nil (failed to open, test build)
+	// the audit step is a no-op pass-through.
+	inner := http.Handler(s.httpMCP)
+	if s.audit != nil {
+		inner = audit.HTTPMiddleware(s.audit.Recorder, audit.HTTPMiddlewareOptions{})(inner)
+	}
+	gated := limitBody(preventProxyLoopbackTrust(jwt.HTTPJWT(s.pubKey)(inner)), maxMCPRequestBytes)
 	mux.Handle(MCPEndpointPath, gated)
 	return mux
 }
