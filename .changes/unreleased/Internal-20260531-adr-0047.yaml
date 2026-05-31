@@ -1,0 +1,21 @@
+kind: Internal
+body: |
+  ADR-0047 proposed — powerlab-mcp agent-identity propagation. Closes
+  two ADR-0034 deferred items in one design: (1) MCP adopts the
+  existing audit.Middleware (per-service writer model from ADR-0033)
+  so every tool call and resource read writes one audit.jsonl record
+  with the validated JWT subject (or "loopback" sentinel for the
+  trusted local path) — operator's compliance trail is no longer
+  blind to agent actions; (2) MCP extracts the Authorization header
+  at the streamable-HTTP transport boundary and forwards it on
+  upstream coreproxy calls, so when core / app-management adopt
+  audit middleware (per-service rollout) the upstream's records
+  capture the same user. Grounding survey flipped the initial spike
+  recommendation (gateway-as-sole-writer + new /audit/record
+  endpoint) when ADR-0033 + ADR-0035 turned out to already mandate
+  per-service + JSONL multi-writer-safe. Zero new infrastructure —
+  MCP becomes the second service after gateway to fully realize the
+  contract. Implementation in follow-up PR (β); this PR is just the
+  decision record so the architecture is reviewable before code.
+custom:
+  Issue: ""
