@@ -155,10 +155,12 @@ nav:
       - Overview: coexistence/README.md
       - Migrating from CasaOS: coexistence/migrating-from-casaos.md
       - Decision (ADR-0021): decisions/0021-docker-label-namespace-and-appdata-path.md
+  - MCP (talk to your homelab):
+      - Overview + architecture: concepts/mcp-server.md
+      - Operator quickstart: operations/mcp-quickstart.md
   - Concepts:
       - Glossary: concepts/glossary.md
       - Security model: concepts/security-model.md
-      - MCP server (talk to your homelab): concepts/mcp-server.md
   - Operations:
       - HTTPS setup: HTTPS.md
       - Backup and restore: operations/backup-restore.md
