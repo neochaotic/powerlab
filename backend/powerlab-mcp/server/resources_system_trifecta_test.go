@@ -69,7 +69,7 @@ func TestProxiedResources_RoundTripCoreBody(t *testing.T) {
 		body     string
 	}{
 		{systemDiskURI, "/v1/sys/disk", `{"physical":[{"model":"NVMe","size":"512GB","temperature":42}]}`},
-		{systemNetworkURI, "/v1/sys/net", `[{"name":"eth0","state":"up","bytesRecv":12345}]`},
+		{systemNetworkURI, "/v1/sys/network/interfaces", `[{"name":"eth0","state":"up","bytesRecv":12345}]`},
 	}
 
 	for _, tc := range cases {
