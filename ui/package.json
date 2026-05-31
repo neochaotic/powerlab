@@ -10,9 +10,10 @@
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"test:e2e": "playwright test",
+		"test:e2e": "playwright test --grep-invert @screenshots",
 		"test:e2e:ui": "playwright test --ui",
 		"test:coverage": "vitest run --coverage",
+		"screenshots": "playwright test screenshots.spec.ts",
 		"lint": "eslint src/lib/stores/ src/lib/components/ src/routes/ src/lib/api/"
 	},
 	"devDependencies": {
