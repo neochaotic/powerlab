@@ -1,0 +1,20 @@
+kind: Internal
+body: |
+  Screenshot regeneration automation — `npm run screenshots` (in
+  ui/) drives Playwright through Chromium at 2880x1800 retina
+  dimensions (matches existing manual captures) and writes the
+  result to docs/img/<name>.png for the six pages the README +
+  mkdocs reference: login, dashboard, apps, files, about,
+  launchpad. Uses installBaselineMocks() so the run is
+  deterministic and works without a real PowerLab backend. New
+  scripts/regen-screenshots.sh is the convenience wrapper +
+  documents what's regenerated vs what's NOT (store/catalog
+  screenshots need extra seed steps since the catalog ships
+  opt-in; gpu_dashboard needs real GPU; social-preview is
+  designer-generated). E2E suite `test:e2e` now uses
+  `--grep-invert @screenshots` so the screenshot spec doesn't
+  fire on every PR — operators (or designers updating the
+  visuals) run `npm run screenshots` explicitly when UI changes
+  touch a referenced page.
+custom:
+  Issue: ""
