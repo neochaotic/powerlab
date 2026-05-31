@@ -73,6 +73,20 @@ type Config struct {
 	// an authenticated agent can now mutate app state without a
 	// per-action confirmation. Documented threat model.
 	EnableDestructiveTools bool
+
+	// ConceptsDir holds the PowerLab mkdocs concept files exposed
+	// via docs://concepts/{name} (ADR-0048). One file per concept
+	// (compose-conventions.md, security-model.md, glossary.md, etc.).
+	// Staged by package-linux.sh; missing dir means docs://concepts
+	// returns an empty index (graceful, no error).
+	ConceptsDir string
+
+	// CatalogDir holds the community-catalog the install ships.
+	// catalog://app/{id} reads each app's docker-compose.yml from
+	// <CatalogDir>/Apps/<id>/docker-compose.yml; catalog://index
+	// enumerates valid <id> subdirectories. Missing dir means
+	// catalog://index returns an empty list.
+	CatalogDir string
 }
 
 // Default returns the configuration used when no conf file is present
@@ -86,6 +100,8 @@ func Default() Config {
 		OpenAPIDir:             "/usr/share/powerlab/openapi",
 		SystemdSystemDir:       "/etc/systemd/system",
 		EnableDestructiveTools: false,
+		ConceptsDir:            "/usr/share/powerlab/docs/concepts",
+		CatalogDir:             "/var/lib/powerlab/community-catalog",
 	}
 }
 
@@ -134,6 +150,10 @@ func Load(path string) (Config, error) {
 			cfg.SystemdSystemDir = val
 		case "enabledestructivetools":
 			cfg.EnableDestructiveTools = parseBool(val)
+		case "conceptsdir":
+			cfg.ConceptsDir = val
+		case "catalogdir":
+			cfg.CatalogDir = val
 			// unknown keys: ignored on purpose (forward-compatible)
 		}
 	}
