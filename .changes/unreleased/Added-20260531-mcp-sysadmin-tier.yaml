@@ -1,0 +1,23 @@
+kind: Added
+body: |
+  powerlab-mcp sysadmin tier — four new low-sensitivity resources that
+  let an agent answer common ops questions without leaving MCP:
+  `system://services` (ActiveState + SubState for every powerlab-*
+  systemd unit, proxied from core's existing `/v1/sys/services`),
+  `system://kernel` (kernel release + arch + distro + boot time +
+  virtualization, proxied from a new `/v1/sys/host` endpoint that
+  wraps the host.InfoStat core already collects internally),
+  `system://processes` (total count + top 10 by CPU and by memory,
+  proxied from a new `/v1/sys/processes` endpoint that wraps
+  gopsutil/process — name only, never cmdline, since argv leaks
+  secrets), and `system://updates` (pending apt-list upgrades with
+  security-pocket flag; degrades to `detected="none"` on non-apt
+  hosts). ADR-0044 amended to document the new endpoints + the one
+  documented "direct-in-MCP" exception (apt-list — no existing
+  PowerLab wrapper and core does not own package-manager surface).
+  resources/list now advertises 16. All four covered by the existing
+  proxy trifecta test + a new apt-list parser test that pins every
+  row shape (Listing/WARNING prelude, security-pocket flag, blank
+  lines, malformed rows). Smoke client extended.
+custom:
+  Issue: ""

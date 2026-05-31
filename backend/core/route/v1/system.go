@@ -228,6 +228,46 @@ func GetSystemDiskInfo(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: disk})
 }
 
+// @Summary get host info — kernel + OS identity + boot time
+// @Description Wraps gopsutil's host.InfoStat. Always-available read.
+// @Produce  application/json
+// @Tags sys
+// @Security ApiKeyAuth
+// @Success 200 {string} string "ok"
+// @Router /sys/host [get]
+//
+// Exposes the same host.InfoStat the SystemService already collects
+// (GetSysInfo). Added so powerlab-mcp can thin-proxy system://kernel
+// per ADR-0044 instead of importing gopsutil itself.
+func GetSystemHostInfo(ctx echo.Context) error {
+	info := service.MyService.System().GetSysInfo()
+	return ctx.JSON(http.StatusOK, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: info})
+}
+
+// @Summary get process list — aggregate + top consumers by CPU/mem
+// @Description Returns total count + top-N by CPU and by memory. Process NAME only — no cmdline (argv leaks secrets).
+// @Produce  application/json
+// @Tags sys
+// @Security ApiKeyAuth
+// @Success 200 {string} string "ok"
+// @Router /sys/processes [get]
+//
+// Added so powerlab-mcp can thin-proxy system://processes per
+// ADR-0044 instead of importing gopsutil/process itself. The
+// cmdline is intentionally omitted at this layer — agents querying
+// "what's eating my CPU?" don't need argv, and argv routinely
+// carries secrets (signed URLs, passwords passed as flags, JWT
+// tokens via env expansion).
+func GetSystemProcesses(ctx echo.Context) error {
+	procs := service.MyService.System().GetProcesses(processesTopN)
+	return ctx.JSON(http.StatusOK, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: procs})
+}
+
+// processesTopN bounds how many entries land in each of TopByCPU /
+// TopByMem in the /v1/sys/processes response. Keep small — the
+// agent's prompt window is the real constraint, not the wire size.
+const processesTopN = 10
+
 // @Summary get Net info
 // @Produce  application/json
 // @Accept application/json

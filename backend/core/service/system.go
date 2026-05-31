@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -28,6 +29,7 @@ import (
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/shirou/gopsutil/v3/net"
+	"github.com/shirou/gopsutil/v3/process"
 )
 
 // SystemService is the largest service in core — owns
@@ -61,6 +63,7 @@ type SystemService interface {
 	GetNetState(name string) string
 	GetDiskInfo() *disk.UsageStat
 	GetSysInfo() host.InfoStat
+	GetProcesses(topN int) model.ProcessesSummary
 	GetDeviceTree() string
 	CreateFile(path string) (int, error)
 	RenameFile(oldF, newF string) (int, error)
@@ -209,6 +212,67 @@ func (c *systemService) GetDeviceTree() string {
 func (c *systemService) GetSysInfo() host.InfoStat {
 	info, _ := host.Info()
 	return *info
+}
+
+// GetProcesses returns total + the top-N by CPU and by memory. Each
+// entry is the process NAME + PID + percentages + RSS + owning user
+// — NEVER the cmdline (argv leaks secrets; ADR-0044 + powerlab-mcp
+// system://processes commentary).
+//
+// gopsutil's NameWithContext / CPUPercentWithContext etc. each open
+// /proc/<pid>/* — on a normal host with a few hundred processes this
+// is sub-100ms. We cap concurrency by simply iterating; the calling
+// path is already infrequent (operator clicks "Processes" tab, or an
+// MCP agent polls every minute or so).
+func (c *systemService) GetProcesses(topN int) model.ProcessesSummary {
+	if topN <= 0 {
+		topN = 10
+	}
+	procs, err := process.Processes()
+	if err != nil {
+		return model.ProcessesSummary{}
+	}
+
+	all := make([]model.ProcessSummary, 0, len(procs))
+	for _, p := range procs {
+		name, _ := p.Name()
+		cpuPct, _ := p.CPUPercent()
+		memPct, _ := p.MemoryPercent()
+		mem, _ := p.MemoryInfo()
+		user, _ := p.Username()
+
+		entry := model.ProcessSummary{
+			PID:    p.Pid,
+			Name:   name,
+			CPUPct: cpuPct,
+			MemPct: float64(memPct),
+			User:   user,
+		}
+		if mem != nil {
+			entry.RSSKB = mem.RSS / 1024
+		}
+		all = append(all, entry)
+	}
+
+	summary := model.ProcessesSummary{Total: len(all)}
+
+	byCPU := append([]model.ProcessSummary(nil), all...)
+	sort.SliceStable(byCPU, func(i, j int) bool { return byCPU[i].CPUPct > byCPU[j].CPUPct })
+	summary.TopByCPU = takeFirst(byCPU, topN)
+
+	byMem := append([]model.ProcessSummary(nil), all...)
+	sort.SliceStable(byMem, func(i, j int) bool { return byMem[i].MemPct > byMem[j].MemPct })
+	summary.TopByMem = takeFirst(byMem, topN)
+
+	summary.Truncated = summary.Total > len(summary.TopByCPU) || summary.Total > len(summary.TopByMem)
+	return summary
+}
+
+func takeFirst(s []model.ProcessSummary, n int) []model.ProcessSummary {
+	if len(s) <= n {
+		return append([]model.ProcessSummary(nil), s...)
+	}
+	return append([]model.ProcessSummary(nil), s[:n]...)
 }
 
 func (c *systemService) GetDiskInfo() *disk.UsageStat {

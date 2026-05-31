@@ -107,6 +107,8 @@ func InitV1Router() http.Handler {
 
 			v1SysGroup.GET("/utilization", v1.GetSystemUtilization)
 			v1SysGroup.GET("/disk", v1.GetSystemDiskInfo)
+			v1SysGroup.GET("/host", v1.GetSystemHostInfo)
+			v1SysGroup.GET("/processes", v1.GetSystemProcesses)
 
 			v1SysGroup.GET("/server-info", nil)
 			v1SysGroup.PUT("/server-info", nil)
