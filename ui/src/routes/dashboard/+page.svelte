@@ -271,12 +271,12 @@
 					{:else}
 						<div class="space-y-5">
 							{#each store.disks as disk}
-								{@const health = diskHealth(disk.usedPercent)}
+								{@const health = diskHealth(disk.used_percent)}
 								<div class="space-y-2">
 									<div class="flex items-center justify-between">
 										<div>
 											<span class="text-xs font-medium text-zinc-300">{disk.path}</span>
-											<span class="ml-2 text-[10px] text-zinc-600">{disk.fstype}</span>
+											<span class="ml-2 text-[10px] text-zinc-600">{disk.fs_type}</span>
 										</div>
 										<span class={cn("text-[10px] font-bold uppercase tracking-wide", diskHealthColor[health])}>
 											{health}
@@ -285,12 +285,12 @@
 									<div class="h-2 w-full overflow-hidden rounded-full bg-zinc-900">
 										<div
 											class={cn("h-full rounded-full transition-[width] duration-300 ease-out", diskBarColor[health])}
-											style="width: {disk.usedPercent.toFixed(1)}%"
+											style="width: {disk.used_percent.toFixed(1)}%"
 										></div>
 									</div>
 									<div class="flex justify-between text-[10px] text-zinc-600">
 										<span>{formatBytes(disk.used)} {t('dashboard.used')}</span>
-										<span>{formatBytes(disk.total)} {t('dashboard.total')} · {disk.usedPercent.toFixed(1)}%</span>
+										<span>{formatBytes(disk.total)} {t('dashboard.total')} · {disk.used_percent.toFixed(1)}%</span>
 									</div>
 								</div>
 							{/each}

@@ -62,6 +62,10 @@ type SystemService interface {
 	GetDirPathOne(path string) (m model.Path)
 	GetNetState(name string) string
 	GetDiskInfo() *disk.UsageStat
+	// GetDisks returns the rich shape (physical block devices +
+	// per-mount usage) the /v1/sys/disk route + MCP system://disk
+	// description advertise. Implementation lives in disks.go.
+	GetDisks() model.DisksInfo
 	GetSysInfo() host.InfoStat
 	GetProcesses(topN int) model.ProcessesSummary
 	GetDeviceTree() string

@@ -219,10 +219,29 @@ describe('System store', () => {
 		fast.stopPolling();
 	});
 
-	it('disks accepts both array and single-object backend responses', async () => {
+	it('disks + physicalDisks split out the {physical, mounts} payload', async () => {
+		// /v1/sys/disk now returns the rich DisksInfo shape (physical
+		// block devices + per-mount usage). The store splits the two
+		// arrays into separate reactive slots so the StorageBar widget
+		// iterates `disks` (mounts) and the SMART card iterates
+		// `physicalDisks` without re-fetching.
 		vi.mocked(systemApi.getSystemUtilization).mockResolvedValue({ data: null } as any);
 		vi.mocked(systemApi.getSystemDisk).mockResolvedValue({
-			data: [{ path: '/', total: 100, used: 50, free: 50 }]
+			data: {
+				physical: [
+					{
+						name: '/dev/sda',
+						model: 'Samsung SSD 870',
+						serial: 'S5R',
+						size_bytes: 1_000_000_000_000,
+						temperature_c: 39,
+						health_status: 'PASSED'
+					}
+				],
+				mounts: [
+					{ path: '/', fs_type: 'ext4', total: 100, used: 50, free: 50, used_percent: 50 }
+				]
+			}
 		} as any);
 		vi.mocked(systemApi.getStorageDevices).mockResolvedValue({ data: null } as any);
 
@@ -233,6 +252,30 @@ describe('System store', () => {
 		await Promise.resolve();
 		await Promise.resolve();
 		expect(store.disks).toHaveLength(1);
+		expect(store.disks[0].used_percent).toBe(50);
+		expect(store.physicalDisks).toHaveLength(1);
+		expect(store.physicalDisks[0].health_status).toBe('PASSED');
+		store.stopPolling();
+	});
+
+	it('disks defaults to [] when the payload arrives with no mounts/physical arrays', async () => {
+		// Defensive: an old core version in front of a new UI returns
+		// the legacy single-object shape. We don't render that — both
+		// arrays stay empty (no crash, no broken render).
+		vi.mocked(systemApi.getSystemUtilization).mockResolvedValue({ data: null } as any);
+		vi.mocked(systemApi.getSystemDisk).mockResolvedValue({
+			data: { path: '/', total: 100, used: 50, free: 50, usedPercent: 50 }
+		} as any);
+		vi.mocked(systemApi.getStorageDevices).mockResolvedValue({ data: null } as any);
+
+		const { useSystemStore } = await import('./system.svelte');
+		const store = useSystemStore();
+		store.startPolling(1000);
+		await vi.runOnlyPendingTimersAsync();
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(store.disks).toHaveLength(0);
+		expect(store.physicalDisks).toHaveLength(0);
 		store.stopPolling();
 	});
 });
