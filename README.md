@@ -178,17 +178,19 @@ What makes the AI experience effortless:
 
 > **Coming soon: a first-class Models tab.** Drag-and-drop GGUF imports. One-click Ollama pulls. Side-by-side benchmarks. Quantization presets. The future of local AI, with the polish of a real product.
 
-But the bigger AI story is the next section — your homelab itself becoming a first-class resource your agents can read.
+But the bigger AI story is the next section — your server itself becoming a first-class resource your agents can read.
 
 <br>
 
 ---
 
-## Talk to your homelab.
+## Talk to your server. Talk to your stack.
 
-PowerLab ships a built-in **MCP (Model Context Protocol) server** at `:9090`. Connect Claude Desktop, Cursor, or Claude Code to it and your agent reads your box's **metrics, journald logs, audit trail, installed apps, container logs, and the entire PowerLab OpenAPI surface** — the same data the dashboard shows you, exposed over the official MCP transport.
+PowerLab ships a built-in **MCP (Model Context Protocol) server** at `:9090`. Point Claude Desktop, Cursor, or Claude Code at it and your agent reads your Postgres container, your Caddy proxy, your nightly backup, your journald, your audit trail, your SMART data, and the entire PowerLab OpenAPI surface — the same data the dashboard shows you, exposed over the official MCP transport.
 
-The UI is the pane of glass **for you.** MCP is the pane of glass **for your agent.** Same data, two surfaces. PowerLab stays the homelab dashboard it always was; MCP is a complementary surface, not a pivot.
+The UI is the pane of glass **for you.** MCP is the pane of glass **for your agent.** Same data, two surfaces. One Pi in a closet, one server in a colo, or a fleet across both — the contract is identical.
+
+**Enterprise-acceptable by construction**: every MCP call carries the operator's JWT and lands in the same JSONL audit trail as a UI click (correlation id and all); write tools are off by default and gated behind `EnableDestructiveTools` in `/etc/powerlab/mcp.conf`; custom compose YAMLs hit a deny-list validator **before** app-management ever sees them. The threat model is documented in [ADR-0046](docs/decisions/0046-mcp-tool-curation-strategy.md) and [ADR-0049](docs/decisions/0049-mcp-sensitive-sysadmin-tier-threat-model.md), not implied.
 
 What an agent can do today — **25 advertised resources + 1 MCP Prompt + 4 always-on tools (+2 destructive when opted in)**:
 
