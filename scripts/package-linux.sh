@@ -239,6 +239,25 @@ for svc in "${OPENAPI_SERVICES[@]}"; do
   fi
 done
 
+# ─── 2.5 (docs concepts) ────────────────────────────────────────────────
+# powerlab-mcp's docs://concepts/{name} resource serves PowerLab's
+# mkdocs concept files (compose-conventions, security-model, glossary,
+# etc.) as MCP resources, and the compose_authoring MCP Prompt bundles
+# compose-conventions.md directly. The MCP binary reads them at runtime
+# from cfg.ConceptsDir (default /usr/share/powerlab/docs/concepts/).
+# ADR-0048 packaging requirement.
+log "Staging concept docs for docs://concepts and compose_authoring (ADR-0048)..."
+mkdir -p "$STAGE/docs/concepts"
+if [[ -d "$ROOT/docs/concepts" ]]; then
+  for md in "$ROOT/docs/concepts"/*.md; do
+    [[ -f "$md" ]] || continue
+    cp "$md" "$STAGE/docs/concepts/$(basename "$md")"
+    log "  staged $(basename "$md") ($(wc -c < "$md" | tr -d ' ') bytes)"
+  done
+else
+  log "  WARN: $ROOT/docs/concepts missing — docs://concepts/index will be empty until staged"
+fi
+
 # ─── 3. (frontend) ───────────────────────────────────────────────────────
 # ADR-0043 phase 3: the UI is embedded in the gateway binary (staged into
 # the embed dir at step 1.5), so the tarball no longer ships a separate
@@ -425,6 +444,20 @@ SystemdSystemDir = /etc/systemd/system
 # until then the operator opts in here with documented threat-model
 # acknowledgement.
 EnableDestructiveTools = false
+
+# Directory holding the PowerLab concept docs served by
+# docs://concepts/{name} (ADR-0048). Also the source the
+# compose_authoring MCP Prompt reads compose-conventions.md from.
+# Populated by install.sh; a missing or empty dir yields an empty
+# docs://concepts/index manifest (no error).
+ConceptsDir = /usr/share/powerlab/docs/concepts
+
+# Directory holding the PowerLab community catalog. Each app lives
+# at <CatalogDir>/Apps/<id>/docker-compose.yml. catalog://app/{id}
+# and catalog://index expose it; compose_authoring picks 3
+# representative apps from here. install.sh lays down the bundled
+# catalog at the path below.
+CatalogDir = /var/lib/powerlab/community-catalog
 EOF
 
 # ─── 5. systemd units ────────────────────────────────────────────────────
@@ -816,6 +849,7 @@ install -d -m 0755 /var/run/powerlab
 install -d -m 0755 /usr/share/powerlab
 install -d -m 0755 /usr/share/powerlab/shell
 install -d -m 0755 /usr/share/powerlab/openapi
+install -d -m 0755 /usr/share/powerlab/docs/concepts
 install -d -m 0755 /DATA/AppData
 install -d -m 0755 /mnt/powerlab
 
@@ -849,6 +883,15 @@ fi
 if [[ -d "$HERE/openapi" ]]; then
   echo "[powerlab-install] Installing OpenAPI specs to /usr/share/powerlab/openapi..."
   install -m 0644 "$HERE/openapi/"*.yaml /usr/share/powerlab/openapi/ 2>/dev/null || true
+fi
+
+# Install concept docs under /usr/share/powerlab/docs/concepts/. ADR-0048:
+# powerlab-mcp's docs://concepts/{name} exposes them as MCP resources, and
+# the compose_authoring MCP Prompt sources compose-conventions.md from
+# here. World-readable so a non-root operator can read them directly.
+if [[ -d "$HERE/docs/concepts" ]]; then
+  echo "[powerlab-install] Installing concept docs to /usr/share/powerlab/docs/concepts..."
+  install -m 0644 "$HERE/docs/concepts/"*.md /usr/share/powerlab/docs/concepts/ 2>/dev/null || true
 fi
 
 # Docker container log rotation — without this, a chatty app container

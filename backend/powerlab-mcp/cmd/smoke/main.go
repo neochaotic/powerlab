@@ -378,6 +378,14 @@ func readAndAssert(ctx context.Context, cs *mcp.ClientSession, uri string) int {
 		return assertSystemUpdates(payload)
 	case strings.HasPrefix(uri, "docs://api/"):
 		return assertOpenAPISpecPayload(uri, payload)
+	case uri == "docs://concepts/index":
+		return assertConceptsIndex(payload)
+	case strings.HasPrefix(uri, "docs://concepts/"):
+		return assertConceptMarkdown(uri, payload)
+	case uri == "catalog://index":
+		return assertCatalogIndex(payload)
+	case strings.HasPrefix(uri, "catalog://app/"):
+		return assertCatalogApp(uri, payload)
 	}
 	return 0
 }
@@ -424,6 +432,84 @@ func assertSystemUpdates(payload string) int {
 		fmt.Fprintf(os.Stderr, "FAIL  system://updates — detected=%q (expected apt|none)\n", pl.Detected)
 		return 1
 	}
+	return 0
+}
+
+// assertConceptsIndex pins the docs://concepts/index manifest shape.
+// Empty array is OK on a Mac dev box; agents pattern-match on length.
+func assertConceptsIndex(payload string) int {
+	var idx struct {
+		Description string `json:"description"`
+		Concepts    []struct {
+			Name string `json:"name"`
+			URI  string `json:"uri"`
+		} `json:"concepts"`
+	}
+	if err := json.Unmarshal([]byte(payload), &idx); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  docs://concepts/index — payload not JSON: %v\n", err)
+		return 1
+	}
+	if idx.Description == "" {
+		fmt.Fprintf(os.Stderr, "FAIL  docs://concepts/index — empty description\n")
+		return 1
+	}
+	if len(idx.Concepts) == 0 {
+		fmt.Printf("      → empty concepts manifest (Mac dev / pre-install — wire-up fine, staging not run)\n")
+	} else {
+		fmt.Printf("      → %d concept(s) advertised\n", len(idx.Concepts))
+	}
+	return 0
+}
+
+// assertConceptMarkdown spot-checks a docs://concepts/<name> read.
+// Must be non-empty markdown (we don't validate content, just shape).
+func assertConceptMarkdown(uri, payload string) int {
+	if strings.TrimSpace(payload) == "" {
+		fmt.Fprintf(os.Stderr, "FAIL  %s — empty body\n", uri)
+		return 1
+	}
+	fmt.Printf("      → %d-byte concept markdown\n", len(payload))
+	return 0
+}
+
+// assertCatalogIndex pins catalog://index manifest shape.
+func assertCatalogIndex(payload string) int {
+	var idx struct {
+		Description string `json:"description"`
+		Apps        []struct {
+			ID  string `json:"id"`
+			URI string `json:"uri"`
+		} `json:"apps"`
+	}
+	if err := json.Unmarshal([]byte(payload), &idx); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  catalog://index — payload not JSON: %v\n", err)
+		return 1
+	}
+	if idx.Description == "" {
+		fmt.Fprintf(os.Stderr, "FAIL  catalog://index — empty description\n")
+		return 1
+	}
+	if len(idx.Apps) == 0 {
+		fmt.Printf("      → empty catalog (community-catalog not staged on this host)\n")
+	} else {
+		fmt.Printf("      → %d app(s) in catalog\n", len(idx.Apps))
+	}
+	return 0
+}
+
+// assertCatalogApp spot-checks a catalog://app/<id> read — must be a
+// non-empty YAML body that looks like compose (contains 'services:'
+// or starts with 'version:').
+func assertCatalogApp(uri, payload string) int {
+	if strings.TrimSpace(payload) == "" {
+		fmt.Fprintf(os.Stderr, "FAIL  %s — empty body\n", uri)
+		return 1
+	}
+	if !strings.Contains(payload, "services:") && !strings.HasPrefix(payload, "version:") {
+		fmt.Fprintf(os.Stderr, "FAIL  %s — body doesn't look like a docker-compose.yml\n", uri)
+		return 1
+	}
+	fmt.Printf("      → %d-byte compose YAML (looks valid)\n", len(payload))
 	return 0
 }
 

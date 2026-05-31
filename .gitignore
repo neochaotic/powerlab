@@ -114,3 +114,4 @@ docs/api/*/*/
 
 # Local dev runtime log dirs that get accidentally committed
 backend/*/local_data/log/
+backend/powerlab-mcp/smoke
