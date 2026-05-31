@@ -81,7 +81,7 @@ func registerInstallApp(s *mcp.Server, proxy *coreproxy.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "install_app",
 		Description: "Install a custom Docker Compose app on PowerLab. DESTRUCTIVE — creates new containers + storage. The YAML is validated locally against the ADR-0046 deny-list (no privileged; no Docker socket; no host namespace sharing; no dangerous cap_add; no raw devices; no sensitive host path binds) BEFORE app-management sees it. Set dry_run=true to validate without installing.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in InstallAppInput) (*mcp.CallToolResult, InstallAppOutput, error) {
+	}, func(ctx context.Context, req *mcp.CallToolRequest, in InstallAppInput) (*mcp.CallToolResult, InstallAppOutput, error) {
 		// Empty-check on the trimmed form so whitespace-only input is
 		// rejected, but the upstream gets the YAML bytes verbatim —
 		// preserving terminal newlines + indentation that some YAML
@@ -121,7 +121,8 @@ func registerInstallApp(s *mcp.Server, proxy *coreproxy.Client) {
 		// app-management's POST /v2/app_management/compose expects
 		// Content-Type: application/yaml + the YAML body verbatim
 		// (per its OpenAPI spec).
-		upstream, err := proxy.RequestFrom(ctx, http.MethodPost, coreproxy.ServiceApps, path, "", []byte(yamlBody), "application/yaml")
+		_, token, _ := tokenFromToolRequest(req)
+		upstream, err := proxy.RequestFrom(ctx, http.MethodPost, coreproxy.ServiceApps, path, token, []byte(yamlBody), "application/yaml")
 		if err != nil {
 			payload := coreproxy.AsErrorPayload(err)
 			return &mcp.CallToolResult{
@@ -149,7 +150,7 @@ func registerUninstallApp(s *mcp.Server, proxy *coreproxy.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "uninstall_app",
 		Description: "Uninstall a PowerLab app — removes its containers + (per app-management config) may remove its persistent data. DESTRUCTIVE — may cause data loss; not reversible without a backup. Use apps://list to discover valid ids.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in UninstallAppInput) (*mcp.CallToolResult, UninstallAppOutput, error) {
+	}, func(ctx context.Context, req *mcp.CallToolRequest, in UninstallAppInput) (*mcp.CallToolResult, UninstallAppOutput, error) {
 		id := strings.TrimSpace(in.ID)
 		if id == "" {
 			return nil, UninstallAppOutput{}, errors.New("id is required (see apps://list)")
@@ -160,8 +161,9 @@ func registerUninstallApp(s *mcp.Server, proxy *coreproxy.Client) {
 		if proxy == nil {
 			return nil, UninstallAppOutput{}, errors.New("apps_unavailable: coreproxy not configured")
 		}
+		_, token, _ := tokenFromToolRequest(req)
 		path := "/v2/app_management/compose/" + url.PathEscape(id)
-		if _, err := proxy.RequestFrom(ctx, http.MethodDelete, coreproxy.ServiceApps, path, "", nil, ""); err != nil {
+		if _, err := proxy.RequestFrom(ctx, http.MethodDelete, coreproxy.ServiceApps, path, token, nil, ""); err != nil {
 			payload := coreproxy.AsErrorPayload(err)
 			return &mcp.CallToolResult{
 				IsError: true,

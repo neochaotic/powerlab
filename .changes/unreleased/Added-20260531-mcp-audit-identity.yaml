@@ -1,0 +1,23 @@
+kind: Added
+body: |
+  powerlab-mcp agent-identity propagation (ADR-0047 impl) — MCP now
+  adopts the per-service audit middleware contract from ADR-0033,
+  joining gateway as the second writer of /var/log/powerlab/audit.jsonl.
+  Every /mcp request gets one audit record with the validated user
+  (or "loopback" sentinel for trusted local agents). Plus JWT
+  forwarding: handlers extract the Authorization header via the
+  SDK's req.Extra.Header surface and pass it through to upstream
+  coreproxy calls, so when core / app-management adopt the same
+  middleware (per-service rollout) their audit records also capture
+  the agent's user, not "loopback". New typed audit Kind constants
+  KindMCPToolCall + KindMCPResourceRead lock the wire tokens for
+  audit:// readers. Zero net-new infrastructure — the grounding
+  survey of ADR-0033 + ADR-0035 confirmed the existing audit
+  middleware is stdlib-compatible (audit.HTTPMiddleware) and
+  reusable as-is. Known gap surfaced + filed as #632: audit Store
+  uses lumberjack without O_APPEND, so multi-writer between
+  gateway + powerlab-mcp can drop records under concurrent load.
+  The integration test that proves the gap is committed but
+  t.Skip'd pending #632's fix.
+custom:
+  Issue: ""

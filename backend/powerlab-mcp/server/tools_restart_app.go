@@ -57,7 +57,7 @@ func registerRestartApp(s *mcp.Server, proxy *coreproxy.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "restart_app",
 		Description: "Restart every container of one installed PowerLab app (start/stop cycle). SIDE EFFECT — containers briefly go down then come back up; no data loss; app ends in the same state it was in before the call. Use apps://list to discover valid ids.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in RestartAppInput) (*mcp.CallToolResult, RestartAppOutput, error) {
+	}, func(ctx context.Context, req *mcp.CallToolRequest, in RestartAppInput) (*mcp.CallToolResult, RestartAppOutput, error) {
 		id := strings.TrimSpace(in.ID)
 		if id == "" {
 			return nil, RestartAppOutput{}, errors.New("id is required (see apps://list)")
@@ -72,12 +72,13 @@ func registerRestartApp(s *mcp.Server, proxy *coreproxy.Client) {
 		if proxy == nil {
 			return nil, RestartAppOutput{}, errors.New("apps_unavailable: coreproxy not configured")
 		}
+		_, token, _ := tokenFromToolRequest(req)
 		// app-management expects a JSON-encoded enum string body:
 		// '"restart"'. We marshal once at registration to avoid
 		// re-allocating per call.
 		body := []byte(`"restart"`)
 		path := "/v2/app_management/compose/" + url.PathEscape(id) + "/status"
-		if _, err := proxy.RequestFrom(ctx, http.MethodPut, coreproxy.ServiceApps, path, "", body, "application/json"); err != nil {
+		if _, err := proxy.RequestFrom(ctx, http.MethodPut, coreproxy.ServiceApps, path, token, body, "application/json"); err != nil {
 			// Surface the structured error to the agent — same shape
 			// the apps:// resources use on degraded reads. The tool's
 			// error path is the same as the resource family's so an

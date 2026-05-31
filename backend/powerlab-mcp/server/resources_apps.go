@@ -89,8 +89,9 @@ func registerApps(s *mcp.Server, proxy *coreproxy.Client) {
 		Name:        "Installed apps",
 		Description: "Manifest of installed compose apps — id, name, status, version. Proxied from app-management's /v2/app_management/compose.",
 		MIMEType:    "application/json",
-	}, func(ctx context.Context, _ *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
-		return proxiedFromApps(ctx, proxy, appsListURI, "/v2/app_management/compose")
+	}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		_, token, _ := tokenFromRequest(req)
+		return proxiedFromApps(ctx, proxy, appsListURI, "/v2/app_management/compose", token)
 	})
 
 	// apps://state — registered as five distinct templates rather
@@ -149,7 +150,8 @@ func registerApps(s *mcp.Server, proxy *coreproxy.Client) {
 			if id == "" {
 				return nil, fmt.Errorf("apps://state/{id} requires an app id (see apps://list)")
 			}
-			return proxiedFromApps(ctx, proxy, req.Params.URI, fmt.Sprintf(upstreamFmt, url.PathEscape(id)))
+			_, token, _ := tokenFromRequest(req)
+			return proxiedFromApps(ctx, proxy, req.Params.URI, fmt.Sprintf(upstreamFmt, url.PathEscape(id)), token)
 		})
 	}
 
@@ -166,7 +168,8 @@ func registerApps(s *mcp.Server, proxy *coreproxy.Client) {
 		if id == "" || strings.Contains(id, "/") {
 			return nil, fmt.Errorf("docker://logs/{id} requires a single compose app id")
 		}
-		return proxiedFromApps(ctx, proxy, req.Params.URI, "/v2/app_management/compose/"+url.PathEscape(id)+"/logs")
+		_, token, _ := tokenFromRequest(req)
+		return proxiedFromApps(ctx, proxy, req.Params.URI, "/v2/app_management/compose/"+url.PathEscape(id)+"/logs", token)
 	})
 }
 
@@ -175,7 +178,7 @@ func registerApps(s *mcp.Server, proxy *coreproxy.Client) {
 // apps_unavailable payload when the proxy errs or is nil. Mirrors
 // registerProxiedSystem in shape — both share the same degradation
 // contract from ADR-0044 + ADR-0045.
-func proxiedFromApps(ctx context.Context, proxy *coreproxy.Client, uri, path string) (*mcp.ReadResourceResult, error) {
+func proxiedFromApps(ctx context.Context, proxy *coreproxy.Client, uri, path, token string) (*mcp.ReadResourceResult, error) {
 	if proxy == nil {
 		payload := coreproxy.AsErrorPayload(&coreproxy.Error{
 			Code:   "apps_unavailable",
@@ -183,7 +186,7 @@ func proxiedFromApps(ctx context.Context, proxy *coreproxy.Client, uri, path str
 		})
 		return &mcp.ReadResourceResult{Contents: []*mcp.ResourceContents{textJSON(uri, string(payload))}}, nil
 	}
-	body, err := proxy.GetFrom(ctx, coreproxy.ServiceApps, path, "")
+	body, err := proxy.GetFrom(ctx, coreproxy.ServiceApps, path, token)
 	if err != nil {
 		return &mcp.ReadResourceResult{Contents: []*mcp.ResourceContents{textJSON(uri, string(coreproxy.AsErrorPayload(err)))}}, nil
 	}
