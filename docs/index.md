@@ -1,17 +1,18 @@
 # PowerLab
 
-> One pane of glass for everything you self-host. Apps, files, AI — your home server, finally beautiful.
+> One pane of glass for everything you self-host. Apps, files, AI — your home server, finally beautiful. Plus a built-in **MCP server** so your AI agents (Claude, Cursor, Code) read the same data the dashboard shows you.
 
-PowerLab is an open-source self-hosted server panel. Run it on a Pi, a mini-PC, or any Linux box you already have, and get a single web UI for every Docker app on your machine, your files, and a built-in AI assistant.
+PowerLab is an open-source self-hosted server panel. Run it on a Pi, a mini-PC, or any Linux box you already have, and get a single web UI for every Docker app on your machine, your files, a built-in AI assistant — and an **agent-ready surface** that turns the entire homelab into an MCP resource an LLM can reason over.
 
-This is the technical reference. For installation tldr, jump to **[Getting started → Install](getting-started/install.md)**. For the marketing-style intro, see the [project README on GitHub](https://github.com/neochaotic/powerlab).
+This is the technical reference. For installation tldr, jump to **[Getting started → Install](getting-started/install.md)**. For the marketing-style intro, see the [project README on GitHub](https://github.com/neochaotic/powerlab). For the MCP angle in 5 minutes, jump straight to **[MCP operator quickstart](operations/mcp-quickstart.md)**.
 
 ## What's here
 
 - **[Getting started](getting-started/install.md)** — install, first-boot, in-app updates, contributor guide.
+- **[MCP — talk to your homelab](concepts/mcp-server.md)** — Model Context Protocol server architecture, resources + tools surface, Claude Desktop / Cursor / Code wire-up, threat model. Operator quickstart at **[Operations → MCP quickstart](operations/mcp-quickstart.md)**.
 - **[Architecture](architecture/README.md)** — service topology, request lifecycle, the foundation packages every service uses, the data persistence model.
 - **[Coexistence with CasaOS](coexistence/README.md)** — PowerLab forked from CasaOS; both can run on the same host. Here's how.
-- **[Concepts](concepts/glossary.md)** — glossary of project vocabulary and the security model.
+- **[Concepts](concepts/glossary.md)** — glossary of project vocabulary, security model, compose conventions PowerLab apps follow.
 - **[Operations](HTTPS.md)** — HTTPS setup, backup and restore, the update manifest contract, release checklist, troubleshooting.
 - **[Audits](audits/db-paths.md)** — point-in-time engineering audits used by the team to plan structural work. Useful when reading a follow-up PR or wondering "why is X built that way".
 - **[Decisions (ADRs)](decisions/README.md)** — every architectural decision recorded, with context and consequences. The first place to look when "why" matters.

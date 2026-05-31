@@ -178,6 +178,8 @@ What makes the AI experience effortless:
 
 > **Coming soon: a first-class Models tab.** Drag-and-drop GGUF imports. One-click Ollama pulls. Side-by-side benchmarks. Quantization presets. The future of local AI, with the polish of a real product.
 
+But the bigger AI story is the next section — your homelab itself becoming a first-class resource your agents can read.
+
 <br>
 
 ---
@@ -188,22 +190,20 @@ PowerLab ships a built-in **MCP (Model Context Protocol) server** at `:9090`. Co
 
 The UI is the pane of glass **for you.** MCP is the pane of glass **for your agent.** Same data, two surfaces. PowerLab stays the homelab dashboard it always was; MCP is a complementary surface, not a pivot.
 
-What an agent can do today — **12 advertised resources**:
+What an agent can do today — **16 advertised resources**:
 
-- **`system://`** — CPU, memory, load, uptime, **disk + SMART, network, GPU (Apple Silicon + Nvidia), temperature**. Mix of `/proc` direct + thin-proxy to core's `/v1/sys/*`. Same data the dashboard widgets read.
-- **`journal://`** — PowerLab service logs (`journal://gateway?lines=200`, `journal://core`, ...). Hard-scoped to PowerLab units — an agent cannot escape to SSH / PAM logs.
+- **`system://`** — CPU, memory, load, uptime, **disk + SMART, network, GPU (Apple Silicon + Nvidia), temperature, kernel + OS identity, systemd services, processes (name-only, no argv leakage), pending OS updates**. Mix of `/proc` direct + thin-proxy to core's `/v1/sys/*`. Same data the dashboard widgets read.
+- **`journal://`** — PowerLab service logs (`journal://gateway?lines=200`, `journal://core`, `journal://mcp`, ...). Hard-scoped to PowerLab units — an agent cannot escape to SSH / PAM logs.
 - **`audit://`** — newest audit entries, plus filter by correlation id (everything one request triggered).
-- 🔜 **`apps://`** — installed-apps manifest + per-app state, containers, health, stats, disk footprint. Thin-proxy through app-management.
-- 🔜 **`docker://logs/<app>`** — container logs proxied through app-management. **MCP never touches the Docker socket** (security win — see [ADR-0045](docs/decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md)).
+- **`apps://`** — installed-apps manifest + per-app state, containers, health, stats, disk footprint. Thin-proxy through app-management.
+- **`docker://logs/<app>`** — container logs proxied through app-management. **MCP never touches the Docker socket** (security win — see [ADR-0045](docs/decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md)).
 - **`docs://api`** — the OpenAPI specs of every PowerLab service. Agent self-discovers what's callable.
 
 Plus **5 curated MCP tools** — the agent doesn't just read, it can *act* (per [ADR-0046](docs/decisions/0046-mcp-tool-curation-strategy.md)):
 
 - **READ ONLY** — `journal_search` (literal substring + time-range over PowerLab journals); `check_disk_free` (one-path statfs).
 - **SIDE EFFECT (bounded)** — `restart_app` (cycle one app's containers; same end-state).
-- 🔜 **DESTRUCTIVE (operator opt-in)** — `install_app` (custom Compose, validated against a deny-list of dangerous patterns before app-management ever sees it) and `uninstall_app`. Both require `EnableDestructiveTools = true` in `/etc/powerlab/mcp.conf` — when false (the default), they're NOT registered and the agent can't call them.
-
-(🔜 = shipped, in stabilisation — first weeks of v0.7.5.)
+- **DESTRUCTIVE (operator opt-in)** — `install_app` (custom Compose, validated against a deny-list of dangerous patterns before app-management ever sees it) and `uninstall_app`. Both require `EnableDestructiveTools = true` in `/etc/powerlab/mcp.conf` — when false (the default), they're NOT registered and the agent can't call them.
 
 What it does **not** do yet:
 - **No autonomous destructive defaults.** `install_app` + `uninstall_app` exist but ship NOT REGISTERED until the operator flips `EnableDestructiveTools = true`. Default-on would be a surprise; default-off is a documented opt-in.
@@ -216,7 +216,28 @@ What it does **not** do yet:
 
 **Opt out anytime** — flip `Disabled = true` in `/etc/powerlab/mcp.conf` and restart the unit. The binary exits cleanly without binding `:9090`.
 
-Full architecture + test recipes + Claude Desktop / Cursor / Code wire-up in the [MCP server docs](https://neochaotic.github.io/powerlab/concepts/mcp-server/).
+**30-second smoke test** — verify MCP is alive without touching a client:
+
+```bash
+curl -fsS http://localhost:9090/healthz                              # → 200 OK
+curl -fsS http://localhost:9090/version | jq                         # → {"version":"...","commit":"..."}
+sudo systemctl status powerlab-mcp --no-pager | head -3              # → active (running)
+sudo journalctl -u powerlab-mcp -n 20 --no-pager                    # → boot + bind log
+```
+
+Want a structured contract sweep? `powerlab-mcp-smoke` (shipped with the install) reads every advertised resource + exercises read-only tools end-to-end:
+
+```bash
+/usr/share/powerlab/bin/powerlab-mcp-smoke -endpoint http://localhost:9090
+```
+
+Custom compose YAML to validate before reaching `install_app`? Use the standalone CLI:
+
+```bash
+/usr/share/powerlab/bin/powerlab-mcp-validate /path/to/docker-compose.yml
+```
+
+Full architecture + Claude Desktop / Cursor / Code wire-up + operator quickstart in the [MCP server docs](https://neochaotic.github.io/powerlab/concepts/mcp-server/) and the [MCP operator quickstart](https://neochaotic.github.io/powerlab/operations/mcp-quickstart/).
 
 <br>
 

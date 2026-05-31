@@ -55,6 +55,32 @@ The migration strategy applied across the CasaOS-strip roadmap: stand up the Pow
 ### Kill PR
 A pull request that removes a CasaOS-Common dependency from one service. Killing a service is a multi-PR series — typically four PRs (rebrand, middleware swap, logger swap, dead-code review) — collectively called a "kill". [ADR-0016](../decisions/0016-modular-kill-scope-vs-full-extraction.md) defines the staging: Stage A "modular kill" (per service, per sprint) vs Stage B "full extraction" (cross-cutting, in the v1.0 stabilization window).
 
+## MCP vocabulary
+
+### MCP (Model Context Protocol)
+The open protocol for connecting AI agents to data + tools, defined at [spec.modelcontextprotocol.io](https://spec.modelcontextprotocol.io). PowerLab ships its own MCP server (`powerlab-mcp.service` on `:9090`) exposing the homelab as an agent-readable surface. See [MCP overview](mcp-server.md) for the architecture; see [Operations → MCP quickstart](../operations/mcp-quickstart.md) for the 5-minute path.
+
+### MCP resource
+Read-only data exposed via an MCP URI scheme. PowerLab advertises 16 today across six namespaces: `system://`, `journal://`, `audit://`, `apps://`, `docker://`, `docs://`. Each has a `<namespace>://schema` introspection entry-point.
+
+### MCP tool
+A *callable* MCP operation with side effects. PowerLab ships 5 tools across three tiers (per [ADR-0046](../decisions/0046-mcp-tool-curation-strategy.md)): READ ONLY (`journal_search`, `check_disk_free`), SIDE EFFECT bounded (`restart_app`), DESTRUCTIVE gated (`install_app`, `uninstall_app` — operator opt-in via `EnableDestructiveTools = true` in mcp.conf).
+
+### Hybrid architecture (ADR-0044)
+The principle that powerlab-mcp **proxies** existing core/app-management endpoints rather than reimplementing telemetry. Audit + journal are independent (survive core being down); system/apps/docker thin-proxy to upstream. The point is "no duplicated gopsutil bumps, no parallel /proc parsers". See [ADR-0044](../decisions/0044-mcp-hybrid-architecture-thin-proxy-to-core.md).
+
+### Storage-agnostic (ADR-0045)
+The promise that a future migration (SQLite → PostgreSQL, etc.) on any backend service requires **zero** MCP changes — the HTTP contract is the abstraction. See [ADR-0045](../decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md).
+
+### compose-conventions
+The PowerLab patterns every catalog app follows: `/DATA/PowerLabAppData/<id>/` volume paths, named networks, healthcheck idioms, never `:latest`, never `privileged: true` or docker.sock binds. The composevalidator (and `install_app`) enforce the deny-list before forwarding YAML upstream. See `compose-conventions` concept doc and [ADR-0046 §4](../decisions/0046-mcp-tool-curation-strategy.md).
+
+### EnableDestructiveTools
+The mcp.conf knob that controls whether `install_app` and `uninstall_app` are advertised in `tools/list`. **Default: false** (the destructive tools don't exist as far as the agent can tell). Set to `true` to opt in; restart `powerlab-mcp` to apply.
+
+### Loopback skip
+The auth policy where same-host (`127.0.0.1`) callers don't need a JWT. PowerLab's MCP gate honours this for trusted local agents (Claude Desktop running on the box itself) while requiring JWT for LAN callers. Per [ADR-0034](../decisions/0034-standalone-observability-mcp-service.md) amended.
+
 ## To expand
 
-This page is a starter set. Terms surfacing in v0.6+ work — refresh-token flow, MCP server endpoints, mkdocs-material site model — should be added as they stabilize. Track gaps under the docs site polish issue series.
+This page is a starter set. Refresh-token flow + mkdocs-material site model still pending. Track gaps under the docs site polish issue series.
