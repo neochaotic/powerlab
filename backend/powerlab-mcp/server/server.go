@@ -163,6 +163,10 @@ func newMCPServer(info BuildInfo, rc resourcesConfig, journalRun journal.Runner)
 	registerSystemGPU(m)
 	registerSystemUpdates(m)
 	registerApps(m, rc.coreClient)
+	// #630 — raw Docker visibility (containers/images/networks/volumes/system).
+	// Same proxy pattern as registerApps; MCP NEVER touches the Docker
+	// socket — every read goes through app-management (ADR-0045).
+	registerDockerRawVisibility(m, rc.coreClient)
 	registerJournal(m, journalRun)
 	registerJournalUnits(m, rc.systemdSystemDir)
 	registerAudit(m, rc.auditPath)

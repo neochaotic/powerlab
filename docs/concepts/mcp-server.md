@@ -44,6 +44,11 @@ Resources by namespace:
 | | `apps://state/{id}/stats` | per-container CPU/RAM/IO |
 | | `apps://state/{id}/disk` | per-app disk footprint |
 | **docker:// 🔜** | `docker://logs/{id}` | proxy → app-management's `ComposeAppLogs` — **MCP never touches the Docker socket** |
+| | `docker://containers` | all containers on the daemon (PowerLab + non-PowerLab) — `docker ps -a` equivalent ([#630](https://github.com/neochaotic/powerlab/issues/630)) |
+| | `docker://images` | all local images — id, tags[], size, created_at ([#630](https://github.com/neochaotic/powerlab/issues/630)) |
+| | `docker://networks` | all networks — name, driver, scope, IPAM, attached containers ([#630](https://github.com/neochaotic/powerlab/issues/630)) |
+| | `docker://volumes` | all volumes — name, driver, mountpoint, size, in_use_by ([#630](https://github.com/neochaotic/powerlab/issues/630)) |
+| | `docker://system` | daemon info + `docker system df` snapshot ([#630](https://github.com/neochaotic/powerlab/issues/630)) |
 | **docs://** | `docs://api` | manifest of bundled OpenAPI specs |
 | | `docs://api/{service}` | raw OpenAPI YAML for one service — Scalar-equivalent for agents |
 

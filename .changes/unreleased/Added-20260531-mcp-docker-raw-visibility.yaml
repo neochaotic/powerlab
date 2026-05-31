@@ -1,0 +1,24 @@
+kind: Added
+body: |
+  powerlab-mcp raw Docker visibility — five new READ-ONLY resources
+  that close the visibility gap for containers running outside
+  PowerLab's compose-project ownership. `docker://containers` returns
+  every container on the host daemon (PowerLab + non-PowerLab, like
+  `docker ps -a`); `docker://images` lists every local image with
+  tags and size; `docker://networks` lists every Docker network with
+  IPAM + attached containers; `docker://volumes` lists every volume
+  with mountpoint and best-effort size; `docker://system` combines
+  daemon `/info` (version + container/image count) with `/system/df`
+  (disk usage by category — containers/images/volumes/build_cache)
+  so the agent can answer "should I prune?" without a second probe.
+  All five are proxied through five new app-management endpoints under
+  `/v2/app_management/docker/*`. Per ADR-0045 powerlab-mcp NEVER
+  touches the Docker socket — app-management remains the single
+  PowerLab service that talks to the daemon. No exec / shell / run /
+  prune — those need a separate threat-model ADR (security; an agent
+  with exec is rootkit-grade). Handlers covered by stub-Docker-client
+  unit tests; MCP side covered by trifecta tests (round-trip + apps-
+  unavailable degraded payload). Smoke client extended with a typed
+  `docker://system` shape assertion. Closes #630.
+custom:
+  Issue: "630"

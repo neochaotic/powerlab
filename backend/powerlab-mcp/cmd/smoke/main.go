@@ -363,7 +363,11 @@ func readAndAssert(ctx context.Context, cs *mcp.ClientSession, uri string) int {
 		uri == "system://processes",
 		uri == "apps://list",
 		strings.HasPrefix(uri, "apps://state/"),
-		strings.HasPrefix(uri, "docker://logs/"):
+		strings.HasPrefix(uri, "docker://logs/"),
+		uri == "docker://containers",
+		uri == "docker://images",
+		uri == "docker://networks",
+		uri == "docker://volumes":
 		// All of these are thin proxies (system://* → core per ADR-0044,
 		// apps://* + docker://* → app-management per ADR-0045). On a
 		// running box the payload is the upstream JSON; with the
@@ -372,6 +376,12 @@ func readAndAssert(ctx context.Context, cs *mcp.ClientSession, uri string) int {
 		// the degraded path as WARN with the audit + journal fallback
 		// hint preserved.
 		return assertProxiedPayload(uri, payload)
+	case uri == "docker://system":
+		// docker://system has a known top-level shape (docker_version,
+		// containers_count, images_count, disk_usage) per #630 — a typed
+		// assertion catches contract drift the generic proxy-payload
+		// check would miss (e.g. a field rename in the JSON tags).
+		return assertDockerSystemPayload(payload)
 	case uri == "system://gpu":
 		return assertSystemGPU(payload)
 	case uri == "system://updates":
@@ -444,6 +454,57 @@ func pluralIES(n int) string {
 		return "y"
 	}
 	return "ies"
+}
+
+// assertDockerSystemPayload validates the docker://system payload (#630).
+// Two valid shapes: the real upstream JSON (docker_version + counts +
+// disk_usage), OR the canonical apps_unavailable degraded payload when
+// app-management is down — same WARN/PASS treatment as
+// assertProxiedPayload for those cases. Locks the contract for
+// docker://system so a future field rename surfaces here, not in the
+// agent.
+func assertDockerSystemPayload(payload string) int {
+	// Degraded path first — share the proxy-shape check so the WARN
+	// language stays consistent across resources.
+	var probe struct {
+		Error    string `json:"error"`
+		Detail   string `json:"detail"`
+		Fallback string `json:"fallback"`
+	}
+	if err := json.Unmarshal([]byte(payload), &probe); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  docker://system — payload is not valid JSON: %v\n", err)
+		return 1
+	}
+	if isDegradedCode(probe.Error) {
+		fmt.Printf("      → WARN: docker://system — proxy resource degraded (%s); audit + journal still readable\n", probe.Detail)
+		if !strings.Contains(probe.Fallback, "audit") || !strings.Contains(probe.Fallback, "journal") {
+			fmt.Fprintf(os.Stderr, "FAIL  docker://system — degraded payload missing audit + journal fallback hint\n")
+			return 1
+		}
+		return 0
+	}
+	var sys struct {
+		DockerVersion   string `json:"docker_version"`
+		ContainersCount int    `json:"containers_count"`
+		ImagesCount     int    `json:"images_count"`
+		DiskUsage       struct {
+			Containers int64 `json:"containers"`
+			Images     int64 `json:"images"`
+			Volumes    int64 `json:"volumes"`
+			BuildCache int64 `json:"build_cache"`
+		} `json:"disk_usage"`
+	}
+	if err := json.Unmarshal([]byte(payload), &sys); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  docker://system — payload not the expected shape: %v\n", err)
+		return 1
+	}
+	if sys.DockerVersion == "" {
+		fmt.Fprintf(os.Stderr, "FAIL  docker://system — docker_version empty (daemon Info failed silently?)\n")
+		return 1
+	}
+	fmt.Printf("      → daemon=%s containers=%d images=%d disk_usage.images=%d\n",
+		sys.DockerVersion, sys.ContainersCount, sys.ImagesCount, sys.DiskUsage.Images)
+	return 0
 }
 
 // assertSystemUpdates validates the system://updates payload. The
