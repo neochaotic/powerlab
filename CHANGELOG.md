@@ -13,6 +13,314 @@ Each PR adds a tiny YAML fragment under `.changes/unreleased/<id>.yaml`.
 At release time, `changie batch <version>` aggregates the fragments into
 a new section below this header. See `CONTRIBUTING.md` for the workflow.
 
+## [v0.7.6] — 2026-05-31
+### Added
+- powerlab-mcp agent-identity propagation (ADR-0047 impl) — MCP now
+adopts the per-service audit middleware contract from ADR-0033,
+joining gateway as the second writer of /var/log/powerlab/audit.jsonl.
+Every /mcp request gets one audit record with the validated user
+(or "loopback" sentinel for trusted local agents). Plus JWT
+forwarding: handlers extract the Authorization header via the
+SDK's req.Extra.Header surface and pass it through to upstream
+coreproxy calls, so when core / app-management adopt the same
+middleware (per-service rollout) their audit records also capture
+the agent's user, not "loopback". New typed audit Kind constants
+KindMCPToolCall + KindMCPResourceRead lock the wire tokens for
+audit:// readers. Zero net-new infrastructure — the grounding
+survey of ADR-0033 + ADR-0035 confirmed the existing audit
+middleware is stdlib-compatible (audit.HTTPMiddleware) and
+reusable as-is. Known gap surfaced + filed as #632 (audit Store
+using lumberjack without O_APPEND would have dropped records under
+multi-writer load) — fixed in the same release; the integration
+test that proves the contract (TestAuditJSONL_MultiWriterAtomicity)
+ships un-skipped.
+
+- powerlab-mcp raw Docker visibility — five new READ-ONLY resources
+that close the visibility gap for containers running outside
+PowerLab's compose-project ownership. `docker://containers` returns
+every container on the host daemon (PowerLab + non-PowerLab, like
+`docker ps -a`); `docker://images` lists every local image with
+tags and size; `docker://networks` lists every Docker network with
+IPAM + attached containers; `docker://volumes` lists every volume
+with mountpoint and best-effort size; `docker://system` combines
+daemon `/info` (version + container/image count) with `/system/df`
+(disk usage by category — containers/images/volumes/build_cache)
+so the agent can answer "should I prune?" without a second probe.
+All five are proxied through five new app-management endpoints under
+`/v2/app_management/docker/*`. Per ADR-0045 powerlab-mcp NEVER
+touches the Docker socket — app-management remains the single
+PowerLab service that talks to the daemon. No exec / shell / run /
+prune — those need a separate threat-model ADR (security; an agent
+with exec is rootkit-grade). Handlers covered by stub-Docker-client
+unit tests; MCP side covered by trifecta tests (round-trip + apps-
+unavailable degraded payload). Smoke client extended with a typed
+`docker://system` shape assertion. Closes #630.
+
+- powerlab-mcp docs surface (ADR-0048) — four new READ ONLY MCP
+surfaces closing the maintainer ask "o agente deve saber criar um
+yaml no padrão PowerLab": docs://concepts/{name} +
+docs://concepts/index expose PowerLab's mkdocs concept files
+(compose-conventions, security-model, glossary, mcp-server, …) as
+raw markdown; catalog://app/{id} + catalog://index expose the
+137+ curated community-catalog YAMLs as pattern examples;
+search_docs(query, top_k) does case-insensitive substring across
+the concept docs (READ ONLY tier); compose_authoring is an MCP
+Prompt primitive that bundles the conventions doc + 3
+representative catalog YAMLs (deterministic pick by app_type
+keyword) + the composevalidator deny-list rules — one invocation
+replaces N discovery round-trips for "design me a PowerLab
+compose". resources/list now advertises 18. Plus the canonical
+docs/concepts/compose-conventions.md the prompt sources from.
+Packaging staged via package-linux.sh + install.sh + mcp.conf
+sample updated with ConceptsDir + CatalogDir defaults. All four
+surfaces path-traversal hardened; 12 new tests cover happy paths
++ missing-dir-empty-manifest + path-traversal-rejected + the
+prompt's keyword heuristic + empty-arg defaults + missing-
+conventions stub. golangci-lint v2 zero findings on new files.
+
+- powerlab-mcp sensitive sysadmin tier (ADR-0049) — two new opt-in
+resources that let an operator's agent answer host-level auth
+observability questions ("did anyone try to log in last night?",
+"who ran sudo during the maintenance window?") without leaving
+MCP: `journal://system/auth` (ssh.service + sshd.service + sudo +
+su, the auth-relevant subset of the host journal) and
+`journal://system/failures` (same source filtered to PRIORITY
+warning..error). Both ship behind `EnableSensitiveTier = false`
+in mcp.conf (the default — resources are NOT registered, do NOT
+appear in resources/list, and an agent has no URI to address);
+flipping the knob and restarting the daemon advertises the pair.
+Wire shape is locked to `{ts, unit, hostname, message}` — `_PID`,
+`_CMDLINE`, and `_AUDIT_SESSION` are deliberately omitted (argv
+routinely carries secrets — same name-only promise as
+system://processes). Selectors (ssh.service / sshd.service /
+sudo / su) are fixed in code, never agent-supplied; `lines` caps
+at 500 (tighter than journal://{unit}'s 2000) with default 100.
+Reflect+JSON wire-shape security test mirrors
+TestProcessSummary_NeverLeaksCmdline so a future refactor adding
+any forbidden field trips loud before the leak ships. Gate test,
+bounds test, mcp.conf.sample threat-model comment, quickstart
+Step 5.5 ("opt in to sensitive journals"), and smoke client
+dispatch all landed alongside.
+
+- powerlab-mcp sysadmin tier — four new low-sensitivity resources that
+let an agent answer common ops questions without leaving MCP:
+`system://services` (ActiveState + SubState for every powerlab-*
+systemd unit, proxied from core's existing `/v1/sys/services`),
+`system://kernel` (kernel release + arch + distro + boot time +
+virtualization, proxied from a new `/v1/sys/host` endpoint that
+wraps the host.InfoStat core already collects internally),
+`system://processes` (total count + top 10 by CPU and by memory,
+proxied from a new `/v1/sys/processes` endpoint that wraps
+gopsutil/process — name only, never cmdline, since argv leaks
+secrets), and `system://updates` (pending apt-list upgrades with
+security-pocket flag; degrades to `detected="none"` on non-apt
+hosts). ADR-0044 amended to document the new endpoints + the one
+documented "direct-in-MCP" exception (apt-list — no existing
+PowerLab wrapper and core does not own package-manager surface).
+resources/list now advertises 16. All four covered by the existing
+proxy trifecta test + a new apt-list parser test that pins every
+row shape (Listing/WARNING prelude, security-pocket flag, blank
+lines, malformed rows). Smoke client extended.
+
+### Fixed
+- audit JSONL store is now genuinely multi-writer safe (#632). ADR-0033
+mandates per-service audit middleware; ADR-0047 made powerlab-mcp the
+second writer to /var/log/powerlab/audit.jsonl alongside the gateway.
+ADR-0035 implicitly promised the JSONL store could absorb that load,
+but the lumberjack-backed Store opened the file with O_WRONLY|O_CREATE
+(no O_APPEND), so two Store instances held independent file offsets
+and silently overwrote each other — a TDD test in PR #633 caught this
+before it shipped (4 writers × 250 records produced ~750 of 1000
+expected lines). Replaced lumberjack with a direct
+os.OpenFile(path, O_APPEND|O_WRONLY|O_CREATE, 0o600); the kernel
+guarantees atomic appends below PIPE_BUF (4096 B on Linux/BSD) across
+separate FDs and audit records marshal to a few hundred bytes apiece.
+Un-skipped the integration test (TestAuditJSONL_MultiWriterAtomicity)
+and added a unit-level multi-writer regression test
+(TestStore_MultiWriter_AtomicAppend) that runs under -race.
+Lumberjack's in-process size/age rotation went with it — bounded
+files are now an external concern (logrotate / systemd-tmpfiles);
+#634 tracks reintroducing in-process rotation in a multi-writer-safe
+way if anyone reports it as missing. ADR-0035 amended with the
+actual contract (full "Amendment — multi-writer safety" section).
+
+- /v1/sys/disk now returns the {physical, mounts} shape its handler
+description (and powerlab-mcp's system://disk resource) has always
+promised. Pre-fix the route returned a single disk.UsageStat for
+the root mount only — so agents reading system://disk got back one
+object with no SMART data, no per-mount survey, and no awareness
+of additional filesystems despite the description advertising
+"physical disks, per-mount usage, SMART metadata (model, serial,
+temperature) — same surface the panel reads". MCP quality audit
+caught the contract drift on a live Lima instance.
+
+New shape (snake_case across the wire, consistent with
+ProcessSummary's cpu_percent / mem_percent / rss_kb):
+  {
+    "physical": [{name, model, serial, size_bytes, temperature_c,
+                  health_status}, ...],
+    "mounts":   [{path, fs_type, total, used, free,
+                  used_percent}, ...]
+  }
+
+Implementation: model.DisksInfo + service.GetDisks() (in
+backend/core/service/disks.go) enumerate physical block devices via
+smartctl --scan -j + smartctl -a -j (best-effort — empty Model
+means smartctl unavailable, same graceful-degrade as system://gpu)
+and per-mount usage via gopsutil disk.Partitions(all=false) +
+disk.Usage(). Mount fallback to a single root entry when
+disk.Partitions returns nothing usable, so the route NEVER returns
+an empty mounts array on a real host. Both arrays always non-nil
+so they marshal to [] not null.
+
+Tests (TDD red→green):
+  - service/disks_test.go: TestGetDisks_RootMountAlwaysPresent
+    asserts the root mount is always present with Total > 0 and
+    UsedPercent in [0,100]; TestRoundPercent_OneDecimal locks the
+    rounding the dashboard expects.
+  - route/v1/disk_test.go:
+    TestGetSystemDiskInfo_ReturnsPhysicalAndMounts pins the
+    snake_case wire keys + value pass-through;
+    TestGetSystemDiskInfo_EmptyPhysicalMarshalsAsArray locks the
+    `"physical":[]` (not null) graceful-degrade contract.
+  - ui/src/lib/stores/system.test.ts: split-payload test +
+    defensive test for the legacy single-object shape (an old
+    core in front of a new UI).
+
+UI follow-up (same PR — the dashboard widget consumes the data
+and would otherwise break): system.svelte.ts store splits
+`physical` into a new `physicalDisks` reactive slot and consumes
+`mounts` for the existing `disks` slot. Dashboard StorageBar
++ Sidebar updated to read used_percent / fs_type. MCP
+description in resources_system.go (both the schema doc and the
+per-resource registration) updated to spell out the field set
+so the description stays the single source of truth.
+
+Legacy GetDiskInfo() kept on the SystemService interface — the
+bug-report path (GetSystemConfigDebug) still needs it. No
+breaking change at the Go API level; only the route shape moves.
+
+- /v1/sys/services (and the proxied MCP system://services resource) no
+longer rotates ActiveState, SubState, and MainPID across each other.
+The Settings → Power pane parser called `systemctl show … --value`
+and assumed values came back in CLI-argument order, but systemd emits
+properties in its own internal table order — empirically MainPID,
+ActiveState, SubState on systemd 252. The JSON sent to UI and MCP
+agents therefore had `active_state="14998"`, `sub_state="active"`,
+`pid="running"`, breaking any caller that read active_state to decide
+badge colour or to check whether a service was healthy (the PowerPane
+restart poll waited the full 20 s timeout on every restart for this
+reason). Dropped `--value` and switched to KEY=VALUE parsing so field
+assignment is keyed on the property name; locked with a regression
+test that feeds the exact byte sequence captured from the Lima audit.
+
+### Internal
+- ADR-0047 proposed — powerlab-mcp agent-identity propagation. Closes
+two ADR-0034 deferred items in one design: (1) MCP adopts the
+existing audit.Middleware (per-service writer model from ADR-0033)
+so every tool call and resource read writes one audit.jsonl record
+with the validated JWT subject (or "loopback" sentinel for the
+trusted local path) — operator's compliance trail is no longer
+blind to agent actions; (2) MCP extracts the Authorization header
+at the streamable-HTTP transport boundary and forwards it on
+upstream coreproxy calls, so when core / app-management adopt
+audit middleware (per-service rollout) the upstream's records
+capture the same user. Grounding survey flipped the initial spike
+recommendation (gateway-as-sole-writer + new /audit/record
+endpoint) when ADR-0033 + ADR-0035 turned out to already mandate
+per-service + JSONL multi-writer-safe. Zero new infrastructure —
+MCP becomes the second service after gateway to fully realize the
+contract. Implementation in follow-up PR (β); this PR is just the
+decision record so the architecture is reviewable before code.
+
+- ADR-0049 proposed — MCP sensitive sysadmin tier (journal://system/*)
+threat model. Adds journal://system/auth + journal://system/failures
+behind an opt-in EnableSensitiveTier mcp.conf gate (default false;
+resources NOT registered when off — same pattern as
+EnableDestructiveTools from ADR-0046). Closes the v0.7.5
+roadmap's deferred "PR 3.5 — sysadmin tier (sensitive, opt-in):
+system/auth journal + threat model ADR" item. Wire shape:
+{ts, unit, hostname, message} — _pid, _cmdline, _audit_session
+deliberately omitted (argv leaks secrets, same security promise
+as system://processes' name-only rule). Acceptance criteria
+enumerated; implementation lands in follow-up PR.
+
+- Documentation refresh — MCP currency + UX-AAA pass. README's "Talk
+to your homelab" section bumped from 12 → 16 advertised resources,
+added the sysadmin tier surfaces (services / kernel / processes /
+updates), promoted DESTRUCTIVE tools out of 🔜 (shipped in v0.7.5),
+added an inline "30-second smoke test" recipe so operators can
+verify MCP without leaving the README, and a bridge sentence
+between "Built for AI" and "Talk to your homelab". Mkdocs front
+door (docs/index.md) gained an MCP entry in "What's here" + the
+hero sentence acknowledges the MCP angle. Mkdocs nav promotes
+MCP from a sub-bullet under Concepts to a top-level "MCP (talk to
+your homelab)" umbrella with the concept page + the new operator
+quickstart. New file docs/operations/mcp-quickstart.md is a
+5-minute path from "is it running?" to "Claude is reading my
+journals" — covers liveness check, smoke client run, Claude
+Desktop pairing, validate CLI, destructive-tools opt-in, and a
+troubleshooting matrix. Glossary gained an MCP vocabulary
+section (MCP, resource, tool, hybrid architecture, storage-
+agnostic, compose-conventions, EnableDestructiveTools, loopback
+skip).
+
+- Documentation currency — MCP surface sync to the v0.7.6 live shape.
+docs/concepts/mcp-server.md bumped from "16 advertised resources" to
+the actual 25 advertised + 6 URI templates: catalog://index +
+catalog://app/{id} (ADR-0048), docs://concepts/index + /{name}
+(ADR-0048), docker://{containers,images,networks,volumes,system}
+(ADR-0045 extension, #630), and journal://system/auth + /failures
+(ADR-0049 sensitive tier, opt-in). New "Prompts (curated context
+bundles)" section documents the MCP Prompts primitive and the
+compose_authoring prompt — previously invisible from the doc despite
+being the killer feature for compose authoring. "🔜 Coming soon"
+markers stripped from apps:// and docker:// (shipped). Tools section
+bumped from "5 curated" to "4 always-on + 2 destructive-gated";
+search_docs (ADR-0048) added with per-tool reference. Journal-scope
+invariant amended — was "hard-coded to PowerLab units" full stop,
+now reflects the opt-in sensitive tier (PowerLab units always, host
+auth journals when EnableSensitiveTier=true, nothing else). Defense-
+in-depth table gained sensitive-tier-gate + destructive-tier-gate
+rows; path-traversal row covers catalog://app and docs://concepts
+alongside docs://api. Operator-controls conf snippet gained
+ConceptsDir + CatalogDir + EnableSensitiveTier. Architecture diagram
+gained Concepts + Catalog data sources and journal label updated to
+"(powerlab-* + opt-in ssh/sudo/su)". References list extended with
+ADR-0047/0048/0049. Roadmap items already-shipped (system://processes,
+/network, /updates) removed; agent-identity audit dogfood promoted to
+reference ADR-0047. Smoke output sample regenerated from live
+evidence (25 resources, 4 tools, gate-respected install/uninstall
+not advertised). README's "Talk to your homelab" section synced
+identically — 25 resources, catalog/docs/concepts surfaces, the
+compose_authoring Prompt called out as the killer feature, tool list
+updated with search_docs. docs/operations/mcp-quickstart.md: smoke
+output sample updated, troubleshooting matrix bumped from "3 not 5"
+to "4 not 6" for tools/list, "What MCP gives your agent today" table
+extended with catalog://, docs://concepts/*, search_docs tool,
+compose_authoring prompt row. Pure docs — no code changes, no
+config-key changes; the keys it documents already exist in the
+shipped binary's config loader.
+
+- Screenshot regeneration automation — `npm run screenshots` (in
+ui/) drives Playwright through Chromium at 2880x1800 retina
+dimensions (matches existing manual captures) and writes the
+result to docs/img/<name>.png for the six pages the README +
+mkdocs reference: login, dashboard, apps, files, about,
+launchpad. Uses installBaselineMocks() so the run is
+deterministic and works without a real PowerLab backend. New
+scripts/regen-screenshots.sh is the convenience wrapper +
+documents what's regenerated vs what's NOT (store/catalog
+screenshots need extra seed steps since the catalog ships
+opt-in; gpu_dashboard needs real GPU; social-preview is
+designer-generated). E2E suite `test:e2e` now uses
+`--grep-invert @screenshots` so the screenshot spec doesn't
+fire on every PR — operators (or designers updating the
+visuals) run `npm run screenshots` explicitly when UI changes
+touch a referenced page.
+
+
+
 ## [v0.7.5] — 2026-05-31
 ### Added
 - powerlab-mcp MVP — talk-to-your-homelab surface for AI agents. Read-only resources (system://metrics, journal://, audit://) over the official MCP Streamable HTTP transport, gated by your PowerLab login. Three MVP guardrails ship with it: (1) operator kill-switch `Disabled = true` in /etc/powerlab/mcp.conf — service exits 0 before binding, no systemctl mask needed; (2) dead PIDFile= + Environment=HOME= removed from powerlab-mcp.service (binary doesn't write a pidfile and doesn't need HOME); (3) end-to-end smoke client in backend/powerlab-mcp/cmd/smoke that lists + reads every advertised resource via the official Go SDK — usable as a pre-flight before any release cut. Plus: deep architecture documentation at docs/concepts/mcp-server.md (Mermaid topology + auth flow + journey-of-a-read, test recipes for loopback/LAN/Go, Claude Desktop & Cursor & Code wire-up, defense-in-depth matrix, roadmap) and a README "Talk to your homelab" section that positions MCP as a complementary surface, NOT a product pivot. Tests: config TestLoad_DisabledKey (truthy spellings + safety defaults), main_test TestRun_DisabledKillSwitchExitsCleanly (proves run never binds when Disabled), check-package-linux-powerlab-mcp_test.sh extended to lock the Disabled key into mcp.conf.sample and lock PIDFile / Environment=HOME out of the unit.
