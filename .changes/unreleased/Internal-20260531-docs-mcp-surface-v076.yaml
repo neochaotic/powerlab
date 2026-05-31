@@ -1,0 +1,40 @@
+kind: Internal
+body: |
+  Documentation currency — MCP surface sync to the v0.7.6 live shape.
+  docs/concepts/mcp-server.md bumped from "16 advertised resources" to
+  the actual 25 advertised + 6 URI templates: catalog://index +
+  catalog://app/{id} (ADR-0048), docs://concepts/index + /{name}
+  (ADR-0048), docker://{containers,images,networks,volumes,system}
+  (ADR-0045 extension, #630), and journal://system/auth + /failures
+  (ADR-0049 sensitive tier, opt-in). New "Prompts (curated context
+  bundles)" section documents the MCP Prompts primitive and the
+  compose_authoring prompt — previously invisible from the doc despite
+  being the killer feature for compose authoring. "🔜 Coming soon"
+  markers stripped from apps:// and docker:// (shipped). Tools section
+  bumped from "5 curated" to "4 always-on + 2 destructive-gated";
+  search_docs (ADR-0048) added with per-tool reference. Journal-scope
+  invariant amended — was "hard-coded to PowerLab units" full stop,
+  now reflects the opt-in sensitive tier (PowerLab units always, host
+  auth journals when EnableSensitiveTier=true, nothing else). Defense-
+  in-depth table gained sensitive-tier-gate + destructive-tier-gate
+  rows; path-traversal row covers catalog://app and docs://concepts
+  alongside docs://api. Operator-controls conf snippet gained
+  ConceptsDir + CatalogDir + EnableSensitiveTier. Architecture diagram
+  gained Concepts + Catalog data sources and journal label updated to
+  "(powerlab-* + opt-in ssh/sudo/su)". References list extended with
+  ADR-0047/0048/0049. Roadmap items already-shipped (system://processes,
+  /network, /updates) removed; agent-identity audit dogfood promoted to
+  reference ADR-0047. Smoke output sample regenerated from live
+  evidence (25 resources, 4 tools, gate-respected install/uninstall
+  not advertised). README's "Talk to your homelab" section synced
+  identically — 25 resources, catalog/docs/concepts surfaces, the
+  compose_authoring Prompt called out as the killer feature, tool list
+  updated with search_docs. docs/operations/mcp-quickstart.md: smoke
+  output sample updated, troubleshooting matrix bumped from "3 not 5"
+  to "4 not 6" for tools/list, "What MCP gives your agent today" table
+  extended with catalog://, docs://concepts/*, search_docs tool,
+  compose_authoring prompt row. Pure docs — no code changes, no
+  config-key changes; the keys it documents already exist in the
+  shipped binary's config loader.
+custom:
+  Issue: ""

@@ -158,63 +158,28 @@ The full power of Compose. None of the friction.
 
 ## Built for AI.
 
-PowerLab was designed with local AI in mind. The same Compose-native runtime that hosts your media library happily hosts **Ollama, Stable Diffusion WebUI, ChatGPT-Next-Web, AnythingLLM, ChatbotUI, Open WebUI, Whisper.cpp, ComfyUI** — every popular self-hosted AI tool ships as a Docker image and PowerLab knows how to install it.
+The same Compose-native runtime that hosts your media library happily hosts **Ollama, Stable Diffusion WebUI, AnythingLLM, Open WebUI, Whisper.cpp, ComfyUI** — every popular self-hosted AI tool ships as a Docker image and the App Store installs it in one click, ports remapped, logs streaming. Live VRAM, GPU utilization, and temperature land on the Dashboard auto-detected on first boot.
 
 > **GPU monitoring is first-class — and not standard in this category.**
-> Most homelab panels still treat the GPU as an afterthought. PowerLab's
-> Dashboard renders live VRAM, GPU utilization, and temperature on
-> Apple Silicon (M-series via `ioreg`) and Nvidia (via `nvidia-smi`),
-> auto-detected on first boot. CasaOS doesn't ship this. ZimaOS, the
-> paid sibling, doesn't either. If you're running local models, the
-> blinking GPU on the Dashboard is the difference between "is this thing
-> even using the GPU?" and a real-time signal you can act on.
+> Most homelab panels still treat the GPU as an afterthought. PowerLab reads
+> Apple Silicon (M-series via `ioreg`) and Nvidia (via `nvidia-smi`) live, every
+> second. CasaOS doesn't ship this. ZimaOS, the paid sibling, doesn't either.
 
-What makes the AI experience effortless:
-
-- **GPU detection, automatic.** Apple Silicon (M-series via `ioreg`) and Nvidia (via `nvidia-smi`) appear on the Dashboard the moment you open it. No drivers to chase, no config files to edit.
-- **Memory and VRAM, live.** Telemetry refreshes every second. Watch a 7B model load in real time, see how much VRAM your prompt is using, know when to scale down.
-- **The catalogue knows AI.** Search the App Store for "Ollama", "AnythingLLM", "ChatGPT-Next-Web" — install in one click, ports remapped, logs streaming.
-- **Designed for the lab on your shelf.** Quiet GPU rigs, Apple Silicon Macs, Nvidia Jetson, Intel mini PCs. PowerLab feels at home on the hardware you already trust.
-
-> **Coming soon: a first-class Models tab.** Drag-and-drop GGUF imports. One-click Ollama pulls. Side-by-side benchmarks. Quantization presets. The future of local AI, with the polish of a real product.
-
-But the bigger AI story is the next section — your homelab itself becoming a first-class resource your agents can read.
+The bigger AI story is the next section — your server itself becoming a first-class resource your agents can read.
 
 <br>
 
 ---
 
-## Talk to your homelab.
+## Talk to your server. Talk to your stack.
 
-PowerLab ships a built-in **MCP (Model Context Protocol) server** at `:9090`. Connect Claude Desktop, Cursor, or Claude Code to it and your agent reads your box's **metrics, journald logs, audit trail, installed apps, container logs, and the entire PowerLab OpenAPI surface** — the same data the dashboard shows you, exposed over the official MCP transport.
+PowerLab ships a built-in **MCP (Model Context Protocol) server** at `:9090`. Point Claude Desktop, Cursor, or Claude Code at it and your agent reads your containers, your journald, your audit trail, your SMART data, and the entire PowerLab OpenAPI surface — the same data the dashboard shows you, over the official MCP transport.
 
-The UI is the pane of glass **for you.** MCP is the pane of glass **for your agent.** Same data, two surfaces. PowerLab stays the homelab dashboard it always was; MCP is a complementary surface, not a pivot.
+The UI is the pane of glass **for you.** MCP is the pane of glass **for your agent.** Same data, two surfaces. One Pi in a closet, one server in a colo, or a fleet across both — the contract is identical.
 
-What an agent can do today — **16 advertised resources**:
+**Enterprise-acceptable by construction**: every MCP call carries the operator's JWT and lands in the same JSONL audit trail as a UI click (correlation id and all); write tools are off by default and gated behind `EnableDestructiveTools` in `/etc/powerlab/mcp.conf`; custom compose YAMLs hit a deny-list validator **before** app-management ever sees them. The threat model is documented in [ADR-0046](docs/decisions/0046-mcp-tool-curation-strategy.md) and [ADR-0049](docs/decisions/0049-mcp-sensitive-sysadmin-tier-threat-model.md), not implied.
 
-- **`system://`** — CPU, memory, load, uptime, **disk + SMART, network, GPU (Apple Silicon + Nvidia), temperature, kernel + OS identity, systemd services, processes (name-only, no argv leakage), pending OS updates**. Mix of `/proc` direct + thin-proxy to core's `/v1/sys/*`. Same data the dashboard widgets read.
-- **`journal://`** — PowerLab service logs (`journal://gateway?lines=200`, `journal://core`, `journal://mcp`, ...). Hard-scoped to PowerLab units — an agent cannot escape to SSH / PAM logs.
-- **`audit://`** — newest audit entries, plus filter by correlation id (everything one request triggered).
-- **`apps://`** — installed-apps manifest + per-app state, containers, health, stats, disk footprint. Thin-proxy through app-management.
-- **`docker://logs/<app>`** — container logs proxied through app-management. **MCP never touches the Docker socket** (security win — see [ADR-0045](docs/decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md)).
-- **`docs://api`** — the OpenAPI specs of every PowerLab service. Agent self-discovers what's callable.
-
-Plus **5 curated MCP tools** — the agent doesn't just read, it can *act* (per [ADR-0046](docs/decisions/0046-mcp-tool-curation-strategy.md)):
-
-- **READ ONLY** — `journal_search` (literal substring + time-range over PowerLab journals); `check_disk_free` (one-path statfs).
-- **SIDE EFFECT (bounded)** — `restart_app` (cycle one app's containers; same end-state).
-- **DESTRUCTIVE (operator opt-in)** — `install_app` (custom Compose, validated against a deny-list of dangerous patterns before app-management ever sees it) and `uninstall_app`. Both require `EnableDestructiveTools = true` in `/etc/powerlab/mcp.conf` — when false (the default), they're NOT registered and the agent can't call them.
-
-What it does **not** do yet:
-- **No autonomous destructive defaults.** `install_app` + `uninstall_app` exist but ship NOT REGISTERED until the operator flips `EnableDestructiveTools = true`. Default-on would be a surprise; default-off is a documented opt-in.
-- **No panel-side approval UI** — once destructive tools are enabled, the agent can install/uninstall apps without per-action human confirmation. The "pending agent action" approval surface is roadmap; until then `EnableDestructiveTools` is the gate.
-- **No automatic pairing.** Today you paste a JWT into your client config; a `powerlab pair` CLI is roadmap.
-- **No internet exposure.** Binds `:9090` on the LAN with two-tier auth (loopback free, LAN needs your PowerLab token); PowerLab does not configure port-forwarding for you.
-- **No RBAC.** Any authenticated agent has full access — every PowerLab user is hardcoded admin today. Real role-based access is tracked separately.
-
-**Storage-agnostic by construction.** When PowerLab eventually migrates from SQLite to PostgreSQL, MCP requires zero changes — the HTTP contract is the abstraction.
-
-**Opt out anytime** — flip `Disabled = true` in `/etc/powerlab/mcp.conf` and restart the unit. The binary exits cleanly without binding `:9090`.
+Today: **25 advertised resources** across `system://`, `journal://`, `audit://`, `apps://`, `docker://`, `catalog://`, `docs://` — plus the `compose_authoring` MCP Prompt and **4 always-on read tools** (`journal_search`, `check_disk_free`, `search_docs`, `restart_app`). Two destructive tools (`install_app`, `uninstall_app`) ship NOT REGISTERED until the operator opts in. Full resource map, tool reference, gaps and roadmap, and Claude Desktop / Cursor / Code wire-up in the [MCP server docs](docs/concepts/mcp-server.md) and the [operator quickstart](docs/operations/mcp-quickstart.md).
 
 **30-second smoke test** — verify MCP is alive without touching a client:
 
@@ -222,22 +187,10 @@ What it does **not** do yet:
 curl -fsS http://localhost:9090/healthz                              # → 200 OK
 curl -fsS http://localhost:9090/version | jq                         # → {"version":"...","commit":"..."}
 sudo systemctl status powerlab-mcp --no-pager | head -3              # → active (running)
-sudo journalctl -u powerlab-mcp -n 20 --no-pager                    # → boot + bind log
+/usr/share/powerlab/bin/powerlab-mcp-smoke -endpoint http://localhost:9090   # structured contract sweep
 ```
 
-Want a structured contract sweep? `powerlab-mcp-smoke` (shipped with the install) reads every advertised resource + exercises read-only tools end-to-end:
-
-```bash
-/usr/share/powerlab/bin/powerlab-mcp-smoke -endpoint http://localhost:9090
-```
-
-Custom compose YAML to validate before reaching `install_app`? Use the standalone CLI:
-
-```bash
-/usr/share/powerlab/bin/powerlab-mcp-validate /path/to/docker-compose.yml
-```
-
-Full architecture + Claude Desktop / Cursor / Code wire-up + operator quickstart in the [MCP server docs](https://neochaotic.github.io/powerlab/concepts/mcp-server/) and the [MCP operator quickstart](https://neochaotic.github.io/powerlab/operations/mcp-quickstart/).
+**Opt out anytime** — flip `Disabled = true` in `/etc/powerlab/mcp.conf` and restart the unit. The binary exits cleanly without binding `:9090`.
 
 <br>
 
