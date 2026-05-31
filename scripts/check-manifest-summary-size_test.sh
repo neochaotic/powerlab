@@ -1,24 +1,29 @@
 #!/usr/bin/env bash
-# CI gate: release-manifest.yaml `summary` length must be ≤ 250 chars.
+# CI gate: release-manifest.yaml `summary` length must be ≤ 1000 chars.
 #
 # Spec (docs/UPDATE_MANIFEST.md):
-#   "summary (string, required, ≤ 250 chars) — One-paragraph plain-text
-#    summary for the 'Update available' toast."
+#   "summary (string, required, ≤ 1000 chars) — Plain-text summary
+#    for the 'Update available' surface in AboutPane. UI shows ~240
+#    chars inline and offers a 'Show more' toggle for the rest."
 #
-# Historically not enforced anywhere. v0.6.6 published a 11k-char
+# Historically not enforced anywhere. v0.6.6 published an 11k-char
 # summary that rendered as a wall of text in AboutPane (the trigger
 # for this gate). The summary kept growing because the cut process
-# appended "Sprint N framing (preserved for context):" blocks
-# every release without trimming.
+# appended "Sprint N framing (preserved for context):" blocks every
+# release without trimming. v0.7.5 raised the cap from 250 → 1000 so
+# feature-bundle cuts can include enough context to motivate the
+# upgrade; the UI's defensive truncation at ~240 chars + Show more
+# (ui/src/lib/utils/release-notes-summary.ts) keeps the toast itself
+# readable while the expanded view shows the full text.
 #
-# This gate fails CI loud so the next cut MUST trim the summary
-# before the tag.
+# This gate fails CI loud if a manifest blows past 1000 chars (the
+# wall-of-text floor from the v0.6.6 incident).
 
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MANIFEST="$REPO_ROOT/release-manifest.yaml"
-MAX_CHARS=250
+MAX_CHARS=1000
 
 if [[ ! -f "$MANIFEST" ]]; then
   echo "FAIL: $MANIFEST not found"

@@ -1,5 +1,0 @@
-kind: Internal
-body: 'powerlab-mcp: first MCP resource — system://metrics serves a point-in-time host snapshot (memory total/available/used%, load average 1/5/15m, uptime) read directly from /proc, independent of the rest of PowerLab. Adds an in-process MCP integration test (initialize → resources/list → resources/read) proving the protocol works end-to-end, not just that the endpoint is reachable.'
-time: 2026-05-28T01:05:00Z
-custom:
-    Issue: ""

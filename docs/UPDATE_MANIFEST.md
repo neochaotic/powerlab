@@ -97,10 +97,12 @@ This is preferable to *deleting* a tag (which breaks anyone with a
 direct URL bookmark) or to *yanking* the GitHub Release (which loses
 the changelog history).
 
-#### `summary` (string, required, ≤ 250 chars)
+#### `summary` (string, required, ≤ 1000 chars)
 
-One-paragraph plain-text summary for the "Update available" toast.
-The full changelog goes in `changelog_url`.
+Plain-text summary for the "Update available" surface in AboutPane.
+The UI shows the first ~240 chars inline and offers a "Show more"
+toggle for the rest, so the field can hold a short paragraph or two
+of context. Full changelog still lives at `changelog_url`.
 
 #### `changelog_url` (string, required, https URL)
 

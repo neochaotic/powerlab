@@ -1,5 +1,0 @@
-kind: Internal
-body: 'powerlab-mcp (A+ code review fixes): a bind failure (e.g. port already in use) now exits non-zero instead of a silent clean stop systemd would misread — the lifecycle was extracted into a testable run() that binds synchronously and only signals systemd READY after the bind succeeds. Loopback detection now uses net.SplitHostPort so IPv6 "[::1]:port" is recognised. Minor: round2 via math.Round.'
-time: 2026-05-28T01:55:00Z
-custom:
-    Issue: ""
