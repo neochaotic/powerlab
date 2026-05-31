@@ -1,8 +1,9 @@
 # 0035. Audit storage — migrate from SQLite to JSONL + in-memory ring buffer
 
-- **Status:** accepted
+- **Status:** accepted (amended 2026-05-31 — see "Amendment — multi-writer safety (#632)" below)
 - **Date:** 2026-05-14
 - **Implemented:** PR #370 (Sprint 17, v0.6.12)
+- **Amended:** PR closing #632 (v0.7.6) — replaced lumberjack with direct `O_APPEND` writes to deliver the multi-writer contract this ADR implicitly promised
 - **Supersedes (in part):** [ADR-0033](./0033-audit-middleware-design.md) — middleware shape stays; storage backend changes
 - **Unblocks:** [ADR-0034](./0034-standalone-observability-mcp-service.md) implementation — observability service can now consume JSONL directly
 
@@ -158,10 +159,60 @@ Use `sd_journal_send` from each service. Native to the platform.
 
 The history page degradation (5 → 50 ms) is the only real regression. Acceptable for an operator-initiated query.
 
+## Amendment — multi-writer safety (#632)
+
+**Date:** 2026-05-31
+
+### What was implicit, and what we found
+
+The original "Concurrency" section above said "single writer to lumberjack (line-buffered, atomic per-line)". When ADR-0047 (powerlab-mcp agent-identity propagation) was being implemented, the surrounding mental model crystallised into "the JSONL store is multi-writer safe — gateway + powerlab-mcp can both write to `/var/log/powerlab/audit.jsonl` because that's what ADR-0033's per-service middleware mandate implies". A TDD test added in PR #633 (`TestAuditJSONL_MultiWriterAtomicity`) proved that mental model wrong:
+
+- `lumberjack.Logger` opens the file with `O_WRONLY|O_CREATE` — **not** `O_APPEND`.
+- It guards writes with an internal `sync.Mutex` that protects **only its own instance**.
+- Two `Store` instances (one per service) each hold an independent file descriptor with an independent offset. They overwrite each other's writes silently.
+- Reproduced empirically: 4 concurrent writers × 250 records each produced ~750 of 1000 expected lines.
+
+### What changed in the implementation
+
+`backend/common/utils/audit/store.go` no longer uses lumberjack. The Store opens the file directly with:
+
+```go
+os.OpenFile(opts.Path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o600)
+```
+
+`O_APPEND` is the load-bearing flag: the kernel atomically positions every `O_APPEND` write at end-of-file across separate FDs. Below `PIPE_BUF` (4096 B on Linux; macOS BSD-derived stacks honour the same lower bound) the write itself is atomic against concurrent writers. Audit records marshal to a few hundred bytes — well under the ceiling — so `AppendBatch` ships a per-call buffer in one Write and the kernel guarantees the line lands intact.
+
+For oversized batches (`> 4000 B`) the implementation falls back to one Write per record — slightly more syscalls but every individual line is still atomic against concurrent writers, and the JSONL contract (line-oriented) tolerates interleaving from different sources.
+
+### Contract delivered
+
+| Property | Before (lumberjack) | After (direct O_APPEND) |
+|---|---|---|
+| Single-writer safety | Yes (per-instance mutex) | Yes (per-instance mutex + kernel atomic append) |
+| Multi-writer safety (cross-process) | **No** (silent overwrite) | **Yes** (kernel guarantee under `PIPE_BUF`) |
+| Per-line atomicity within batch | Yes | Yes |
+| Rotation | Size-based + age-based, in-process | **None — see follow-up below** |
+
+### What was dropped, and the follow-up
+
+Lumberjack's size-based and age-based rotation went with it. PowerLab's homelab volume reality (dozens of authenticated requests per day) makes rotation a non-issue in practice — a year of audit logs fits comfortably in a few hundred MB. For operators who want bounded files:
+
+- **Today's answer:** `logrotate(8)` with a `/etc/logrotate.d/powerlab` snippet, or `systemd-tmpfiles` with an age-out rule. The JSONL file is a plain file — every standard Unix rotation tool works against it.
+- **Tomorrow's answer:** if anyone reports rotation as a missing feature, **#634** is the tracking issue — reintroduce in-process rotation via a rename-then-O_APPEND-reopen dance that preserves multi-writer safety (lumberjack's `Logger.Rotate()` won't do — it doesn't coordinate across processes). The `MaxSizeMB / MaxBackups / MaxAgeDays` fields stay on `StoreOptions` for API stability; they're ignored at runtime until #634 lands.
+
+### Why this didn't bite earlier
+
+Through v0.7.5 the gateway was the sole audit writer in production. The lumberjack-bounded contract was "fine" because there was no second writer. The moment ADR-0047 shipped `powerlab-mcp` as the second writer, every overlapping write between gateway and MCP would have lost records. The bug was latent; the architecture change is what would have exposed it.
+
+### Regression lock
+
+`backend/common/utils/audit/store_test.go::TestStore_MultiWriter_AtomicAppend` — 4 writers × 250 records, asserts exactly 1000 lines with every line parseable and per-writer counts intact. Runs under `-race`. Loops 3× passed in CI; failed on the lumberjack baseline (753/1000 lines). The original `TestAuditJSONL_MultiWriterAtomicity` test in `backend/powerlab-mcp/server/identity_integration_test.go` is now un-skipped and exercises the same contract through the public `audit.Service` surface.
+
 ## References
 
 - [ADR-0033](./0033-audit-middleware-design.md) — current audit middleware design (this ADR supersedes the storage section)
 - [ADR-0034](./0034-standalone-observability-mcp-service.md) — standalone observability service that benefits from this migration
+- [ADR-0047](./0047-mcp-agent-identity-propagation.md) — second writer that exposed the latent multi-writer gap
 - [Kubernetes audit log format](https://kubernetes.io/docs/tasks/debug/debug-cluster/audit/)
 - [HashiCorp Vault file audit device](https://developer.hashicorp.com/vault/docs/audit/file)
-- [`gopkg.in/natefinch/lumberjack.v2`](https://pkg.go.dev/gopkg.in/natefinch/lumberjack.v2) — already a dep
+- [`gopkg.in/natefinch/lumberjack.v2`](https://pkg.go.dev/gopkg.in/natefinch/lumberjack.v2) — still used by `backend/common/utils/logger` for operational logs; removed only from `audit`

@@ -1,5 +1,6 @@
 // Package audit records per-request audit events (method, path, status,
-// latency, user, IP) into a JSONL file rotated by lumberjack, with an
+// latency, user, IP) into a JSONL file (opened with O_APPEND for
+// multi-writer safety per the ADR-0035 amendment in #632) with an
 // in-memory ring buffer serving the UI hot path. Designed for the
 // operator answer to "who did what when" inside the PowerLab panel.
 //

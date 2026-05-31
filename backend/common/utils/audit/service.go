@@ -27,9 +27,10 @@ type Service struct {
 	Recorder *Recorder
 }
 
-// NewService opens the JSONL file (via lumberjack), starts the
-// Recorder writer goroutine, and returns the bundle. Caller MUST
-// Close() to release the goroutine + flush the file.
+// NewService opens the JSONL file (O_APPEND for multi-writer safety
+// — see ADR-0035 amendment in #632), starts the Recorder writer
+// goroutine, and returns the bundle. Caller MUST Close() to release
+// the goroutine + flush the file.
 //
 // The parent directory of opts.Path is created with 0o750 if it
 // doesn't exist — host services typically run as root and the
