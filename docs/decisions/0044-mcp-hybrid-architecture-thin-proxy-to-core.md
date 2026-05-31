@@ -122,3 +122,21 @@ powerlab-mcp resolves each service's URL the same way every other PowerLab servi
 - [ADR-0035](0035-audit-jsonl-migration.md) — JSONL migration that enables `audit://`.
 - [ADR-0008](0008-api-docs-portal-scalar.md) — Scalar API docs portal; `docs://api` is the same OpenAPI surface, MCP-shaped.
 - [`feedback_mcp_reuse_observability`](../../../memory/feedback_mcp_reuse_observability.md) — internal note locking the reuse principle in.
+
+## Amendment 2026-05-31 — sysadmin tier extension
+
+The first feature bundle landing after the v0.7.5 cut extends the hybrid pattern to four new resources: `system://services`, `system://kernel`, `system://updates`, `system://processes`. Three follow the established pattern:
+
+| Resource | Pattern | Notes |
+|---|---|---|
+| `system://services` | Thin proxy → `/v1/sys/services` | Endpoint already existed (whitelisted powerlab-* units). |
+| `system://kernel` | Thin proxy → `/v1/sys/host` (**new** endpoint) | Wraps `service.MyService.System().GetSysInfo()` which already returned `host.InfoStat` internally but was not exposed via HTTP. Adding the endpoint kept gopsutil OUT of `powerlab-mcp/go.mod` — the ADR's "no gopsutil bumps" promise held. |
+| `system://processes` | Thin proxy → `/v1/sys/processes` (**new** endpoint) | New `SystemService.GetProcesses(topN)` wraps gopsutil/process in core. Cmdline omitted at the source — argv leaks secrets. |
+
+The fourth is the **documented exception**:
+
+| Resource | Pattern | Why direct-in-MCP |
+|---|---|---|
+| `system://updates` | `os/exec apt list --upgradable` inside MCP | No existing core/external/logs-cli wrapper. Adding one to core would mean core grows a package-manager dependency for a surface no other PowerLab component consumes. Constrained scope: single `exec.CommandContext` call, no shell, line-based parser with a unit test pinning every shape (Listing/WARNING preludes, security-pocket flag, blank lines, malformed rows). Returns the same `detected="none"` defensive shape as proxy errors when apt is missing. |
+
+**Rule the amendment locks in:** prefer "add a core endpoint and proxy" over "import the library in MCP". The kernel + processes case proves the cost is small (~30 LOC handler each, no MCP go.mod growth). Direct-in-MCP is allowed only when (a) no existing wrapper exists in core/external/logs-cli AND (b) adding one to a core service would couple that service to a concern it does not own (the apt case). When choosing direct-in-MCP, the resource MUST: ship a parser unit test, surface a `detected=...` field so the agent pattern-matches before reading data, and document the exception here.

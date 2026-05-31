@@ -358,6 +358,9 @@ func readAndAssert(ctx context.Context, cs *mcp.ClientSession, uri string) int {
 	case uri == "system://utilization",
 		uri == "system://disk",
 		uri == "system://network",
+		uri == "system://services",
+		uri == "system://kernel",
+		uri == "system://processes",
 		uri == "apps://list",
 		strings.HasPrefix(uri, "apps://state/"),
 		strings.HasPrefix(uri, "docker://logs/"):
@@ -371,8 +374,55 @@ func readAndAssert(ctx context.Context, cs *mcp.ClientSession, uri string) int {
 		return assertProxiedPayload(uri, payload)
 	case uri == "system://gpu":
 		return assertSystemGPU(payload)
+	case uri == "system://updates":
+		return assertSystemUpdates(payload)
 	case strings.HasPrefix(uri, "docs://api/"):
 		return assertOpenAPISpecPayload(uri, payload)
+	}
+	return 0
+}
+
+// assertSystemUpdates validates the system://updates payload. The
+// resource has two valid shapes — detected="apt" with parsed entries
+// on Debian/Ubuntu, or detected="none" with a note on every other
+// host. Either is PASS; the smoke just confirms the wire contract is
+// honoured so a future regression breaking the shape gets caught.
+func assertSystemUpdates(payload string) int {
+	var pl struct {
+		Detected      string `json:"detected"`
+		Count         int    `json:"count"`
+		SecurityCount int    `json:"security_count"`
+		Packages      []struct {
+			Package   string `json:"package"`
+			Candidate string `json:"candidate"`
+			Security  bool   `json:"security"`
+		} `json:"packages"`
+		Note string `json:"note,omitempty"`
+	}
+	if err := json.Unmarshal([]byte(payload), &pl); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  system://updates — payload not JSON: %v\n", err)
+		return 1
+	}
+	switch pl.Detected {
+	case "apt":
+		// On an apt host: count must agree with packages slice length
+		// (the parser sets one from the other).
+		if pl.Count != len(pl.Packages) {
+			fmt.Fprintf(os.Stderr, "FAIL  system://updates — count=%d vs packages=%d mismatch\n", pl.Count, len(pl.Packages))
+			return 1
+		}
+		fmt.Printf("      → detected=apt, %d pending (%d security-flagged)\n", pl.Count, pl.SecurityCount)
+	case "none":
+		// On a non-apt host: must surface a note so the agent
+		// pattern-matches WHY before reading packages.
+		if pl.Note == "" {
+			fmt.Fprintf(os.Stderr, "FAIL  system://updates — detected=none with no note (agent can't tell apt-missing from query-failed)\n")
+			return 1
+		}
+		fmt.Printf("      → detected=none (note: %s)\n", pl.Note)
+	default:
+		fmt.Fprintf(os.Stderr, "FAIL  system://updates — detected=%q (expected apt|none)\n", pl.Detected)
+		return 1
 	}
 	return 0
 }

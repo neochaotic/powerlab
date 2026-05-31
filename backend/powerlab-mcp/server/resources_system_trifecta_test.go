@@ -52,6 +52,7 @@ func TestSystemSchema_IsAdvertisedAndDescribesEveryResource(t *testing.T) {
 	for _, want := range []string{
 		systemSchemaURI, systemMetricsURI, systemUtilizationURI,
 		systemDiskURI, systemNetworkURI, systemGPUURI,
+		systemServicesURI, systemKernelURI, systemUpdatesURI, systemProcessesURI,
 	} {
 		if _, ok := doc.Resources[want]; !ok {
 			t.Fatalf("schema does not document %q (agent would not discover it)", want)
@@ -70,6 +71,9 @@ func TestProxiedResources_RoundTripCoreBody(t *testing.T) {
 	}{
 		{systemDiskURI, "/v1/sys/disk", `{"physical":[{"model":"NVMe","size":"512GB","temperature":42}]}`},
 		{systemNetworkURI, "/v1/sys/network/interfaces", `[{"name":"eth0","state":"up","bytesRecv":12345}]`},
+		{systemServicesURI, "/v1/sys/services", `[{"name":"powerlab-gateway","active_state":"active","sub_state":"running"}]`},
+		{systemKernelURI, "/v1/sys/host", `{"hostname":"box","kernelVersion":"6.8.0-117","platform":"ubuntu","platformVersion":"24.04"}`},
+		{systemProcessesURI, "/v1/sys/processes", `{"total":42,"top_by_cpu":[{"pid":1,"name":"systemd","cpu_percent":0.1}],"top_by_mem":[],"truncated":true}`},
 	}
 
 	for _, tc := range cases {
@@ -121,7 +125,7 @@ func TestProxiedResources_CoreDownReturnsStructuredError(t *testing.T) {
 	cs := connectInProcess(t, srv)
 	defer cs.Close()
 
-	for _, uri := range []string{systemDiskURI, systemNetworkURI} {
+	for _, uri := range []string{systemDiskURI, systemNetworkURI, systemServicesURI, systemKernelURI, systemProcessesURI} {
 		t.Run(uri, func(t *testing.T) {
 			res, err := cs.ReadResource(t.Context(), &mcp.ReadResourceParams{URI: uri})
 			if err != nil {

@@ -29,12 +29,23 @@ const (
 	systemUtilizationURI = "system://utilization"
 	systemDiskURI        = "system://disk"
 	systemNetworkURI     = "system://network"
+	systemServicesURI    = "system://services"
 
 	// systemGPUURI imports common/external::GetGPUUtilization directly
 	// — no network hop (core has no /v1/sys/gpu today; the panel's
 	// dashboard widget calls the same external function). Same reuse
 	// pattern as audittail importing audit.Record from common.
 	systemGPUURI = "system://gpu"
+
+	// Sysadmin-tier resources (low-sensitivity). Independent reads —
+	// no core dependency, security-careful:
+	//   - systemKernelURI:    /proc/version + /etc/os-release + uname
+	//   - systemUpdatesURI:   apt-list (Debian-only; degrades gracefully)
+	//   - systemProcessesURI: gopsutil/process aggregate + top-N
+	//                         (NO raw cmdline — argv can leak secrets)
+	systemKernelURI    = "system://kernel"
+	systemUpdatesURI   = "system://updates"
+	systemProcessesURI = "system://processes"
 )
 
 // systemSchemaDoc is the literal JSON document an agent reads ONCE to
@@ -42,14 +53,18 @@ const (
 // wire shape MUST update this in lockstep — the smoke client pins the
 // metrics field set; this doc is the public contract for the rest.
 const systemSchemaDoc = `{
-  "description": "PowerLab host observability — CPU, memory, disk, network, GPU. Mix of independent reads (always work) and thin proxies to core (return a core_unavailable payload when core is down).",
+  "description": "PowerLab host observability — CPU, memory, disk, network, GPU, plus sysadmin tier (services, kernel, OS updates, processes). Mix of independent reads (always work), thin proxies to core (return a core_unavailable payload when core is down), and direct /proc reads.",
   "resources": {
     "system://schema": "this document",
     "system://metrics": "INDEPENDENT — /proc-direct snapshot of memory + load average + uptime. Always works when MCP is up.",
     "system://utilization": "PROXIED — core's /v1/sys/utilization: CPU percent / temperature / power / model, memory, network.",
     "system://disk": "PROXIED — core's /v1/sys/disk: physical disks + per-mount usage + SMART metadata (model, serial, temperature). Same surface the panel reads.",
     "system://network": "PROXIED — core's /v1/sys/network/interfaces: per-interface state + addresses.",
-    "system://gpu": "INDEPENDENT IMPORT — common/external::GetGPUUtilization. Apple Silicon (ioreg) + Nvidia (nvidia-smi). Returns {percent, memoryUsed, model, temperature}; an empty model means 'no GPU detected'. No network hop."
+    "system://gpu": "INDEPENDENT IMPORT — common/external::GetGPUUtilization. Apple Silicon (ioreg) + Nvidia (nvidia-smi). Returns {percent, memoryUsed, model, temperature}; an empty model means 'no GPU detected'. No network hop.",
+    "system://services": "PROXIED — core's /v1/sys/services: ActiveState + SubState per powerlab-* systemd unit (whitelisted in core; agent cannot query arbitrary units).",
+    "system://kernel": "INDEPENDENT — kernel version + arch + distro + boot time. Reads /proc/version, /etc/os-release, and uname directly. Always works.",
+    "system://updates": "INDEPENDENT — pending OS package updates (Debian: 'apt list --upgradable'). Returns {detected, count, packages[]} with security-flagged entries called out. Empty + warning on non-Debian distros.",
+    "system://processes": "INDEPENDENT — gopsutil aggregate {total, top_by_cpu[], top_by_mem[]} with process NAME only (no cmdline — argv can leak secrets, by design)."
   },
   "fields_metrics": {
     "mem_total_kb": "total physical memory, KiB",
@@ -164,6 +179,27 @@ func registerSystemNetwork(s *mcp.Server, proxy *coreproxy.Client) {
 		"System network (per-interface)",
 		"Per-interface state + addresses — proxied from core's /v1/sys/network/interfaces. Agent can answer 'is this NIC up?' or 'what's eth0's IP?' against the same data the panel shows.",
 		"/v1/sys/network/interfaces")
+}
+
+func registerSystemServices(s *mcp.Server, proxy *coreproxy.Client) {
+	registerProxiedSystem(s, proxy, systemServicesURI,
+		"System services (PowerLab systemd units)",
+		"ActiveState + SubState for every powerlab-* systemd unit — proxied from core's /v1/sys/services. The upstream whitelists the unit set (see backend/core/service/power_actions.go PowerLabServices); agent cannot query arbitrary host units.",
+		"/v1/sys/services")
+}
+
+func registerSystemKernel(s *mcp.Server, proxy *coreproxy.Client) {
+	registerProxiedSystem(s, proxy, systemKernelURI,
+		"System kernel + OS identity",
+		"Kernel release + architecture, hostname, distribution + version, boot time, uptime, virtualization detection — proxied from core's /v1/sys/host. ADR-0044 thin-proxy: core already collects this via gopsutil's host.Info() (backend/core/service/system.go::GetSysInfo); we now expose it via HTTP so MCP doesn't need its own gopsutil dep.",
+		"/v1/sys/host")
+}
+
+func registerSystemProcesses(s *mcp.Server, proxy *coreproxy.Client) {
+	registerProxiedSystem(s, proxy, systemProcessesURI,
+		"System processes (aggregate + top consumers)",
+		"Process count + the top 10 by CPU% and top 10 by mem% — proxied from core's /v1/sys/processes. Each entry exposes pid + name + cpu_percent + mem_percent + rss_kb + user. Cmdline (argv) is intentionally omitted at the source — argv routinely carries secrets (passwords passed as flags, signed URLs, JWT tokens via env expansion).",
+		"/v1/sys/processes")
 }
 
 // registerSystemGPU exposes system://gpu using common/external's
