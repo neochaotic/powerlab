@@ -63,6 +63,14 @@ var defaultRunner commandRunner = func(name string, args ...string) ([]byte, err
 // pass any other string and the function returns an error rather
 // than shelling out. Production callers reach this via
 // QueryAllServiceStates; tests inject their own commandRunner stub.
+//
+// The parser keys on the property NAME (KEY=VALUE form), not on
+// the position of values in the output. An earlier implementation
+// used `--value` and assumed the values came back in CLI-argument
+// order; they do NOT — systemd emits properties in its own internal
+// table order. On systemd 252 the observed order for
+// (ActiveState, SubState, MainPID) is `MainPID, ActiveState, SubState`,
+// which silently rotated the JSON fields seen by API consumers.
 func queryServiceStateWith(run commandRunner, name string) (ServiceState, error) {
 	if !IsAllowedPowerLabService(name) {
 		return ServiceState{}, fmt.Errorf("service %q not in PowerLab whitelist", name)
@@ -71,24 +79,25 @@ func queryServiceStateWith(run commandRunner, name string) (ServiceState, error)
 		"--property=ActiveState",
 		"--property=SubState",
 		"--property=MainPID",
-		"--value", "--no-pager")
+		"--no-pager")
 	if err != nil {
 		return ServiceState{}, fmt.Errorf("systemctl show %s: %w (output: %s)", name, err, string(out))
 	}
-	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-	// `--value` returns the values in the SAME order as the
-	// --property flags. ActiveState, SubState, MainPID.
 	state := ServiceState{Name: name}
-	if len(lines) >= 1 {
-		state.ActiveState = strings.TrimSpace(lines[0])
-	}
-	if len(lines) >= 2 {
-		state.SubState = strings.TrimSpace(lines[1])
-	}
-	if len(lines) >= 3 {
-		pid := strings.TrimSpace(lines[2])
-		if pid != "0" {
-			state.Pid = pid
+	for _, line := range strings.Split(string(out), "\n") {
+		key, value, ok := strings.Cut(strings.TrimSpace(line), "=")
+		if !ok {
+			continue
+		}
+		switch key {
+		case "ActiveState":
+			state.ActiveState = value
+		case "SubState":
+			state.SubState = value
+		case "MainPID":
+			if value != "0" {
+				state.Pid = value
+			}
 		}
 	}
 	return state, nil

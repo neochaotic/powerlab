@@ -98,10 +98,18 @@ func TestRestartPowerLabService_SurfacesSystemctlError(t *testing.T) {
 }
 
 func TestQueryServiceState_ParsesSystemctlShowOutput(t *testing.T) {
+	// REGRESSION (live MCP audit on Lima, 2026-05-31): the original
+	// implementation called `systemctl show … --value` and assumed the
+	// values came back in CLI-argument order. They DON'T — systemd
+	// emits properties in its own internal table order, which for
+	// (ActiveState, SubState, MainPID) is `MainPID, ActiveState,
+	// SubState`. Result: active_state held the PID, sub_state held
+	// "active", and pid held "running".
+	//
+	// Fix: drop --value, parse KEY=VALUE pairs so order is irrelevant.
+	// This stub mimics the real systemctl output verbatim.
 	stub := func(name string, args ...string) ([]byte, error) {
-		// systemctl show --value with multiple --property returns the
-		// values in the same order as the properties, newline-separated.
-		return []byte("active\nrunning\n12345\n"), nil
+		return []byte("ActiveState=active\nSubState=running\nMainPID=12345\n"), nil
 	}
 	state, err := queryServiceStateWith(stub, "powerlab-gateway")
 	if err != nil {
@@ -121,18 +129,66 @@ func TestQueryServiceState_ParsesSystemctlShowOutput(t *testing.T) {
 	}
 }
 
-func TestQueryServiceState_StoppedServiceHidesPid(t *testing.T) {
-	// systemctl returns MainPID=0 for stopped services; ServiceState.Pid
-	// should be empty so the UI doesn't render "PID: 0".
+// TestQueryServiceState_ToleratesAnyPropertyOrder pins the regression:
+// systemd is free to reorder properties relative to the CLI argument
+// order, so the parser MUST key on the property name. If this test
+// fails, the old positional-parse bug is back and active_state/sub_state/pid
+// will swap at runtime.
+func TestQueryServiceState_ToleratesAnyPropertyOrder(t *testing.T) {
+	// The exact order observed live on Lima with systemd 252.
 	stub := func(name string, args ...string) ([]byte, error) {
-		return []byte("inactive\ndead\n0\n"), nil
+		return []byte("MainPID=14998\nActiveState=active\nSubState=running\n"), nil
 	}
 	state, err := queryServiceStateWith(stub, "powerlab-gateway")
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
+	if state.ActiveState != "active" {
+		t.Errorf("ActiveState: got %q, want active — positional-parse bug is back", state.ActiveState)
+	}
+	if state.SubState != "running" {
+		t.Errorf("SubState: got %q, want running — positional-parse bug is back", state.SubState)
+	}
+	if state.Pid != "14998" {
+		t.Errorf("Pid: got %q, want 14998 — positional-parse bug is back", state.Pid)
+	}
+}
+
+func TestQueryServiceState_StoppedServiceHidesPid(t *testing.T) {
+	// systemctl returns MainPID=0 for stopped services; ServiceState.Pid
+	// should be empty so the UI doesn't render "PID: 0".
+	stub := func(name string, args ...string) ([]byte, error) {
+		return []byte("ActiveState=inactive\nSubState=dead\nMainPID=0\n"), nil
+	}
+	state, err := queryServiceStateWith(stub, "powerlab-gateway")
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if state.ActiveState != "inactive" {
+		t.Errorf("ActiveState: got %q, want inactive", state.ActiveState)
+	}
+	if state.SubState != "dead" {
+		t.Errorf("SubState: got %q, want dead", state.SubState)
+	}
 	if state.Pid != "" {
 		t.Errorf("Pid: got %q, want empty for stopped service", state.Pid)
+	}
+}
+
+// TestQueryServiceState_IgnoresUnknownProperties guards against future
+// systemd versions emitting extra properties (or trailing blank lines)
+// breaking the parse. Anything not in {ActiveState, SubState, MainPID}
+// is ignored.
+func TestQueryServiceState_IgnoresUnknownProperties(t *testing.T) {
+	stub := func(name string, args ...string) ([]byte, error) {
+		return []byte("LoadState=loaded\nActiveState=active\nSubState=running\nMainPID=42\n\n"), nil
+	}
+	state, err := queryServiceStateWith(stub, "powerlab-gateway")
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if state.ActiveState != "active" || state.SubState != "running" || state.Pid != "42" {
+		t.Errorf("unexpected state with extra property: %+v", state)
 	}
 }
 
@@ -155,7 +211,7 @@ func TestQueryAllServiceStates_ReturnsOnePerService(t *testing.T) {
 	// Stub returns success for everything; result should have one
 	// entry per PowerLabServices.
 	stub := func(name string, args ...string) ([]byte, error) {
-		return []byte("active\nrunning\n100\n"), nil
+		return []byte("ActiveState=active\nSubState=running\nMainPID=100\n"), nil
 	}
 	states, errs := queryAllServiceStatesWith(stub)
 	if len(states) != len(PowerLabServices) {
@@ -173,7 +229,7 @@ func TestQueryAllServiceStates_PartialFailureContinues(t *testing.T) {
 		if len(args) >= 2 && args[1] == "powerlab-core" {
 			return []byte("Failed to get unit\n"), fmt.Errorf("exit status 1")
 		}
-		return []byte("active\nrunning\n100\n"), nil
+		return []byte("ActiveState=active\nSubState=running\nMainPID=100\n"), nil
 	}
 	states, errs := queryAllServiceStatesWith(stub)
 	if len(states) != len(PowerLabServices) {
