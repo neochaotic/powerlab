@@ -4,12 +4,12 @@ PowerLab ships a built-in **MCP (Model Context Protocol) server** that exposes t
 
 The PowerLab UI is the pane of glass **for you**. The MCP server is the pane of glass **for your agent**. Same data, two surfaces.
 
-!!! info "Current scope (12 advertised resources)"
-    Read-only across the **whole PowerLab observability + apps surface**. Sysadmin telemetry (CPU, RAM, disk, network, GPU, temperature, SMART) thin-proxies through core; installed-apps + container logs thin-proxy through app-management; audit trail + PowerLab service journals are read directly so they survive any other service being down. Destructive tools, the pairing UX, and the UI header button are tracked roadmap. The MCP service is **isolated where it matters** (audit + journal of PowerLab units) and **proxies where it makes sense** (everything else) — see the architecture section below.
+!!! info "Current scope (16 advertised resources)"
+    Read-only across the **whole PowerLab observability + apps surface**. Sysadmin telemetry (CPU, RAM, disk, network, GPU, temperature, SMART, kernel/OS identity, systemd services, processes, OS updates) thin-proxies through core; installed-apps + container logs thin-proxy through app-management; audit trail + PowerLab service journals are read directly so they survive any other service being down. Destructive tools are gated behind an opt-in mcp.conf flag and a compose deny-list validator. The MCP service is **isolated where it matters** (audit + journal of PowerLab units) and **proxies where it makes sense** (everything else) — see the architecture section below.
 
 ## What ships today
 
-12 resources advertised on `resources/list`, grouped by namespace.
+16 resources advertised on `resources/list`, grouped by namespace.
 
 !!! tip "🔜 Coming soon — apps:// and docker:// (in stabilisation)"
     The `apps://*` and `docker://*` families just landed per [ADR-0045](../decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md). The wire shape, error contract, and the proxy round-trip are unit-tested and verified locally, but the live battery on real hardware (real installed apps, real running containers) is still being rolled out. Expect rough edges during the first weeks of v0.7.5 — please report any odd behaviour. The system://* + audit:// + journal:// surfaces are stable and dogfooded.
@@ -22,8 +22,12 @@ Resources by namespace:
 | | `system://metrics` | `/proc` direct (mem + load + uptime + cores) |
 | | `system://utilization` | proxy → core `/v1/sys/utilization` (CPU% + temp + power + model + mem + net) |
 | | `system://disk` | proxy → core `/v1/sys/disk` (physical + per-mount + SMART) |
-| | `system://network` | proxy → core `/v1/sys/net` (per-interface throughput + state) |
+| | `system://network` | proxy → core `/v1/sys/network/interfaces` (per-interface state + addresses) |
 | | `system://gpu` | direct import — Apple Silicon (ioreg) + Nvidia (nvidia-smi); empty model = no GPU |
+| | `system://services` | proxy → core `/v1/sys/services` (ActiveState + SubState per powerlab-* unit; core whitelists the unit set) |
+| | `system://kernel` | proxy → core `/v1/sys/host` (kernel release + arch + distro + boot time + virtualization) |
+| | `system://processes` | proxy → core `/v1/sys/processes` (count + top 10 by CPU and mem; **name only — no cmdline**, argv leaks secrets) |
+| | `system://updates` | direct in MCP — `apt list --upgradable` (Debian/Ubuntu); `detected="none"` on other distros (ADR-0044 documented exception) |
 | **journal://** | `journal://schema` | self-describing index |
 | | `journal://units` | discovery — lists installed `powerlab-*.service` stems |
 | | `journal://{unit}{?lines,since,priority}` | `journalctl -u powerlab-<unit>.service` — **scope-locked to PowerLab units** |
@@ -274,7 +278,7 @@ Sample output on a healthy box:
 ```
 PASS  /healthz + /version
 PASS  mcp connect + initialize
-PASS  resources/list (12 advertised)
+PASS  resources/list (16 advertised)
 PASS  audit://schema (1668 bytes)
       → description set + 12 field(s) documented
 PASS  apps://list (412 bytes)
