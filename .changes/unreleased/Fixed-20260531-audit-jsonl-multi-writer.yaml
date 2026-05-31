@@ -1,0 +1,24 @@
+kind: Fixed
+body: |
+  audit JSONL store is now genuinely multi-writer safe (#632). ADR-0033
+  mandates per-service audit middleware; ADR-0047 made powerlab-mcp the
+  second writer to /var/log/powerlab/audit.jsonl alongside the gateway.
+  ADR-0035 implicitly promised the JSONL store could absorb that load,
+  but the lumberjack-backed Store opened the file with O_WRONLY|O_CREATE
+  (no O_APPEND), so two Store instances held independent file offsets
+  and silently overwrote each other — a TDD test in PR #633 caught this
+  before it shipped (4 writers × 250 records produced ~750 of 1000
+  expected lines). Replaced lumberjack with a direct
+  os.OpenFile(path, O_APPEND|O_WRONLY|O_CREATE, 0o600); the kernel
+  guarantees atomic appends below PIPE_BUF (4096 B on Linux/BSD) across
+  separate FDs and audit records marshal to a few hundred bytes apiece.
+  Un-skipped the integration test (TestAuditJSONL_MultiWriterAtomicity)
+  and added a unit-level multi-writer regression test
+  (TestStore_MultiWriter_AtomicAppend) that runs under -race.
+  Lumberjack's in-process size/age rotation went with it — bounded
+  files are now an external concern (logrotate / systemd-tmpfiles);
+  #634 tracks reintroducing in-process rotation in a multi-writer-safe
+  way if anyone reports it as missing. ADR-0035 amended with the
+  actual contract (full "Amendment — multi-writer safety" section).
+custom:
+  Issue: "632"

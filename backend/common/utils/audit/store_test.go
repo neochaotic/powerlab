@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -224,5 +225,104 @@ func TestStore_Close_Idempotent(t *testing.T) {
 func TestStore_NewStore_RequiresPath(t *testing.T) {
 	if _, err := audit.NewStore(audit.StoreOptions{}); err == nil {
 		t.Errorf("NewStore should reject empty path")
+	}
+}
+
+// REGRESSION — issue #632. ADR-0033 mandates per-service audit
+// middleware; ADR-0035 promises the JSONL store is multi-writer
+// safe. With ADR-0047 powerlab-mcp became the second writer to
+// /var/log/powerlab/audit.jsonl alongside the gateway.
+//
+// Two separate Store instances writing to the same file MUST NOT
+// trample each other. The kernel guarantees atomic appends below
+// PIPE_BUF (4096 B on Linux) for separate file descriptors opened
+// with O_APPEND — our JSONL records are well under that ceiling
+// (a Record marshals to a few hundred bytes), so AppendBatch with
+// one Record per call must land every line.
+//
+// Pre-fix (lumberjack, O_WRONLY|O_CREATE, no O_APPEND): the two
+// FDs each hold an independent offset and overwrite each other.
+// This test produced ~half the expected lines.
+//
+// Post-fix (direct os.OpenFile + O_APPEND): every Write hits the
+// kernel's atomic append path; both writers' lines interleave but
+// none are lost.
+func TestStore_MultiWriter_AtomicAppend(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "audit.jsonl")
+
+	const writers = 4
+	const recordsPerWriter = 250
+	const totalWant = writers * recordsPerWriter
+
+	stores := make([]*audit.Store, writers)
+	for i := 0; i < writers; i++ {
+		s, err := audit.NewStore(audit.StoreOptions{Path: path})
+		if err != nil {
+			t.Fatalf("NewStore #%d: %v", i, err)
+		}
+		stores[i] = s
+		defer func(s *audit.Store) { _ = s.Close() }(s)
+	}
+
+	now := time.Now()
+	var wg sync.WaitGroup
+	for i := 0; i < writers; i++ {
+		wg.Add(1)
+		go func(idx int, s *audit.Store) {
+			defer wg.Done()
+			for n := 0; n < recordsPerWriter; n++ {
+				rec := sampleRecord(now.Add(time.Duration(n)*time.Microsecond), int64(idx+1), "/concurrent")
+				if err := s.AppendBatch(context.Background(), []audit.Record{rec}); err != nil {
+					t.Errorf("writer %d append %d: %v", idx, n, err)
+					return
+				}
+			}
+		}(i, stores[i])
+	}
+	wg.Wait()
+
+	// Close all stores so any buffered state flushes (we don't
+	// buffer above the kernel boundary, but Close is the contract).
+	for _, s := range stores {
+		if err := s.Close(); err != nil {
+			t.Errorf("Close: %v", err)
+		}
+	}
+
+	body, err := os.ReadFile(path) // #nosec G304 -- path is t.TempDir()-derived test fixture
+	if err != nil {
+		t.Fatalf("read audit.jsonl: %v", err)
+	}
+	lines := strings.Split(strings.TrimRight(string(body), "\n"), "\n")
+	if len(lines) != totalWant {
+		t.Fatalf("got %d JSONL lines; want %d — concurrent writes were lost or torn", len(lines), totalWant)
+	}
+	// Every line must be a parseable Record. A torn write surfaces
+	// here even if line count happens to match (e.g. an interleaved
+	// short write that still ended in '\n').
+	seen := make(map[string]int, totalWant)
+	for i, line := range lines {
+		var rec audit.Record
+		if err := json.Unmarshal([]byte(line), &rec); err != nil {
+			t.Fatalf("line %d not parseable JSON: %v\nline=%q", i, err, line)
+		}
+		if rec.UserID == nil {
+			t.Fatalf("line %d missing user_id: %q", i, line)
+		}
+		seen[strings.TrimSpace(line)]++
+	}
+	// Each writer used a distinct UserID — count per-writer.
+	perWriter := make(map[int64]int)
+	for i, line := range lines {
+		var rec audit.Record
+		if err := json.Unmarshal([]byte(line), &rec); err != nil {
+			t.Fatalf("re-parse line %d: %v", i, err)
+		}
+		perWriter[*rec.UserID]++
+	}
+	for uid := int64(1); uid <= int64(writers); uid++ {
+		if got := perWriter[uid]; got != recordsPerWriter {
+			t.Errorf("writer uid=%d wrote %d lines; want %d", uid, got, recordsPerWriter)
+		}
 	}
 }

@@ -14,17 +14,20 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 // StoreOptions configures the JSONL writer + ring buffer per ADR-0035.
 //
-//   - Path: file to write JSONL lines into. Rotated by lumberjack
-//     into Path.1.gz, Path.2.gz, ... when MaxSizeMB is exceeded.
-//   - MaxSizeMB: rotation threshold per file (default 10 MB).
-//   - MaxBackups: number of rotated files to keep (default 60).
-//   - MaxAgeDays: maximum age of rotated files (default 30).
+//   - Path: file to write JSONL lines into. Opened with O_APPEND so
+//     multiple writers (e.g. gateway + powerlab-mcp per ADR-0033's
+//     per-service middleware mandate) can share the same file without
+//     trampling each other — see ADR-0035 amendment, issue #632.
+//   - MaxSizeMB: retained for compatibility with the previous
+//     lumberjack-rotated layout but currently unused; external
+//     rotation (logrotate / systemd) is the new contract. See issue
+//     #634 follow-up for in-process rotation if it ever matters.
+//   - MaxBackups: same compatibility-only status as MaxSizeMB.
+//   - MaxAgeDays: same compatibility-only status as MaxSizeMB.
 //   - RingCapacity: in-memory record count for the hot UI path
 //     (default 1000). The ring serves /v1/audit/recent without disk
 //     IO for the most recent entries.
@@ -36,30 +39,61 @@ type StoreOptions struct {
 	RingCapacity int
 }
 
-// Store owns the JSONL writer (lumberjack) and the in-memory ring
-// buffer that backs the UI's audit pane. Per ADR-0035, the JSONL
-// file is the canonical persistent record (greppable from SSH); the
-// ring is a hot-path cache to keep /v1/audit/recent sub-millisecond.
+// Store owns the JSONL writer and the in-memory ring buffer that
+// backs the UI's audit pane. Per ADR-0035 (amended in #632), the
+// JSONL file is the canonical persistent record (greppable from
+// SSH) and the ring is a hot-path cache to keep /v1/audit/recent
+// sub-millisecond.
 //
 // Concurrency model:
-//   - Append: writer goroutine holds the mu write-lock just long
-//     enough to update the ring; the lumberjack write is done outside
-//     the lock because lumberjack has its own internal synchronisation.
-//   - Reads (Recent/Stats): take the mu read-lock; multiple readers
-//     are concurrent. File-tail reads for older history open their
-//     own os.File handles and do not block the writer.
+//   - Append: each AppendBatch call serialises the records into a
+//     single buffer and issues ONE Write to a file descriptor opened
+//     with O_APPEND. The kernel atomically positions every O_APPEND
+//     Write at end-of-file for separate FDs; below PIPE_BUF (4096 B
+//     on Linux) the write itself is atomic with respect to other
+//     writers. Each Record marshals to a few hundred bytes, so a
+//     per-call batch of <=8 records stays well under the ceiling.
+//     For larger batches the marshalled buffer can exceed PIPE_BUF
+//     and we lose the per-Write atomicity guarantee — see the
+//     splitOversizedBatch helper which falls back to per-record
+//     writes in that case.
+//   - Reads (Recent/Stats): take the ring's mu read-lock; multiple
+//     readers are concurrent. File-tail reads for older history
+//     open their own os.File handles and do not block the writer.
+//
+// Multi-writer safety (issue #632): two Store instances opened on
+// the same Path are safe because both rely on the kernel's
+// O_APPEND atomicity, not on any in-process mutex. This replaces
+// the lumberjack-backed implementation that held an internal
+// (per-instance) lock + a non-O_APPEND FD — fine within one
+// process, broken across two.
 type Store struct {
 	opts StoreOptions
 
 	mu   sync.RWMutex
 	ring []Record // newest-last; len ≤ opts.RingCapacity
-	w    *lumberjack.Logger
+
+	// fileMu serialises writes within this Store instance. Two
+	// instances on the same path still co-exist via O_APPEND, but
+	// within a single instance the recorder + tests can call
+	// AppendBatch concurrently; one Write per call keeps things
+	// linear for the kernel and for the ring update that follows.
+	fileMu sync.Mutex
+	f      *os.File
 }
 
-// NewStore opens (creates) the JSONL file and returns a Store ready
-// for Append. The ring starts empty — historical records are not
-// hydrated on boot (a deliberate trade-off: keeps boot fast; the
-// file remains the source of truth for grep / observability).
+// maxAtomicWrite is the largest single Write we trust the kernel to
+// land atomically against other O_APPEND writers. Linux's PIPE_BUF
+// is 4096 B; macOS BSD-derived stacks honour the same lower bound.
+// We cap a touch under PIPE_BUF to leave headroom for newline +
+// future field additions.
+const maxAtomicWrite = 4000
+
+// NewStore opens (creates) the JSONL file with O_APPEND and returns
+// a Store ready for Append. The ring starts empty — historical
+// records are not hydrated on boot (a deliberate trade-off: keeps
+// boot fast; the file remains the source of truth for grep /
+// observability).
 func NewStore(opts StoreOptions) (*Store, error) {
 	if opts.Path == "" {
 		return nil, errors.New("audit: store path is required")
@@ -77,48 +111,85 @@ func NewStore(opts StoreOptions) (*Store, error) {
 		opts.RingCapacity = 1000
 	}
 
-	// Make sure parent dir exists. lumberjack creates the file
-	// lazily on first write but expects the directory to be there.
-	if err := os.MkdirAll(filepath.Dir(opts.Path), 0o755); err != nil {
+	// Parent directory must exist before OpenFile. 0o750 — audit
+	// records carry PII (user ids, IPs); the directory is no more
+	// permissive than the file itself (0o600 on OpenFile below).
+	if err := os.MkdirAll(filepath.Dir(opts.Path), 0o750); err != nil {
 		return nil, fmt.Errorf("audit: mkdir %s: %w", filepath.Dir(opts.Path), err)
 	}
 
-	w := &lumberjack.Logger{
-		Filename:   opts.Path,
-		MaxSize:    opts.MaxSizeMB,
-		MaxBackups: opts.MaxBackups,
-		MaxAge:     opts.MaxAgeDays,
-		Compress:   true,
+	// O_APPEND is the load-bearing flag here. ADR-0033 mandates
+	// per-service audit middleware which means every service holds
+	// its own FD on the same file; without O_APPEND each FD has an
+	// independent offset and they trample each other (#632).
+	// 0o600: audit records carry PII (user ids, IPs) — never
+	// world-readable.
+	f, err := os.OpenFile(opts.Path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o600) // #nosec G304 -- caller-validated audit path (typically /var/log/powerlab/audit.jsonl)
+	if err != nil {
+		return nil, fmt.Errorf("audit: open %s: %w", opts.Path, err)
 	}
 
 	return &Store{
 		opts: opts,
 		ring: make([]Record, 0, opts.RingCapacity),
-		w:    w,
+		f:    f,
 	}, nil
 }
 
 // AppendBatch writes the records as JSONL lines to the file and
 // appends them to the ring (newest at the end; oldest dropped when
-// over capacity). One file write per call — lumberjack itself wraps
-// a single os.File so multiple records in one Write reduce syscalls.
+// over capacity).
+//
+// Below maxAtomicWrite the whole batch ships in one Write so the
+// kernel's O_APPEND atomicity covers it. Larger batches fall back
+// to one Write per record — slightly more syscalls but still safe
+// against concurrent writers from other processes.
 func (s *Store) AppendBatch(_ context.Context, batch []Record) error {
 	if len(batch) == 0 {
 		return nil
 	}
 	// Encode all lines first so a JSON-marshal error doesn't leave
 	// a half-written line on disk.
-	var buf strings.Builder
-	for _, rec := range batch {
+	encoded := make([][]byte, len(batch))
+	total := 0
+	for i, rec := range batch {
 		b, err := json.Marshal(rec)
 		if err != nil {
 			return fmt.Errorf("audit: marshal: %w", err)
 		}
-		buf.Write(b)
-		buf.WriteByte('\n')
+		// Append the newline now so the per-record fallback can
+		// hand a single ready buffer to Write without extra copies.
+		line := append(b, '\n')
+		encoded[i] = line
+		total += len(line)
 	}
-	if _, err := s.w.Write([]byte(buf.String())); err != nil {
-		return fmt.Errorf("audit: write jsonl: %w", err)
+
+	s.fileMu.Lock()
+	defer s.fileMu.Unlock()
+	if s.f == nil {
+		return errors.New("audit: store closed")
+	}
+
+	if total <= maxAtomicWrite {
+		// Fast path: one Write, kernel-atomic for separate FDs.
+		buf := make([]byte, 0, total)
+		for _, line := range encoded {
+			buf = append(buf, line...)
+		}
+		if _, err := s.f.Write(buf); err != nil {
+			return fmt.Errorf("audit: write jsonl: %w", err)
+		}
+	} else {
+		// Oversized batch: per-record Writes. Each individual line
+		// is well under PIPE_BUF so each Write is still atomic vs
+		// other writers, but lines from this batch may interleave
+		// with another writer's lines on disk (which is fine — the
+		// JSONL contract is line-oriented).
+		for _, line := range encoded {
+			if _, err := s.f.Write(line); err != nil {
+				return fmt.Errorf("audit: write jsonl: %w", err)
+			}
+		}
 	}
 
 	// Update ring under write-lock.
@@ -139,11 +210,13 @@ func (s *Store) AppendBatch(_ context.Context, batch []Record) error {
 // Close flushes pending writes and closes the underlying file. Safe
 // to call multiple times — subsequent calls are no-ops.
 func (s *Store) Close() error {
-	if s.w == nil {
+	s.fileMu.Lock()
+	defer s.fileMu.Unlock()
+	if s.f == nil {
 		return nil
 	}
-	err := s.w.Close()
-	s.w = nil
+	err := s.f.Close()
+	s.f = nil
 	return err
 }
 
@@ -297,7 +370,7 @@ func (s *Store) recentFromFile(opts RecentOptions) ([]Record, error) {
 // readJSONLFile decodes a JSONL file (optionally gzipped) into a
 // slice of Records. Bad lines are skipped (incremental recovery).
 func readJSONLFile(path string, gzipped bool) ([]Record, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(path) // #nosec G304 -- caller-validated audit path
 	if err != nil {
 		return nil, err
 	}

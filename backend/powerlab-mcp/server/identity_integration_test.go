@@ -94,14 +94,13 @@ func TestProxiedSystem_ForwardsBearerTokenToUpstream(t *testing.T) {
 // final file with exactly 400 well-formed JSONL lines (no torn,
 // no interleaved bytes).
 //
-// KNOWN GAP — issue #632. The Store currently uses lumberjack which
-// does NOT open the file with O_APPEND; two separate Store
-// instances trample each other's writes. ADR-0035's "multi-writer
-// safe" claim is only true within a single Store. Test is skipped
-// pending the fix; un-skip in the PR that closes #632.
+// FIXED via issue #632. The Store now opens the file with O_APPEND
+// directly (no lumberjack); the kernel atomically positions every
+// O_APPEND Write at end-of-file for separate FDs, and below
+// PIPE_BUF the Write itself is atomic against concurrent writers.
+// This test locks the contract end-to-end — two audit.Service
+// instances racing on the same file land all 400 records.
 func TestAuditJSONL_MultiWriterAtomicity(t *testing.T) {
-	t.Skip("known gap — issue #632: audit Store uses lumberjack without O_APPEND; multi-writer between gateway + powerlab-mcp loses records. Test stays runnable for when the fix lands.")
-
 	dir := t.TempDir()
 	path := filepath.Join(dir, "audit.jsonl")
 
