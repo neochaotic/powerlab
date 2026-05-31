@@ -31,21 +31,21 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  MCP foundation — PowerLab now speaks Model Context Protocol. A new
-  powerlab-mcp service lets any agent that speaks MCP (Claude, GPT,
-  local models) read the host (system metrics, journals, audit log,
-  installed apps, docker logs) and act on it via curated tools:
-  journal_search, check_disk_free, restart_app, plus install_app /
-  uninstall_app gated behind EnableDestructiveTools and a compose
-  deny-list validator (blocks privileged: true, docker.sock binds,
-  host namespaces). ADRs 0034/0044/0045/0046 lock the hybrid
-  thin-proxy architecture so a future PostgreSQL migration on
-  app-management requires zero MCP changes. Storage-agnostic by
-  design. Also: audit-tail OOM fix (500 MiB audit log used to drive
-  ~2.8 GiB RSS during a single read → now bounded ~50 MiB via
-  streaming + ring buffer); install-smoke CI gate restored; CVE
-  bumps (x/net, go-getter, x/image, kin-openapi, rclone,
-  moby/spdystream).
+  MCP grows up — your server, your apps, and your audit trail are
+  now first-class agent surfaces. Sysadmin tier ships (system://
+  services, kernel, processes, updates); raw Docker visibility
+  exposes every container, not just PowerLab apps; the killer
+  compose_authoring MCP Prompt + catalog:// + docs://concepts give
+  any agent the patterns it needs to draft PowerLab-idiomatic YAML
+  in one round-trip; the sensitive tier (journal://system/auth +
+  failures, opt-in EnableSensitiveTier) closes the host-auth
+  observability gap. ADR-0047 wires MCP into the per-service audit
+  middleware so every tool call lands in audit.jsonl alongside
+  gateway's records, with JWT forwarding to upstream calls. Plus
+  fixes: audit JSONL is genuinely multi-writer safe (O_APPEND, no
+  more lumberjack collisions), system://disk returns full {physical,
+  mounts} with SMART metadata, system://services no longer swaps
+  active_state with PID.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
