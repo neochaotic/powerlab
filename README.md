@@ -190,18 +190,21 @@ PowerLab ships a built-in **MCP (Model Context Protocol) server** at `:9090`. Co
 
 The UI is the pane of glass **for you.** MCP is the pane of glass **for your agent.** Same data, two surfaces. PowerLab stays the homelab dashboard it always was; MCP is a complementary surface, not a pivot.
 
-What an agent can do today — **16 advertised resources**:
+What an agent can do today — **25 advertised resources + 1 MCP Prompt + 4 always-on tools (+2 destructive when opted in)**:
 
-- **`system://`** — CPU, memory, load, uptime, **disk + SMART, network, GPU (Apple Silicon + Nvidia), temperature, kernel + OS identity, systemd services, processes (name-only, no argv leakage), pending OS updates**. Mix of `/proc` direct + thin-proxy to core's `/v1/sys/*`. Same data the dashboard widgets read.
-- **`journal://`** — PowerLab service logs (`journal://gateway?lines=200`, `journal://core`, `journal://mcp`, ...). Hard-scoped to PowerLab units — an agent cannot escape to SSH / PAM logs.
+- **`system://`** (10) — CPU, memory, load, uptime, **disk + SMART, network, GPU (Apple Silicon + Nvidia), temperature, kernel + OS identity, systemd services, processes (name-only, no argv leakage), pending OS updates**. Mix of `/proc` direct + thin-proxy to core's `/v1/sys/*`. Same data the dashboard widgets read.
+- **`journal://`** (3 + 2 opt-in) — PowerLab service logs (`journal://gateway?lines=200`, `journal://core`, `journal://mcp`, ...). Scope-locked to PowerLab units by default. An opt-in sensitive tier (`journal://system/auth`, `journal://system/failures`, [ADR-0049](docs/decisions/0049-mcp-sensitive-sysadmin-tier-threat-model.md)) reads host SSH / sudo / su via a single `EnableSensitiveTier` flag — fixed selectors in code, never agent-supplied.
 - **`audit://`** — newest audit entries, plus filter by correlation id (everything one request triggered).
 - **`apps://`** — installed-apps manifest + per-app state, containers, health, stats, disk footprint. Thin-proxy through app-management.
-- **`docker://logs/<app>`** — container logs proxied through app-management. **MCP never touches the Docker socket** (security win — see [ADR-0045](docs/decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md)).
-- **`docs://api`** — the OpenAPI specs of every PowerLab service. Agent self-discovers what's callable.
+- **`docker://`** — `docker://logs/<app>` for container logs PLUS raw daemon visibility (`docker://containers`, `images`, `networks`, `volumes`, `system`) so the agent sees non-PowerLab containers too ([#630](https://github.com/neochaotic/powerlab/issues/630)). **MCP never touches the Docker socket** — everything proxies through app-management (security win — see [ADR-0045](docs/decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md)).
+- **`catalog://`** ([ADR-0048](docs/decisions/0048-mcp-docs-surface-compose-authoring.md)) — 137 PowerLab-curated compose YAMLs the agent reads as pattern reference (NOT a list to install). `catalog://index` + `catalog://app/<id>`.
+- **`docs://`** — `docs://api` for OpenAPI self-discovery PLUS `docs://concepts/*` for the prose docs (`compose-conventions`, `glossary`, `mcp-server`, `security-model`) — same content this page lives in, machine-readable.
 
-Plus **5 curated MCP tools** — the agent doesn't just read, it can *act* (per [ADR-0046](docs/decisions/0046-mcp-tool-curation-strategy.md)):
+Plus the **`compose_authoring` MCP Prompt** ([ADR-0048](docs/decisions/0048-mcp-docs-surface-compose-authoring.md)) — one `prompts/get` invocation returns a curated 6-message bundle: framing, the compose-conventions doc, 3 worked catalog examples, and the validator deny-list. Replaces N discovery round-trips when an agent designs a new PowerLab compose YAML. Optional `app_type` argument (`database`, `media`, `ai`, `dashboard`) tunes which catalog examples ship.
 
-- **READ ONLY** — `journal_search` (literal substring + time-range over PowerLab journals); `check_disk_free` (one-path statfs).
+Plus **4 always-on MCP tools + 2 destructive-gated** (per [ADR-0046](docs/decisions/0046-mcp-tool-curation-strategy.md)):
+
+- **READ ONLY** — `journal_search` (literal substring + time-range over PowerLab journals); `check_disk_free` (one-path statfs); `search_docs` (case-insensitive substring across the concepts docs — returns `{concept, line_number, snippet, uri}` per hit).
 - **SIDE EFFECT (bounded)** — `restart_app` (cycle one app's containers; same end-state).
 - **DESTRUCTIVE (operator opt-in)** — `install_app` (custom Compose, validated against a deny-list of dangerous patterns before app-management ever sees it) and `uninstall_app`. Both require `EnableDestructiveTools = true` in `/etc/powerlab/mcp.conf` — when false (the default), they're NOT registered and the agent can't call them.
 

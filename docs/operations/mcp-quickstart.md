@@ -4,7 +4,7 @@
 
 ## At a glance
 
-PowerLab ships a built-in **MCP (Model Context Protocol) server**. It runs as `powerlab-mcp.service` on `:9090`. Your AI agent connects to it and reads the same data the panel dashboard shows you — metrics, journals, audit trail, installed apps, container logs, the entire PowerLab OpenAPI surface.
+PowerLab ships a built-in **MCP (Model Context Protocol) server**. It runs as `powerlab-mcp.service` on `:9090`. Your AI agent connects to it and reads the same data the panel dashboard shows you — metrics, journals, audit trail, installed apps, container logs, raw Docker daemon visibility, the entire PowerLab OpenAPI surface, the concept docs you're reading right now, and the 137-app compose catalog as pattern reference. One MCP Prompt (`compose_authoring`) bundles conventions + worked examples + validator rules to ground an agent designing a new compose YAML in one round-trip.
 
 The UI is the pane of glass for you. **MCP is the pane of glass for your agent.**
 
@@ -43,12 +43,15 @@ You should see something like:
 ```
 PASS  /healthz + /version
 PASS  mcp connect + initialize
-PASS  resources/list (16 advertised)
+PASS  resources/list (25 advertised)
 PASS  system://metrics                        → 8 fields sane
 PASS  system://utilization                    → proxied 903 bytes
 PASS  apps://list                             → proxied 18245 bytes
+PASS  catalog://index                         → 137 app(s) in catalog
+PASS  docker://system                         → daemon=29.5.1 containers=2 images=2
+PASS  docs://concepts/index                   → 4 concept(s) advertised
 PASS  audit://recent?limit=5                  → 5 records with valid ts/status/method
-PASS  tools/list (3 advertised)
+PASS  tools/list (4 advertised)
 PASS  journal_search (unit=gateway, 10 entries)
 PASS  check_disk_free / (77% used, 54 GiB available)
 ```
@@ -165,7 +168,7 @@ Operator threat model:
 | `curl /healthz` fails | `sudo systemctl status powerlab-mcp` — service may be disabled (`Disabled = true` in mcp.conf) or failed to bind (port conflict). |
 | Smoke client says `audit://recent permission denied` | Smoke is running as a non-root user; the file is `root:root 0600`. Use `sudo /usr/share/powerlab/bin/powerlab-mcp-smoke` OR ignore the WARN — the service running under systemd reads it correctly. |
 | Claude Desktop says "MCP server not responding" | Token expired, wrong URL, or LAN firewall. Verify `curl -H "Authorization: Bearer <token>" http://<your-box>:9090/healthz` from your Claude Desktop machine. |
-| `tools/list` shows 3 not 5 | `EnableDestructiveTools = false` (the default). Step 5 to enable. |
+| `tools/list` shows 4 not 6 | `EnableDestructiveTools = false` (the default). Step 5 to enable. |
 | `resources/list` has no `journal://system/*` | `EnableSensitiveTier = false` (the default). Step 5.5 to enable. |
 | `docs://api` returns empty manifest | OpenAPI staging didn't run during install — re-run `install.sh` or check `/usr/share/powerlab/openapi/` exists. |
 | Want to disable MCP entirely | `Disabled = true` in `/etc/powerlab/mcp.conf` + `sudo systemctl restart powerlab-mcp`. The binary exits cleanly without binding `:9090`; systemd treats it as a clean stop. |
@@ -174,7 +177,7 @@ For deeper architectural questions (why does the service run as root? why is aut
 
 ---
 
-## What MCP gives your agent today (16 resources, 5 tools)
+## What MCP gives your agent today (25 resources, 4 always-on tools +2 gated, 1 prompt)
 
 | Surface | What the agent reads / does |
 |---|---|
@@ -188,12 +191,15 @@ For deeper architectural questions (why does the service run as root? why is aut
 | `system://processes` | top 10 by CPU and mem (name only — no argv leak) |
 | `system://updates` | pending OS package updates (apt; security flag) |
 | `journal://{unit}` | systemd logs scoped to PowerLab units |
-| `journal://system/auth`, `journal://system/failures` | host auth journal (ssh, sudo, su) — **opt-in via `EnableSensitiveTier`** (ADR-0049) |
+| `journal://system/auth`, `journal://system/failures` | host auth journal (ssh, sudo, su) — **opt-in via `EnableSensitiveTier`** ([ADR-0049](../decisions/0049-mcp-sensitive-sysadmin-tier-threat-model.md)) |
 | `audit://recent`, `audit://action/{id}` | HTTP request audit trail |
 | `apps://list`, `apps://state/{id}/*` | installed apps + per-app state |
 | `docker://logs/{id}` | container logs (MCP never touches docker socket) |
 | `docker://containers`, `docker://images`, `docker://networks`, `docker://volumes`, `docker://system` | raw Docker daemon visibility — incl. non-PowerLab containers ([#630](https://github.com/neochaotic/powerlab/issues/630)) |
+| `catalog://index`, `catalog://app/{id}` | 137 PowerLab-curated compose YAMLs as pattern reference ([ADR-0048](../decisions/0048-mcp-docs-surface-compose-authoring.md)) |
 | `docs://api`, `docs://api/{service}` | OpenAPI specs for self-discovery |
-| Tools | `journal_search`, `check_disk_free`, `restart_app`, `install_app` (opt-in), `uninstall_app` (opt-in) |
+| `docs://concepts/index`, `docs://concepts/{name}` | concept docs (compose-conventions, glossary, mcp-server, security-model) — same content this site lives in ([ADR-0048](../decisions/0048-mcp-docs-surface-compose-authoring.md)) |
+| Tools | `journal_search`, `check_disk_free`, `search_docs`, `restart_app`, `install_app` (opt-in), `uninstall_app` (opt-in) |
+| Prompts | `compose_authoring(app_type?)` — curated bundle of conventions + 3 catalog examples + validator deny-list for compose authoring ([ADR-0048](../decisions/0048-mcp-docs-surface-compose-authoring.md)) |
 
-[Concepts → MCP server](../concepts/mcp-server.md) has the full per-surface reference + Mermaid topology + the architecture (ADR-0044 hybrid proxy + ADR-0045 storage-agnostic + ADR-0046 tool curation).
+[Concepts → MCP server](../concepts/mcp-server.md) has the full per-surface reference + Mermaid topology + the architecture (ADR-0044 hybrid proxy + ADR-0045 storage-agnostic + ADR-0046 tool curation + ADR-0048 docs/catalog/prompt surface + ADR-0049 sensitive tier threat model).

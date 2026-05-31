@@ -4,21 +4,18 @@ PowerLab ships a built-in **MCP (Model Context Protocol) server** that exposes t
 
 The PowerLab UI is the pane of glass **for you**. The MCP server is the pane of glass **for your agent**. Same data, two surfaces.
 
-!!! info "Current scope (16 advertised resources)"
-    Read-only across the **whole PowerLab observability + apps surface**. Sysadmin telemetry (CPU, RAM, disk, network, GPU, temperature, SMART, kernel/OS identity, systemd services, processes, OS updates) thin-proxies through core; installed-apps + container logs thin-proxy through app-management; audit trail + PowerLab service journals are read directly so they survive any other service being down. Destructive tools are gated behind an opt-in mcp.conf flag and a compose deny-list validator. The MCP service is **isolated where it matters** (audit + journal of PowerLab units) and **proxies where it makes sense** (everything else) — see the architecture section below.
+!!! info "Current scope (25 advertised resources + 1 MCP Prompt + 4 always-on tools)"
+    Read-mostly across the **whole PowerLab observability + apps + Docker + compose-catalog surface**. Sysadmin telemetry (CPU, RAM, disk, network, GPU, temperature, SMART, kernel/OS identity, systemd services, processes, OS updates) thin-proxies through core; installed-apps + container logs + raw Docker daemon visibility thin-proxy through app-management; audit trail, PowerLab service journals, concept docs, and the 137-app compose catalog are read directly so they survive any other service being down. One opt-in sensitive tier exposes host auth journals (ssh/sudo/su) behind an mcp.conf flag. Destructive tools (`install_app` / `uninstall_app`) are gated behind a separate mcp.conf flag and a compose deny-list validator. The `compose_authoring` MCP Prompt bundles conventions + 3 catalog examples + validator rules to ground an agent designing a new compose YAML in one round-trip.
 
 ## What ships today
 
-16 resources advertised on `resources/list`, grouped by namespace.
-
-!!! tip "🔜 Coming soon — apps:// and docker:// (in stabilisation)"
-    The `apps://*` and `docker://*` families just landed per [ADR-0045](../decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md). The wire shape, error contract, and the proxy round-trip are unit-tested and verified locally, but the live battery on real hardware (real installed apps, real running containers) is still being rolled out. Expect rough edges during the first weeks of v0.7.5 — please report any odd behaviour. The system://* + audit:// + journal:// surfaces are stable and dogfooded.
+25 resources advertised on `resources/list` + 6 URI templates on `resources/templates/list` + 1 prompt + 4 always-on tools (+2 destructive tools when opted in). Surface grouped by namespace.
 
 Resources by namespace:
 
 | Namespace | Resource | Where the data comes from |
 |---|---|---|
-| **system://** | `system://schema` | self-describing index |
+| **system://** (10) | `system://schema` | self-describing index |
 | | `system://metrics` | `/proc` direct (mem + load + uptime + cores) |
 | | `system://utilization` | proxy → core `/v1/sys/utilization` (CPU% + temp + power + model + mem + net) |
 | | `system://disk` | proxy → core `/v1/sys/disk` (physical + per-mount + SMART) |
@@ -27,38 +24,58 @@ Resources by namespace:
 | | `system://services` | proxy → core `/v1/sys/services` (ActiveState + SubState per powerlab-* unit; core whitelists the unit set) |
 | | `system://kernel` | proxy → core `/v1/sys/host` (kernel release + arch + distro + boot time + virtualization) |
 | | `system://processes` | proxy → core `/v1/sys/processes` (count + top 10 by CPU and mem; **name only — no cmdline**, argv leaks secrets) |
-| | `system://updates` | direct in MCP — `apt list --upgradable` (Debian/Ubuntu); `detected="none"` on other distros (ADR-0044 documented exception) |
-| **journal://** | `journal://schema` | self-describing index |
+| | `system://updates` | direct in MCP — `apt list --upgradable` (Debian/Ubuntu); `detected="none"` on other distros ([ADR-0044](../decisions/0044-mcp-hybrid-architecture-thin-proxy-to-core.md) documented exception) |
+| **journal://** (5) | `journal://schema` | self-describing index |
 | | `journal://units` | discovery — lists installed `powerlab-*.service` stems |
-| | `journal://{unit}{?lines,since,priority}` | `journalctl -u powerlab-<unit>.service` — **scope-locked to PowerLab units** |
-| | `journal://system/auth{?lines,since}` | host auth journal — `ssh.service` + `sshd.service` + `sudo` + `su` (**sensitive tier; opt-in only**, ADR-0049). Wire shape: `{ts, unit, hostname, message}` — no `_PID`, no `_CMDLINE`, no `_AUDIT_SESSION`. Registered only when `EnableSensitiveTier = true` in `mcp.conf`. |
-| | `journal://system/failures{?lines,since}` | same source filtered to `PRIORITY warning..error` (**sensitive tier; opt-in only**, ADR-0049). |
-| **audit://** | `audit://schema` | self-describing index |
+| | `journal://{unit}{?lines,since,priority}` (template) | `journalctl -u powerlab-<unit>.service` — **scope-locked to PowerLab units** |
+| | `journal://system/auth{?lines,since}` | host auth journal — `ssh.service` + `sshd.service` + `sudo` + `su` (**sensitive tier; opt-in only**, [ADR-0049](../decisions/0049-mcp-sensitive-sysadmin-tier-threat-model.md)). Wire shape: `{ts, unit, hostname, message}` — no `_PID`, no `_CMDLINE`, no `_AUDIT_SESSION`. Advertised only when `EnableSensitiveTier = true` in `mcp.conf`. |
+| | `journal://system/failures{?lines,since}` | same source filtered to `PRIORITY warning..error` (**sensitive tier; opt-in only**, [ADR-0049](../decisions/0049-mcp-sensitive-sysadmin-tier-threat-model.md)). |
+| **audit://** (2 + 1 template) | `audit://schema` | self-describing index |
 | | `audit://recent{?limit}` | tail of `/var/log/powerlab/audit.jsonl` (gateway-written) |
-| | `audit://action/{correlation_id}` | filter by X-Request-Id — the whole cascade of one request |
-| **apps:// 🔜** | `apps://schema` | self-describing index |
+| | `audit://action/{correlation_id}` (template) | filter by X-Request-Id — the whole cascade of one request |
+| **apps://** (2 + 5 templates) | `apps://schema` | self-describing index (catalogs the templates below) |
 | | `apps://list` | proxy → app-management `/v2/app_management/compose` |
-| | `apps://state/{id}` | per-app detail |
-| | `apps://state/{id}/containers` | live containers |
-| | `apps://state/{id}/health` | aggregate health |
-| | `apps://state/{id}/stats` | per-container CPU/RAM/IO |
-| | `apps://state/{id}/disk` | per-app disk footprint |
-| **docker:// 🔜** | `docker://logs/{id}` | proxy → app-management's `ComposeAppLogs` — **MCP never touches the Docker socket** |
-| | `docker://containers` | all containers on the daemon (PowerLab + non-PowerLab) — `docker ps -a` equivalent ([#630](https://github.com/neochaotic/powerlab/issues/630)) |
-| | `docker://images` | all local images — id, tags[], size, created_at ([#630](https://github.com/neochaotic/powerlab/issues/630)) |
-| | `docker://networks` | all networks — name, driver, scope, IPAM, attached containers ([#630](https://github.com/neochaotic/powerlab/issues/630)) |
-| | `docker://volumes` | all volumes — name, driver, mountpoint, size, in_use_by ([#630](https://github.com/neochaotic/powerlab/issues/630)) |
-| | `docker://system` | daemon info + `docker system df` snapshot ([#630](https://github.com/neochaotic/powerlab/issues/630)) |
-| **docs://** | `docs://api` | manifest of bundled OpenAPI specs |
-| | `docs://api/{service}` | raw OpenAPI YAML for one service — Scalar-equivalent for agents |
+| | `apps://state/{id}` (template) | compose source + status for one app |
+| | `apps://state/{id}/containers` (template) | live containers |
+| | `apps://state/{id}/health` (template) | aggregate health |
+| | `apps://state/{id}/stats` (template) | per-container CPU/RAM/IO |
+| | `apps://state/{id}/disk` (template) | per-app disk footprint |
+| **docker://** (5 + 1 template) | `docker://containers` | all containers on the daemon (PowerLab + non-PowerLab) — `docker ps -a` equivalent ([ADR-0045](../decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md) extension, [#630](https://github.com/neochaotic/powerlab/issues/630)) |
+| | `docker://images` | all local images — id, tags[], size, created_at |
+| | `docker://networks` | all networks — name, driver, scope, IPAM, attached containers |
+| | `docker://volumes` | all volumes — name, driver, mountpoint, size, in_use_by |
+| | `docker://system` | daemon info + `docker system df` snapshot — version, container/image counts, disk_usage by category |
+| | `docker://logs/{id}` (template) | proxy → app-management's `ComposeAppLogs` — **MCP never touches the Docker socket** ([ADR-0045](../decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md)) |
+| **catalog://** (1 + 1 template) | `catalog://index` | 137 compose YAMLs in the bundled `community-catalog/Apps/` — pattern reference, NOT something to install ([ADR-0048](../decisions/0048-mcp-docs-surface-compose-authoring.md)) |
+| | `catalog://app/{id}` (template) | raw docker-compose.yml of one catalog app — agent reads as a worked example |
+| **docs://** (2 + 2 templates) | `docs://api` | manifest of bundled OpenAPI specs |
+| | `docs://api/{service}` (template) | raw OpenAPI YAML for one service — Scalar-equivalent for agents |
+| | `docs://concepts/index` | manifest of bundled concept docs — `compose-conventions`, `glossary`, `mcp-server`, `security-model` ([ADR-0048](../decisions/0048-mcp-docs-surface-compose-authoring.md)) |
+| | `docs://concepts/{name}` (template) | raw markdown of one concept doc — path-traversal hardened |
+
+URI templates do not appear in `resources/list` (per the MCP spec) — they're advertised on `resources/templates/list` and exercised by URI binding on `resources/read`. Both `apps://schema` and `docs://concepts/index` enumerate the templates they cover so the agent's discovery flow is index → bind → read.
+
+## Prompts (curated context bundles — ADR-0048)
+
+powerlab-mcp exposes the **MCP Prompts primitive** alongside Resources and Tools. Prompts are server-curated message bundles the agent can fetch via `prompts/get`; they're how the protocol expresses "here's the pre-assembled context you need to do task X well". This is the killer feature for compose authoring.
+
+| Prompt | Arguments | What you get back |
+|---|---|---|
+| `compose_authoring` | `app_type` (optional; one of `database`, `media`, `ai`, `dashboard`, or empty for a representative trio) | A 6-message bundle: (1) framing user message; (2) the canonical `compose-conventions` doc; (3) example catalog YAML #1; (4) example #2; (5) example #3; (6) the composevalidator deny-list with REJECTS-FORMAT semantics + a final instruction to ask the user for specifics and propose a PowerLab-idiomatic compose. |
+
+One `prompts/get` invocation replaces what would otherwise be ~5–10 `resources/read` round-trips. The agent receives the conventions, the worked examples, and the deny-list in a single grounded context — then drafts a YAML, optionally calls `install_app` with `dry_run=true` to dry-run it against the same validator, optionally calls `install_app` for real (with the destructive gate on).
+
+### Why a Prompt and not just resource reads
+
+The MCP Prompts primitive is rendered distinctly by clients (Claude Desktop's "Use prompt" picker, Claude Code's `/mcp` command) — operators trigger it by name rather than the agent having to know which N resources to chain. It's also a stable contract: when we add a 5th compose example or amend the deny-list, the prompt picks up the new bundle without the agent changing its discovery strategy. ADR-0048 §3 walks through the alternatives considered (full-spec dump into system prompt → rejected; auto-gen from OpenAPI → out of scope for the doc surface).
 
 ## What's NOT in scope yet
 
-- **No destructive tools.** No `restart_app`, no `install_app`, no `prune_orphans`. MCP "tools" (write actions) land with their own threat-model ADR.
 - **No pairing UX.** Connecting Claude Desktop today still means pasting a JWT into the client config by hand. A `powerlab pair` CLI that mints + displays the token is roadmap ([#596](https://github.com/neochaotic/powerlab/issues/596)).
 - **No internet exposure.** Bind is `:9090` on the LAN, gated by JWT. PowerLab does not configure port-forwarding for you.
 - **No RBAC.** Any user with a valid PowerLab JWT has the same access. Today every PowerLab user is hardcoded `admin` anyway (see the [ADR-0034 amendment](../decisions/0034-standalone-observability-mcp-service.md)). Real role-based access is backlog [#603](https://github.com/neochaotic/powerlab/issues/603).
-- **No agent-identity forwarding (yet).** Today every MCP-to-upstream call hits the upstream's loopback skip — the upstream's audit trail records "loopback" for the call, not the agent's user. JWT forwarding will land when the MCP SDK exposes the request context cleanly to handlers.
+- **No agent-identity forwarding (yet).** Today every MCP-to-upstream call hits the upstream's loopback skip — the upstream's audit trail records "loopback" for the call, not the agent's user. JWT forwarding + audit dogfood lands per [ADR-0047](../decisions/0047-mcp-agent-identity-propagation.md) — design accepted, implementation queued.
+- **No panel-side approval UI for destructive tools.** `install_app` + `uninstall_app` exist behind `EnableDestructiveTools`, but once the operator flips the gate the agent can act autonomously. A per-action human confirmation flow is roadmap.
 - **No UI header button.** Roadmap; the resources work today via any MCP client.
 
 ## Product positioning
@@ -91,9 +108,11 @@ flowchart LR
         AppMgmt["powerlab-app-management<br/>(apps + Docker)"]
         MCP["powerlab-mcp<br/>:9090"]
         Proc["/proc/*"]
-        Journal["journalctl<br/>(powerlab-* units only)"]
+        Journal["journalctl<br/>(powerlab-* + opt-in ssh/sudo/su)"]
         Audit["/var/log/powerlab/audit.jsonl<br/>(gateway-written)"]
         OpenAPI["/usr/share/powerlab/openapi/*.yaml"]
+        Concepts["/usr/share/powerlab/docs/concepts/*.md"]
+        Catalog["/var/lib/powerlab/community-catalog/Apps/<id>/*"]
     end
 
     User -->|HTTPS/HTTP| Gateway
@@ -104,6 +123,8 @@ flowchart LR
     MCP -.->|spawns + reads| Journal
     MCP -.->|tails| Audit
     MCP -.->|reads| OpenAPI
+    MCP -.->|reads| Concepts
+    MCP -.->|reads| Catalog
     Gateway -->|writes| Audit
 
     %% Proxied reads
@@ -120,7 +141,7 @@ flowchart LR
     class Agent,User agent
     class Gateway,UserSvc,MCP pl
     class Core,AppMgmt proxy
-    class Proc,Journal,Audit,OpenAPI data
+    class Proc,Journal,Audit,OpenAPI,Concepts,Catalog data
 ```
 
 ### Key invariants
@@ -128,7 +149,7 @@ flowchart LR
 - **Audit + journal of PowerLab units stay raw.** When core or app-management are down, the agent still reads `audit://` and `journal://gateway` — exactly when the operator needs to find out *why* things are broken.
 - **Proxied resources degrade with a structured payload, not an error.** When core is down `system://utilization` returns `{"error":"core_unavailable","detail":"…","fallback":"audit:// and journal:// remain readable"}`. Same shape for `apps_unavailable` when app-management is down. The agent pattern-matches and pivots.
 - **Docker socket stays out of MCP.** `docker://logs/{id}` proxies through app-management's `ComposeAppLogs` (which already speaks to the Docker socket). MCP never has Docker socket access. This is [ADR-0045 win #2](../decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md).
-- **Journal scope is hard-coded to PowerLab units by default.** The MCP `journal://{unit}` package prefixes any requested unit with `powerlab-` and suffixes `.service` — an agent cannot escape to `/var/log/auth.log` or the kernel ring buffer. The opt-in sensitive tier (`journal://system/auth` + `journal://system/failures`, [ADR-0049](../decisions/0049-mcp-sensitive-sysadmin-tier-threat-model.md)) is the ONLY surface that reads host auth journals, and only when `EnableSensitiveTier = true` is set in `mcp.conf` — selectors there (ssh.service, sshd.service, sudo, su) are still fixed in code, not agent-supplied.
+- **Journal scope is hard-coded to a fixed set of unit selectors, never agent-supplied strings.** The MCP `journal://{unit}` package prefixes any requested unit with `powerlab-` and suffixes `.service` — an agent asking for `auth.log` or `kernel` reaches the non-existent `powerlab-auth.log.service` and gets an empty result. The opt-in sensitive tier (`journal://system/auth` + `journal://system/failures`, [ADR-0049](../decisions/0049-mcp-sensitive-sysadmin-tier-threat-model.md)) is the ONLY surface that reads host auth journals, registered only when `EnableSensitiveTier = true` in `mcp.conf`, and its selectors (`ssh.service`, `sshd.service`, `sudo`, `su`) are fixed in code — the agent picks the resource URI, not the unit name. Net invariant: PowerLab units always; host auth journals when the operator opts in; nothing else, ever.
 - **JWKS is cached.** MCP fetches the user-service public key once per 10 seconds, then reuses it — auth gate works even if user-service is briefly down.
 - **Storage-agnostic.** A future SQLite → PostgreSQL migration on app-management requires zero changes in MCP. The HTTP contract is the abstraction; storage is an implementation detail the owner service handles.
 
@@ -144,7 +165,7 @@ Two control endpoints sit alongside `/mcp` for systemd + monitoring:
 | `GET /version` | open | ldflags-injected `{"version":"…","commit":"…","date":"…"}` — proves which build is running |
 | `POST /mcp` | two-tier | the Streamable HTTP transport (response is Server-Sent Events; messages framed as `event: message\n data: <JSON-RPC>`) |
 
-Why `/healthz` and `/version` stay open: a probe that needs a token is not a probe. They expose no operator data — `/version` just says "powerlab-mcp 0.7.5 commit abc1234". A development build (no ldflags) reports the three fields as the literal string `"private build"`.
+Why `/healthz` and `/version` stay open: a probe that needs a token is not a probe. They expose no operator data — `/version` just says "powerlab-mcp 0.7.6 commit abc1234". A development build (no ldflags) reports the three fields as the literal string `"private build"`.
 
 ### The auth flow
 
@@ -241,7 +262,9 @@ sequenceDiagram
 | **Docker socket** | **Deliberately NOT in MCP** ([ADR-0045](../decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md)). `docker://logs/{id}` proxies through app-management's HTTP API, which is the only PowerLab service that talks to Docker |
 | Upstream URLs | Read from `/var/run/powerlab/<service>.url`, cached 10s with transparent invalidation on transport failure |
 | Audit log memory | `audittail.Recent` streams the JSONL via `bufio.Scanner` with a bounded ring buffer — a 500 MiB audit log costs ~few MiB RSS (the original `os.ReadFile` shape would have OOM'd a Pi 4) |
-| Path traversal | `docs://api/{service}` rejects names containing `/`, `\`, or `.` — planted-evidence regression test pins it |
+| Path traversal | `docs://api/{service}`, `docs://concepts/{name}`, and `catalog://app/{id}` all reject names containing `/`, `\`, or `.` — planted-evidence regression tests pin each one ([ADR-0048](../decisions/0048-mcp-docs-surface-compose-authoring.md) §3) |
+| Sensitive-tier gate | `EnableSensitiveTier = false` (default) — `journal://system/auth` + `journal://system/failures` not registered, agent has no URI to address ([ADR-0049](../decisions/0049-mcp-sensitive-sysadmin-tier-threat-model.md)) |
+| Destructive-tier gate | `EnableDestructiveTools = false` (default) — `install_app` + `uninstall_app` not registered ([ADR-0046](../decisions/0046-mcp-tool-curation-strategy.md)) |
 | Kill-switch | `Disabled = true` in `mcp.conf` — service exits 0 before binding; operator opt-out without `systemctl mask` |
 
 ## Test recipes
@@ -285,25 +308,31 @@ Sample output on a healthy box:
 ```
 PASS  /healthz + /version
 PASS  mcp connect + initialize
-PASS  resources/list (16 advertised)
-PASS  audit://schema (1668 bytes)
-      → description set + 12 field(s) documented
-PASS  apps://list (412 bytes)
-      → proxied payload OK (412 bytes from upstream)
-PASS  apps://schema (1497 bytes)
-      → description set + 8 resource(s) documented (proxy schema)
-PASS  docs://api (640 bytes)
+PASS  resources/list (25 advertised)
+PASS  apps://list (2017 bytes) → proxied payload OK
+PASS  apps://schema (2120 bytes) → 13 resource(s) documented
+PASS  audit://schema (1668 bytes) → 12 field(s) + 2 resource(s) documented
+PASS  catalog://index (6978 bytes) → 137 app(s) in catalog
+PASS  docker://containers (2135 bytes) → proxied payload OK
+PASS  docker://images / networks / volumes / system → proxied OK
+PASS  docs://api (621 bytes)
+PASS  docs://concepts/index (581 bytes) → 4 concept(s) advertised
 PASS  journal://schema (710 bytes)
-PASS  journal://units (126 bytes)
-PASS  system://disk (1432 bytes) → proxied payload OK
-PASS  system://gpu (72 bytes)
-      → Apple M5 (46.0% util, 538 MiB used, 0°C)
-PASS  system://metrics (412 bytes)
-PASS  system://network (1024 bytes) → proxied payload OK
-PASS  system://schema (2164 bytes)
-PASS  system://utilization (768 bytes) → proxied payload OK
-PASS  audit://recent?limit=5 (1024 bytes)
+PASS  journal://system/auth (2 bytes) → zero entries (fresh box — not a failure)
+PASS  journal://units (210 bytes)
+PASS  system://disk / gpu / kernel / metrics / network → proxied OK
+PASS  system://processes (2818 bytes) → proxied payload OK
+PASS  system://services / updates → proxied OK
+PASS  system://schema (2963 bytes) → 10 resource(s) documented
+PASS  system://utilization (1857 bytes) → proxied payload OK
+PASS  audit://recent?limit=5 (885 bytes)
       → 5 record(s) with valid ts / status / method / remote_ip
+PASS  docs://api/core (7952 bytes)
+PASS  tools/list (4 advertised)
+      → install_app NOT advertised (EnableDestructiveTools=false — gate respected)
+      → uninstall_app NOT advertised (EnableDestructiveTools=false — gate respected)
+PASS  journal_search (unit=gateway, 10 entries)
+PASS  check_disk_free / (86.6% used, 2519 MiB available)
 
 OK — every advertised resource read + data-quality assertions passed
 ```
@@ -359,17 +388,17 @@ claude mcp add powerlab-home \
 !!! warning "JWTs expire"
     PowerLab access tokens last 3 hours. You'll need to refresh the token in your client config periodically. The pairing UX (auto-renewing token via a CLI flow) is roadmap.
 
-## Tools (write surface — ADR-0046)
+## Tools (action surface — ADR-0046)
 
-Alongside the 12 read-only resources, powerlab-mcp ships **5 curated MCP tools** that let the agent *act* on the box, not just *read* it. Tools are advertised via `tools/list` and called via `tools/call` — the protocol distinguishes them from resources so Anthropic's clients (Claude Desktop, Claude Code) render "Claude wants to use the tool X" prompts with the side-effect class surfaced.
+Alongside the 25 read-mostly resources, powerlab-mcp ships **4 always-on tools + 2 destructive-gated tools** that let the agent *act* on the box, not just *read* it. Tools are advertised via `tools/list` and called via `tools/call` — the protocol distinguishes them from resources so Anthropic's clients (Claude Desktop, Claude Code) render "Claude wants to use the tool X" prompts with the side-effect class surfaced.
 
-[ADR-0046](../decisions/0046-mcp-tool-curation-strategy.md) locks the curation strategy: hand-written tools (not OpenAPI auto-gen) for the top PowerLab actions, with `docs://api` kept as the discovery escape hatch for the long tail. Explicit flexibility reserved for emerging patterns (meta-prompt for compact contexts, MCP prompts/sampling primitives, active resources). Tools land in **three tiers** by side-effect class:
+[ADR-0046](../decisions/0046-mcp-tool-curation-strategy.md) locks the curation strategy: hand-written tools (not OpenAPI auto-gen) for the top PowerLab actions, with `docs://api` kept as the discovery escape hatch for the long tail. Explicit flexibility reserved for emerging patterns (meta-prompt for compact contexts, the MCP Prompts primitive — cashed in by [ADR-0048](../decisions/0048-mcp-docs-surface-compose-authoring.md)'s `compose_authoring` — sampling primitives, active resources). Tools land in **three tiers** by side-effect class:
 
 | Tier | Tools | When they ship | Gate |
 |---|---|---|---|
-| **READ ONLY** | `journal_search`, `check_disk_free` | Always | none |
+| **READ ONLY** | `journal_search`, `check_disk_free`, `search_docs` | Always | none |
 | **SIDE EFFECT** (bounded / reversible) | `restart_app` | Always | none — blast radius is bounded (containers cycle, end in same state) |
-| **DESTRUCTIVE** | `install_app`, `uninstall_app` | Operator opt-in | `EnableDestructiveTools = true` in `mcp.conf` (default false — agent cannot call until operator flips) |
+| **DESTRUCTIVE** | `install_app`, `uninstall_app` | Operator opt-in | `EnableDestructiveTools = true` in `mcp.conf` (default false — neither tool registered until operator flips, so agent cannot see them on `tools/list`) |
 
 ### Per-tool reference
 
@@ -389,6 +418,14 @@ Free-space check at one path. Input:
 - `path` (optional) — defaults to `/` (the primary disk)
 
 Returns `{path, total_bytes, available_bytes, used_bytes, used_percent}`. For a per-mount survey with SMART metadata, the agent prefers `system://disk`; this tool is the friendly path for "is / full?" question shapes.
+
+#### `search_docs` (READ ONLY — ADR-0048)
+
+Case-insensitive substring search across the bundled PowerLab concept docs (the same files reachable via `docs://concepts/{name}`). Input:
+- `query` (required) — minimum 2 characters
+- `top_k` (optional) — max matches to return (default 5, ceiling 20)
+
+Returns `{matches: [{concept, line_number, snippet, uri}, ...], query}`. The agent's discovery loop is `search_docs` → pick relevant `uri` → `resources/read` for full context. No regex, no fuzzy distance — keeps the implementation tight and the result shape predictable. Pairs naturally with the `compose_authoring` Prompt for compose-authoring sessions (search before reading; read before drafting).
 
 #### `restart_app` (SIDE EFFECT)
 
@@ -492,14 +529,17 @@ Restart MCP. Note that binding to `127.0.0.1` only blocks LAN access entirely �
 For non-standard deployments, `mcp.conf` exposes:
 
 ```ini
-AuditDir = /var/log/powerlab          # where audit.jsonl lives
-RuntimePath = /var/run/powerlab       # where service .url files live (and JWKS lookup)
-OpenAPIDir = /usr/share/powerlab/openapi   # where docs:// reads YAML specs from
-SystemdSystemDir = /etc/systemd/system     # where journal://units enumerates powerlab-*.service files
-EnableDestructiveTools = false        # ADR-0046: when true, registers install_app + uninstall_app
+AuditDir = /var/log/powerlab                       # where audit.jsonl lives
+RuntimePath = /var/run/powerlab                    # where service .url files live (and JWKS lookup)
+OpenAPIDir = /usr/share/powerlab/openapi           # where docs://api reads YAML specs from
+ConceptsDir = /usr/share/powerlab/docs/concepts    # where docs://concepts/* reads markdown from (ADR-0048)
+CatalogDir = /var/lib/powerlab/community-catalog/Apps  # where catalog://* reads compose YAMLs from (ADR-0048)
+SystemdSystemDir = /etc/systemd/system             # where journal://units enumerates powerlab-*.service files
+EnableDestructiveTools = false                     # ADR-0046: when true, registers install_app + uninstall_app
+EnableSensitiveTier = false                        # ADR-0049: when true, registers journal://system/auth + /failures
 ```
 
-All five have sensible production defaults. The forgiving conf loader treats unknown keys as harmless, so a newer installer's keys never break an older binary.
+All have sensible production defaults. The forgiving conf loader treats unknown keys as harmless, so a newer installer's keys never break an older binary.
 
 ## Roadmap (what's NOT here yet)
 
@@ -518,18 +558,19 @@ Beyond that:
 
 - [**#619**](https://github.com/neochaotic/powerlab/issues/619) — `prune_orphans` tool — named in ADR-0046 but waits on a matching app-management HTTP endpoint
 - **Panel-side "pending agent action" approval UI** — replaces the `EnableDestructiveTools` opt-in with a per-action human confirmation flow. Roadmap.
-- **Audit-recorder dogfood** — MCP writing its own actions (resource reads + tool calls) into `audit.jsonl` so the agent's trail is auditable end-to-end. ADR-0034 deferred item; until it lands, MCP-driven calls don't show up in the gateway-written `audit.jsonl` that `audit://` reads. The action trail today is `journal://mcp`.
-- **JWT forwarding from MCP to upstream** — today the upstream's loopback skip handles the call; LAN agent-identity propagation lands when the MCP SDK surfaces the request context to handlers.
+- **Audit-recorder dogfood + JWT forwarding** — design accepted in [ADR-0047](../decisions/0047-mcp-agent-identity-propagation.md): MCP adopts the per-service `audit.Middleware` so every tool call + resource read writes one `audit.jsonl` record with the validated JWT subject, AND forwards the Authorization header on upstream coreproxy calls so app-management / core's records capture the same user once they adopt the middleware. Implementation queued.
 - **`powerlab-logs` CLI as an MCP client of itself.**
 - **UI header button** — one-click launch of the MCP surface in a new tab.
-- **Read-only sysadmin tools** — `system://processes`, `system://network` snapshots, `system://updates` — beyond what `system://utilization` already proxies.
 
 ## References
 
 - [ADR-0034](../decisions/0034-standalone-observability-mcp-service.md) — original standalone observability + MCP service decision (amended by ADR-0044)
 - [ADR-0044](../decisions/0044-mcp-hybrid-architecture-thin-proxy-to-core.md) — hybrid architecture: audit + journal stay independent, system:// thin-proxies to core
-- [ADR-0045](../decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md) — apps:// + docker:// thin-proxy to app-management (storage-agnostic, PostgreSQL-future-proof)
-- [ADR-0046](../decisions/0046-mcp-tool-curation-strategy.md) — MCP tool curation strategy (curated-first + escape hatches); the 5 tools above land per its ordered rollout
+- [ADR-0045](../decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md) — apps:// + docker:// thin-proxy to app-management (storage-agnostic, PostgreSQL-future-proof); extended in v0.7.6 with raw Docker visibility (`docker://containers/images/networks/volumes/system`, [#630](https://github.com/neochaotic/powerlab/issues/630))
+- [ADR-0046](../decisions/0046-mcp-tool-curation-strategy.md) — MCP tool curation strategy (curated-first + escape hatches); the always-on 4 + gated 2 above land per its ordered rollout
+- [ADR-0047](../decisions/0047-mcp-agent-identity-propagation.md) — MCP audit-recorder dogfood + JWT forwarding to upstream (proposed; implementation queued)
+- [ADR-0048](../decisions/0048-mcp-docs-surface-compose-authoring.md) — `docs://concepts/*` + `catalog://*` resource families + `search_docs` tool + `compose_authoring` Prompt — the docs/catalog surface and the MCP Prompts primitive
+- [ADR-0049](../decisions/0049-mcp-sensitive-sysadmin-tier-threat-model.md) — sensitive-tier journals (`journal://system/auth`, `journal://system/failures`) — opt-in via `EnableSensitiveTier`; locks selectors + wire-shape + threat model
 - [ADR-0033](../decisions/0033-audit-system-design.md) — audit middleware + JSONL design
 - [ADR-0035](../decisions/0035-audit-jsonl-migration.md) — SQLite → JSONL migration that enables `audit://`
 - [ADR-0008](../decisions/0008-api-docs-portal-scalar.md) — Scalar API docs portal — same OpenAPI specs `docs://` serves
