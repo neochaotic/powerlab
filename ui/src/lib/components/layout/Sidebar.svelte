@@ -586,13 +586,13 @@
 							class="flex flex-col gap-3 rounded-2xl border border-white/5 bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.04]"
 						>
 							<MiniProgress
-								value={mainDisk.usedPercent}
+								value={mainDisk.used_percent}
 								label={t('dashboard.storage')}
-								sublabel={`${mainDisk.usedPercent.toFixed(0)}%`}
+								sublabel={`${mainDisk.used_percent.toFixed(0)}%`}
 								icon={HardDrive}
-								status={mainDisk.usedPercent > 90
+								status={mainDisk.used_percent > 90
 									? "critical"
-									: mainDisk.usedPercent > 75
+									: mainDisk.used_percent > 75
 										? "warning"
 										: "normal"}
 								colorClass="bg-zinc-500"

@@ -216,7 +216,15 @@ func GetSystemMemInfo(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: mem})
 }
 
-// @Summary get disk info
+// @Summary get disk info — physical disks + per-mount usage
+// @Description Returns model.DisksInfo: a `physical` array with one
+// entry per block device (model + serial + size + temperature +
+// SMART overall health, best-effort when smartctl is available)
+// and a `mounts` array with one entry per visible filesystem
+// (path, fs_type, total, used, free, used_percent). Pre-fix the
+// handler returned only the root mount's disk.UsageStat — the
+// shape was widened to match powerlab-mcp's system://disk
+// description and the dashboard widget contract.
 // @Produce  application/json
 // @Accept application/json
 // @Tags sys
@@ -224,8 +232,16 @@ func GetSystemMemInfo(ctx echo.Context) error {
 // @Success 200 {string} string "ok"
 // @Router /sys/disk [get]
 func GetSystemDiskInfo(ctx echo.Context) error {
-	disk := service.MyService.System().GetDiskInfo()
-	return ctx.JSON(http.StatusOK, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: disk})
+	info := getDisksForRoute()
+	return ctx.JSON(http.StatusOK, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: info})
+}
+
+// getDisksForRoute is a package-level indirection so handler tests
+// can stub the service call without standing up the full
+// service.Repository. Production wiring calls straight through to
+// service.MyService.System().GetDisks().
+var getDisksForRoute = func() interface{} {
+	return service.MyService.System().GetDisks()
 }
 
 // @Summary get host info — kernel + OS identity + boot time

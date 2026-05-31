@@ -1,0 +1,59 @@
+kind: Fixed
+body: |
+  /v1/sys/disk now returns the {physical, mounts} shape its handler
+  description (and powerlab-mcp's system://disk resource) has always
+  promised. Pre-fix the route returned a single disk.UsageStat for
+  the root mount only — so agents reading system://disk got back one
+  object with no SMART data, no per-mount survey, and no awareness
+  of additional filesystems despite the description advertising
+  "physical disks, per-mount usage, SMART metadata (model, serial,
+  temperature) — same surface the panel reads". MCP quality audit
+  caught the contract drift on a live Lima instance.
+
+  New shape (snake_case across the wire, consistent with
+  ProcessSummary's cpu_percent / mem_percent / rss_kb):
+    {
+      "physical": [{name, model, serial, size_bytes, temperature_c,
+                    health_status}, ...],
+      "mounts":   [{path, fs_type, total, used, free,
+                    used_percent}, ...]
+    }
+
+  Implementation: model.DisksInfo + service.GetDisks() (in
+  backend/core/service/disks.go) enumerate physical block devices via
+  smartctl --scan -j + smartctl -a -j (best-effort — empty Model
+  means smartctl unavailable, same graceful-degrade as system://gpu)
+  and per-mount usage via gopsutil disk.Partitions(all=false) +
+  disk.Usage(). Mount fallback to a single root entry when
+  disk.Partitions returns nothing usable, so the route NEVER returns
+  an empty mounts array on a real host. Both arrays always non-nil
+  so they marshal to [] not null.
+
+  Tests (TDD red→green):
+    - service/disks_test.go: TestGetDisks_RootMountAlwaysPresent
+      asserts the root mount is always present with Total > 0 and
+      UsedPercent in [0,100]; TestRoundPercent_OneDecimal locks the
+      rounding the dashboard expects.
+    - route/v1/disk_test.go:
+      TestGetSystemDiskInfo_ReturnsPhysicalAndMounts pins the
+      snake_case wire keys + value pass-through;
+      TestGetSystemDiskInfo_EmptyPhysicalMarshalsAsArray locks the
+      `"physical":[]` (not null) graceful-degrade contract.
+    - ui/src/lib/stores/system.test.ts: split-payload test +
+      defensive test for the legacy single-object shape (an old
+      core in front of a new UI).
+
+  UI follow-up (same PR — the dashboard widget consumes the data
+  and would otherwise break): system.svelte.ts store splits
+  `physical` into a new `physicalDisks` reactive slot and consumes
+  `mounts` for the existing `disks` slot. Dashboard StorageBar
+  + Sidebar updated to read used_percent / fs_type. MCP
+  description in resources_system.go (both the schema doc and the
+  per-resource registration) updated to spell out the field set
+  so the description stays the single source of truth.
+
+  Legacy GetDiskInfo() kept on the SystemService interface — the
+  bug-report path (GetSystemConfigDebug) still needs it. No
+  breaking change at the Go API level; only the route shape moves.
+custom:
+  Issue: ""

@@ -58,7 +58,7 @@ const systemSchemaDoc = `{
     "system://schema": "this document",
     "system://metrics": "INDEPENDENT — /proc-direct snapshot of memory + load average + uptime. Always works when MCP is up.",
     "system://utilization": "PROXIED — core's /v1/sys/utilization: CPU percent / temperature / power / model, memory, network.",
-    "system://disk": "PROXIED — core's /v1/sys/disk: physical disks + per-mount usage + SMART metadata (model, serial, temperature). Same surface the panel reads.",
+    "system://disk": "PROXIED — core's /v1/sys/disk: {physical:[{name,model,serial,size_bytes,temperature_c,health_status}], mounts:[{path,fs_type,total,used,free,used_percent}]}. Both arrays always present (empty when no data); empty physical[].model means smartctl unavailable on this host — same graceful-degrade pattern as system://gpu's empty model = no GPU.",
     "system://network": "PROXIED — core's /v1/sys/network/interfaces: per-interface state + addresses.",
     "system://gpu": "INDEPENDENT IMPORT — common/external::GetGPUUtilization. Apple Silicon (ioreg) + Nvidia (nvidia-smi). Returns {percent, memoryUsed, model, temperature}; an empty model means 'no GPU detected'. No network hop.",
     "system://services": "PROXIED — core's /v1/sys/services: ActiveState + SubState per powerlab-* systemd unit (whitelisted in core; agent cannot query arbitrary units).",
@@ -172,7 +172,7 @@ func registerSystemUtilization(s *mcp.Server, proxy *coreproxy.Client) {
 func registerSystemDisk(s *mcp.Server, proxy *coreproxy.Client) {
 	registerProxiedSystem(s, proxy, systemDiskURI,
 		"System disk (physical + per-mount + SMART)",
-		"Physical disks, per-mount usage, SMART metadata (model, serial, temperature) — proxied from core's /v1/sys/disk. PowerLab's category differentiator: the dashboard widget for SMART health reads the same surface.",
+		"Physical disks (name/model/serial/size_bytes/temperature_c/health_status) + per-mount usage (path/fs_type/total/used/free/used_percent) — proxied from core's /v1/sys/disk. SMART fields are best-effort: empty model means smartctl unavailable on this host (same graceful-degrade as system://gpu). PowerLab's category differentiator: the dashboard widget for SMART health reads the same surface.",
 		"/v1/sys/disk")
 }
 

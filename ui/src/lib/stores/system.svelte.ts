@@ -17,7 +17,8 @@ import {
 	getSystemDisk,
 	getStorageDevices,
 	type SystemUtilization,
-	type DiskInfo,
+	type MountInfo,
+	type PhysicalDisk,
 	type StorageDevice
 } from '$lib/api/system';
 
@@ -31,7 +32,17 @@ let utilization = $state<SystemUtilization | null>((() => {
 	}
 })());
 
-let disks = $state<DiskInfo[]>([]);
+// disks holds the per-mount usage rows from /v1/sys/disk's `mounts`
+// array. snake_case fields (fs_type, used_percent) match the wire
+// contract pinned by backend/core/model/disks.go::MountInfo and the
+// MCP system://disk description — kept identical so the MCP
+// description is the single source of truth.
+let disks = $state<MountInfo[]>([]);
+// physicalDisks holds the SMART-enriched block-device inventory
+// from /v1/sys/disk's `physical` array. Empty on hosts where
+// smartctl is unavailable (the dashboard renders nothing rather
+// than a broken row).
+let physicalDisks = $state<PhysicalDisk[]>([]);
 // Storage devices (rich shape from /v1/disks: model, temperature,
 // SMART health). Polled at a slower cadence than utilization — SMART
 // + temperature don't change second-by-second and smartctl is a
@@ -121,8 +132,13 @@ async function fetchDisks() {
 	try {
 		const res = await getSystemDisk();
 		if (!res.data) return;
-		// Backend returns either a single DiskInfo or an array
-		disks = Array.isArray(res.data) ? res.data : [res.data];
+		// /v1/sys/disk now returns `{physical, mounts}` (fixed in the
+		// MCP-quality-audit follow-up — the route used to send a
+		// single root-mount object). Both arrays are guaranteed
+		// non-null at the wire by the backend; default to [] on the
+		// off-chance an old core version is in front of a new UI.
+		disks = Array.isArray(res.data.mounts) ? res.data.mounts : [];
+		physicalDisks = Array.isArray(res.data.physical) ? res.data.physical : [];
 	} catch {
 		// Disk errors are non-fatal — don't clobber the main error state
 	}
@@ -175,6 +191,7 @@ export function useSystemStore() {
 	return {
 		get utilization() { return utilization; },
 		get disks() { return disks; },
+		get physicalDisks() { return physicalDisks; },
 		get storageDevices() { return storageDevices; },
 		get loading() { return loading; },
 		get error() { return error; },
