@@ -87,6 +87,29 @@ type Config struct {
 	// enumerates valid <id> subdirectories. Missing dir means
 	// catalog://index returns an empty list.
 	CatalogDir string
+
+	// EnableSensitiveTier is the operator opt-in for the sensitive
+	// sysadmin resources (ADR-0049): journal://system/auth and
+	// journal://system/failures. When false (the default), these
+	// resources are NOT registered — they do not appear in
+	// resources/list and an agent has no URI to address; the surface
+	// effectively does not exist.
+	//
+	// When true, an authenticated agent can read SSH attempt logs
+	// (usernames + source IPs of every probe), sudo invocations
+	// (who ran what privileged command, when), and login session
+	// events. That is legitimate enterprise observability — and a
+	// real exposure if the JWT is compromised. The MESSAGE field is
+	// kept intact (operators need the actual log line to reason); a
+	// `sudo command --password=hunter2` invocation that logs via
+	// pam_unix's LOG_INFO path WILL surface that argument in MESSAGE.
+	// Documented limit; operators flipping this knob accept it.
+	//
+	// Same single-switch-for-whole-tier semantics as
+	// EnableDestructiveTools — per-resource gates would compound
+	// operator confusion ("which combination shows what?") for no
+	// threat-model gain.
+	EnableSensitiveTier bool
 }
 
 // Default returns the configuration used when no conf file is present
@@ -102,6 +125,7 @@ func Default() Config {
 		EnableDestructiveTools: false,
 		ConceptsDir:            "/usr/share/powerlab/docs/concepts",
 		CatalogDir:             "/var/lib/powerlab/community-catalog",
+		EnableSensitiveTier:    false,
 	}
 }
 
@@ -154,6 +178,8 @@ func Load(path string) (Config, error) {
 			cfg.ConceptsDir = val
 		case "catalogdir":
 			cfg.CatalogDir = val
+		case "enablesensitivetier":
+			cfg.EnableSensitiveTier = parseBool(val)
 			// unknown keys: ignored on purpose (forward-compatible)
 		}
 	}

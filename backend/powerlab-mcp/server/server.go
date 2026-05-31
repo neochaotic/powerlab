@@ -100,6 +100,7 @@ func New(cfg config.Config, info BuildInfo) (*Server, error) {
 		enableDestructiveTools: cfg.EnableDestructiveTools,
 		conceptsDir:            cfg.ConceptsDir,
 		catalogDir:             cfg.CatalogDir,
+		enableSensitiveTier:    cfg.EnableSensitiveTier,
 	})
 	s.audit = auditSvc
 	return s, nil
@@ -119,6 +120,12 @@ type resourcesConfig struct {
 	enableDestructiveTools bool
 	conceptsDir            string
 	catalogDir             string
+	// enableSensitiveTier is the operator opt-in for the sensitive
+	// sysadmin resources (ADR-0049 — journal://system/auth and
+	// journal://system/failures). False (default) → neither resource
+	// is registered, so they don't appear in resources/list and an
+	// agent has no URI to address. Mirrors enableDestructiveTools.
+	enableSensitiveTier bool
 }
 
 // newServer is the dependency-injected constructor: tests pass a
@@ -181,6 +188,15 @@ func newMCPServer(info BuildInfo, rc resourcesConfig, journalRun journal.Runner)
 	// model gate until the panel-side approval UI lands.
 	if rc.enableDestructiveTools {
 		registerDestructiveTools(m, rc.coreClient)
+	}
+	// ADR-0049 — sensitive sysadmin tier (journal://system/auth +
+	// journal://system/failures). Gated on EnableSensitiveTier: when
+	// false (default) the resources are NOT registered, so resources/
+	// list doesn't advertise them and the agent has no URI to address.
+	// Same single-switch-for-whole-tier shape as enableDestructiveTools
+	// (ADR-0049 §"Gate semantics" — per-resource gates rejected).
+	if rc.enableSensitiveTier {
+		registerJournalSystem(m, journalRun)
 	}
 	return m
 }

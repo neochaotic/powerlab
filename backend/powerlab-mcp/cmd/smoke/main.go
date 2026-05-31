@@ -386,8 +386,64 @@ func readAndAssert(ctx context.Context, cs *mcp.ClientSession, uri string) int {
 		return assertCatalogIndex(payload)
 	case strings.HasPrefix(uri, "catalog://app/"):
 		return assertCatalogApp(uri, payload)
+	case uri == "journal://system/auth", uri == "journal://system/failures":
+		return assertSensitiveJournalPayload(uri, payload)
 	}
 	return 0
+}
+
+// assertSensitiveJournalPayload validates the ADR-0049 sensitive-tier
+// resource shape. The advertised URIs only appear when
+// EnableSensitiveTier=true; if the smoke reaches them they MUST
+// deserialise as a JSON array (possibly empty — fresh box / no
+// matching entries is fine), every entry MUST carry the locked wire
+// keys (ts/unit/hostname/message), and the payload MUST NEVER
+// contain the forbidden tokens (_cmdline / _pid / _audit_session).
+// The last check is the load-bearing safety net — the resource
+// family's WHOLE POINT is the wire-shape promise.
+func assertSensitiveJournalPayload(uri, payload string) int {
+	// Defensive: even if some upstream change reintroduces a leaky
+	// field, the smoke trips before an operator ever sees it.
+	low := strings.ToLower(payload)
+	for _, bad := range []string{"cmdline", "_pid", "audit_session", "_selinux_context"} {
+		if strings.Contains(low, bad) {
+			fmt.Fprintf(os.Stderr, "FAIL  %s — payload leaked forbidden token %q (ADR-0049 wire-shape promise broken)\n", uri, bad)
+			return 1
+		}
+	}
+
+	var entries []map[string]interface{}
+	if err := json.Unmarshal([]byte(payload), &entries); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  %s — payload not a JSON array: %v\n", uri, err)
+		return 1
+	}
+	if len(entries) == 0 {
+		// Empty is OK — fresh box / gate just enabled / no matching
+		// records yet. The wiring is fine; the data hasn't arrived.
+		fmt.Printf("      → zero entries (fresh box / no matching records — not a failure)\n")
+		return 0
+	}
+	// Sample the first record and confirm the locked wire keys are
+	// present. We don't enforce non-empty values (a journalctl record
+	// with no _HOSTNAME is rare but possible); we DO enforce the
+	// shape contract — every key the agent will index by must exist.
+	for i, e := range entries {
+		for _, key := range []string{"ts", "unit", "hostname", "message"} {
+			if _, ok := e[key]; !ok {
+				fmt.Fprintf(os.Stderr, "FAIL  %s record %d missing wire key %q (ADR-0049 shape promise)\n", uri, i, key)
+				return 1
+			}
+		}
+	}
+	fmt.Printf("      → %d entr%s with locked {ts, unit, hostname, message} shape\n", len(entries), pluralIES(len(entries)))
+	return 0
+}
+
+func pluralIES(n int) string {
+	if n == 1 {
+		return "y"
+	}
+	return "ies"
 }
 
 // assertSystemUpdates validates the system://updates payload. The
