@@ -174,6 +174,14 @@ func InitV2Router() http.Handler {
 	e.GET(V2APIPath+"/catalog/status", appManagement.(*v2Route.AppManagement).GetCatalogStatus)
 	e.PUT(V2APIPath+"/catalog/enabled", appManagement.(*v2Route.AppManagement).SetCatalogEnabled)
 
+	// #630 — raw Docker visibility (READ ONLY) is registered via the
+	// codegen pass below; the openapi spec declares /docker/{containers,
+	// images,networks,volumes,system} so the OapiRequestValidator + the
+	// route handlers wire up automatically. Per ADR-0045 app-management
+	// is the single PowerLab service that talks to the Docker daemon;
+	// these endpoints exist so powerlab-mcp (and any future operator
+	// tool) can query daemon-wide state without growing its own socket
+	// access. No exec/run/prune — those need a separate threat-model ADR.
 	codegen.RegisterHandlersWithBaseURL(e, appManagement, V2APIPath)
 
 	return e

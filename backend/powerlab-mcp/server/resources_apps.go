@@ -58,7 +58,12 @@ const appsSchemaDoc = `{
     "apps://state/{id}/health": "aggregate health for one app",
     "apps://state/{id}/stats": "per-container CPU/RAM/IO for one app",
     "apps://state/{id}/disk": "per-app disk footprint",
-    "docker://logs/{id}": "container logs proxied through app-management's ComposeAppLogs — MCP does NOT have Docker socket access; the surface goes through the same path the panel reads"
+    "docker://logs/{id}": "container logs proxied through app-management's ComposeAppLogs — MCP does NOT have Docker socket access; the surface goes through the same path the panel reads",
+    "docker://containers": "all containers on the host Docker daemon (PowerLab + non-PowerLab) — name, image, state, ports, created_at, labels (#630)",
+    "docker://images": "all local Docker images — id, tags[], size, created_at (#630)",
+    "docker://networks": "all Docker networks — name, driver, scope, IPAM, attached_containers[] (#630)",
+    "docker://volumes": "all Docker volumes — name, driver, mountpoint, size, in_use_by[] (#630)",
+    "docker://system": "Docker daemon info + 'docker system df' snapshot — version, containers/images count, disk_usage{containers,images,volumes,build_cache} (#630)"
   },
   "proxy_error_shape": {
     "error": "apps_unavailable | apps_status_NNN — pattern-match this and pivot to audit:// + journal://powerlab-app-management",

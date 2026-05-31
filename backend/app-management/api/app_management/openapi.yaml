@@ -37,6 +37,15 @@ tags:
     description: |-
       methods for internal use ONLY
 
+  - name: Docker visibility methods
+    description: |-
+      READ ONLY raw Docker daemon visibility (#630). Per ADR-0045,
+      app-management is the single PowerLab service that talks to the
+      Docker daemon; these endpoints exist so powerlab-mcp (and any
+      future operator tool) can query daemon-wide state without growing
+      its own socket access. No exec/run/prune — those need a separate
+      threat-model ADR.
+
   - name: AppStoreInfo
     description: |-
       <SchemaDefinition schemaRef="#/components/schemas/AppStoreInfo" />
@@ -97,6 +106,7 @@ x-tagGroups:
       - Compose methods
       - Container methods
       - Image methods
+      - Docker visibility methods
 
   - name: Schemas
     tags:
@@ -708,6 +718,109 @@ paths:
         "500":
           $ref: "#/components/responses/ResponseInternalServerError"
 
+  # Raw Docker visibility (#630) — READ ONLY. Per ADR-0045,
+  # app-management is the single PowerLab service that talks to the
+  # Docker daemon; these endpoints exist so powerlab-mcp (and any
+  # future operator tool) can query daemon-wide state without growing
+  # its own socket access. No exec/run/prune — those need a separate
+  # threat-model ADR.
+  /docker/containers:
+    get:
+      summary: List all Docker containers on the host
+      description: |
+        Returns every container on the host Docker daemon — PowerLab-managed AND
+        non-PowerLab (operator-run, third-party tooling). Equivalent to `docker ps -a`.
+        Used by powerlab-mcp's `docker://containers` resource (#630).
+      operationId: dockerContainers
+      tags:
+        - Docker visibility methods
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DockerVisibilityContainersResponse"
+        "503":
+          $ref: "#/components/responses/ResponseServiceUnavailable"
+
+  /docker/images:
+    get:
+      summary: List all local Docker images
+      description: |
+        Returns every local Docker image. Used by powerlab-mcp's `docker://images` resource (#630).
+      operationId: dockerImages
+      tags:
+        - Docker visibility methods
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DockerVisibilityImagesResponse"
+        "503":
+          $ref: "#/components/responses/ResponseServiceUnavailable"
+
+  /docker/networks:
+    get:
+      summary: List all Docker networks
+      description: |
+        Returns every Docker network on the host with IPAM + attached_containers.
+        Used by powerlab-mcp's `docker://networks` resource (#630).
+      operationId: dockerNetworks
+      tags:
+        - Docker visibility methods
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DockerVisibilityNetworksResponse"
+        "503":
+          $ref: "#/components/responses/ResponseServiceUnavailable"
+
+  /docker/volumes:
+    get:
+      summary: List all Docker volumes
+      description: |
+        Returns every Docker volume on the host. Size is best-effort (-1 when
+        the daemon does not populate UsageData on `volume ls`).
+        Used by powerlab-mcp's `docker://volumes` resource (#630).
+      operationId: dockerVolumes
+      tags:
+        - Docker visibility methods
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DockerVisibilityVolumesResponse"
+        "503":
+          $ref: "#/components/responses/ResponseServiceUnavailable"
+
+  /docker/system:
+    get:
+      summary: Docker daemon info + disk usage snapshot
+      description: |
+        Combines `/info` (daemon version, container/image count) with
+        `/system/df` (per-category disk usage rollup) into one payload.
+        Used by powerlab-mcp's `docker://system` resource (#630).
+      operationId: dockerSystem
+      tags:
+        - Docker visibility methods
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DockerVisibilitySystemResponse"
+        "503":
+          $ref: "#/components/responses/ResponseServiceUnavailable"
+
 components:
   securitySchemes:
     access_token:
@@ -1202,6 +1315,186 @@ components:
                     items:
                       $ref: "#/components/schemas/WebAppGridItem"
   schemas:
+    # Raw Docker visibility (#630) — wire shapes are hand-typed (not the
+    # raw SDK summaries) so the MCP contract is stable across Docker
+    # SDK upgrades.
+    DockerVisibilityPort:
+      type: object
+      properties:
+        private_port:
+          type: integer
+        public_port:
+          type: integer
+        protocol:
+          type: string
+        ip:
+          type: string
+
+    DockerVisibilityContainer:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        image:
+          type: string
+        state:
+          type: string
+        status:
+          type: string
+        ports:
+          type: array
+          items:
+            $ref: "#/components/schemas/DockerVisibilityPort"
+        created_at:
+          type: integer
+          format: int64
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+
+    DockerVisibilityContainersResponse:
+      type: object
+      properties:
+        containers:
+          type: array
+          items:
+            $ref: "#/components/schemas/DockerVisibilityContainer"
+
+    DockerVisibilityImage:
+      type: object
+      properties:
+        id:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        size:
+          type: integer
+          format: int64
+        created_at:
+          type: integer
+          format: int64
+
+    DockerVisibilityImagesResponse:
+      type: object
+      properties:
+        images:
+          type: array
+          items:
+            $ref: "#/components/schemas/DockerVisibilityImage"
+
+    DockerVisibilityIPAMConfig:
+      type: object
+      properties:
+        subnet:
+          type: string
+        gateway:
+          type: string
+
+    DockerVisibilityIPAM:
+      type: object
+      properties:
+        driver:
+          type: string
+        configs:
+          type: array
+          items:
+            $ref: "#/components/schemas/DockerVisibilityIPAMConfig"
+
+    DockerVisibilityNetworkMember:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        ipv4:
+          type: string
+
+    DockerVisibilityNetwork:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        driver:
+          type: string
+        scope:
+          type: string
+        ipam:
+          $ref: "#/components/schemas/DockerVisibilityIPAM"
+        attached_containers:
+          type: array
+          items:
+            $ref: "#/components/schemas/DockerVisibilityNetworkMember"
+
+    DockerVisibilityNetworksResponse:
+      type: object
+      properties:
+        networks:
+          type: array
+          items:
+            $ref: "#/components/schemas/DockerVisibilityNetwork"
+
+    DockerVisibilityVolume:
+      type: object
+      properties:
+        name:
+          type: string
+        driver:
+          type: string
+        mountpoint:
+          type: string
+        size:
+          type: integer
+          format: int64
+          description: bytes; -1 when daemon did not populate UsageData
+        in_use_by:
+          type: array
+          items:
+            type: string
+
+    DockerVisibilityVolumesResponse:
+      type: object
+      properties:
+        volumes:
+          type: array
+          items:
+            $ref: "#/components/schemas/DockerVisibilityVolume"
+
+    DockerVisibilityDiskUsage:
+      type: object
+      properties:
+        containers:
+          type: integer
+          format: int64
+        images:
+          type: integer
+          format: int64
+        volumes:
+          type: integer
+          format: int64
+        build_cache:
+          type: integer
+          format: int64
+
+    DockerVisibilitySystemResponse:
+      type: object
+      properties:
+        docker_version:
+          type: string
+        containers_count:
+          type: integer
+        images_count:
+          type: integer
+        disk_usage:
+          $ref: "#/components/schemas/DockerVisibilityDiskUsage"
+
     BaseResponse:
       properties:
         message:

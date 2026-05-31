@@ -192,6 +192,7 @@ For deeper architectural questions (why does the service run as root? why is aut
 | `audit://recent`, `audit://action/{id}` | HTTP request audit trail |
 | `apps://list`, `apps://state/{id}/*` | installed apps + per-app state |
 | `docker://logs/{id}` | container logs (MCP never touches docker socket) |
+| `docker://containers`, `docker://images`, `docker://networks`, `docker://volumes`, `docker://system` | raw Docker daemon visibility — incl. non-PowerLab containers ([#630](https://github.com/neochaotic/powerlab/issues/630)) |
 | `docs://api`, `docs://api/{service}` | OpenAPI specs for self-discovery |
 | Tools | `journal_search`, `check_disk_free`, `restart_app`, `install_app` (opt-in), `uninstall_app` (opt-in) |
 
