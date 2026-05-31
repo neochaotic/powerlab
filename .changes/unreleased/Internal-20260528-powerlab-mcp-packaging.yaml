@@ -1,5 +1,0 @@
-kind: Internal
-body: 'powerlab-mcp: wire into release packaging (#599). scripts/package-linux.sh now cross-compiles powerlab-mcp (CGO-free, amd64+arm64) with a -X main.version=$VERSION stamp, emits /etc/powerlab/mcp.conf.sample (ListenAddr/AuditDir/RuntimePath) and powerlab-mcp.service (Type=notify, User=root because audit.jsonl is root:root 0600, ExecStart uses -conf to match the binary''s flag), and adds mcp to install.sh + uninstall.sh SERVICES lists so systemctl enable/restart/stop iteration covers it. ADR-0034 packaging acceptance items checked off. Regression test scripts/check-package-linux-powerlab-mcp_test.sh locks every contract the change had to honour; ldflags regression test gets a new positive assertion for main.version.'
-time: 2026-05-28T10:00:00Z
-custom:
-    Issue: "599"

@@ -1,5 +1,0 @@
-kind: Internal
-body: 'powerlab-mcp (milestone review follow-up): system://metrics now reports CPU core count, so an agent can interpret the load averages (load relative to cores = utilisation). Adds an MCP integration test over the real HTTP Streamable transport (not just the in-process client), proving the transport and protocol compose end-to-end.'
-time: 2026-05-28T01:30:00Z
-custom:
-    Issue: ""

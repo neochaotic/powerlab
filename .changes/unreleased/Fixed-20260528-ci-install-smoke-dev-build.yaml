@@ -1,5 +1,0 @@
-kind: Fixed
-body: 'ci: install-smoke gate was chronically red post-merge (13/20 recent main pushes failed) because the CI tarball is stamped 0.0.0-ci and install.sh refuses 0.0.0-* dev builds by default. The workflow now sets POWERLAB_ALLOW_DEV_BUILD=1 so the gate actually exercises a real install. PRs skip install-smoke entirely (the job is guarded `if: github.event_name != ''pull_request''`), so the silent post-merge red was invisible — no recent unit-file change has actually been validated end-to-end. Regression test scripts/check-ci-install-smoke-dev-build_test.sh locks the env var into the workflow.'
-time: 2026-05-28T11:00:00Z
-custom:
-    Issue: ""

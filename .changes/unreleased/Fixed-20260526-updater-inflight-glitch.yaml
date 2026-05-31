@@ -1,5 +1,0 @@
-kind: Fixed
-body: 'Settings → About: clicking "Check now" again right after a failed check no longer flashes "Update check failed — ." (an empty reason) while the new request is in flight. The manual-failure line now clears the moment a re-check starts and only reappears if that re-check also fails.'
-time: 2026-05-26T18:15:00Z
-custom:
-    Issue: ""

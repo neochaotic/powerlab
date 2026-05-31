@@ -1,5 +1,0 @@
-kind: Internal
-body: 'Revise and accept ADR-0034 (standalone observability + MCP service). Reconciled against current code: binary name fixed to `powerlab-mcp`; `audit://` resources now tail the JSONL audit store (ADR-0035, shipped) instead of attaching SQLite; transports phased to HTTP+SSE first (stdio deferred); roadmap re-keyed from "Sprint 17" to release increments; JWT confirmed single-issuer via the user-service. Host-ops scope tightened to PowerLab-scoped tools only (no arbitrary kill_process / list_directory) under the enterprise lens.'
-time: 2026-05-27T20:45:00Z
-custom:
-    Issue: ""

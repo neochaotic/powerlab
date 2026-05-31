@@ -1,5 +1,0 @@
-kind: Internal
-body: 'powerlab-mcp journal:// review fixes: cap the line count (default 200, ceiling 2000) so a query with no `lines` no longer dumps the entire journal since boot (token/memory blowout); and default a record with no PRIORITY field to info (6) instead of emergency (0), which had inflated every unprioritised line to the top severity.'
-time: 2026-05-28T02:55:00Z
-custom:
-    Issue: ""

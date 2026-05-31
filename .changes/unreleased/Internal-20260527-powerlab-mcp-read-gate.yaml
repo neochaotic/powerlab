@@ -1,5 +1,0 @@
-kind: Internal
-body: 'powerlab-mcp: gate the MCP endpoint at the read tier (ADR-0034). Loopback (the trusted local agent) is free; a LAN caller must present a valid PowerLab user-service JWT, validated via the shared `jwt.HTTPJWT` gate against the JWKS published under the configurable RuntimePath. The /healthz and /version control endpoints stay open. Loopback never attempts JWT key resolution, so local observability keeps working when the user-service is unreachable.'
-time: 2026-05-27T23:05:00Z
-custom:
-    Issue: ""

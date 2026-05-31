@@ -1,5 +1,0 @@
-kind: Internal
-body: 'powerlab-mcp: add the audit:// resource — read-only tail of the gateway''s JSONL audit log (ADR-0033/0035), exposing audit://schema (self-describing), audit://recent{?limit} (newest records, default 100 / max 1000), and audit://action/{correlation_id} (records tagged with one X-Request-Id, e.g. everything one request triggered). Reads a single file (the gateway is the only audit writer) — ADR-0034 amended to match reality. With this, the read-only observability surface is complete: an MCP agent reads metrics + logs + audit of the box.'
-time: 2026-05-28T03:55:00Z
-custom:
-    Issue: ""
