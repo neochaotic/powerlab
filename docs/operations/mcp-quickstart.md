@@ -130,6 +130,34 @@ Operator threat model:
 
 ---
 
+## Step 5.5 — opt in to sensitive journals (optional)
+
+By default the agent's journal access is **scope-locked to PowerLab units** (`journal://{unit}` only reaches `powerlab-*.service`). The sensitive tier (`journal://system/auth` + `journal://system/failures`, [ADR-0049](../decisions/0049-mcp-sensitive-sysadmin-tier-threat-model.md)) reads the HOST auth journals — `ssh.service` / `sshd.service` / `sudo` / `su`. It is NOT registered until you flip the gate:
+
+```bash
+sudo $EDITOR /etc/powerlab/mcp.conf
+# Add (or uncomment):
+EnableSensitiveTier = true
+
+sudo systemctl restart powerlab-mcp
+```
+
+After restart, `resources/list` advertises `journal://system/auth` + `journal://system/failures`. Disable the same way: flip back to `false`, restart. Tokens do NOT need to be revoked — the resources simply vanish from the surface.
+
+What the agent can now answer:
+- "Did anyone try to log in last night?" / "Are we under an SSH brute force?"
+- "Who ran `sudo` during the maintenance window, when, with what command?"
+- "What auth failures hit the box in the last hour?" (`journal://system/failures`)
+
+Operator threat model:
+- **Wire shape is locked**: `{ts, unit, hostname, message}`. `_PID`, `_CMDLINE`, and `_AUDIT_SESSION` are omitted (`_CMDLINE` for sudo would routinely leak `--password=` style argvs — same name-only promise as `system://processes`).
+- **MESSAGE is forwarded raw.** A `sudo command --password=hunter2` invocation that hits PAM's `LOG_INFO` path (rare, not the default) WILL surface that argument inside the message. Documented limit; if it bites in practice, a redaction layer is on the roadmap.
+- **Token-compromise blast radius widens**: a leaked JWT now grants read on auth journals while the gate is on. Same JWT controls as the rest of MCP; the audit dogfood (ADR-0047) will record every read once implemented.
+- **Selectors are fixed in code**: `ssh.service`, `sshd.service`, `sudo`, `su`. The agent does NOT supply units — flipping the gate is a single-switch-for-whole-tier decision (per ADR-0049 §Gate semantics; per-resource gates were considered and rejected).
+- **Bounds are tighter than `journal://{unit}`**: `lines` defaults to 100 and ceilings at 500 (vs PowerLab journal's 200 / 2000). Per-call exfil if a token leaks stays small.
+
+---
+
 ## Step 6 — troubleshooting
 
 | Symptom | First check |
@@ -138,6 +166,7 @@ Operator threat model:
 | Smoke client says `audit://recent permission denied` | Smoke is running as a non-root user; the file is `root:root 0600`. Use `sudo /usr/share/powerlab/bin/powerlab-mcp-smoke` OR ignore the WARN — the service running under systemd reads it correctly. |
 | Claude Desktop says "MCP server not responding" | Token expired, wrong URL, or LAN firewall. Verify `curl -H "Authorization: Bearer <token>" http://<your-box>:9090/healthz` from your Claude Desktop machine. |
 | `tools/list` shows 3 not 5 | `EnableDestructiveTools = false` (the default). Step 5 to enable. |
+| `resources/list` has no `journal://system/*` | `EnableSensitiveTier = false` (the default). Step 5.5 to enable. |
 | `docs://api` returns empty manifest | OpenAPI staging didn't run during install — re-run `install.sh` or check `/usr/share/powerlab/openapi/` exists. |
 | Want to disable MCP entirely | `Disabled = true` in `/etc/powerlab/mcp.conf` + `sudo systemctl restart powerlab-mcp`. The binary exits cleanly without binding `:9090`; systemd treats it as a clean stop. |
 
@@ -159,6 +188,7 @@ For deeper architectural questions (why does the service run as root? why is aut
 | `system://processes` | top 10 by CPU and mem (name only — no argv leak) |
 | `system://updates` | pending OS package updates (apt; security flag) |
 | `journal://{unit}` | systemd logs scoped to PowerLab units |
+| `journal://system/auth`, `journal://system/failures` | host auth journal (ssh, sudo, su) — **opt-in via `EnableSensitiveTier`** (ADR-0049) |
 | `audit://recent`, `audit://action/{id}` | HTTP request audit trail |
 | `apps://list`, `apps://state/{id}/*` | installed apps + per-app state |
 | `docker://logs/{id}` | container logs (MCP never touches docker socket) |

@@ -458,6 +458,31 @@ ConceptsDir = /usr/share/powerlab/docs/concepts
 # representative apps from here. install.sh lays down the bundled
 # catalog at the path below.
 CatalogDir = /var/lib/powerlab/community-catalog
+
+# Operator opt-in for the sensitive sysadmin tier (ADR-0049) —
+# journal://system/auth + journal://system/failures. When false
+# (the default) these resources are NOT registered: they don't
+# appear in resources/list and an agent has no URI to address.
+#
+# Flipping to true means an authenticated agent can read host
+# auth journals — SSH attempts (usernames + source IPs of every
+# probe), sudo invocations (who ran what privileged command,
+# when), and login session events. That is legitimate enterprise
+# observability ("did anyone try to log in last night?", "what
+# privileged actions ran during the maintenance window?") and a
+# real exposure if the JWT is compromised.
+#
+# Wire shape is locked: {ts, unit, hostname, message}. _PID,
+# _CMDLINE, and _AUDIT_SESSION are deliberately omitted (argv
+# routinely carries secrets — same name-only promise as
+# system://processes). The MESSAGE field IS forwarded raw, so a
+# `sudo command --password=hunter2` invocation that hits PAM's
+# LOG_INFO path WILL surface that argument; documented limit.
+#
+# Single-switch-for-whole-tier semantics (mirrors
+# EnableDestructiveTools). Restart powerlab-mcp after flipping
+# to apply.
+EnableSensitiveTier = false
 EOF
 
 # ─── 5. systemd units ────────────────────────────────────────────────────

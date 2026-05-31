@@ -138,6 +138,52 @@ func TestLoad_EnableDestructiveToolsDefaultFalse(t *testing.T) {
 	}
 }
 
+// EnableSensitiveTier is the operator opt-in for the journal://system/auth
+// + journal://system/failures resources (ADR-0049). Default must be false
+// — agents cannot read host auth journals (SSH attempts, sudo invocations)
+// until the operator explicitly flips the knob. Default-on would be a
+// security-violation by surprise: leaked-token blast radius widens to
+// "every login attempt + every privileged command on the box".
+func TestLoad_EnableSensitiveTierDefaultFalse(t *testing.T) {
+	got, err := Load(writeConf(t, ""))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if got.EnableSensitiveTier {
+		t.Fatalf("EnableSensitiveTier=true on empty conf; want false (operators must opt in per ADR-0049)")
+	}
+}
+
+// Truthy spellings flip the EnableSensitiveTier knob; garbage stays false.
+// Mirrors the EnableDestructiveTools contract so an operator who knows one
+// knows both — ADR-0049 deliberately reuses the gate shape.
+func TestLoad_EnableSensitiveTierAcceptsTruthyOnly(t *testing.T) {
+	cases := []struct {
+		body string
+		want bool
+	}{
+		{"EnableSensitiveTier = true\n", true},
+		{"EnableSensitiveTier = yes\n", true},
+		{"EnableSensitiveTier = on\n", true},
+		{"EnableSensitiveTier = 1\n", true},
+		{"EnableSensitiveTier = TRUE\n", true},
+		{"EnableSensitiveTier = false\n", false},
+		{"EnableSensitiveTier = blargh\n", false},
+		{"EnableSensitiveTier =\n", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.body, func(t *testing.T) {
+			got, err := Load(writeConf(t, tc.body))
+			if err != nil {
+				t.Fatalf("Load: %v", err)
+			}
+			if got.EnableSensitiveTier != tc.want {
+				t.Fatalf("EnableSensitiveTier=%v (body %q); want %v", got.EnableSensitiveTier, tc.body, tc.want)
+			}
+		})
+	}
+}
+
 // Truthy spellings flip the knob; garbage stays false. Mirrors the
 // Disabled key contract so an operator who knows one knows both.
 func TestLoad_EnableDestructiveToolsAcceptsTruthyOnly(t *testing.T) {

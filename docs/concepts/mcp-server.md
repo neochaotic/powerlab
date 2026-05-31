@@ -31,6 +31,8 @@ Resources by namespace:
 | **journal://** | `journal://schema` | self-describing index |
 | | `journal://units` | discovery — lists installed `powerlab-*.service` stems |
 | | `journal://{unit}{?lines,since,priority}` | `journalctl -u powerlab-<unit>.service` — **scope-locked to PowerLab units** |
+| | `journal://system/auth{?lines,since}` | host auth journal — `ssh.service` + `sshd.service` + `sudo` + `su` (**sensitive tier; opt-in only**, ADR-0049). Wire shape: `{ts, unit, hostname, message}` — no `_PID`, no `_CMDLINE`, no `_AUDIT_SESSION`. Registered only when `EnableSensitiveTier = true` in `mcp.conf`. |
+| | `journal://system/failures{?lines,since}` | same source filtered to `PRIORITY warning..error` (**sensitive tier; opt-in only**, ADR-0049). |
 | **audit://** | `audit://schema` | self-describing index |
 | | `audit://recent{?limit}` | tail of `/var/log/powerlab/audit.jsonl` (gateway-written) |
 | | `audit://action/{correlation_id}` | filter by X-Request-Id — the whole cascade of one request |
@@ -121,7 +123,7 @@ flowchart LR
 - **Audit + journal of PowerLab units stay raw.** When core or app-management are down, the agent still reads `audit://` and `journal://gateway` — exactly when the operator needs to find out *why* things are broken.
 - **Proxied resources degrade with a structured payload, not an error.** When core is down `system://utilization` returns `{"error":"core_unavailable","detail":"…","fallback":"audit:// and journal:// remain readable"}`. Same shape for `apps_unavailable` when app-management is down. The agent pattern-matches and pivots.
 - **Docker socket stays out of MCP.** `docker://logs/{id}` proxies through app-management's `ComposeAppLogs` (which already speaks to the Docker socket). MCP never has Docker socket access. This is [ADR-0045 win #2](../decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md).
-- **Journal scope is hard-coded to PowerLab units.** The MCP `journal://` package prefixes any requested unit with `powerlab-` and suffixes `.service` — an agent cannot escape to `/var/log/auth.log` or the kernel ring buffer.
+- **Journal scope is hard-coded to PowerLab units by default.** The MCP `journal://{unit}` package prefixes any requested unit with `powerlab-` and suffixes `.service` — an agent cannot escape to `/var/log/auth.log` or the kernel ring buffer. The opt-in sensitive tier (`journal://system/auth` + `journal://system/failures`, [ADR-0049](../decisions/0049-mcp-sensitive-sysadmin-tier-threat-model.md)) is the ONLY surface that reads host auth journals, and only when `EnableSensitiveTier = true` is set in `mcp.conf` — selectors there (ssh.service, sshd.service, sudo, su) are still fixed in code, not agent-supplied.
 - **JWKS is cached.** MCP fetches the user-service public key once per 10 seconds, then reuses it — auth gate works even if user-service is briefly down.
 - **Storage-agnostic.** A future SQLite → PostgreSQL migration on app-management requires zero changes in MCP. The HTTP contract is the abstraction; storage is an implementation detail the owner service handles.
 
