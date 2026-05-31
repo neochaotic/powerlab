@@ -83,6 +83,8 @@ func New(cfg config.Config, info BuildInfo) (*Server, error) {
 		systemdSystemDir:       cfg.SystemdSystemDir,
 		coreClient:             coreproxy.NewClient(cfg.RuntimePath, nil),
 		enableDestructiveTools: cfg.EnableDestructiveTools,
+		conceptsDir:            cfg.ConceptsDir,
+		catalogDir:             cfg.CatalogDir,
 	}), nil
 }
 
@@ -98,6 +100,8 @@ type resourcesConfig struct {
 	systemdSystemDir       string
 	coreClient             *coreproxy.Client
 	enableDestructiveTools bool
+	conceptsDir            string
+	catalogDir             string
 }
 
 // newServer is the dependency-injected constructor: tests pass a
@@ -139,6 +143,12 @@ func newMCPServer(info BuildInfo, rc resourcesConfig, journalRun journal.Runner)
 	registerJournalUnits(m, rc.systemdSystemDir)
 	registerAudit(m, rc.auditPath)
 	registerDocs(m, rc.openAPIDir)
+	// ADR-0048 — docs surface: concepts + catalog + search + the
+	// compose_authoring Prompt primitive. Read-only across the board.
+	registerDocsConcepts(m, rc.conceptsDir)
+	registerCatalog(m, rc.catalogDir)
+	registerSearchDocs(m, rc.conceptsDir)
+	registerComposeAuthoringPrompt(m, rc.conceptsDir, rc.catalogDir)
 	// ADR-0046 — read-only tools batch 1. Destructive tools land
 	// gated on cfg.EnableDestructiveTools (separate registration
 	// call when that knob arrives).
