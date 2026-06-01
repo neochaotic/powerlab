@@ -200,6 +200,70 @@ echo "Test: install.sh stops/enables/restarts powerlab-mcp"
 assert_grep "install.sh SERVICES list includes mcp (resolves to powerlab-mcp.service)" \
   "SERVICES=(gateway message-bus user-service core app-management local-storage mcp)"
 
+# Issue #638: the helper CLIs (powerlab-mcp-validate + powerlab-mcp-smoke)
+# are operator-facing entry points. README's "30-second smoke test" + the
+# operator quickstart instruct running them on the box. Without explicit
+# cross-compile + install steps, only /usr/bin/powerlab-mcp ships and the
+# documented commands return "No such file or directory" on a fresh
+# install. Lock both build + install paths so the contract can't quietly
+# regress.
+#
+# Install location chosen: /usr/bin/powerlab-mcp-validate +
+# /usr/bin/powerlab-mcp-smoke (top-level PATH, alongside the main
+# powerlab-mcp binary). The earlier docs reference to
+# /usr/share/powerlab/bin/ was aspirational — that directory has never
+# existed. PATH-installed binaries are also what operators expect when
+# the docs say "run powerlab-mcp-smoke".
+echo "Test: helper CLIs (powerlab-mcp-validate + powerlab-mcp-smoke) are cross-compiled (issue #638)"
+assert_grep "cmd/validate source path referenced for cross-compile" \
+  "backend/powerlab-mcp/cmd/validate"
+assert_grep "cmd/smoke source path referenced for cross-compile" \
+  "backend/powerlab-mcp/cmd/smoke"
+assert_grep "powerlab-mcp-validate binary output name" \
+  "powerlab-mcp-validate"
+assert_grep "powerlab-mcp-smoke binary output name" \
+  "powerlab-mcp-smoke"
+
+# Both helpers must be built with the same ldflags as the main binary so
+# `powerlab-mcp-validate -version` / `powerlab-mcp-smoke -version` stay
+# in lock-step with the running daemon. Same fail-soft -X main.version
+# rationale as the main binary above — verify by asserting the helper
+# build steps run inside the same arch+CGO_ENABLED=0 envelope and
+# reuse $LDFLAGS_VERSION_STAMP.
+echo "Test: helper CLIs use the shared LDFLAGS_VERSION_STAMP"
+helper_build_block=$(awk '
+  /backend\/powerlab-mcp\/cmd\/(validate|smoke)/ {flag=1}
+  flag {print}
+  /-o "\$STAGE\/bin\/powerlab-mcp-(validate|smoke)"/ {flag=0; print "---END---"}
+' "$TARGET")
+if [[ -z "$helper_build_block" ]]; then
+  echo "  FAIL: could not extract helper CLI build block" >&2
+  failures=$((failures + 1))
+else
+  if grep -q -F 'LDFLAGS_VERSION_STAMP' <<<"$helper_build_block"; then
+    echo "  PASS: helper CLI build references LDFLAGS_VERSION_STAMP"
+  else
+    echo "  FAIL: helper CLI build does not reuse LDFLAGS_VERSION_STAMP" >&2
+    failures=$((failures + 1))
+  fi
+  if grep -q -F 'CGO_ENABLED=0' <<<"$helper_build_block"; then
+    echo "  PASS: helper CLI build is CGO-free"
+  else
+    echo "  FAIL: helper CLI build missing CGO_ENABLED=0" >&2
+    failures=$((failures + 1))
+  fi
+fi
+
+# install.sh already lays down every $HERE/bin/powerlab-* file with
+# `install -m 0755 "$HERE/bin/powerlab-"* /usr/bin/` — so once the
+# helpers land in $STAGE/bin they will be installed to /usr/bin
+# automatically. The assertion below is a belt-and-braces check that
+# the wildcard install line is still present, in case a future refactor
+# enumerates binaries explicitly and forgets the helpers.
+echo "Test: install.sh stages every \$STAGE/bin/powerlab-* to /usr/bin (carries the helpers)"
+assert_grep "install.sh wildcard-installs all bin/powerlab-* binaries" \
+  'install -m 0755 "$HERE/bin/powerlab-"* /usr/bin/'
+
 echo
 if [[ "$failures" == "0" ]]; then
   echo "OK: all checks passed"
