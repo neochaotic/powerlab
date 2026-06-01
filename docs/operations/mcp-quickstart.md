@@ -4,7 +4,7 @@
 
 ## At a glance
 
-PowerLab ships a built-in **MCP (Model Context Protocol) server**. It runs as `powerlab-mcp.service` on `:9090`. Your AI agent connects to it and reads the same data the panel dashboard shows you — metrics, journals, audit trail, installed apps, container logs, raw Docker daemon visibility, the entire PowerLab OpenAPI surface, the concept docs you're reading right now, and the 137-app compose catalog as pattern reference. One MCP Prompt (`compose_authoring`) bundles conventions + worked examples + validator rules to ground an agent designing a new compose YAML in one round-trip.
+PowerLab ships a built-in **MCP (Model Context Protocol) server**. It runs as `powerlab-mcp.service` on `:9090`. Your AI agent connects to it and reads the same data the panel dashboard shows you — metrics, journals, audit trail, installed apps, container logs, raw Docker daemon visibility, the entire PowerLab OpenAPI surface, the concept docs you're reading right now, and the 137-app compose catalog as pattern reference. One MCP Prompt (`compose_authoring`) bundles conventions + worked examples + validator rules to ground an agent designing a new compose YAML in one round-trip; six chat-mode-friendly Tools (`browse_catalog`, `get_compose_conventions`, `start_compose_authoring`, `get_system_health`, `generate_artifact`, `list_capabilities`) make the same canonical content reachable through `tools/call` for agents that don't surface Prompts.
 
 The UI is the pane of glass for you. **MCP is the pane of glass for your agent.**
 
@@ -219,7 +219,7 @@ For deeper architectural questions (why does the service run as root? why is aut
 
 ---
 
-## What MCP gives your agent today (25 resources, 4 always-on tools +2 gated, 1 prompt)
+## What MCP gives your agent today (25 resources, 11 always-on tools +2 gated, 1 prompt)
 
 | Surface | What the agent reads / does |
 |---|---|
@@ -241,7 +241,10 @@ For deeper architectural questions (why does the service run as root? why is aut
 | `catalog://index`, `catalog://app/{id}` | 137 PowerLab-curated compose YAMLs as pattern reference ([ADR-0048](../decisions/0048-mcp-docs-surface-compose-authoring.md)) |
 | `docs://api`, `docs://api/{service}` | OpenAPI specs for self-discovery |
 | `docs://concepts/index`, `docs://concepts/{name}` | concept docs (compose-conventions, glossary, mcp-server, security-model) — same content this site lives in ([ADR-0048](../decisions/0048-mcp-docs-surface-compose-authoring.md)) |
-| Tools | `journal_search`, `check_disk_free`, `search_docs`, `restart_app`, `install_app` (opt-in), `uninstall_app` (opt-in) |
+| Tools (read-only, always on) | `journal_search`, `check_disk_free`, `search_docs` |
+| Tools (write, opt-in) | `restart_app`, `install_app`, `uninstall_app` (last two gated by `EnableDestructiveTools`) |
+| Tools (chat-mode discovery, always on) | `browse_catalog`, `get_compose_conventions`, `start_compose_authoring` — Tool form of catalog + concepts + `compose_authoring` Prompt for clients that don't autonomously surface Prompts |
+| Tools (aggregator + meta, always on) | `get_system_health` (4 surfaces → one severity verdict), `generate_artifact` (propose-then-review for drafts), `list_capabilities` (which tiers are active) |
 | Prompts | `compose_authoring(app_type?)` — curated bundle of conventions + 3 catalog examples + validator deny-list for compose authoring ([ADR-0048](../decisions/0048-mcp-docs-surface-compose-authoring.md)) |
 
-[Concepts → MCP server](../concepts/mcp-server.md) has the full per-surface reference + Mermaid topology + the architecture (ADR-0044 hybrid proxy + ADR-0045 storage-agnostic + ADR-0046 tool curation + ADR-0048 docs/catalog/prompt surface + ADR-0049 sensitive tier threat model).
+[Concepts → MCP server](../concepts/mcp-server.md) has the full per-surface reference + Mermaid topology + the architecture (ADR-0044 hybrid proxy + ADR-0045 storage-agnostic + ADR-0046 tool curation + ADR-0048 docs/catalog/prompt surface + ADR-0049 sensitive tier threat model + ADR-0050 docs-canonical doctrine).

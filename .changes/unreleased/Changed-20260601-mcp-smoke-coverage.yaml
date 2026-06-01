@@ -1,0 +1,11 @@
+kind: Changed
+body: >-
+  `powerlab-mcp-smoke` now exercises the 6 new MCP Tools added in the
+  2026-06-01 UX batch (browse_catalog, get_compose_conventions,
+  start_compose_authoring, get_system_health, generate_artifact,
+  list_capabilities) with typed shape probes. Pre-fix the smoke only
+  covered the original journal_search + check_disk_free, so a future
+  refactor breaking any new Tool's output contract would have escaped to
+  operators. Quickstart docs updated to list all 11 always-on tools
+  (was 4) plus the 2 gated ones.
+time: 2026-06-01T14:30:00.000000-03:00
