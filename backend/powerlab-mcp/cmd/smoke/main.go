@@ -183,7 +183,21 @@ func probeAndCallTools(ctx context.Context, cs *mcp.ClientSession) int {
 
 	// Read-only tools must always be advertised — they ship in batch
 	// 1 with no gate. If they're missing the build is broken.
-	for _, want := range []string{"journal_search", "check_disk_free"} {
+	//
+	// The batch grew through the 2026-06-01 MCP UX retro: the original
+	// pair (journal_search + check_disk_free) plus 6 discovery /
+	// aggregator / meta tools that the chat-mode test surfaced as
+	// gaps. Every name here must appear on every install.
+	for _, want := range []string{
+		"journal_search",
+		"check_disk_free",
+		"browse_catalog",
+		"get_compose_conventions",
+		"start_compose_authoring",
+		"get_system_health",
+		"generate_artifact",
+		"list_capabilities",
+	} {
 		if _, ok := seen[want]; !ok {
 			fmt.Fprintf(os.Stderr, "FAIL  tool %q missing from tools/list (expected unconditional)\n", want)
 			failures++
@@ -218,8 +232,249 @@ func probeAndCallTools(ctx context.Context, cs *mcp.ClientSession) int {
 	// — the call landing succeeded but the shape doesn't match.
 	failures += callJournalSearch(ctx, cs)
 	failures += callCheckDiskFree(ctx, cs)
+	// Six tools added in the 2026-06-01 MCP UX batch — each gets a
+	// minimal shape probe so a future refactor that breaks the
+	// output contract fails the smoke before the operator notices.
+	failures += callBrowseCatalog(ctx, cs)
+	failures += callGetComposeConventions(ctx, cs)
+	failures += callStartComposeAuthoring(ctx, cs)
+	failures += callGetSystemHealth(ctx, cs)
+	failures += callGenerateArtifact(ctx, cs)
+	failures += callListCapabilities(ctx, cs)
 
 	return failures
+}
+
+// callBrowseCatalog probes the catalog listing. Apps may be empty
+// on a fresh box (catalog not staged yet); the contract is just
+// that the call succeeds and Apps decodes as an array.
+func callBrowseCatalog(ctx context.Context, cs *mcp.ClientSession) int {
+	res, err := cs.CallTool(ctx, &mcp.CallToolParams{
+		Name:      "browse_catalog",
+		Arguments: map[string]any{},
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  browse_catalog call: %v\n", err)
+		return 1
+	}
+	if res.IsError {
+		fmt.Fprintf(os.Stderr, "FAIL  browse_catalog IsError: %+v\n", res.Content)
+		return 1
+	}
+	var got struct {
+		Apps  []map[string]any `json:"apps"`
+		Total int              `json:"total"`
+	}
+	if err := decodeStructured(res.StructuredContent, &got); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  browse_catalog output decode: %v\n", err)
+		return 1
+	}
+	fmt.Printf("PASS  browse_catalog (%d apps catalogued)\n", got.Total)
+	return 0
+}
+
+// callGetComposeConventions probes the conventions Tool. Either
+// Markdown is non-empty (conventions doc staged) OR Note explains
+// why it's missing. Anything else means the Tool's graceful-missing
+// path regressed.
+func callGetComposeConventions(ctx context.Context, cs *mcp.ClientSession) int {
+	res, err := cs.CallTool(ctx, &mcp.CallToolParams{
+		Name:      "get_compose_conventions",
+		Arguments: map[string]any{},
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  get_compose_conventions call: %v\n", err)
+		return 1
+	}
+	if res.IsError {
+		fmt.Fprintf(os.Stderr, "FAIL  get_compose_conventions IsError: %+v\n", res.Content)
+		return 1
+	}
+	var got struct {
+		Markdown string `json:"markdown"`
+		URI      string `json:"uri"`
+		Note     string `json:"note,omitempty"`
+	}
+	if err := decodeStructured(res.StructuredContent, &got); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  get_compose_conventions decode: %v\n", err)
+		return 1
+	}
+	if got.Markdown == "" && got.Note == "" {
+		fmt.Fprintf(os.Stderr, "FAIL  get_compose_conventions returned empty markdown AND empty note — graceful-missing path is broken\n")
+		return 1
+	}
+	if got.Markdown != "" {
+		fmt.Printf("PASS  get_compose_conventions (%d bytes from %s)\n", len(got.Markdown), got.URI)
+	} else {
+		fmt.Printf("WARN  get_compose_conventions: no conventions doc staged (%s)\n", got.Note)
+	}
+	return 0
+}
+
+// callStartComposeAuthoring probes the compose-authoring bundle
+// Tool. Bundle must be non-empty (even on a fresh box the Prompt
+// falls back to a stub explanation, never empty).
+func callStartComposeAuthoring(ctx context.Context, cs *mcp.ClientSession) int {
+	res, err := cs.CallTool(ctx, &mcp.CallToolParams{
+		Name:      "start_compose_authoring",
+		Arguments: map[string]any{},
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  start_compose_authoring call: %v\n", err)
+		return 1
+	}
+	if res.IsError {
+		fmt.Fprintf(os.Stderr, "FAIL  start_compose_authoring IsError: %+v\n", res.Content)
+		return 1
+	}
+	var got struct {
+		Bundle    string `json:"bundle"`
+		PromptURI string `json:"prompt_uri"`
+	}
+	if err := decodeStructured(res.StructuredContent, &got); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  start_compose_authoring decode: %v\n", err)
+		return 1
+	}
+	if got.Bundle == "" {
+		fmt.Fprintf(os.Stderr, "FAIL  start_compose_authoring returned empty Bundle — the Prompt fallback is broken\n")
+		return 1
+	}
+	fmt.Printf("PASS  start_compose_authoring (%d bytes bundle, prompt=%s)\n", len(got.Bundle), got.PromptURI)
+	return 0
+}
+
+// callGetSystemHealth probes the aggregator. Overall must be one of
+// the documented severities; the per-area severities must come from
+// the same enum. Anything else means the threshold logic regressed.
+func callGetSystemHealth(ctx context.Context, cs *mcp.ClientSession) int {
+	res, err := cs.CallTool(ctx, &mcp.CallToolParams{
+		Name:      "get_system_health",
+		Arguments: map[string]any{},
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  get_system_health call: %v\n", err)
+		return 1
+	}
+	if res.IsError {
+		fmt.Fprintf(os.Stderr, "FAIL  get_system_health IsError: %+v\n", res.Content)
+		return 1
+	}
+	var got struct {
+		Overall  string `json:"overall"`
+		Memory   struct{ Severity string `json:"severity"` } `json:"memory"`
+		Disk     struct{ Severity string `json:"severity"` } `json:"disk"`
+		Services struct{ Severity string `json:"severity"` } `json:"services"`
+		Updates  struct{ Severity string `json:"severity"` } `json:"updates"`
+	}
+	if err := decodeStructured(res.StructuredContent, &got); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  get_system_health decode: %v\n", err)
+		return 1
+	}
+	valid := map[string]bool{"ok": true, "warn": true, "critical": true, "unknown": true}
+	for label, sev := range map[string]string{
+		"overall":  got.Overall,
+		"memory":   got.Memory.Severity,
+		"disk":     got.Disk.Severity,
+		"services": got.Services.Severity,
+		"updates":  got.Updates.Severity,
+	} {
+		if !valid[sev] {
+			fmt.Fprintf(os.Stderr, "FAIL  get_system_health %s.severity=%q; want one of ok|warn|critical|unknown\n", label, sev)
+			return 1
+		}
+	}
+	fmt.Printf("PASS  get_system_health (overall=%s, memory=%s, disk=%s, services=%s, updates=%s)\n",
+		got.Overall, got.Memory.Severity, got.Disk.Severity, got.Services.Severity, got.Updates.Severity)
+	return 0
+}
+
+// callGenerateArtifact submits a minimal compliant compose YAML and
+// asserts the validation roundtrip. Accepts either the legacy `ok`
+// bool field OR the post-refactor `status` enum — the smoke is
+// version-tolerant during the rollout of the code-quality PR.
+func callGenerateArtifact(ctx context.Context, cs *mcp.ClientSession) int {
+	yamlBody := "name: smoke-probe\nservices:\n  ok:\n    image: nginx:1.27\n    restart: unless-stopped\n"
+	res, err := cs.CallTool(ctx, &mcp.CallToolParams{
+		Name: "generate_artifact",
+		Arguments: map[string]any{
+			"kind":    "compose-yaml",
+			"title":   "smoke probe",
+			"content": yamlBody,
+		},
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  generate_artifact call: %v\n", err)
+		return 1
+	}
+	if res.IsError {
+		fmt.Fprintf(os.Stderr, "FAIL  generate_artifact IsError: %+v\n", res.Content)
+		return 1
+	}
+	var got struct {
+		Kind       string `json:"kind"`
+		Content    string `json:"content"`
+		Validation struct {
+			OK     bool   `json:"ok"`
+			Status string `json:"status"`
+		} `json:"validation"`
+	}
+	if err := decodeStructured(res.StructuredContent, &got); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  generate_artifact decode: %v\n", err)
+		return 1
+	}
+	if got.Kind != "compose-yaml" {
+		fmt.Fprintf(os.Stderr, "FAIL  generate_artifact kind=%q; want compose-yaml (echoed)\n", got.Kind)
+		return 1
+	}
+	if got.Content != yamlBody {
+		fmt.Fprintf(os.Stderr, "FAIL  generate_artifact content roundtrip mismatch\n")
+		return 1
+	}
+	// Validation is "ok" via either field. The smoke is version-tolerant
+	// because the code-quality PR migrating ok→status may not have
+	// landed yet when this smoke runs.
+	validated := got.Validation.OK || got.Validation.Status == "ok"
+	if !validated {
+		fmt.Fprintf(os.Stderr, "FAIL  generate_artifact compliant YAML did NOT validate (ok=%v status=%q)\n",
+			got.Validation.OK, got.Validation.Status)
+		return 1
+	}
+	fmt.Printf("PASS  generate_artifact (compose-yaml validated)\n")
+	return 0
+}
+
+// callListCapabilities probes the meta-tool. Both tier flags must
+// be bools (decoded by the type) and Summary must be non-empty so
+// even agents that don't parse the structured fields see the state.
+func callListCapabilities(ctx context.Context, cs *mcp.ClientSession) int {
+	res, err := cs.CallTool(ctx, &mcp.CallToolParams{
+		Name:      "list_capabilities",
+		Arguments: map[string]any{},
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  list_capabilities call: %v\n", err)
+		return 1
+	}
+	if res.IsError {
+		fmt.Fprintf(os.Stderr, "FAIL  list_capabilities IsError: %+v\n", res.Content)
+		return 1
+	}
+	var got struct {
+		DestructiveToolsEnabled bool   `json:"destructive_tools_enabled"`
+		SensitiveTierEnabled    bool   `json:"sensitive_tier_enabled"`
+		Summary                 string `json:"summary"`
+	}
+	if err := decodeStructured(res.StructuredContent, &got); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL  list_capabilities decode: %v\n", err)
+		return 1
+	}
+	if got.Summary == "" {
+		fmt.Fprintf(os.Stderr, "FAIL  list_capabilities Summary empty — agent has no plain-text state to surface\n")
+		return 1
+	}
+	fmt.Printf("PASS  list_capabilities (destructive=%v, sensitive=%v)\n",
+		got.DestructiveToolsEnabled, got.SensitiveTierEnabled)
+	return 0
 }
 
 // callJournalSearch picks a unit that should exist on any PowerLab
