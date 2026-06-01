@@ -1457,7 +1457,17 @@ components:
         in_use_by:
           type: array
           items:
-            type: string
+            $ref: "#/components/schemas/DockerVisibilityVolumeUser"
+
+    DockerVisibilityVolumeUser:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 12-char short container id (matches `docker ps` display)
+        name:
+          type: string
+          description: container name with the SDK's leading "/" stripped
 
     DockerVisibilityVolumesResponse:
       type: object

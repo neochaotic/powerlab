@@ -62,7 +62,7 @@ const appsSchemaDoc = `{
     "docker://containers": "all containers on the host Docker daemon (PowerLab + non-PowerLab) — name, image, state, ports, created_at, labels (#630)",
     "docker://images": "all local Docker images — id, tags[], size, created_at (#630)",
     "docker://networks": "all Docker networks — name, driver, scope, IPAM, attached_containers[] (#630)",
-    "docker://volumes": "all Docker volumes — name, driver, mountpoint, size, in_use_by[] (#630)",
+    "docker://volumes": "all Docker volumes — name, driver, mountpoint, size (bytes; -1 when daemon couldn't compute), in_use_by[]{id,name} (containers mounting the volume) (#630, #645)",
     "docker://system": "Docker daemon info + 'docker system df' snapshot — version, containers/images count, disk_usage{containers,images,volumes,build_cache} (#630)"
   },
   "proxy_error_shape": {
