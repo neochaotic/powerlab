@@ -60,13 +60,17 @@ Any FAIL is actionable. The most common one — `audit://recent permission denie
 
 ---
 
-## Step 3 — pair Claude Desktop (3 minutes)
+## Step 3 — pair your AI client (3 minutes)
 
-The right pairing path depends on whether PowerLab is **on the same machine** as Claude Desktop (laptop running both, or Lima/Docker-Desktop VM port-forwarded to localhost) or **on a separate box** on your LAN. Both paths are documented; pick one.
+PowerLab MCP speaks the standard MCP HTTP-streaming transport, so every spec-compliant client connects the same way. Pick yours below; the **Claude Desktop** sections are the most fleshed-out (loopback + LAN paths) and the others summarise the same shape.
 
-### Path A — same machine (loopback)
+> **Loopback vs LAN.** PowerLab's loopback policy ([ADR-0034](../decisions/0034-standalone-observability-mcp-service.md)) trusts every connection arriving from `127.0.0.1` / `::1` — no JWT, no signin. From the **same machine** (laptop running both client + PowerLab, or Lima/Docker-Desktop VM port-forwarded to localhost), no token is needed. From a **separate box** on your LAN, grab a Bearer token from the panel's browser network panel: sign in to `http://<your-box>:8765`, open dev tools → Network, refresh any panel page, copy the `Authorization: Bearer <token>` value from any API request. The same token works as a `--header` arg / config field in every client below.
 
-Easiest. PowerLab's loopback policy (ADR-0034) trusts every connection arriving from `127.0.0.1` / `::1` — no JWT, no signin. Use the `mcp-remote` bridge (it ships via `npx`):
+### Client: Claude Desktop
+
+Path A (loopback) and Path B (LAN) below; use `mcp-remote` as a stdio↔HTTP bridge (Claude Desktop's native HTTP transport support is shipping unevenly across versions; the bridge works everywhere).
+
+#### Path A — same machine (loopback)
 
 Edit `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS (`%APPDATA%\Claude\claude_desktop_config.json` on Windows):
 
@@ -90,16 +94,9 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS 
 
 Restart Claude Desktop (Cmd+Q + reopen — config is read once at launch).
 
-### Path B — separate box (LAN)
+#### Path B — separate box (LAN)
 
-When Claude Desktop and PowerLab are on different machines, you need a JWT — the loopback bypass doesn't apply. Get a token:
-
-1. Sign in to PowerLab (`http://<your-box>:8765`).
-2. Open the browser dev tools → Network tab.
-3. Refresh any panel page. Find any API request and copy its `Authorization: Bearer <token>` value.
-4. (Pairing UX is roadmap — until then this is the manual path.)
-
-Then config:
+When Claude Desktop and PowerLab are on different machines, grab a token from the panel (see the loopback-vs-LAN box at the top of Step 3), then config:
 
 ```json
 {
@@ -134,6 +131,139 @@ Claude reads `apps://list`, `system://services`, `system://disk` and answers wit
 Claude Desktop has a "Code" tab (formerly Claude Code embed) where the agent is project-folder-scoped. **Don't use that mode to evaluate the MCP** — once a folder is selected, the agent's Read/Glob/Grep tools dominate and MCP becomes a secondary source. A 2026-05-31 test ran "use only the MCP to author a compose YAML" in Code mode and got legacy-CasaOS conventions back (the agent had read the source tree directly) instead of the canonical `compose_authoring` Prompt output.
 
 Use the **Chat** tab (no folder) for any "what can the agent see through MCP alone" evaluation. The MCP indicator is visible in both modes; the contamination is in what other tools the agent has available.
+
+### Client: Claude Code (CLI)
+
+Claude Code's CLI supports HTTP transport natively — no bridge needed. From any directory:
+
+```bash
+# Loopback (same machine)
+claude mcp add --transport http powerlab http://127.0.0.1:9090/mcp
+
+# LAN (separate box) — pass the Bearer header
+claude mcp add --transport http powerlab http://<your-box>:9090/mcp \
+    --header "Authorization: Bearer <your-token>"
+```
+
+Verify the registration:
+
+```bash
+claude mcp list                  # powerlab: http://... — ✓ Connected
+claude mcp get powerlab          # full config
+```
+
+In a Claude Code session the registered server is available immediately — no restart. Note that **Claude Code is project-scoped by directory**: registrations live in `~/.claude.json` under the current project path, so the same MCP works across all sessions you open from inside that project tree.
+
+### Client: Cursor
+
+Cursor reads MCP servers from `~/.cursor/mcp.json` (create the file if missing):
+
+```json
+{
+  "mcpServers": {
+    "powerlab": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote@latest",
+        "http://127.0.0.1:9090/mcp",
+        "--allow-http",
+        "--transport",
+        "http-only"
+      ]
+    }
+  }
+}
+```
+
+For LAN, add the same `--header "Authorization: Bearer <your-token>"` args as the Claude Desktop Path B example. Restart Cursor to pick up the new config.
+
+### Client: VS Code (with the Continue extension or any MCP-aware extension)
+
+The Continue extension reads MCP servers from `~/.continue/config.json`:
+
+```json
+{
+  "experimental": {
+    "modelContextProtocolServers": [
+      {
+        "transport": {
+          "type": "stdio",
+          "command": "npx",
+          "args": [
+            "-y",
+            "mcp-remote@latest",
+            "http://127.0.0.1:9090/mcp",
+            "--allow-http",
+            "--transport",
+            "http-only"
+          ]
+        }
+      }
+    ]
+  }
+}
+```
+
+LAN variant adds the `--header` arg the same way as the other clients. Reload the Continue window after editing.
+
+### Client: any other spec-compliant MCP client
+
+Three pieces of config are enough for any client that follows the MCP HTTP-transport spec:
+
+- **Endpoint**: `http://<your-box>:9090/mcp`
+- **Transport**: streamable HTTP (the 2025-06-18 spec transport)
+- **Auth**: nothing on loopback; `Authorization: Bearer <jwt>` on LAN
+
+PowerLab's OAuth 2.1 discovery façade ([ADR-0050](../decisions/0050-mcp-docs-canonical-code-implementation.md) related, PR #653) advertises the right metadata at `/.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server`, so clients that follow the spec strictly should auto-discover most of this — only the Bearer token (LAN case) is manual today.
+
+---
+
+## Step 3.5 — Try it: prompt cookbook (5 minutes)
+
+Once Claude Desktop has the `powerlab` server connected, these prompts each exercise a specific capability. Use them as a starting point; copy literally or adapt to your box. None of them mutate anything (everything reachable here is read-only or — for `generate_artifact` — purely a draft for your review).
+
+### Quick health snapshot
+
+> *"Use the powerlab MCP and tell me how the system is doing — memory, disk, services, pending updates. If anything is concerning, surface it."*
+
+Exercises `get_system_health`. Returns a per-category severity (`ok` / `warn` / `critical` / `unknown`) plus an overall verdict with remediation hints when a threshold trips. The agent shouldn't read four `system://*` resources separately when this single tool gives the correlated answer.
+
+### Catalog discovery
+
+> *"What apps are in the PowerLab catalog? Filter the list to anything that mentions 'cloud' or 'storage', and show me the docker-compose for the most popular one."*
+
+Exercises `browse_catalog` (with the optional `filter` argument) and `catalog://app/<id>`. The catalog ships 137 curated apps; the agent should narrow then drill in.
+
+### Authoring conventions
+
+> *"What conventions should I follow when writing a docker-compose for PowerLab? Cover volumes, ports, labels, and what the validator rejects."*
+
+Exercises `get_compose_conventions` (the canonical concepts doc) and indirectly informs the agent before it writes any YAML. If the agent skips this and writes legacy-CasaOS YAML (e.g. `x-casaos`, `/DATA/AppData/$AppID`, hardcoded ports), your prompt let the agent off the hook — push back with "use the powerlab MCP's compose conventions, not what you remember from CasaOS."
+
+### Propose a new app (the headline flow)
+
+> *"I want to self-host Vaultwarden. Use the powerlab MCP's `compose_authoring` prompt (or `start_compose_authoring` tool) to ground yourself in PowerLab conventions, then draft a docker-compose for me. Run it through `generate_artifact` so I see the deny-list validation result before I install."*
+
+Exercises `start_compose_authoring` (the curated bundle of conventions + 3 catalog examples + validator rules) and `generate_artifact` (propose-then-review). The agent returns a structured artifact with `validation.status: "ok"` if the YAML passes the deny-list, or `"violations"` with specific rule hits. **Nothing is installed yet** — you review, then if happy, ask Claude to call `install_app` (which only works if you've opted into destructive tools, see Step 5).
+
+### Search the docs
+
+> *"Search PowerLab's docs for 'install_app' and tell me what the endpoint expects."*
+
+Exercises `search_docs` across concepts + OpenAPI specs + the app catalog. Pre-2026-06-01 this only indexed concepts and would return `{matches: []}` for an OpenAPI term; now it covers all three surfaces and returns the canonical URI of each hit (the agent should chain to it for full context).
+
+### Capability discovery
+
+> *"Before suggesting any action, ask the powerlab MCP what it's allowed to do on this box — list capabilities."*
+
+Exercises `list_capabilities`. Tells the agent whether destructive tools (`install_app`, `uninstall_app`, `restart_app`) are reachable and whether the sensitive sysadmin tier (host auth journal) is opted in. A well-behaved agent calls this BEFORE attempting any gated capability — saves a trial-and-error round-trip.
+
+### Sensitive observability (opt-in only)
+
+> *"Are there any failed SSH login attempts in the last 24 hours? If yes, summarise by source IP."*
+
+Exercises `journal://system/auth` — only available when `EnableSensitiveTier=true` in `mcp.conf` (Step 5.5). The agent should refuse politely (or surface `list_capabilities` first) when the tier is off.
 
 ---
 
