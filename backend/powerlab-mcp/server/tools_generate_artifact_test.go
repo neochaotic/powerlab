@@ -60,8 +60,8 @@ services:
 		"title":  "testapp v1",
 		"content": yamlBody,
 	})
-	if !out.Validation.OK {
-		t.Fatalf("expected OK validation; got violations=%+v", out.Validation.Violations)
+	if out.Validation.Status != ArtifactValidationOK {
+		t.Fatalf("expected status=ok; got status=%q violations=%+v", out.Validation.Status, out.Validation.Violations)
 	}
 	if out.Kind != "compose-yaml" {
 		t.Errorf("kind=%q; want compose-yaml", out.Kind)
@@ -89,8 +89,8 @@ services:
 		"title":   "definitely not safe",
 		"content": yamlBody,
 	})
-	if out.Validation.OK {
-		t.Fatalf("expected validation NOT OK for privileged: true")
+	if out.Validation.Status != ArtifactValidationViolations {
+		t.Fatalf("expected status=violations for privileged: true; got %q", out.Validation.Status)
 	}
 	hit := false
 	for _, v := range out.Validation.Violations {
@@ -117,8 +117,8 @@ services:
 		"title":   "docker socket bind",
 		"content": yamlBody,
 	})
-	if out.Validation.OK {
-		t.Fatalf("expected validation NOT OK for docker.sock bind")
+	if out.Validation.Status != ArtifactValidationViolations {
+		t.Fatalf("expected status=violations for docker.sock bind; got %q", out.Validation.Status)
 	}
 }
 
@@ -137,8 +137,8 @@ func TestGenerateArtifact_ShellScriptKindRoundtripsWithoutValidator(t *testing.T
 	}
 	// No validator for this kind — output should say so clearly so
 	// the agent doesn't represent it as "validated".
-	if out.Validation.OK {
-		t.Errorf("OK=true on unvalidated kind misleads the agent")
+	if out.Validation.Status != ArtifactValidationSkipped {
+		t.Errorf("status=%q on unvalidated kind; want %q so the agent reports the absence of validation explicitly", out.Validation.Status, ArtifactValidationSkipped)
 	}
 	if out.Validation.Note == "" {
 		t.Errorf("expected a Note explaining no validator exists for shell-script")
@@ -156,8 +156,8 @@ func TestGenerateArtifact_MarkdownKindNoValidator(t *testing.T) {
 	if out.Content != body {
 		t.Errorf("markdown content roundtrip mismatch")
 	}
-	if out.Validation.OK {
-		t.Errorf("OK=true on unvalidated kind misleads the agent")
+	if out.Validation.Status != ArtifactValidationSkipped {
+		t.Errorf("status=%q on unvalidated kind; want %q so the agent reports the absence of validation explicitly", out.Validation.Status, ArtifactValidationSkipped)
 	}
 }
 
