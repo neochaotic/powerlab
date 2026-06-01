@@ -24,7 +24,7 @@ func TestOAuthProtectedResource_Shape(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status=%d; want 200", resp.StatusCode)
@@ -66,7 +66,7 @@ func TestOAuthAuthorizationServer_Shape(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status=%d; want 200", resp.StatusCode)
@@ -126,7 +126,7 @@ func TestOAuthRegister_AcceptsAnyPOST(t *testing.T) {
 	if err != nil {
 		t.Fatalf("post: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 		t.Fatalf("status=%d; want 200 or 201", resp.StatusCode)

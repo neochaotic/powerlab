@@ -47,7 +47,7 @@ func TestOAuthAuthorize_LoopbackAutoApprovesWithCode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode < 300 || resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(resp.Body)
@@ -121,7 +121,7 @@ func TestOAuthToken_PKCEExchangeReturnsAccessToken(t *testing.T) {
 	if err != nil {
 		t.Fatalf("token: %v", err)
 	}
-	defer tresp.Body.Close()
+	defer func() { _ = tresp.Body.Close() }()
 	if tresp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(tresp.Body)
 		t.Fatalf("token status=%d; body=%s", tresp.StatusCode, string(body))
@@ -190,7 +190,7 @@ func TestOAuthToken_WrongPKCEVerifierRejected(t *testing.T) {
 	if err != nil {
 		t.Fatalf("token: %v", err)
 	}
-	defer tresp.Body.Close()
+	defer func() { _ = tresp.Body.Close() }()
 	if tresp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status=%d; want 400 (invalid_grant)", tresp.StatusCode)
 	}
@@ -248,7 +248,7 @@ func TestOAuthToken_CodeIsSingleUse(t *testing.T) {
 	if err != nil {
 		t.Fatalf("second exchange: %v", err)
 	}
-	defer second.Body.Close()
+	defer func() { _ = second.Body.Close() }()
 	if second.StatusCode != http.StatusBadRequest {
 		t.Fatalf("second exchange status=%d; want 400 (code consumed)", second.StatusCode)
 	}
@@ -269,7 +269,7 @@ func TestOAuthAuthorizationServer_AdvertisesAuthCodeFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var meta authorizationServerMetadata
 	if err := json.NewDecoder(resp.Body).Decode(&meta); err != nil {
