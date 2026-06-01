@@ -216,6 +216,42 @@ GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
   -o "$STAGE/bin/powerlab-mcp" \
   .
 
+# ─── 2.6.1 Build helper CLIs (issue #638) ───────────────────────────────
+# powerlab-mcp-validate (cmd/validate) and powerlab-mcp-smoke (cmd/smoke)
+# are operator-facing entry points documented in the README "30-second
+# smoke test" and the operator quickstart. Before issue #638 they were
+# `go run`-only — the source compiled in CI but no binary shipped. A
+# fresh `install.sh` left /usr/bin/powerlab-mcp present and the helper
+# paths missing, so the documented commands failed with "No such file or
+# directory". Both are pure-Go (no CGO), so they cross-compile on every
+# arch with the same envelope as the main daemon. We reuse
+# $LDFLAGS_VERSION_STAMP so `powerlab-mcp-validate -version` /
+# `powerlab-mcp-smoke -version` (when those flags are added) stay
+# locked to the same VERSION as the daemon. The unqualified
+# `-X main.version=...` is harmless: cmd/validate and cmd/smoke don't
+# declare `var version` either, so Go fail-softs the flag on them — same
+# safe pattern as the other services in $SERVICES.
+#
+# Install location: $STAGE/bin/. install.sh's wildcard
+# `install -m 0755 "$HERE/bin/powerlab-"* /usr/bin/` automatically
+# stages them to /usr/bin/powerlab-mcp-validate +
+# /usr/bin/powerlab-mcp-smoke — operator PATH, alongside the main binary.
+log "  building powerlab-mcp-validate (cmd/validate)..."
+cd "$ROOT/backend/powerlab-mcp/cmd/validate"
+GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
+  -trimpath \
+  -ldflags="$LDFLAGS_VERSION_STAMP" \
+  -o "$STAGE/bin/powerlab-mcp-validate" \
+  .
+
+log "  building powerlab-mcp-smoke (cmd/smoke)..."
+cd "$ROOT/backend/powerlab-mcp/cmd/smoke"
+GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
+  -trimpath \
+  -ldflags="$LDFLAGS_VERSION_STAMP" \
+  -o "$STAGE/bin/powerlab-mcp-smoke" \
+  .
+
 # ─── 2.7 Stage OpenAPI specs for docs:// (ADR-0044) ─────────────────────
 # powerlab-mcp's docs://api resource serves the OpenAPI specs of every
 # PowerLab service as MCP resources — the agent self-discovers the API

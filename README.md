@@ -187,7 +187,7 @@ Today: **25 advertised resources** across `system://`, `journal://`, `audit://`,
 curl -fsS http://localhost:9090/healthz                              # → 200 OK
 curl -fsS http://localhost:9090/version | jq                         # → {"version":"...","commit":"..."}
 sudo systemctl status powerlab-mcp --no-pager | head -3              # → active (running)
-/usr/share/powerlab/bin/powerlab-mcp-smoke -endpoint http://localhost:9090   # structured contract sweep
+/usr/bin/powerlab-mcp-smoke -endpoint http://localhost:9090                  # structured contract sweep
 ```
 
 **Opt out anytime** — flip `Disabled = true` in `/etc/powerlab/mcp.conf` and restart the unit. The binary exits cleanly without binding `:9090`.

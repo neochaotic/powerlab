@@ -35,7 +35,7 @@ If `/healthz` returns 200, the rest works. If not, see [Step 6 — troubleshooti
 `powerlab-mcp-smoke` (shipped with the install) reads every advertised resource + exercises read-only tools end-to-end. Run it once after install or after every upgrade:
 
 ```bash
-/usr/share/powerlab/bin/powerlab-mcp-smoke -endpoint http://localhost:9090
+/usr/bin/powerlab-mcp-smoke -endpoint http://localhost:9090
 ```
 
 You should see something like:
@@ -100,9 +100,9 @@ Claude reads `apps://list`, `system://services`, `system://disk` and answers wit
 If you intend to use `install_app` (operator opt-in — see Step 5), pre-validate your YAML against the same deny-list `install_app` runs:
 
 ```bash
-/usr/share/powerlab/bin/powerlab-mcp-validate /path/to/docker-compose.yml
+/usr/bin/powerlab-mcp-validate /path/to/docker-compose.yml
 # OR pipe via stdin:
-cat compose.yml | /usr/share/powerlab/bin/powerlab-mcp-validate -
+cat compose.yml | /usr/bin/powerlab-mcp-validate -
 ```
 
 Exit codes:
@@ -166,7 +166,7 @@ Operator threat model:
 | Symptom | First check |
 |---|---|
 | `curl /healthz` fails | `sudo systemctl status powerlab-mcp` — service may be disabled (`Disabled = true` in mcp.conf) or failed to bind (port conflict). |
-| Smoke client says `audit://recent permission denied` | Smoke is running as a non-root user; the file is `root:root 0600`. Use `sudo /usr/share/powerlab/bin/powerlab-mcp-smoke` OR ignore the WARN — the service running under systemd reads it correctly. |
+| Smoke client says `audit://recent permission denied` | Smoke is running as a non-root user; the file is `root:root 0600`. Use `sudo /usr/bin/powerlab-mcp-smoke` OR ignore the WARN — the service running under systemd reads it correctly. |
 | Claude Desktop says "MCP server not responding" | Token expired, wrong URL, or LAN firewall. Verify `curl -H "Authorization: Bearer <token>" http://<your-box>:9090/healthz` from your Claude Desktop machine. |
 | `tools/list` shows 4 not 6 | `EnableDestructiveTools = false` (the default). Step 5 to enable. |
 | `resources/list` has no `journal://system/*` | `EnableSensitiveTier = false` (the default). Step 5.5 to enable. |
