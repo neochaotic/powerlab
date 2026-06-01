@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -39,8 +40,20 @@ type PowerLabUpdater struct {
 	// redirect. Tests override to a local fixture server.
 	ManifestURL string
 
-	// HTTPClient is exposed so tests can inject a fake. Defaults
-	// to http.DefaultClient with a 30 s timeout.
+	// HTTPClient is exposed so tests can inject a fake. Production
+	// default uses transport-level per-step deadlines (dial, TLS,
+	// response-header) and does NOT set Client.Timeout — that field
+	// counts the body read against the wall clock and silently
+	// breaks any tarball download whose body takes longer than the
+	// total budget. A typical homelab ISP at 2-3 MB/s downloads
+	// the ~80 MB release tarball in 25-40 s; with the old
+	// Client.Timeout=30s the request raced the body read and
+	// failed mid-stream with "context deadline exceeded" — exactly
+	// the regression the regression test in this file pins.
+	//
+	// Body-read cancellation comes from the caller's context (every
+	// Do() goes through NewRequestWithContext), so navigating away
+	// in the panel still cancels cleanly.
 	HTTPClient *http.Client
 
 	// PowerLabRoot is the directory the updater treats as the install
@@ -55,8 +68,40 @@ func NewPowerLabUpdater(currentVersion string) *PowerLabUpdater {
 	return &PowerLabUpdater{
 		CurrentVersion: currentVersion,
 		ManifestURL:    "https://github.com/neochaotic/powerlab/releases/latest/download/manifest.json",
-		HTTPClient:     &http.Client{Timeout: 30 * time.Second},
+		HTTPClient:     newUpdaterHTTPClient(),
 		PowerLabRoot:   "/var/lib/powerlab",
+	}
+}
+
+// newUpdaterHTTPClient builds the production HTTP client used for
+// every updater request — manifest fetch AND tarball download alike.
+//
+// Bounds applied:
+//   - DialContext timeout: 10 s   (DNS + TCP handshake)
+//   - TLSHandshakeTimeout: 10 s   (HTTPS negotiation)
+//   - ResponseHeaderTimeout: 30 s (server must START streaming within 30 s)
+//   - IdleConnTimeout: 90 s       (keep-alive hygiene)
+//
+// Crucially, Client.Timeout is NOT set. That field counts the body
+// read against the wall clock, so an 80 MB tarball downloading at
+// 2-3 MB/s would race a 30 s budget and fail mid-body with "context
+// deadline exceeded" — the exact bug operators hit upgrading
+// v0.7.4 → v0.7.6 from the panel. Body-read cancellation comes from
+// the caller's context (every request goes through
+// NewRequestWithContext) so operator-navigation-away still cancels
+// cleanly.
+func newUpdaterHTTPClient() *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			DialContext: (&net.Dialer{
+				Timeout:   10 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).DialContext,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ResponseHeaderTimeout: 30 * time.Second,
+			IdleConnTimeout:       90 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		},
 	}
 }
 

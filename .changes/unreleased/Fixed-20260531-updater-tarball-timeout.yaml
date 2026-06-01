@@ -1,0 +1,18 @@
+kind: Fixed
+body: |
+  In-app upgrade no longer fails with "context deadline exceeded
+  (Client.Timeout or context cancellation while reading body)" when
+  downloading the tarball on slow / typical homelab connections.
+  Root cause: the updater's HTTP client set Client.Timeout=30s,
+  which counts the BODY read against the wall clock — an 80 MB
+  release tarball at ~2.7 MB/s (typical ISP) needs 25-40 s and
+  raced the budget mid-stream. Fix moves all bounds onto the
+  Transport (DialContext 10s, TLS 10s, ResponseHeader 30s,
+  IdleConn 90s) and lets the body read run as long as the caller's
+  context allows — operator-navigating-away still cancels cleanly,
+  but a healthy stream completes regardless of total size. Locked
+  by a regression test (positive: slow-stream succeeds; negative:
+  old-style Client.Timeout=1s fails with the exact bug error
+  message) so this never reappears silently.
+custom:
+  Issue: ""
