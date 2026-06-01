@@ -1,0 +1,13 @@
+kind: Fixed
+body: >-
+  Audit middleware (HTTP-stdlib variant) and the gateway's
+  rewriteRequestSourceIP now recognise IPv6 loopback (`[::1]:PORT`)
+  connections that arrive via limactl / Docker Desktop forwarding. Same
+  bug class as the jwt fix shipped in PR #653 (2026-05-31): the LastIndex(:)
+  port strip left brackets in the result, so the `remote == "::1"` check
+  missed every Mac→VM request. Audit was logging the raw `[::1]` instead
+  of the LoopbackSentinel; the gateway was failing to recognise the
+  loopback IP and skipping its X-Forwarded-For rewrite. Echo's
+  `c.RealIP()`-based middleware was already correct (Echo handles
+  brackets internally) and is unchanged.
+time: 2026-06-01T15:00:00.000000-03:00

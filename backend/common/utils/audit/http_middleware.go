@@ -153,7 +153,13 @@ func realIP(r *http.Request) string {
 	}
 	addr := r.RemoteAddr
 	if i := strings.LastIndexByte(addr, ':'); i > 0 {
-		return addr[:i]
+		addr = addr[:i]
 	}
-	return addr
+	// IPv6 RemoteAddrs arrive in their bracketed form `[::1]:PORT`;
+	// strip the brackets so downstream IPv4/IPv6 compares against the
+	// canonical no-bracket spelling. Without this, Mac→VM connections
+	// via limactl / Docker Desktop record the raw `[::1]` instead of
+	// the LoopbackSentinel (same bug class as the one fixed in
+	// backend/common/utils/jwt/http_middleware.go on 2026-05-31, PR #653).
+	return strings.Trim(addr, "[]")
 }
