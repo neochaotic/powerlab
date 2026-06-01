@@ -25,6 +25,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/system"
 	"github.com/docker/docker/api/types/volume"
@@ -147,17 +148,29 @@ type DockerVisibilityNetworksResponse struct {
 	Networks []DockerVisibilityNetwork `json:"networks"`
 }
 
-// DockerVisibilityVolume is one row in docker://volumes. UsageData
-// is opt-in on the daemon side; when absent size = -1 (SDK convention).
-// InUseBy is best-effort: the daemon doesn't always report it on
-// `volume ls`; the field stays present (empty slice) so the wire shape
-// is stable.
+// DockerVisibilityVolume is one row in docker://volumes. Size comes
+// from a separate /system/df roundtrip (the daemon's VolumeList never
+// populates UsageData regardless of filters — fix for #645); -1 means
+// the daemon could not compute it (older daemon, permission quirk,
+// or a driver — NFS, smb — that genuinely can't report). InUseBy is
+// computed by joining against ContainerList's MountPoint slice; empty
+// when no container references the volume OR ContainerList fails
+// (handler still returns 200 with the listing).
 type DockerVisibilityVolume struct {
-	Name       string   `json:"name"`
-	Driver     string   `json:"driver"`
-	Mountpoint string   `json:"mountpoint"`
-	Size       int64    `json:"size"`
-	InUseBy    []string `json:"in_use_by"`
+	Name       string                       `json:"name"`
+	Driver     string                       `json:"driver"`
+	Mountpoint string                       `json:"mountpoint"`
+	Size       int64                        `json:"size"`
+	InUseBy    []DockerVisibilityVolumeUser `json:"in_use_by"`
+}
+
+// DockerVisibilityVolumeUser is one container that mounts a volume.
+// ID is the 12-char short form (matches `docker ps` display); Name is
+// the container's first registered name with the SDK's leading "/"
+// stripped (panel display convention, same as DockerVisibilityContainer).
+type DockerVisibilityVolumeUser struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 // DockerVisibilityVolumesResponse is the docker://volumes payload.
@@ -271,9 +284,26 @@ func (a *AppManagement) DockerNetworks(ctx echo.Context) error {
 }
 
 // DockerVolumes handles GET /v2/app_management/docker/volumes.
-// Returns every volume; size + in_use_by are best-effort (the daemon's
-// `volume ls` skips them by default for speed).
-// Used by powerlab-mcp's docker://volumes resource (#630).
+// Returns every volume with two enriched fields the SDK's VolumeList
+// never populates on its own:
+//
+//   - size: pulled from /system/df via DiskUsage(Types: [VolumeObject]).
+//     The daemon's `volume ls` skips UsageData regardless of filters
+//     (Docker daemon design choice — computing it requires a `du` walk
+//     per volume). DiskUsage is the documented way to get it cheaply.
+//   - in_use_by: joined against ContainerList's MountPoint slice (only
+//     mounts where Type=volume — bind mounts are addressable by path,
+//     not name, so joining on Name would falsely attribute binds whose
+//     source path collides with a volume name).
+//
+// Both enrichments are best-effort: when DiskUsage fails, size stays
+// -1 per row; when ContainerList fails, in_use_by stays empty. The
+// handler returns 200 in both cases — the agent can still answer
+// "which volumes exist" when only the enrichment APIs are flaky.
+// Only VolumeList itself failing returns 503 (the listing IS the
+// resource).
+//
+// Used by powerlab-mcp's docker://volumes resource (#630, fix #645).
 func (a *AppManagement) DockerVolumes(ctx echo.Context) error {
 	cli, err := newDockerVisibilityClient()
 	if err != nil {
@@ -289,24 +319,103 @@ func (a *AppManagement) DockerVolumes(ctx echo.Context) error {
 		return ctx.JSON(http.StatusServiceUnavailable, dockerVisibilityError(err))
 	}
 
+	// Enrichment #1: /system/df gives UsageData per volume. Scoped to
+	// VolumeObject so the daemon doesn't also walk container/image/
+	// build-cache layers on a call where we only need volumes. Failure
+	// is non-fatal — sizes stay -1 in the response.
+	sizeByName := map[string]int64{}
+	if df, dfErr := cli.DiskUsage(callCtx, types.DiskUsageOptions{
+		Types: []types.DiskUsageObject{types.VolumeObject},
+	}); dfErr == nil {
+		for _, v := range df.Volumes {
+			if v == nil || v.UsageData == nil {
+				continue
+			}
+			sizeByName[v.Name] = v.UsageData.Size
+		}
+	}
+
+	// Enrichment #2: walk every container's Mounts to compute the
+	// reverse index (volume name → containers mounting it). All=true so
+	// stopped containers count too — a stopped container still pins its
+	// volume, the operator's "can I prune this?" question must reflect
+	// that. Failure is non-fatal — in_use_by stays empty.
+	usersByVolume := map[string][]DockerVisibilityVolumeUser{}
+	if containers, lsErr := cli.ContainerList(callCtx, container.ListOptions{All: true}); lsErr == nil {
+		for _, c := range containers {
+			user := DockerVisibilityVolumeUser{
+				ID:   shortContainerID(c.ID),
+				Name: firstContainerName(c.Names),
+			}
+			for _, m := range c.Mounts {
+				// Only Type=volume entries are joinable on Name. Bind
+				// mounts populate MountPoint.Name with the source path
+				// on some Docker versions — joining loosely would falsely
+				// attribute binds to fake volumes.
+				if m.Type != mount.TypeVolume || m.Name == "" {
+					continue
+				}
+				usersByVolume[m.Name] = append(usersByVolume[m.Name], user)
+			}
+		}
+	}
+
 	out := DockerVisibilityVolumesResponse{Volumes: make([]DockerVisibilityVolume, 0, len(raw.Volumes))}
 	for _, v := range raw.Volumes {
 		if v == nil {
 			continue
 		}
+		// Prefer DiskUsage-enriched size; fall back to whatever
+		// VolumeList happened to populate (always nil in practice, but
+		// kept as a defensive fallback so a future SDK change that
+		// starts populating it Just Works); -1 otherwise.
 		size := int64(-1)
-		if v.UsageData != nil {
+		if enriched, ok := sizeByName[v.Name]; ok {
+			size = enriched
+		} else if v.UsageData != nil {
 			size = v.UsageData.Size
+		}
+		users := usersByVolume[v.Name]
+		if users == nil {
+			// Stable wire shape — readers (the agent, audit replay)
+			// rely on the field being an array, never null.
+			users = []DockerVisibilityVolumeUser{}
 		}
 		out.Volumes = append(out.Volumes, DockerVisibilityVolume{
 			Name:       v.Name,
 			Driver:     v.Driver,
 			Mountpoint: v.Mountpoint,
 			Size:       size,
-			InUseBy:    []string{}, // daemon doesn't expose this on list — placeholder for shape stability
+			InUseBy:    users,
 		})
 	}
 	return ctx.JSON(http.StatusOK, out)
+}
+
+// shortContainerID returns the 12-char prefix Docker displays in
+// `docker ps`. Matches the convention the agent sees everywhere else
+// (container.ID is 64 chars; the short form is the cross-tool identifier).
+func shortContainerID(id string) string {
+	const shortLen = 12
+	if len(id) <= shortLen {
+		return id
+	}
+	return id[:shortLen]
+}
+
+// firstContainerName picks the first registered name with the SDK's
+// leading "/" stripped — same convention as DockerVisibilityContainer.
+// Returns empty string when the container has no name (rare; can happen
+// for very transient containers mid-removal).
+func firstContainerName(names []string) string {
+	if len(names) == 0 {
+		return ""
+	}
+	n := names[0]
+	if len(n) > 0 && n[0] == '/' {
+		n = n[1:]
+	}
+	return n
 }
 
 // DockerSystem handles GET /v2/app_management/docker/system. Returns

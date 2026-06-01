@@ -1,0 +1,15 @@
+kind: Fixed
+body: >-
+  docker://volumes now populates `size` and `in_use_by` instead of always
+  reporting `-1` and `[]`. The Docker SDK's VolumeList never populates UsageData
+  regardless of filters, so the v0.7.6 implementation left every volume row
+  stranded — the agent could answer "how much disk are volumes using overall?"
+  via docker://system but could not answer "which volume is fat?" The fix calls
+  /system/df (DiskUsage with the VolumeObject filter) for size enrichment and
+  walks ContainerList's Mounts to compute in_use_by[]{id,name} — the join is
+  scoped to Type=volume mounts so bind sources with a colliding name don't
+  pollute the result. Both enrichments are best-effort: if /system/df or
+  ContainerList fails the listing still returns 200 with degraded fields
+  (size=-1, in_use_by=[]) so the agent never loses the volume names.
+custom:
+  Issue: "645"

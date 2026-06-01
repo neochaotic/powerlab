@@ -43,7 +43,7 @@ Resources by namespace:
 | **docker://** (5 + 1 template) | `docker://containers` | all containers on the daemon (PowerLab + non-PowerLab) — `docker ps -a` equivalent ([ADR-0045](../decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md) extension, [#630](https://github.com/neochaotic/powerlab/issues/630)) |
 | | `docker://images` | all local images — id, tags[], size, created_at |
 | | `docker://networks` | all networks — name, driver, scope, IPAM, attached containers |
-| | `docker://volumes` | all volumes — name, driver, mountpoint, size, in_use_by |
+| | `docker://volumes` | all volumes — name, driver, mountpoint, size (bytes; `-1` when daemon can't compute — [#645](https://github.com/neochaotic/powerlab/issues/645)), in_use_by[]{id,name} (containers mounting the volume) |
 | | `docker://system` | daemon info + `docker system df` snapshot — version, container/image counts, disk_usage by category |
 | | `docker://logs/{id}` (template) | proxy → app-management's `ComposeAppLogs` — **MCP never touches the Docker socket** ([ADR-0045](../decisions/0045-mcp-apps-docker-via-app-management-http-proxy.md)) |
 | **catalog://** (1 + 1 template) | `catalog://index` | 137 compose YAMLs in the bundled `community-catalog/Apps/` — pattern reference, NOT something to install ([ADR-0048](../decisions/0048-mcp-docs-surface-compose-authoring.md)) |

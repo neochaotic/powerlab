@@ -68,7 +68,7 @@ var dockerRawVisibilityRoutes = []dockerRawVisibilityRoute{
 	{
 		uri:          dockerVolumesURI,
 		name:         "Docker volumes (raw)",
-		description:  "All Docker volumes. Fields: name, driver, mountpoint, size, in_use_by[]. Proxied through app-management; MCP NEVER touches the Docker socket (ADR-0045).",
+		description:  "All Docker volumes. Fields: name, driver, mountpoint, size (bytes — -1 when the daemon couldn't compute it), in_use_by[]{id,name} (every container mounting the volume, computed by joining the container list's Mounts). Proxied through app-management; MCP NEVER touches the Docker socket (ADR-0045).",
 		upstreamPath: "/v2/app_management/docker/volumes",
 	},
 	{

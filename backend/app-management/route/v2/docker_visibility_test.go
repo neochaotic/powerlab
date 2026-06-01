@@ -11,6 +11,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/system"
 	"github.com/docker/docker/api/types/volume"
@@ -259,8 +260,10 @@ func TestDockerNetworks_ShapeContract(t *testing.T) {
 }
 
 // DockerVolumes must surface name/driver/mountpoint/size and an
-// in_use_by slice (empty placeholder when the daemon doesn't expose
-// it on volume ls — keeps the wire shape stable).
+// in_use_by slice. Size is enriched via the SDK's DiskUsage call
+// (VolumeList alone never populates UsageData — bug class fix for
+// #645). in_use_by is joined against ContainerList by walking each
+// container's Mounts.
 func TestDockerVolumes_ShapeContract(t *testing.T) {
 	withStubDockerClient(t, &stubDockerVisibilityClient{
 		volumes: volume.ListResponse{
@@ -269,7 +272,22 @@ func TestDockerVolumes_ShapeContract(t *testing.T) {
 					Name:       "plex_data",
 					Driver:     "local",
 					Mountpoint: "/var/lib/docker/volumes/plex_data/_data",
-					UsageData:  &volume.UsageData{Size: 999000, RefCount: 1},
+					// UsageData intentionally nil — VolumeList alone
+					// never populates it; the fix's DiskUsage call does.
+				},
+			},
+		},
+		diskUsage: types.DiskUsage{
+			Volumes: []*volume.Volume{
+				{Name: "plex_data", UsageData: &volume.UsageData{Size: 999000, RefCount: 1}},
+			},
+		},
+		containers: []container.Summary{
+			{
+				ID:    "abc123def456ffff",
+				Names: []string{"/plex"},
+				Mounts: []container.MountPoint{
+					{Type: mount.TypeVolume, Name: "plex_data", Destination: "/data"},
 				},
 			},
 		},
@@ -293,18 +311,27 @@ func TestDockerVolumes_ShapeContract(t *testing.T) {
 		t.Fatalf("volume row mismatch: %+v", v)
 	}
 	if v.Size != 999000 {
-		t.Fatalf("size=%d; want 999000", v.Size)
+		t.Fatalf("size=%d; want 999000 (DiskUsage-enriched)", v.Size)
 	}
 	if v.InUseBy == nil {
 		t.Fatalf("in_use_by is nil — must be empty slice (shape stability)")
 	}
+	if len(v.InUseBy) != 1 {
+		t.Fatalf("in_use_by len=%d; want 1 (joined from container Mounts)", len(v.InUseBy))
+	}
+	if v.InUseBy[0].ID != "abc123def456" {
+		t.Fatalf("in_use_by[0].id=%q; want abc123def456 (12-char short id)", v.InUseBy[0].ID)
+	}
+	if v.InUseBy[0].Name != "plex" {
+		t.Fatalf("in_use_by[0].name=%q; want plex", v.InUseBy[0].Name)
+	}
 }
 
-// DockerVolumes — when the daemon does NOT populate UsageData (the
-// default on `volume ls`), size must report -1 (SDK convention). The
-// wire shape stays stable; the agent sees -1 and knows "size not
-// computed" instead of guessing.
-func TestDockerVolumes_SizeMinusOneWhenUsageDataMissing(t *testing.T) {
+// DockerVolumes — when DiskUsage fails (older daemon, permission
+// quirk) the handler still returns 200 with size=-1 per row. Failing
+// the whole call would hide the volume listing — the agent can still
+// see the names.
+func TestDockerVolumes_SizeMinusOneWhenDiskUsageFails(t *testing.T) {
 	withStubDockerClient(t, &stubDockerVisibilityClient{
 		volumes: volume.ListResponse{
 			Volumes: []*volume.Volume{
@@ -312,7 +339,128 @@ func TestDockerVolumes_SizeMinusOneWhenUsageDataMissing(t *testing.T) {
 					Name:       "ephemeral",
 					Driver:     "local",
 					Mountpoint: "/var/lib/docker/volumes/ephemeral/_data",
-					// UsageData intentionally nil
+				},
+			},
+		},
+		diskUsageErr: errors.New("permission denied"),
+	})
+
+	app := &AppManagement{}
+	rec := invokeHandler(t, http.MethodGet, "/v2/app_management/docker/volumes", app.DockerVolumes)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d; want 200 (DiskUsage failure must NOT 503 the whole call)", rec.Code)
+	}
+	var resp DockerVisibilityVolumesResponse
+	_ = json.Unmarshal(rec.Body.Bytes(), &resp)
+	if len(resp.Volumes) != 1 || resp.Volumes[0].Size != -1 {
+		t.Fatalf("size=%d; want -1 (DiskUsage failed)", resp.Volumes[0].Size)
+	}
+	if resp.Volumes[0].InUseBy == nil {
+		t.Fatalf("in_use_by must be empty slice, not nil (shape stability)")
+	}
+}
+
+// DockerVolumes — when a volume appears in DiskUsage but UsageData is
+// nil for it (some drivers genuinely can't report size — NFS, smb),
+// size stays -1 for that row; sibling volumes with UsageData are
+// still enriched. No crash from the nil UsageData pointer.
+func TestDockerVolumes_DegradesPerVolumeWhenUsageDataNil(t *testing.T) {
+	withStubDockerClient(t, &stubDockerVisibilityClient{
+		volumes: volume.ListResponse{
+			Volumes: []*volume.Volume{
+				{Name: "fat_volume", Driver: "local", Mountpoint: "/m1"},
+				{Name: "nfs_volume", Driver: "nfs", Mountpoint: "/m2"},
+			},
+		},
+		diskUsage: types.DiskUsage{
+			Volumes: []*volume.Volume{
+				{Name: "fat_volume", UsageData: &volume.UsageData{Size: 555}},
+				{Name: "nfs_volume" /* UsageData nil — driver can't report */},
+			},
+		},
+	})
+
+	app := &AppManagement{}
+	rec := invokeHandler(t, http.MethodGet, "/v2/app_management/docker/volumes", app.DockerVolumes)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d; want 200", rec.Code)
+	}
+	var resp DockerVisibilityVolumesResponse
+	_ = json.Unmarshal(rec.Body.Bytes(), &resp)
+	if len(resp.Volumes) != 2 {
+		t.Fatalf("got %d volumes; want 2", len(resp.Volumes))
+	}
+	sizeByName := map[string]int64{}
+	for _, v := range resp.Volumes {
+		sizeByName[v.Name] = v.Size
+	}
+	if sizeByName["fat_volume"] != 555 {
+		t.Fatalf("fat_volume size=%d; want 555", sizeByName["fat_volume"])
+	}
+	if sizeByName["nfs_volume"] != -1 {
+		t.Fatalf("nfs_volume size=%d; want -1 (driver did not populate UsageData)", sizeByName["nfs_volume"])
+	}
+}
+
+// DockerVolumes — when ContainerList fails the handler still returns
+// 200 with the volume listing + size enrichment; in_use_by is empty.
+// The agent can still answer "which volume is fat" — only the
+// "who's using it" join is lost. Failing the whole call would hide
+// the disk-usage answer that motivated the fix (#645).
+func TestDockerVolumes_ContainerListFailureLosesInUseByOnly(t *testing.T) {
+	withStubDockerClient(t, &stubDockerVisibilityClient{
+		volumes: volume.ListResponse{
+			Volumes: []*volume.Volume{
+				{Name: "data", Driver: "local", Mountpoint: "/m"},
+			},
+		},
+		diskUsage: types.DiskUsage{
+			Volumes: []*volume.Volume{
+				{Name: "data", UsageData: &volume.UsageData{Size: 7777}},
+			},
+		},
+		containersErr: errors.New("docker daemon hiccup"),
+	})
+
+	app := &AppManagement{}
+	rec := invokeHandler(t, http.MethodGet, "/v2/app_management/docker/volumes", app.DockerVolumes)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d; want 200 (ContainerList failure must NOT 503)", rec.Code)
+	}
+	var resp DockerVisibilityVolumesResponse
+	_ = json.Unmarshal(rec.Body.Bytes(), &resp)
+	if len(resp.Volumes) != 1 || resp.Volumes[0].Size != 7777 {
+		t.Fatalf("size lost when ContainerList failed: %+v", resp.Volumes)
+	}
+	if resp.Volumes[0].InUseBy == nil || len(resp.Volumes[0].InUseBy) != 0 {
+		t.Fatalf("in_use_by should be empty (not nil) when ContainerList fails: %+v", resp.Volumes[0].InUseBy)
+	}
+}
+
+// DockerVolumes — bind mounts must NOT pollute in_use_by. A container
+// can mount /host/path:/container/path (Type=bind) and the bind's
+// MountPoint.Name is the source path, not a volume name — joining
+// loosely on Name would attribute bind sources to fake volumes.
+// Only Type=volume mounts count.
+func TestDockerVolumes_BindMountsDoNotPolluteInUseBy(t *testing.T) {
+	withStubDockerClient(t, &stubDockerVisibilityClient{
+		volumes: volume.ListResponse{
+			Volumes: []*volume.Volume{
+				{Name: "real_volume", Driver: "local", Mountpoint: "/var/lib/docker/volumes/real_volume/_data"},
+			},
+		},
+		containers: []container.Summary{
+			{
+				ID:    "container1xxx",
+				Names: []string{"/binduser"},
+				Mounts: []container.MountPoint{
+					// A bind mount whose Name happens to equal a volume
+					// name MUST NOT be joined — only Type=volume entries
+					// are joinable per Docker's mount-point model.
+					{Type: mount.TypeBind, Name: "real_volume", Source: "/host/real_volume", Destination: "/data"},
 				},
 			},
 		},
@@ -323,8 +471,59 @@ func TestDockerVolumes_SizeMinusOneWhenUsageDataMissing(t *testing.T) {
 
 	var resp DockerVisibilityVolumesResponse
 	_ = json.Unmarshal(rec.Body.Bytes(), &resp)
-	if len(resp.Volumes) != 1 || resp.Volumes[0].Size != -1 {
-		t.Fatalf("size=%d; want -1 (UsageData nil)", resp.Volumes[0].Size)
+	if len(resp.Volumes) != 1 {
+		t.Fatalf("got %d volumes; want 1", len(resp.Volumes))
+	}
+	if len(resp.Volumes[0].InUseBy) != 0 {
+		t.Fatalf("bind mount leaked into in_use_by: %+v", resp.Volumes[0].InUseBy)
+	}
+}
+
+// DockerVolumes — when two containers mount the same volume, both
+// rows show up in in_use_by (the common "shared volume" pattern —
+// e.g. an app + its sidecar both mounting the data dir).
+func TestDockerVolumes_MultipleContainersOnOneVolume(t *testing.T) {
+	withStubDockerClient(t, &stubDockerVisibilityClient{
+		volumes: volume.ListResponse{
+			Volumes: []*volume.Volume{
+				{Name: "shared", Driver: "local", Mountpoint: "/m"},
+			},
+		},
+		containers: []container.Summary{
+			{
+				ID:    "aaaaaaaaaaaaffff",
+				Names: []string{"/app"},
+				Mounts: []container.MountPoint{
+					{Type: mount.TypeVolume, Name: "shared"},
+				},
+			},
+			{
+				ID:    "bbbbbbbbbbbbffff",
+				Names: []string{"/sidecar"},
+				Mounts: []container.MountPoint{
+					{Type: mount.TypeVolume, Name: "shared"},
+				},
+			},
+		},
+	})
+
+	app := &AppManagement{}
+	rec := invokeHandler(t, http.MethodGet, "/v2/app_management/docker/volumes", app.DockerVolumes)
+
+	var resp DockerVisibilityVolumesResponse
+	_ = json.Unmarshal(rec.Body.Bytes(), &resp)
+	if len(resp.Volumes) != 1 {
+		t.Fatalf("got %d volumes; want 1", len(resp.Volumes))
+	}
+	if len(resp.Volumes[0].InUseBy) != 2 {
+		t.Fatalf("in_use_by len=%d; want 2 (app + sidecar): %+v", len(resp.Volumes[0].InUseBy), resp.Volumes[0].InUseBy)
+	}
+	names := map[string]bool{}
+	for _, u := range resp.Volumes[0].InUseBy {
+		names[u.Name] = true
+	}
+	if !names["app"] || !names["sidecar"] {
+		t.Fatalf("missing user(s): %+v", names)
 	}
 }
 
