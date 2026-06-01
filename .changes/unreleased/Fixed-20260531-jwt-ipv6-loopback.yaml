@@ -1,0 +1,8 @@
+kind: Fixed
+body: >-
+  jwt.HTTPJWT now recognises IPv6 loopback (`[::1]:PORT`) connections
+  arriving via limactl / Docker Desktop forwarding. The bracketed IPv6 form
+  was previously stripped to `[::1]` and compared against `"::1"` — so every
+  Mac→VM request failed the loopback bypass and was rejected with
+  `missing/invalid token` instead of being treated as a trusted local agent.
+time: 2026-05-31T22:50:00.000000-03:00

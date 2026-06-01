@@ -209,3 +209,35 @@ func TestHTTPJWT_MissingTokenNonLoopback401(t *testing.T) {
 		t.Errorf("missing token on non-loopback: got %d, want 401", resp.StatusCode)
 	}
 }
+
+// REGRESSION (2026-05-31): Mac→Lima (or any host→VM, host→container)
+// connections forwarded via IPv6 loopback arrive with RemoteAddr in
+// the form "[::1]:PORT". The original implementation compared the
+// stripped-port string against "::1" (no brackets) and failed to
+// recognise IPv6 loopback as loopback — every Mac→Lima MCP call hit
+// the LAN auth path and returned "missing/invalid token" even though
+// the connection was genuinely local. This test locks the IPv6
+// loopback skip.
+func TestHTTPJWT_LoopbackSkipHandlesIPv6Brackets(t *testing.T) {
+	_, keyFunc := keypairForTest(t)
+	mw := jwt.HTTPJWT(keyFunc)
+	v6loopback := func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r.RemoteAddr = "[::1]:54321"
+			h.ServeHTTP(w, r)
+		})
+	}
+	srv := httptest.NewServer(v6loopback(mw(http.HandlerFunc(echoHandler))))
+	defer srv.Close()
+
+	// No Authorization header — would have been "missing token" 401
+	// pre-fix. Post-fix the IPv6 loopback bypass kicks in → 200.
+	resp, err := http.Get(srv.URL + "/x")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("IPv6 loopback should bypass auth; got %d (pre-fix shape: middleware compared \"[::1]\" against \"::1\" and missed)", resp.StatusCode)
+	}
+}

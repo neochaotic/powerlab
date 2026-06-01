@@ -211,6 +211,11 @@ func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", s.handleHealthz)
 	mux.HandleFunc("/version", s.handleVersion)
+	mux.HandleFunc("/.well-known/oauth-protected-resource", s.handleOAuthProtectedResource)
+	mux.HandleFunc("/.well-known/oauth-authorization-server", s.handleOAuthAuthorizationServer)
+	mux.HandleFunc("/oauth/register", s.handleOAuthRegister)
+	mux.HandleFunc("/oauth/authorize", s.handleOAuthAuthorize)
+	mux.HandleFunc("/oauth/token", s.handleOAuthToken)
 
 	// Read-tier gate: jwt.HTTPJWT skips loopback (trusted local agent)
 	// and requires a valid Bearer token from the LAN, writing the
