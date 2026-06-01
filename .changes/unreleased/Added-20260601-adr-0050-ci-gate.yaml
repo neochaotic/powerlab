@@ -1,0 +1,11 @@
+kind: Added
+body: >-
+  CI gate `scripts/check-mcp-docs-canonical.sh` enforces ADR-0050's
+  "MCP-served docs are canonical" doctrine on the compose-extension key
+  family (x-powerlab / x-web / x-casaos). Every extension key the parser
+  accepts MUST be mentioned in `docs/concepts/compose-conventions.md` —
+  drift fails CI with a clear pointer to both files so a contributor
+  adding a 4th alias can't ship without the doc update. Initial scope is
+  the extension keys only; follow-up PRs extend the same shape to OpenAPI
+  paths, x-powerlab subfield names, and catalog metadata.
+time: 2026-06-01T15:30:00.000000-03:00

@@ -181,6 +181,18 @@ networks:
 
 For 137 real examples spanning every category, query the MCP `catalog://index` resource and read `catalog://app/<id>`.
 
+## Compose extension keys (parser accepts)
+
+PowerLab's app-management parser reads the top-level extension block under a small set of key names, in priority order. Most operators will only ever see the canonical name; the legacy aliases exist for backward compatibility with imported app catalogs.
+
+| Key | Status | Notes |
+|---|---|---|
+| `x-powerlab` | **canonical** — use this for new apps | The PowerLab UI authors apps with this key; new compose YAML SHOULD use it. |
+| `x-web` | legacy alias | Intermediate alias used by an upstream catalog at one point. Still parsed for backward compatibility; not for new code. |
+| `x-casaos` | legacy (CasaOS-era) | What most imported CasaOS store apps ship with. Still parsed for backward compatibility; not for new code. |
+
+Drift between this list and what the parser actually accepts is gated by `scripts/check-mcp-docs-canonical.sh` per ADR-0050 — any extension key the parser reads MUST appear in the table above.
+
 ## Where to learn more
 
 - `mcp://catalog/index` + `mcp://catalog/app/<id>` — real PowerLab apps (machine-readable)
