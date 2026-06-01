@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -268,58 +269,19 @@ func percentSummary(area string, pct float64) string {
 func pctToString(pct float64) string {
 	// One decimal place is enough for an agent to surface; the
 	// resource still carries the raw float for fine-grained reads.
-	return formatFloat(pct, 1) + "%"
-}
-
-func formatFloat(v float64, decimals int) string {
-	mult := 1.0
-	for i := 0; i < decimals; i++ {
-		mult *= 10
-	}
-	rounded := float64(int(v*mult+0.5)) / mult
-	// Manual format to avoid pulling in strconv just for this one
-	// helper; the precision is bounded so int conversion is safe.
-	intPart := int(rounded)
-	fracPart := int((rounded - float64(intPart)) * mult)
-	if decimals == 0 {
-		return itoa(intPart)
-	}
-	frac := itoa(fracPart)
-	for len(frac) < decimals {
-		frac = "0" + frac
-	}
-	return itoa(intPart) + "." + frac
-}
-
-func itoa(v int) string {
-	if v == 0 {
-		return "0"
-	}
-	neg := v < 0
-	if neg {
-		v = -v
-	}
-	out := ""
-	for v > 0 {
-		out = string(rune('0'+v%10)) + out
-		v /= 10
-	}
-	if neg {
-		out = "-" + out
-	}
-	return out
+	return strconv.FormatFloat(pct, 'f', 1, 64) + "%"
 }
 
 func pluralPending(n int) string {
 	if n == 1 {
 		return "1 update pending"
 	}
-	return itoa(n) + " updates pending"
+	return strconv.Itoa(n) + " updates pending"
 }
 
 func pluralSecurity(n int) string {
 	if n == 1 {
 		return "1 security-flagged"
 	}
-	return itoa(n) + " security-flagged"
+	return strconv.Itoa(n) + " security-flagged"
 }
