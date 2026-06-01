@@ -82,15 +82,6 @@ func registerSearchDocs(s *mcp.Server, conceptsDir, openAPIDir, catalogDir strin
 	})
 }
 
-// searchDocs preserves the original single-root signature for the
-// existing test suite. New callers should use searchDocsMulti.
-func searchDocs(ctx context.Context, conceptsDir string, in searchDocsInput) searchDocsOutput {
-	roots := []searchRoot{
-		{Source: "concepts", Path: conceptsDir, URIFn: func(stem string) string { return docsConceptsPrefix + stem }},
-	}
-	return searchDocsMulti(ctx, roots, in)
-}
-
 func searchDocsMulti(_ context.Context, roots []searchRoot, in searchDocsInput) searchDocsOutput {
 	q := strings.TrimSpace(in.Query)
 	if len(q) < searchDocsMinQuery {

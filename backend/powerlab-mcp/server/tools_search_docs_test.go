@@ -12,7 +12,7 @@ func TestSearchDocs_FindsSubstringAcrossFiles(t *testing.T) {
 	mustWrite(t, dir, "compose-conventions.md", "Use /DATA/PowerLabAppData paths.\nNever bind /var/run/docker.sock.\n")
 	mustWrite(t, dir, "security-model.md", "The validator rejects privileged: true.\nDocker socket binds = container escape.\n")
 
-	out := searchDocs(context.Background(), dir, searchDocsInput{Query: "docker", TopK: 10})
+	out := searchDocsMulti(context.Background(), conceptsRoot(dir), searchDocsInput{Query: "docker", TopK: 10})
 	if len(out.Matches) != 2 {
 		t.Fatalf("got %d matches; want 2 (one per file). matches=%+v", len(out.Matches), out.Matches)
 	}
@@ -28,7 +28,7 @@ func TestSearchDocs_TopKHonoured(t *testing.T) {
 	dir := t.TempDir()
 	mustWrite(t, dir, "noisy.md", "match\nmatch\nmatch\nmatch\nmatch\nmatch\n")
 
-	out := searchDocs(context.Background(), dir, searchDocsInput{Query: "match", TopK: 3})
+	out := searchDocsMulti(context.Background(), conceptsRoot(dir), searchDocsInput{Query: "match", TopK: 3})
 	if len(out.Matches) != 3 {
 		t.Errorf("got %d matches; top_k=3 should cap at 3", len(out.Matches))
 	}
@@ -42,7 +42,7 @@ func TestSearchDocs_DefaultTopKWhenZero(t *testing.T) {
 	}
 	mustWrite(t, dir, "noisy.md", body)
 
-	out := searchDocs(context.Background(), dir, searchDocsInput{Query: "match"})
+	out := searchDocsMulti(context.Background(), conceptsRoot(dir), searchDocsInput{Query: "match"})
 	if len(out.Matches) != searchDocsDefaultTopK {
 		t.Errorf("got %d matches; default top_k=%d", len(out.Matches), searchDocsDefaultTopK)
 	}
@@ -52,7 +52,7 @@ func TestSearchDocs_ShortQueryReturnsNote(t *testing.T) {
 	dir := t.TempDir()
 	mustWrite(t, dir, "x.md", "anything")
 
-	out := searchDocs(context.Background(), dir, searchDocsInput{Query: "x"})
+	out := searchDocsMulti(context.Background(), conceptsRoot(dir), searchDocsInput{Query: "x"})
 	if len(out.Matches) != 0 {
 		t.Errorf("got matches for 1-char query; want 0")
 	}
@@ -62,7 +62,7 @@ func TestSearchDocs_ShortQueryReturnsNote(t *testing.T) {
 }
 
 func TestSearchDocs_MissingDirReturnsNoteNotError(t *testing.T) {
-	out := searchDocs(context.Background(), "/nonexistent/concepts", searchDocsInput{Query: "test", TopK: 5})
+	out := searchDocsMulti(context.Background(), conceptsRoot("/nonexistent/concepts"), searchDocsInput{Query: "test", TopK: 5})
 	if len(out.Matches) != 0 {
 		t.Errorf("got matches against missing dir; want 0")
 	}
@@ -75,7 +75,7 @@ func TestSearchDocs_CaseInsensitive(t *testing.T) {
 	dir := t.TempDir()
 	mustWrite(t, dir, "x.md", "PowerLab uses /DATA/PowerLabAppData paths\n")
 
-	out := searchDocs(context.Background(), dir, searchDocsInput{Query: "POWERLAB", TopK: 5})
+	out := searchDocsMulti(context.Background(), conceptsRoot(dir), searchDocsInput{Query: "POWERLAB", TopK: 5})
 	if len(out.Matches) != 1 {
 		t.Errorf("case-insensitive match failed; got %d, want 1", len(out.Matches))
 	}
@@ -192,5 +192,13 @@ func TestSearchDocsMulti_TopKCapsAggregate(t *testing.T) {
 	out := searchDocsMulti(context.Background(), roots, searchDocsInput{Query: "match", TopK: 4})
 	if len(out.Matches) != 4 {
 		t.Fatalf("got %d matches; TopK=4 should cap aggregate at 4 (had 3+3 available)", len(out.Matches))
+	}
+}
+
+// conceptsRoot is a test-only helper for the single-root tests above —
+// preserves their fixture shape (one dir) under the multi-source API.
+func conceptsRoot(dir string) []searchRoot {
+	return []searchRoot{
+		{Source: "concepts", Path: dir, URIFn: func(stem string) string { return docsConceptsPrefix + stem }},
 	}
 }
