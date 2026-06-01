@@ -38,7 +38,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           # mkdocs's git-revision-date plugin would need full history;
           # we don't use it yet but keep this here for the day we do.
