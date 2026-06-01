@@ -1,0 +1,10 @@
+kind: Added
+body: >-
+  New `list_capabilities` MCP Tool reports which operator-opt-in tiers
+  (destructive write tools, sensitive sysadmin resources) are active on this
+  server. Agents call it before attempting a gated capability — saves a
+  trial-and-error round-trip when an operator hasn't opted in. Includes a
+  Summary string so even an agent that doesn't parse the structured fields
+  surfaces the right state to the operator. (P2.8 from 2026-05-31 MCP-only
+  chat-mode test.)
+time: 2026-06-01T13:30:00.000000-03:00
