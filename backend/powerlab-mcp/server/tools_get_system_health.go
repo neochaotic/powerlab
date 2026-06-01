@@ -118,11 +118,50 @@ func evaluateMemory(procRoot string, ws []SystemHealthWarning) (SystemHealthArea
 	return SystemHealthArea{Severity: "ok", Summary: percentSummary("memory", pct)}, ws
 }
 
+// unwrapPowerLabEnvelope decodes the canonical `{success, message, data}`
+// shape every PowerLab service uses (legacy CasaOS convention preserved
+// during the rebrand). Falls back to a direct decode when the envelope
+// isn't present, so a future endpoint variant that returns the raw
+// payload still works.
+//
+// REGRESSION (2026-06-01 end-to-end test, this PR): the original
+// evaluateDisk and evaluateServices decoded the raw body directly,
+// missing the envelope. Real core returns
+// `{"success":200,"message":"ok","data":{...}}` for disk and
+// `{"success":200,"message":"ok","data":[...]}` for services — both
+// silently parsed as empty payloads, so disk reported worst=0% and
+// services reported "all healthy" regardless of reality. The bug
+// was caught when an agent in Claude Code asked for the system
+// health on Lima (88.7% used) and got back "worst mount: 0.0%".
+func unwrapPowerLabEnvelope(body []byte, target any) error {
+	var e struct {
+		Data json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(body, &e); err == nil && len(e.Data) > 0 && string(e.Data) != "null" {
+		return json.Unmarshal(e.Data, target)
+	}
+	return json.Unmarshal(body, target)
+}
+
+// diskEntry matches both shapes core uses: physical disks key on
+// "mount" while mounts key on "path". Both UsedPercent fields are
+// consistent. The evaluator reads whichever name is non-empty.
+type diskEntry struct {
+	Path        string  `json:"path"`
+	Mount       string  `json:"mount"`
+	UsedPercent float64 `json:"used_percent"`
+}
+
+func (e diskEntry) Name() string {
+	if e.Mount != "" {
+		return e.Mount
+	}
+	return e.Path
+}
+
 type diskPayload struct {
-	Physical []struct {
-		Mount       string  `json:"mount"`
-		UsedPercent float64 `json:"used_percent"`
-	} `json:"physical"`
+	Physical []diskEntry `json:"physical"`
+	Mounts   []diskEntry `json:"mounts"`
 }
 
 func evaluateDisk(ctx context.Context, proxy *coreproxy.Client, ws []SystemHealthWarning) (SystemHealthArea, []SystemHealthWarning) {
@@ -131,15 +170,21 @@ func evaluateDisk(ctx context.Context, proxy *coreproxy.Client, ws []SystemHealt
 		return SystemHealthArea{Severity: "unknown", Summary: "disk unavailable: " + err.Error()}, ws
 	}
 	var dp diskPayload
-	if jerr := json.Unmarshal(body, &dp); jerr != nil {
+	if jerr := unwrapPowerLabEnvelope(body, &dp); jerr != nil {
 		return SystemHealthArea{Severity: "unknown", Summary: "disk parse failed: " + jerr.Error()}, ws
+	}
+	// Prefer physical disks when present (real metal); fall back to
+	// mounts otherwise (VMs / containers expose only mount points).
+	entries := dp.Physical
+	if len(entries) == 0 {
+		entries = dp.Mounts
 	}
 	worst := 0.0
 	worstMount := ""
-	for _, d := range dp.Physical {
+	for _, d := range entries {
 		if d.UsedPercent > worst {
 			worst = d.UsedPercent
-			worstMount = d.Mount
+			worstMount = d.Name()
 		}
 	}
 	switch {
@@ -161,11 +206,21 @@ func evaluateDisk(ctx context.Context, proxy *coreproxy.Client, ws []SystemHealt
 	return SystemHealthArea{Severity: "ok", Summary: "worst mount " + worstMount + ": " + pctToString(worst)}, ws
 }
 
-type servicesPayload struct {
-	Services []struct {
-		Name        string `json:"name"`
-		ActiveState string `json:"active_state"`
-	} `json:"services"`
+// serviceEntry matches core's `data[]` shape. Real /v1/sys/services
+// returns the array directly under `data` (no wrapping object), and
+// the name field carries the unit basename WITHOUT the `.service`
+// suffix (e.g. "powerlab-mcp" not "powerlab-mcp.service").
+type serviceEntry struct {
+	Name        string `json:"name"`
+	ActiveState string `json:"active_state"`
+}
+
+// canonicalServiceName strips the `.service` suffix if present so
+// equality checks against the unit short names work regardless of
+// whether core was returning the short or full form. The real
+// returns "powerlab-mcp" today; future-proofing against a refactor.
+func canonicalServiceName(n string) string {
+	return strings.TrimSuffix(n, ".service")
 }
 
 func evaluateServices(ctx context.Context, proxy *coreproxy.Client, ws []SystemHealthWarning) (SystemHealthArea, []SystemHealthWarning) {
@@ -173,24 +228,25 @@ func evaluateServices(ctx context.Context, proxy *coreproxy.Client, ws []SystemH
 	if err != nil {
 		return SystemHealthArea{Severity: "unknown", Summary: "services unavailable: " + err.Error()}, ws
 	}
-	var sp servicesPayload
-	if jerr := json.Unmarshal(body, &sp); jerr != nil {
+	var services []serviceEntry
+	if jerr := unwrapPowerLabEnvelope(body, &services); jerr != nil {
 		return SystemHealthArea{Severity: "unknown", Summary: "services parse failed: " + jerr.Error()}, ws
 	}
 	mcpDegraded := false
 	otherDegraded := []string{}
-	for _, svc := range sp.Services {
-		if !strings.HasPrefix(svc.Name, "powerlab-") {
+	for _, svc := range services {
+		name := canonicalServiceName(svc.Name)
+		if !strings.HasPrefix(name, "powerlab-") {
 			continue
 		}
 		if svc.ActiveState == "active" {
 			continue
 		}
-		if svc.Name == "powerlab-mcp.service" {
+		if name == "powerlab-mcp" {
 			mcpDegraded = true
 			continue
 		}
-		otherDegraded = append(otherDegraded, svc.Name)
+		otherDegraded = append(otherDegraded, name)
 	}
 	switch {
 	case mcpDegraded:

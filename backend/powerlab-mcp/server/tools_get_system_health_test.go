@@ -140,8 +140,8 @@ func newMCPServerForHealthTest(rc resourcesConfig, apt aptRunner) *mcp.Server {
 // warnings should be emitted.
 func TestGetSystemHealth_HealthyBoxReportsOK(t *testing.T) {
 	rc, apt := healthCoreFixture{
-		diskBody:     `{"physical":[{"mount":"/","used_percent":40}]}`,
-		servicesBody: `{"services":[{"name":"powerlab-mcp.service","active_state":"active"}]}`,
+		diskBody:     `{"success":200,"message":"ok","data":{"physical":[{"mount":"/","used_percent":40}]}}`,
+		servicesBody: `{"success":200,"message":"ok","data":[{"name":"powerlab-mcp.service","active_state":"active"}]}`,
 		aptOutput:    aptOutputNPending(3),
 	}.serve(t)
 
@@ -167,8 +167,8 @@ func TestGetSystemHealth_HealthyBoxReportsOK(t *testing.T) {
 // inherits the highest severity across areas.
 func TestGetSystemHealth_DiskWarnThreshold(t *testing.T) {
 	rc, apt := healthCoreFixture{
-		diskBody:     `{"physical":[{"mount":"/","used_percent":92}]}`,
-		servicesBody: `{"services":[{"name":"powerlab-mcp.service","active_state":"active"}]}`,
+		diskBody:     `{"success":200,"message":"ok","data":{"physical":[{"mount":"/","used_percent":92}]}}`,
+		servicesBody: `{"success":200,"message":"ok","data":[{"name":"powerlab-mcp.service","active_state":"active"}]}`,
 		aptOutput:    aptOutputNPending(0),
 	}.serve(t)
 	out := callGetSystemHealth(t, rc, apt)
@@ -187,8 +187,8 @@ func TestGetSystemHealth_DiskWarnThreshold(t *testing.T) {
 // regardless of any warn-level surfaces.
 func TestGetSystemHealth_DiskCriticalEscalates(t *testing.T) {
 	rc, apt := healthCoreFixture{
-		diskBody:     `{"physical":[{"mount":"/","used_percent":97}]}`,
-		servicesBody: `{"services":[{"name":"powerlab-mcp.service","active_state":"active"}]}`,
+		diskBody:     `{"success":200,"message":"ok","data":{"physical":[{"mount":"/","used_percent":97}]}}`,
+		servicesBody: `{"success":200,"message":"ok","data":[{"name":"powerlab-mcp.service","active_state":"active"}]}`,
 		aptOutput:    aptOutputWithSecurity(2-1, 1),
 	}.serve(t)
 	out := callGetSystemHealth(t, rc, apt)
@@ -204,8 +204,8 @@ func TestGetSystemHealth_DiskCriticalEscalates(t *testing.T) {
 // not a system breaker but agent should surface).
 func TestGetSystemHealth_SecurityUpdatesWarn(t *testing.T) {
 	rc, apt := healthCoreFixture{
-		diskBody:     `{"physical":[{"mount":"/","used_percent":30}]}`,
-		servicesBody: `{"services":[{"name":"powerlab-mcp.service","active_state":"active"}]}`,
+		diskBody:     `{"success":200,"message":"ok","data":{"physical":[{"mount":"/","used_percent":30}]}}`,
+		servicesBody: `{"success":200,"message":"ok","data":[{"name":"powerlab-mcp.service","active_state":"active"}]}`,
 		aptOutput:    aptOutputWithSecurity(47-5, 5),
 	}.serve(t)
 	out := callGetSystemHealth(t, rc, apt)
@@ -223,8 +223,8 @@ func TestGetSystemHealth_SecurityUpdatesWarn(t *testing.T) {
 // somehow responded).
 func TestGetSystemHealth_McpServiceDownIsCritical(t *testing.T) {
 	rc, apt := healthCoreFixture{
-		diskBody:     `{"physical":[{"mount":"/","used_percent":30}]}`,
-		servicesBody: `{"services":[{"name":"powerlab-mcp.service","active_state":"failed"}]}`,
+		diskBody:     `{"success":200,"message":"ok","data":{"physical":[{"mount":"/","used_percent":30}]}}`,
+		servicesBody: `{"success":200,"message":"ok","data":[{"name":"powerlab-mcp.service","active_state":"failed"}]}`,
 		aptOutput:    aptOutputNPending(0),
 	}.serve(t)
 	out := callGetSystemHealth(t, rc, apt)
@@ -237,8 +237,8 @@ func TestGetSystemHealth_McpServiceDownIsCritical(t *testing.T) {
 // agent surfaces).
 func TestGetSystemHealth_NonMcpServiceDownIsWarn(t *testing.T) {
 	rc, apt := healthCoreFixture{
-		diskBody:     `{"physical":[{"mount":"/","used_percent":30}]}`,
-		servicesBody: `{"services":[{"name":"powerlab-mcp.service","active_state":"active"},{"name":"powerlab-gateway.service","active_state":"failed"}]}`,
+		diskBody:     `{"success":200,"message":"ok","data":{"physical":[{"mount":"/","used_percent":30}]}}`,
+		servicesBody: `{"success":200,"message":"ok","data":[{"name":"powerlab-mcp.service","active_state":"active"},{"name":"powerlab-gateway.service","active_state":"failed"}]}`,
 		aptOutput:    aptOutputNPending(0),
 	}.serve(t)
 	out := callGetSystemHealth(t, rc, apt)
@@ -280,3 +280,71 @@ func findWarning(ws []SystemHealthWarning, area, severity string) bool {
 }
 
 var _ = fmt.Sprintf // keep fmt referenced for failure-message authoring
+
+// REGRESSION (2026-06-01 end-to-end discovery): real core wraps every
+// response in `{"success":200,"message":"ok","data":{...}}` and VM
+// hosts (Lima, Docker Desktop) report disk in `mounts[]` because
+// `physical[]` is empty. Pre-fix, evaluateDisk decoded the body
+// directly and missed BOTH the envelope and the mounts fallback,
+// reporting worst=0% regardless of the real fill level.
+func TestGetSystemHealth_DiskParsesEnvelopeAndMountsFallback(t *testing.T) {
+	rc, apt := healthCoreFixture{
+		// Real core shape: envelope + empty physical + populated mounts.
+		// Lima's actual response at 88.7% used on /.
+		diskBody:     `{"success":200,"message":"ok","data":{"physical":[],"mounts":[{"path":"/","fs_type":"ext4","total":19682557952,"used":17437450240,"free":2228330496,"used_percent":88.7}]}}`,
+		servicesBody: `{"success":200,"message":"ok","data":[{"name":"powerlab-mcp","active_state":"active"}]}`,
+		aptOutput:    aptOutputNPending(0),
+	}.serve(t)
+
+	out := callGetSystemHealth(t, rc, apt)
+	if out.Disk.Severity != "ok" {
+		t.Fatalf("disk.severity=%q; want ok (88.7%% is below 90%% warn threshold)", out.Disk.Severity)
+	}
+	if !strings.Contains(out.Disk.Summary, "88.7") {
+		t.Fatalf("disk.summary=%q; want it to surface the actual 88.7%% (pre-fix bug: summary said '0.0%%' because envelope was not unwrapped + mounts fallback was missing)", out.Disk.Summary)
+	}
+	if !strings.Contains(out.Disk.Summary, "/") {
+		t.Errorf("disk.summary=%q; want it to name the worst mount path", out.Disk.Summary)
+	}
+}
+
+// REGRESSION (same end-to-end): services data is an ARRAY at top
+// level under `data`, not an object containing a `services` field.
+// And names omit the `.service` suffix. Pre-fix, the parser couldn't
+// see any services so it always reported "all healthy" regardless
+// of the real state.
+func TestGetSystemHealth_ServicesParsesArrayEnvelopeAndShortNames(t *testing.T) {
+	rc, apt := healthCoreFixture{
+		diskBody: `{"success":200,"message":"ok","data":{"physical":[],"mounts":[{"path":"/","used_percent":30}]}}`,
+		// Real shape: data is array; names without .service suffix;
+		// one degraded sibling service.
+		servicesBody: `{"success":200,"message":"ok","data":[{"name":"powerlab-mcp","active_state":"active"},{"name":"powerlab-gateway","active_state":"failed"}]}`,
+		aptOutput:    aptOutputNPending(0),
+	}.serve(t)
+
+	out := callGetSystemHealth(t, rc, apt)
+	if out.Services.Severity != "warn" {
+		t.Fatalf("services.severity=%q; want warn (powerlab-gateway failed)", out.Services.Severity)
+	}
+	if !strings.Contains(out.Services.Summary, "powerlab-gateway") {
+		t.Errorf("services.summary=%q; want it to name powerlab-gateway", out.Services.Summary)
+	}
+}
+
+// powerlab-mcp self-degradation MUST still escalate to critical even
+// when core returns the canonical short name without the .service suffix.
+func TestGetSystemHealth_McpSelfDegradeStillCriticalAcrossNameForms(t *testing.T) {
+	for _, name := range []string{"powerlab-mcp", "powerlab-mcp.service"} {
+		t.Run("name="+name, func(t *testing.T) {
+			rc, apt := healthCoreFixture{
+				diskBody:     `{"success":200,"message":"ok","data":{"physical":[],"mounts":[{"path":"/","used_percent":30}]}}`,
+				servicesBody: `{"success":200,"message":"ok","data":[{"name":"` + name + `","active_state":"failed"}]}`,
+				aptOutput:    aptOutputNPending(0),
+			}.serve(t)
+			out := callGetSystemHealth(t, rc, apt)
+			if out.Services.Severity != "critical" {
+				t.Fatalf("services.severity=%q with name=%q; want critical", out.Services.Severity, name)
+			}
+		})
+	}
+}
