@@ -231,17 +231,47 @@ func (s *Server) Handler() http.Handler {
 	// limitBody is outermost so the body cap applies before anything
 	// reads the request — even on the auth-rejected path.
 	// Chain (outermost → innermost):
-	//   limitBody → preventProxyLoopbackTrust → jwt.HTTPJWT → audit.HTTPMiddleware → MCP
+	//   limitBody → preventProxyLoopbackTrust → jwt.HTTPJWT →
+	//   enrichAuditIdentity → audit.HTTPMiddleware{Enricher} →
+	//   teeMCPBodyForAudit → MCP
 	//
 	// jwt.HTTPJWT runs BEFORE audit so the user_id / user_name headers
 	// it writes are visible to the audit middleware (ADR-0033 ordering
-	// requirement). When s.audit is nil (failed to open, test build)
-	// the audit step is a no-op pass-through.
+	// requirement). enrichAuditIdentity sits between them as a thin
+	// fallback: on the loopback path jwt.HTTPJWT skips and leaves the
+	// headers empty (per ADR-0034 trusted-local-agent), but if a Bearer
+	// token IS present we still want the audit record to carry the
+	// agent's identity (issue #644). The enrichment is audit-only and
+	// never overrides headers jwt.HTTPJWT already set — see
+	// enrichAuditIdentity's doc comment for the trust model.
+	//
+	// teeMCPBodyForAudit pre-parses the JSON-RPC envelope and stashes
+	// {method, tool_name, uri} on r.Context. The audit middleware's
+	// Enricher hook (enrichAuditWithMCPPayload) reads that context
+	// AFTER ServeHTTP and fills Kind=mcp.tool_call/mcp.resource_read
+	// plus Payload — turning "POST /mcp 200" into "tool restart_app
+	// called". The tee preserves the body verbatim for the SDK
+	// (replaces r.Body with a NopCloser around the buffered bytes).
+	//
+	// ORDERING IS LOAD-BEARING: the tee runs OUTSIDE the audit
+	// middleware so the enriched context is visible to the audit
+	// middleware's Enricher call. If the tee ran INSIDE audit, the
+	// context.WithValue would only reach the MCP handler (a new
+	// *http.Request is created by WithContext) and the audit
+	// middleware would still see the original request with no
+	// enrichment context. The enricher would see nil. (Confirmed
+	// experimentally during issue #644 work.)
+	//
+	// When s.audit is nil (failed to open, test build) the audit step
+	// is a no-op pass-through.
 	inner := http.Handler(s.httpMCP)
 	if s.audit != nil {
-		inner = audit.HTTPMiddleware(s.audit.Recorder, audit.HTTPMiddlewareOptions{})(inner)
+		inner = audit.HTTPMiddleware(s.audit.Recorder, audit.HTTPMiddlewareOptions{
+			Enricher: enrichAuditWithMCPPayload,
+		})(inner)
 	}
-	gated := limitBody(preventProxyLoopbackTrust(jwt.HTTPJWT(s.pubKey)(inner)), maxMCPRequestBytes)
+	inner = teeMCPBodyForAudit(inner)
+	gated := limitBody(preventProxyLoopbackTrust(jwt.HTTPJWT(s.pubKey)(enrichAuditIdentity(inner))), maxMCPRequestBytes)
 	mux.Handle(MCPEndpointPath, gated)
 	return mux
 }

@@ -61,6 +61,16 @@ func HTTPMiddleware(rec *Recorder, opts HTTPMiddlewareOptions) func(http.Handler
 				RequestID:     r.Header.Get("X-Request-Id"),
 			}
 			rec0.FillTimestamps(start)
+			// Per-request enrichment hook. Lets a host service surface
+			// protocol-specific facts the generic HTTP middleware can't
+			// see (e.g. powerlab-mcp parses the JSON-RPC envelope and
+			// fills Kind=mcp.tool_call + Payload{tool_name}). The hook
+			// runs AFTER ServeHTTP so the enricher can inspect both
+			// the request (typically via context set by an upstream
+			// body-tee) and the captured status. nil → no-op.
+			if opts.Enricher != nil {
+				opts.Enricher(r, &rec0)
+			}
 			rec.Submit(rec0)
 		})
 	}
@@ -71,6 +81,16 @@ type HTTPMiddlewareOptions struct {
 	// Skipper returns true to skip recording for a request.
 	// Useful for high-frequency static asset paths or health checks.
 	Skipper func(r *http.Request) bool
+
+	// Enricher is an optional per-request hook that lets the host
+	// service mutate the captured Record before it's submitted —
+	// adding Kind, Payload, or any other protocol-specific fields the
+	// generic HTTP middleware doesn't know about. Runs AFTER
+	// next.ServeHTTP so the request context can carry parsed-by-the-
+	// inner-handler facts. nil → no-op. Used by powerlab-mcp to
+	// surface tool_name / uri / kind into the audit record without
+	// forking the middleware (ADR-0047 + issue #644).
+	Enricher func(r *http.Request, rec *Record)
 }
 
 // statusRecorder snoops the status code written upstream. Wraps
