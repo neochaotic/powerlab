@@ -31,6 +31,7 @@ func HTTPJWT(publicKeyFunc func() (*ecdsa.PublicKey, error)) func(http.Handler) 
 			if i := strings.LastIndexByte(remote, ':'); i > 0 {
 				remote = remote[:i]
 			}
+			remote = strings.Trim(remote, "[]")
 			if remote == "127.0.0.1" || remote == "::1" {
 				// Loopback skip — same as Echo Skipper.
 				next.ServeHTTP(w, r)
