@@ -1,0 +1,11 @@
+kind: Changed
+body: >-
+  `search_docs` MCP tool now indexes three documentation surfaces instead of
+  just one — agents searching for "install_app" (OpenAPI), "vaultwarden"
+  (catalog) or "compose-conventions" (concepts) get results from whichever
+  surface the term lives in, with a `source` field on each hit so they know
+  which canonical URI to chain to. Pre-fix the tool was concepts-only and
+  returned `{matches: []}` for any term that lived in OpenAPI specs or the
+  bundled catalog, even when the answer was clearly there. (P0.3 from
+  2026-05-31 MCP-only chat-mode test.)
+time: 2026-06-01T11:00:00.000000-03:00

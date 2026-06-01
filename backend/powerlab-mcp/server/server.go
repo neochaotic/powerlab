@@ -175,7 +175,7 @@ func newMCPServer(info BuildInfo, rc resourcesConfig, journalRun journal.Runner)
 	// compose_authoring Prompt primitive. Read-only across the board.
 	registerDocsConcepts(m, rc.conceptsDir)
 	registerCatalog(m, rc.catalogDir)
-	registerSearchDocs(m, rc.conceptsDir)
+	registerSearchDocs(m, rc.conceptsDir, rc.openAPIDir, rc.catalogDir)
 	registerComposeAuthoringPrompt(m, rc.conceptsDir, rc.catalogDir)
 	// ADR-0046 — read-only tools batch 1. Destructive tools land
 	// gated on cfg.EnableDestructiveTools (separate registration
