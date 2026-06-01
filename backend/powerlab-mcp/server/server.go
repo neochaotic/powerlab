@@ -184,6 +184,10 @@ func newMCPServer(info BuildInfo, rc resourcesConfig, journalRun journal.Runner)
 	// P1.5 — aggregate health across metrics + disk + services + updates.
 	// Same correlation the smoke client encodes, exposed as one tool call.
 	registerGetSystemHealth(m, rc.procRoot, rc.coreClient)
+	// P1.6 — propose-then-review path for artifacts (compose YAML,
+	// shell, configs). Runs composevalidator for compose-yaml;
+	// roundtrips other kinds with an explicit "no validator" note.
+	registerGenerateArtifact(m)
 	// ADR-0046 — read-only tools batch 1. Destructive tools land
 	// gated on cfg.EnableDestructiveTools (separate registration
 	// call when that knob arrives).
