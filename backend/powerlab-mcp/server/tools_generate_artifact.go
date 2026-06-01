@@ -22,15 +22,33 @@ import (
 // state, no upstream call, no install attempt.
 
 // ArtifactValidation reports what (if anything) the per-kind
-// validator said about the content. OK distinguishes "validator ran
-// and accepted" from "no validator for this kind" — the latter
-// surfaces a Note instead of silently claiming OK so the agent
-// never represents an unvalidated artifact as safe.
+// validator said about the content. Status has three values:
+//
+//	"ok"         — validator ran and the artifact passed all rules
+//	"violations" — validator ran and reported issues (see Violations)
+//	"skipped"    — no validator wired for this kind; the artifact was
+//	               NOT checked. Operator must review manually
+//
+// The three-state Status replaces an earlier OK bool that conflated
+// "validator failed" with "no validator exists" — an unvalidated
+// artifact being reported as `ok: false` was misleading: it suggested
+// the validator had rejected the content when in fact no validator
+// had ever run. Agents that key off `status == "ok"` now have a
+// single positive signal; everything else needs operator review.
 type ArtifactValidation struct {
-	OK         bool                       `json:"ok"`
-	Note       string                     `json:"note,omitempty"`
+	Status     string                       `json:"status"`
+	Note       string                       `json:"note,omitempty"`
 	Violations []composevalidator.Violation `json:"violations,omitempty"`
 }
+
+// ArtifactValidation status enums — exported (capitalized constants
+// implicit via package selector) so callers can compare without
+// magic strings.
+const (
+	ArtifactValidationOK         = "ok"
+	ArtifactValidationViolations = "violations"
+	ArtifactValidationSkipped    = "skipped"
+)
 
 // GenerateArtifactOutput is the structured envelope returned to the
 // agent. The agent's UI can render this specially (a fenced block,
@@ -86,29 +104,32 @@ func validateArtifact(kind, content string) ArtifactValidation {
 	switch kind {
 	case "compose-yaml":
 		res := composevalidator.Validate([]byte(content))
+		if res.OK {
+			return ArtifactValidation{Status: ArtifactValidationOK}
+		}
 		return ArtifactValidation{
-			OK:         res.OK,
+			Status:     ArtifactValidationViolations,
 			Violations: res.Violations,
 		}
 	case "shell-script":
 		return ArtifactValidation{
-			OK:   false,
-			Note: "no validator wired for shell-script yet; operator should review manually",
+			Status: ArtifactValidationSkipped,
+			Note:   "no validator wired for shell-script yet; operator should review manually",
 		}
 	case "config-snippet":
 		return ArtifactValidation{
-			OK:   false,
-			Note: "no validator wired for config-snippet yet; operator should review manually",
+			Status: ArtifactValidationSkipped,
+			Note:   "no validator wired for config-snippet yet; operator should review manually",
 		}
 	case "markdown":
 		return ArtifactValidation{
-			OK:   false,
-			Note: "no validator wired for markdown yet; operator should review manually",
+			Status: ArtifactValidationSkipped,
+			Note:   "no validator wired for markdown yet; operator should review manually",
 		}
 	default:
 		return ArtifactValidation{
-			OK:   false,
-			Note: "unknown kind " + kind + "; supported: compose-yaml, shell-script, config-snippet, markdown",
+			Status: ArtifactValidationSkipped,
+			Note:   "unknown kind " + kind + "; supported: compose-yaml, shell-script, config-snippet, markdown",
 		}
 	}
 }
