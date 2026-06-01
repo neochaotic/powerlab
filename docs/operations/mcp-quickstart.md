@@ -62,36 +62,78 @@ Any FAIL is actionable. The most common one — `audit://recent permission denie
 
 ## Step 3 — pair Claude Desktop (3 minutes)
 
-Get a token first. **From a host with PowerLab UI access**:
+The right pairing path depends on whether PowerLab is **on the same machine** as Claude Desktop (laptop running both, or Lima/Docker-Desktop VM port-forwarded to localhost) or **on a separate box** on your LAN. Both paths are documented; pick one.
 
-1. Sign in to PowerLab (`http://<your-box>:8765`).
-2. Open the browser dev tools → Network tab.
-3. Refresh any page in the panel. Find any API request and copy its `Authorization: Bearer <token>` header.
-4. (Pairing UX is roadmap — until then this is the manual path.)
+### Path A — same machine (loopback)
 
-Add the MCP server to Claude Desktop's config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+Easiest. PowerLab's loopback policy (ADR-0034) trusts every connection arriving from `127.0.0.1` / `::1` — no JWT, no signin. Use the `mcp-remote` bridge (it ships via `npx`):
+
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS (`%APPDATA%\Claude\claude_desktop_config.json` on Windows):
 
 ```json
 {
   "mcpServers": {
     "powerlab": {
-      "transport": {
-        "type": "streamable-http",
-        "url": "http://<your-box>:9090/mcp",
-        "headers": {
-          "Authorization": "Bearer <your-token>"
-        }
-      }
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote@latest",
+        "http://127.0.0.1:9090/mcp",
+        "--allow-http",
+        "--transport",
+        "http-only"
+      ]
     }
   }
 }
 ```
 
-Restart Claude Desktop. The `powerlab` server should appear in the MCP indicator. Ask Claude:
+Restart Claude Desktop (Cmd+Q + reopen — config is read once at launch).
+
+### Path B — separate box (LAN)
+
+When Claude Desktop and PowerLab are on different machines, you need a JWT — the loopback bypass doesn't apply. Get a token:
+
+1. Sign in to PowerLab (`http://<your-box>:8765`).
+2. Open the browser dev tools → Network tab.
+3. Refresh any panel page. Find any API request and copy its `Authorization: Bearer <token>` value.
+4. (Pairing UX is roadmap — until then this is the manual path.)
+
+Then config:
+
+```json
+{
+  "mcpServers": {
+    "powerlab": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote@latest",
+        "http://<your-box>:9090/mcp",
+        "--allow-http",
+        "--transport",
+        "http-only",
+        "--header",
+        "Authorization: Bearer <your-token>"
+      ]
+    }
+  }
+}
+```
+
+### Verify
+
+After restart, the `powerlab` server should appear in the MCP indicator at the bottom of the compose area. Ask Claude:
 
 > *"What's running on my homelab? Check disk and any failed services."*
 
 Claude reads `apps://list`, `system://services`, `system://disk` and answers with real data.
+
+### Gotcha — Claude Code "Code" mode is NOT a clean MCP test
+
+Claude Desktop has a "Code" tab (formerly Claude Code embed) where the agent is project-folder-scoped. **Don't use that mode to evaluate the MCP** — once a folder is selected, the agent's Read/Glob/Grep tools dominate and MCP becomes a secondary source. A 2026-05-31 test ran "use only the MCP to author a compose YAML" in Code mode and got legacy-CasaOS conventions back (the agent had read the source tree directly) instead of the canonical `compose_authoring` Prompt output.
+
+Use the **Chat** tab (no folder) for any "what can the agent see through MCP alone" evaluation. The MCP indicator is visible in both modes; the contamination is in what other tools the agent has available.
 
 ---
 
