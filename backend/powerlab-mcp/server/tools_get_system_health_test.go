@@ -348,3 +348,63 @@ func TestGetSystemHealth_McpSelfDegradeStillCriticalAcrossNameForms(t *testing.T
 		})
 	}
 }
+
+// REGRESSION (2026-06-01 end-to-end, Claude Code conversation
+// against Lima): /v1/sys/disk reported /mnt/lima-cidata at 100% used
+// (it's a read-only iso9660 cloud-init seed, always full by design).
+// Without filtering pseudo-filesystems, the aggregator graded the
+// disk as critical even though the actual ext4 root was at 88.7%
+// (below the 90% warn threshold). Lock the contract: pseudo fs
+// types and Lima's cidata path are excluded from the worst-mount
+// computation.
+func TestGetSystemHealth_DiskExcludesPseudoFsFromWorstComputation(t *testing.T) {
+	rc, apt := healthCoreFixture{
+		// Lima's actual mount layout — ext4 root + boot + read-only
+		// cidata seed at 100%. The pseudo cidata should be ignored;
+		// the real worst mount is / at 88.7%, which is below warn.
+		diskBody: `{"success":200,"message":"ok","data":{"physical":[],"mounts":[
+			{"path":"/","fs_type":"ext4","used_percent":88.7},
+			{"path":"/boot","fs_type":"ext4","used_percent":13.6},
+			{"path":"/boot/efi","fs_type":"vfat","used_percent":6.5},
+			{"path":"/mnt/lima-cidata","fs_type":"iso9660","used_percent":100}
+		]}}`,
+		servicesBody: `{"success":200,"message":"ok","data":[{"name":"powerlab-mcp","active_state":"active"}]}`,
+		aptOutput:    aptOutputNPending(0),
+	}.serve(t)
+
+	out := callGetSystemHealth(t, rc, apt)
+	if out.Disk.Severity != "ok" {
+		t.Fatalf("disk.severity=%q; want ok (88.7%% real-mount usage is below 90%% warn; cidata 100%% must be excluded). summary=%q",
+			out.Disk.Severity, out.Disk.Summary)
+	}
+	if strings.Contains(out.Disk.Summary, "lima-cidata") {
+		t.Errorf("disk.summary=%q; want it to NOT name lima-cidata as the worst mount", out.Disk.Summary)
+	}
+	if !strings.Contains(out.Disk.Summary, "88.7") {
+		t.Errorf("disk.summary=%q; want it to name the actual 88.7%% reading from the real root mount", out.Disk.Summary)
+	}
+}
+
+// Path-heuristic fallback: when fs_type is missing (older core build
+// or partial data), the path-based check still catches lima-cidata
+// and /snap/* mounts. Same lesson: the agent shouldn't grade these
+// as disk pressure.
+func TestGetSystemHealth_DiskPathHeuristicFallback(t *testing.T) {
+	rc, apt := healthCoreFixture{
+		// Missing fs_type intentionally — path heuristic should still kick in
+		diskBody: `{"success":200,"message":"ok","data":{"physical":[],"mounts":[
+			{"path":"/","used_percent":40},
+			{"path":"/snap/firefox/123","used_percent":100},
+			{"path":"/mnt/lima-cidata","used_percent":100}
+		]}}`,
+		servicesBody: `{"success":200,"message":"ok","data":[{"name":"powerlab-mcp","active_state":"active"}]}`,
+		aptOutput:    aptOutputNPending(0),
+	}.serve(t)
+	out := callGetSystemHealth(t, rc, apt)
+	if out.Disk.Severity != "ok" {
+		t.Fatalf("disk.severity=%q; want ok (only / is real and it's at 40%%)", out.Disk.Severity)
+	}
+	if strings.Contains(out.Disk.Summary, "snap") || strings.Contains(out.Disk.Summary, "lima-cidata") {
+		t.Errorf("disk.summary=%q; want it to NOT mention pseudo paths", out.Disk.Summary)
+	}
+}

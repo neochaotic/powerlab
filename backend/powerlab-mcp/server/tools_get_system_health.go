@@ -149,6 +149,7 @@ func unwrapPowerLabEnvelope(body []byte, target any) error {
 type diskEntry struct {
 	Path        string  `json:"path"`
 	Mount       string  `json:"mount"`
+	FsType      string  `json:"fs_type"`
 	UsedPercent float64 `json:"used_percent"`
 }
 
@@ -157,6 +158,51 @@ func (e diskEntry) Name() string {
 		return e.Mount
 	}
 	return e.Path
+}
+
+// pseudoFsTypes are filesystems that are NEVER disk-pressure signals
+// even when they report 100% full. iso9660 is the Lima cloud-init
+// seed (always read-only, always full by design); squashfs backs
+// Snap packages (also read-only, always near-full); tmpfs is
+// RAM-backed and shows up only because mount(8) reports it. An agent
+// that grades the worst mount across these would always report
+// "critical disk" on a Lima box even when the real ext4/btrfs root
+// has plenty of headroom — caught by an end-to-end Claude Code
+// conversation on 2026-06-01 when Lima reported 100% on
+// /mnt/lima-cidata.
+var pseudoFsTypes = map[string]bool{
+	"iso9660":   true,
+	"squashfs":  true,
+	"tmpfs":     true,
+	"devtmpfs":  true,
+	"overlay":   true,
+	"proc":      true,
+	"sysfs":     true,
+	"cgroup":    true,
+	"cgroup2":   true,
+	"autofs":    true,
+	"fuse.snapfuse": true,
+}
+
+// isPseudoFs reports whether this mount should be excluded from the
+// "worst mount" severity computation. FsType is the documented source
+// of truth from /v1/sys/disk; when missing (older core or partial
+// data) we fall back to a path heuristic for the most common pseudo
+// mounts in production deployments.
+func (e diskEntry) isPseudoFs() bool {
+	if pseudoFsTypes[e.FsType] {
+		return true
+	}
+	// Path heuristic for when fs_type is empty — Lima's cidata, snap
+	// loops, and the EFI partition are the recurring offenders.
+	path := e.Name()
+	if strings.HasPrefix(path, "/snap/") {
+		return true
+	}
+	if path == "/mnt/lima-cidata" {
+		return true
+	}
+	return false
 }
 
 type diskPayload struct {
@@ -182,6 +228,9 @@ func evaluateDisk(ctx context.Context, proxy *coreproxy.Client, ws []SystemHealt
 	worst := 0.0
 	worstMount := ""
 	for _, d := range entries {
+		if d.isPseudoFs() {
+			continue
+		}
 		if d.UsedPercent > worst {
 			worst = d.UsedPercent
 			worstMount = d.Name()
