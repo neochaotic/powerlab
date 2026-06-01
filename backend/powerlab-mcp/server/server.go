@@ -188,6 +188,9 @@ func newMCPServer(info BuildInfo, rc resourcesConfig, journalRun journal.Runner)
 	// shell, configs). Runs composevalidator for compose-yaml;
 	// roundtrips other kinds with an explicit "no validator" note.
 	registerGenerateArtifact(m)
+	// P2.8 — meta-tool: report which operator-opt-in tiers are active
+	// so the agent can plan without trial-and-error against the gate.
+	registerListCapabilities(m, rc.enableDestructiveTools, rc.enableSensitiveTier)
 	// ADR-0046 — read-only tools batch 1. Destructive tools land
 	// gated on cfg.EnableDestructiveTools (separate registration
 	// call when that knob arrives).
