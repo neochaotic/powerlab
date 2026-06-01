@@ -78,7 +78,7 @@ func registerJournalSearch(s *mcp.Server, journalRun journal.Runner) {
 		}
 		entries, err := journal.Read(ctx, journalRun, q)
 		if err != nil {
-			return nil, JournalSearchOutput{}, fmt.Errorf("journal read: %w", err)
+			return nil, JournalSearchOutput{}, classifyJournalReadError(err)
 		}
 		// Pattern filter is applied here rather than via journalctl -g
 		// because journalctl's grep is regex-only and we want the
@@ -170,4 +170,40 @@ func registerCheckDiskFree(s *mcp.Server) {
 func registerReadOnlyTools(s *mcp.Server, journalRun journal.Runner) {
 	registerJournalSearch(s, journalRun)
 	registerCheckDiskFree(s)
+}
+
+// classifyJournalReadError turns the raw journal.Read error into a
+// message the agent can surface to an operator without leaking
+// subprocess noise. The most common failure shape on Mac dev boxes
+// and minimal containers is `exit status 1` from a non-existent or
+// non-running journalctl — opaque to anyone reading just the error
+// text. We trade that for a structured hint that names the cause and
+// suggests where to look. The MCP SDK delivers this as the tool's
+// IsError=true content, so the agent sees clean prose instead of
+// `journal read: run journalctl: exit status 1`.
+//
+// Other errors (timeout, journalctl present but ACL-denied) fall
+// through to a generic but still leak-free shape.
+func classifyJournalReadError(err error) error {
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, "exit status"),
+		strings.Contains(msg, "executable file not found"),
+		strings.Contains(msg, "no such file or directory"):
+		return errors.New("journald unavailable on this host (systemd-journald not running, or journalctl not in PATH — common on macOS dev boxes and non-systemd containers)")
+	case errors.Is(err, context.DeadlineExceeded):
+		return errors.New("journal read timed out — host journal may be very large; narrow the query with a smaller --lines or --since window")
+	}
+	return errors.New("journal read failed: " + sanitizeJournalErr(msg))
+}
+
+// sanitizeJournalErr strips known noisy prefixes from journal.Read's
+// wrapped error so the surfaced text reads as one sentence rather than
+// a wrapped-error chain. Keep this list small — better to leave the
+// occasional unknown shape than to fully suppress useful detail.
+func sanitizeJournalErr(s string) string {
+	for _, prefix := range []string{"run journalctl: ", "journal read: "} {
+		s = strings.TrimPrefix(s, prefix)
+	}
+	return s
 }

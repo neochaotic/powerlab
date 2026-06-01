@@ -1,0 +1,11 @@
+kind: Fixed
+body: >-
+  `journal_search` MCP tool now returns clean, agent-readable error messages
+  instead of leaking raw subprocess noise. The pre-fix shape was
+  `journal read: run journalctl: exit status 1` (opaque on Mac dev boxes,
+  non-systemd containers, broken installs); post-fix the agent sees
+  `journald unavailable on this host (systemd-journald not running, or
+  journalctl not in PATH — common on macOS dev boxes and non-systemd
+  containers)`. Timeouts and ACL-denied paths also produce sanitized
+  messages with hints. (P0.2 from 2026-05-31 MCP-only chat-mode test.)
+time: 2026-06-01T00:00:00.000000-03:00

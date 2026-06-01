@@ -1,7 +1,9 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -205,3 +207,133 @@ func mapKeys(m map[string]bool) []string {
 	return keys
 }
 
+
+// REGRESSION (P0.2 from 2026-05-31 MCP-only chat-mode test): when
+// journalctl is unavailable on the host (macOS dev box, container
+// without systemd, broken install), the journal.Runner returns a
+// raw subprocess error string like "exit status 1". The original
+// tool wrapper bubbled it up verbatim as
+// `journal read: run journalctl: exit status 1` — opaque to any
+// agent. This test locks the cleaner contract: the error must be
+// human-readable, must NOT contain the raw "exit status" leak, and
+// must hint at the cause (journald unavailable) so the agent can
+// either degrade or surface to operator.
+func TestJournalSearch_JournaldUnavailable_CleanErrorMessage(t *testing.T) {
+	failingRunner := func(_ context.Context, _ []string) ([]byte, error) {
+		return nil, errors.New("exit status 1")
+	}
+	srv := newMCPServer(BuildInfo{Version: "test"},
+		resourcesConfig{procRoot: t.TempDir()},
+		failingRunner)
+	cs := connectInProcess(t, srv)
+	defer func() { _ = cs.Close() }()
+
+	res, err := cs.CallTool(t.Context(), &mcp.CallToolParams{
+		Name: "journal_search",
+		Arguments: map[string]any{
+			"unit":    "core",
+			"pattern": "anything",
+		},
+	})
+	if err != nil {
+		t.Fatalf("CallTool transport error: %v", err)
+	}
+	if !res.IsError {
+		t.Fatalf("expected IsError=true when journalctl unavailable; got success with %+v", res.Content)
+	}
+
+	// Concatenate content text so we can assert on the full surfaced
+	// message regardless of how the SDK chunks it.
+	var msg strings.Builder
+	for _, c := range res.Content {
+		if tc, ok := c.(*mcp.TextContent); ok {
+			msg.WriteString(tc.Text)
+		}
+	}
+	got := msg.String()
+	if strings.Contains(got, "exit status") {
+		t.Fatalf("error message leaks raw subprocess output %q (pre-fix shape: 'journal read: run journalctl: exit status 1'); want clean human-readable text", got)
+	}
+	if !strings.Contains(strings.ToLower(got), "journald") {
+		t.Fatalf("error message %q must mention 'journald' so the agent can surface the right diagnostic", got)
+	}
+}
+
+// Timeout shape: runner reports context.DeadlineExceeded. The agent
+// should see hint about narrowing the query window, not the bare
+// `context deadline exceeded`.
+func TestJournalSearch_RunnerTimeout_HintsQueryNarrowing(t *testing.T) {
+	timeoutRunner := func(_ context.Context, _ []string) ([]byte, error) {
+		return nil, context.DeadlineExceeded
+	}
+	srv := newMCPServer(BuildInfo{Version: "test"},
+		resourcesConfig{procRoot: t.TempDir()},
+		timeoutRunner)
+	cs := connectInProcess(t, srv)
+	defer func() { _ = cs.Close() }()
+
+	res, err := cs.CallTool(t.Context(), &mcp.CallToolParams{
+		Name: "journal_search",
+		Arguments: map[string]any{
+			"unit":    "core",
+			"pattern": "x",
+		},
+	})
+	if err != nil {
+		t.Fatalf("CallTool transport error: %v", err)
+	}
+	if !res.IsError {
+		t.Fatalf("expected IsError=true on timeout")
+	}
+	var msg strings.Builder
+	for _, c := range res.Content {
+		if tc, ok := c.(*mcp.TextContent); ok {
+			msg.WriteString(tc.Text)
+		}
+	}
+	got := strings.ToLower(msg.String())
+	if !strings.Contains(got, "timed out") && !strings.Contains(got, "timeout") {
+		t.Fatalf("error %q must signal timeout class", msg.String())
+	}
+	if !strings.Contains(got, "lines") && !strings.Contains(got, "since") {
+		t.Fatalf("error %q must hint at the query knobs (lines/since) the operator can narrow", msg.String())
+	}
+}
+
+// Unknown error fallback: classifier MUST still sanitize the
+// `run journalctl: ` / `journal read: ` wrapping noise so even
+// unrecognized errors read as one sentence.
+func TestJournalSearch_UnknownError_Sanitized(t *testing.T) {
+	weirdRunner := func(_ context.Context, _ []string) ([]byte, error) {
+		return nil, errors.New("ACL denied: user 'nobody' cannot read journal")
+	}
+	srv := newMCPServer(BuildInfo{Version: "test"},
+		resourcesConfig{procRoot: t.TempDir()},
+		weirdRunner)
+	cs := connectInProcess(t, srv)
+	defer func() { _ = cs.Close() }()
+
+	res, err := cs.CallTool(t.Context(), &mcp.CallToolParams{
+		Name: "journal_search",
+		Arguments: map[string]any{"unit": "core"},
+	})
+	if err != nil {
+		t.Fatalf("CallTool transport error: %v", err)
+	}
+	if !res.IsError {
+		t.Fatalf("expected IsError=true on unknown error")
+	}
+	var msg strings.Builder
+	for _, c := range res.Content {
+		if tc, ok := c.(*mcp.TextContent); ok {
+			msg.WriteString(tc.Text)
+		}
+	}
+	got := msg.String()
+	if strings.Contains(got, "run journalctl:") || strings.Contains(got, "journal read: journal read:") {
+		t.Fatalf("classifier did not sanitize wrapped-error noise: %q", got)
+	}
+	if !strings.Contains(got, "ACL denied") {
+		t.Fatalf("classifier dropped the underlying detail (operator needs it to diagnose): %q", got)
+	}
+}
