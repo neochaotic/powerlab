@@ -107,6 +107,9 @@ jobs:
       - name: local-storage-helper.sh contract + safety (Sprint 23 #464)
         run: bash scripts/check-local-storage-helper_test.sh
 
+      - name: ADR-0050 — MCP-served docs canonical (parser keys mentioned in docs)
+        run: bash scripts/check-mcp-docs-canonical.sh
+
       - name: ESLint raw-fetch ban (Sprint 15 #353)
         run: bash scripts/check-eslint-fetch-ban_test.sh
 
