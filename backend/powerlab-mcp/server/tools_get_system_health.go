@@ -65,23 +65,30 @@ const (
 )
 
 func registerGetSystemHealth(s *mcp.Server, procRoot string, proxy *coreproxy.Client) {
+	registerGetSystemHealthWith(s, procRoot, proxy, execAptList)
+}
+
+// registerGetSystemHealthWith is the testable seam. Production wires
+// execAptList; tests inject a canned-output runner so the assertions
+// don't depend on the host having apt at all.
+func registerGetSystemHealthWith(s *mcp.Server, procRoot string, proxy *coreproxy.Client, aptRun aptRunner) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "get_system_health",
 		Description: "READ ONLY — aggregate system health across memory, disk, PowerLab services and pending OS updates. Returns a per-category severity (ok | warn | critical | unknown) plus an overall verdict that escalates to the worst component. Use this FIRST when an operator asks 'how's the system' instead of reading 4 separate system:// resources — same data, threshold-correlated, single call.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, _ getSystemHealthInput) (*mcp.CallToolResult, GetSystemHealthOutput, error) {
-		out := computeSystemHealth(ctx, procRoot, proxy)
+		out := computeSystemHealth(ctx, procRoot, proxy, aptRun)
 		return nil, out, nil
 	})
 }
 
-func computeSystemHealth(ctx context.Context, procRoot string, proxy *coreproxy.Client) GetSystemHealthOutput {
+func computeSystemHealth(ctx context.Context, procRoot string, proxy *coreproxy.Client, aptRun aptRunner) GetSystemHealthOutput {
 	out := GetSystemHealthOutput{
 		Warnings: []SystemHealthWarning{},
 	}
 	out.Memory, out.Warnings = evaluateMemory(procRoot, out.Warnings)
 	out.Disk, out.Warnings = evaluateDisk(ctx, proxy, out.Warnings)
 	out.Services, out.Warnings = evaluateServices(ctx, proxy, out.Warnings)
-	out.Updates, out.Warnings = evaluateUpdates(ctx, proxy, out.Warnings)
+	out.Updates, out.Warnings = evaluateUpdates(ctx, aptRun, out.Warnings)
 	out.Overall = highestSeverity(out.Memory, out.Disk, out.Services, out.Updates)
 	return out
 }
@@ -207,33 +214,29 @@ func evaluateServices(ctx context.Context, proxy *coreproxy.Client, ws []SystemH
 	return SystemHealthArea{Severity: "ok", Summary: "all PowerLab services active"}, ws
 }
 
-// updatesHealthPayload mirrors only the two fields the health
-// aggregator needs from /v1/sys/updates — the canonical type
-// (updatesPayload in resources_system_updates.go) carries the
-// richer package list the system://updates resource serves.
-type updatesHealthPayload struct {
-	Pending  int `json:"pending"`
-	Security int `json:"security"`
-}
-
-func evaluateUpdates(ctx context.Context, proxy *coreproxy.Client, ws []SystemHealthWarning) (SystemHealthArea, []SystemHealthWarning) {
-	body, err := proxy.GetFrom(ctx, coreproxy.ServiceCore, "/v1/sys/updates", "")
-	if err != nil {
-		return SystemHealthArea{Severity: "unknown", Summary: "updates unavailable: " + err.Error()}, ws
+func evaluateUpdates(ctx context.Context, aptRun aptRunner, ws []SystemHealthWarning) (SystemHealthArea, []SystemHealthWarning) {
+	// REGRESSION (2026-06-01): the original implementation called
+	// `coreproxy.GetFrom(ctx, ServiceCore, "/v1/sys/updates", ...)`,
+	// but that endpoint does NOT exist on core — `system://updates`
+	// reads `apt list --upgradable` output directly via the apt
+	// runner in resources_system_updates.go. The proxy call always
+	// failed with 404 on every Linux host, reporting `updates=unknown`
+	// forever. Smoke (added in PR #662) caught it on Lima. The fix:
+	// reuse the same `collectUpdates` helper the resource uses, so
+	// the Tool and the resource see the same data.
+	pl := collectUpdates(ctx, aptRun)
+	if pl.Detected == "none" {
+		return SystemHealthArea{Severity: "unknown", Summary: "updates unavailable: " + pl.Note}, ws
 	}
-	var up updatesHealthPayload
-	if jerr := json.Unmarshal(body, &up); jerr != nil {
-		return SystemHealthArea{Severity: "unknown", Summary: "updates parse failed: " + jerr.Error()}, ws
-	}
-	if up.Security > 0 {
+	if pl.SecurityCount > 0 {
 		ws = append(ws, SystemHealthWarning{
 			Area: "updates", Severity: "warn",
 			Message: "security-flagged OS updates pending",
 			Hint:    "schedule apt upgrade (or system://updates for details)",
 		})
-		return SystemHealthArea{Severity: "warn", Summary: pluralPending(up.Pending) + " (" + pluralSecurity(up.Security) + ")"}, ws
+		return SystemHealthArea{Severity: "warn", Summary: pluralPending(pl.Count) + " (" + pluralSecurity(pl.SecurityCount) + ")"}, ws
 	}
-	return SystemHealthArea{Severity: "ok", Summary: pluralPending(up.Pending)}, ws
+	return SystemHealthArea{Severity: "ok", Summary: pluralPending(pl.Count)}, ws
 }
 
 // highestSeverity picks the worst across areas. Ordering:
