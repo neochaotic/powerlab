@@ -181,6 +181,9 @@ func newMCPServer(info BuildInfo, rc resourcesConfig, journalRun journal.Runner)
 	// Prompt + Resource handlers; same content, surface that agents
 	// in tool-call-only mode actually reach.
 	registerDiscoveryTools(m, rc.conceptsDir, rc.catalogDir)
+	// P1.5 — aggregate health across metrics + disk + services + updates.
+	// Same correlation the smoke client encodes, exposed as one tool call.
+	registerGetSystemHealth(m, rc.procRoot, rc.coreClient)
 	// ADR-0046 — read-only tools batch 1. Destructive tools land
 	// gated on cfg.EnableDestructiveTools (separate registration
 	// call when that knob arrives).

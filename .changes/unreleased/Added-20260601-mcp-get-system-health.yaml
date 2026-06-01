@@ -1,0 +1,12 @@
+kind: Added
+body: >-
+  New `get_system_health` MCP Tool aggregates memory + disk + PowerLab
+  services + pending updates into one structured response with per-category
+  severities (ok | warn | critical | unknown) and an overall verdict that
+  escalates to the worst component. Pre-fix, an agent asked "how's the
+  system health" had to read four separate system:// resources and encode
+  the threshold correlations itself — the smoke client already had this
+  knowledge baked in but agents in chat mode didn't. Thresholds match the
+  panel's health dashboard so an agent's surfaced severity tracks what an
+  operator sees in the UI. (P1.5 from 2026-05-31 MCP-only chat-mode test.)
+time: 2026-06-01T12:00:00.000000-03:00
