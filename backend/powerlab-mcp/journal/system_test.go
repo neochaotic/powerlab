@@ -3,6 +3,7 @@ package journal
 import (
 	"context"
 	"encoding/json"
+	"os/exec"
 	"reflect"
 	"slices"
 	"strconv"
@@ -91,19 +92,124 @@ func TestBuildSystemArgs_SinceForwarded(t *testing.T) {
 	}
 }
 
-// The "failures" variant restricts to PRIORITY warning..error so the
+// The "failures" variant restricts to PRIORITY err..warning so the
 // agent's auth-triage path doesn't have to page through every success
-// line. Implemented by setting Failures=true on the query.
+// line. Implemented by setting Failures=true on the query. The literal
+// MUST be err..warning (3..4), not warning..error (4..3) — journalctl
+// reads the range as <LOW_NUM>..<HIGH_NUM> using the numeric syslog
+// priorities (emerg=0..debug=7), so the reversed spelling parses but
+// produces an empty result-set and on some builds errors out with
+// "Failed to parse log level range warning..error" (issue #639).
+// Per ADR-0049 the intent is "warning and error" inclusive — that's
+// numeric 3..4. See also priorityRangeBounds below for the parser.
 func TestBuildSystemArgs_FailuresVariantAppliesPriorityFilter(t *testing.T) {
 	got := BuildSystemArgs(SystemQuery{Failures: true})
-	if !argPair(got, "-p", "warning..error") {
-		t.Fatalf("args %v missing -p warning..error (Failures=true should restrict to warn..err range)", got)
+	if !argPair(got, "-p", "err..warning") {
+		t.Fatalf("args %v missing -p err..warning (Failures=true should restrict to the err..warning range, not the reversed warning..error spelling that triggered #639)", got)
 	}
 	// The auth variant must NOT have a priority filter (it returns
 	// every auth-related entry).
 	auth := BuildSystemArgs(SystemQuery{Failures: false})
-	if argPair(auth, "-p", "warning..error") {
-		t.Fatalf("auth variant args %v should NOT carry -p warning..error", auth)
+	if slices.Contains(auth, "-p") {
+		t.Fatalf("auth variant args %v should NOT carry a -p priority filter", auth)
+	}
+}
+
+// REGRESSION (#639) — `journal://system/failures` shipped with
+// `-p warning..error`, which journalctl reads as 4..3 (REVERSED) using
+// the numeric syslog priorities (emerg=0, alert=1, crit=2, err=3,
+// warning=4, notice=5, info=6, debug=7). The reversed range returns
+// nothing — and on at least some journalctl builds errors out with
+// "Failed to parse log level range warning..error", surfacing as
+// `exit status 1` to the MCP agent.
+//
+// This test parses whatever `-p` the failures-variant emits, maps each
+// side to its numeric priority, and asserts low <= high. If a future
+// edit re-introduces a reversed range (warning..error, info..crit, …),
+// the test fails LOUD instead of waiting for a user-visible exit-1.
+func TestBuildSystemArgs_FailuresPriorityRangeIsValid(t *testing.T) {
+	args := BuildSystemArgs(SystemQuery{Failures: true})
+
+	// Pull the value sitting after the (only) `-p` flag.
+	var raw string
+	for i, a := range args {
+		if a == "-p" {
+			if i+1 >= len(args) {
+				t.Fatalf("args %v: -p with no following value", args)
+			}
+			raw = args[i+1]
+			break
+		}
+	}
+	if raw == "" {
+		t.Fatalf("args %v: Failures=true must emit a -p priority filter", args)
+	}
+
+	low, high, ok := parsePriorityRange(raw)
+	if !ok {
+		t.Fatalf("args %v: -p value %q is not a parseable priority range (want LOW..HIGH using emerg/alert/crit/err/warning/notice/info/debug or 0..7)", args, raw)
+	}
+	if low > high {
+		t.Fatalf("args %v: -p value %q parses to %d..%d which is REVERSED (low must be <= high — see #639: warning..error = 4..3 yields exit status 1 on journalctl)", args, raw, low, high)
+	}
+}
+
+// parsePriorityRange turns a journalctl `-p` value into (low, high, ok).
+// Accepts "LOW..HIGH" using either the syslog priority names
+// (emerg/alert/crit/err/warning/notice/info/debug) or numeric 0..7;
+// also accepts a single priority (no `..`) which journalctl reads as
+// 0..N. Local helper so the test asserts the same semantics the binary
+// applies, without pulling a journald library dep into this package.
+func parsePriorityRange(s string) (low, high int, ok bool) {
+	prios := map[string]int{
+		"emerg": 0, "alert": 1, "crit": 2, "err": 3,
+		"warning": 4, "notice": 5, "info": 6, "debug": 7,
+	}
+	atoi := func(p string) (int, bool) {
+		if n, err := strconv.Atoi(p); err == nil && n >= 0 && n <= 7 {
+			return n, true
+		}
+		if n, found := prios[strings.ToLower(p)]; found {
+			return n, true
+		}
+		return 0, false
+	}
+	if idx := strings.Index(s, ".."); idx >= 0 {
+		l, lok := atoi(s[:idx])
+		h, hok := atoi(s[idx+2:])
+		if !lok || !hok {
+			return 0, 0, false
+		}
+		return l, h, true
+	}
+	n, nok := atoi(s)
+	if !nok {
+		return 0, 0, false
+	}
+	return 0, n, true
+}
+
+// Integration-style: if journalctl is actually present on this host
+// (skipped on macOS dev / CI runners without it), exec it with the
+// args BuildSystemArgs produces and assert the process exits 0.
+//
+// This is the only test that catches the failure mode #639 reported —
+// a unit test on the literal string proves the spelling matches the
+// fix, but only a real journalctl invocation proves the binary accepts
+// the range we generate. Bounded to `-n 1` + `--since "1 minute ago"`
+// so the test stays fast and doesn't shovel real auth logs through the
+// test runner.
+func TestBuildSystemArgs_FailuresAcceptedByRealJournalctl(t *testing.T) {
+	if _, err := exec.LookPath("journalctl"); err != nil {
+		t.Skip("journalctl not on PATH — integration check skipped (Mac dev / CI without systemd)")
+	}
+	args := BuildSystemArgs(SystemQuery{Failures: true, Lines: 1, Since: "1 minute ago"})
+	// #nosec G204 -- args come from our own pure BuildSystemArgs;
+	// the literal "journalctl" is the command. This is a test, not a
+	// production exec surface.
+	out, err := exec.Command("journalctl", args...).CombinedOutput()
+	if err != nil {
+		t.Fatalf("journalctl %v exited %v\noutput:\n%s\n(#639: journalctl rejects reversed priority ranges — if this is `Failed to parse log level range`, the fix regressed)", args, err, string(out))
 	}
 }
 

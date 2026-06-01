@@ -70,9 +70,11 @@ type SystemQuery struct {
 	// "2026-05-31 14:00:00", etc.
 	Since string
 
-	// Failures, when true, adds `-p warning..error` so the read
+	// Failures, when true, adds `-p err..warning` so the read
 	// excludes successful logins / no-op sudos. Backs the
-	// journal://system/failures resource variant.
+	// journal://system/failures resource variant. Range MUST be
+	// written low-to-high (journalctl reads `-p LOW..HIGH` numerically;
+	// see BuildSystemArgs + issue #639 for the bug class).
 	Failures bool
 }
 
@@ -112,9 +114,18 @@ func BuildSystemArgs(q SystemQuery) []string {
 		args = append(args, "--since", q.Since)
 	}
 	if q.Failures {
-		// PRIORITY range — warning (4) through error (3) inclusive.
-		// `warning..error` is journalctl's canonical spelling.
-		args = append(args, "-p", "warning..error")
+		// PRIORITY range — err (3) and warning (4) inclusive.
+		// journalctl reads `-p LOW..HIGH` using the numeric syslog
+		// priorities (emerg=0, alert=1, crit=2, err=3, warning=4,
+		// notice=5, info=6, debug=7), so the range MUST be written
+		// low-to-high. The historical `warning..error` spelling was
+		// REVERSED (4..3) AND used the non-canonical priority name
+		// `error` (journalctl wants `err`); on systemd ≥ 245 it
+		// errored out with "Failed to parse log level range
+		// warning..error" and surfaced as `exit status 1` to the
+		// MCP agent (issue #639). Pinned by
+		// system_test.go::TestBuildSystemArgs_FailuresPriorityRangeIsValid.
+		args = append(args, "-p", "err..warning")
 	}
 	return args
 }

@@ -29,7 +29,7 @@ Resources by namespace:
 | | `journal://units` | discovery — lists installed `powerlab-*.service` stems |
 | | `journal://{unit}{?lines,since,priority}` (template) | `journalctl -u powerlab-<unit>.service` — **scope-locked to PowerLab units** |
 | | `journal://system/auth{?lines,since}` | host auth journal — `ssh.service` + `sshd.service` + `sudo` + `su` (**sensitive tier; opt-in only**, [ADR-0049](../decisions/0049-mcp-sensitive-sysadmin-tier-threat-model.md)). Wire shape: `{ts, unit, hostname, message}` — no `_PID`, no `_CMDLINE`, no `_AUDIT_SESSION`. Advertised only when `EnableSensitiveTier = true` in `mcp.conf`. |
-| | `journal://system/failures{?lines,since}` | same source filtered to `PRIORITY warning..error` (**sensitive tier; opt-in only**, [ADR-0049](../decisions/0049-mcp-sensitive-sysadmin-tier-threat-model.md)). |
+| | `journal://system/failures{?lines,since}` | same source filtered to `PRIORITY err..warning` (the err and warning syslog levels — **sensitive tier; opt-in only**, [ADR-0049](../decisions/0049-mcp-sensitive-sysadmin-tier-threat-model.md)). |
 | **audit://** (2 + 1 template) | `audit://schema` | self-describing index |
 | | `audit://recent{?limit}` | tail of `/var/log/powerlab/audit.jsonl` (gateway-written) |
 | | `audit://action/{correlation_id}` (template) | filter by X-Request-Id — the whole cascade of one request |

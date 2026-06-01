@@ -65,7 +65,7 @@ func registerJournalSystem(s *mcp.Server, run journal.Runner) {
 		s, run,
 		journalSystemFailuresURI, journalSystemFailuresTemplate,
 		"Host auth journal — failures only",
-		"Same source as journal://system/auth but filtered to PRIORITY warning..error. Faster path to 'what went wrong with auth recently' without paging through every success line (ADR-0049). Same query params + wire shape as journal://system/auth.",
+		"Same source as journal://system/auth but filtered to PRIORITY err..warning (the err and warning syslog levels — what an operator + agent want when triaging 'what went wrong with auth recently' without paging through every success line, ADR-0049). Same query params + wire shape as journal://system/auth.",
 		true,
 	)
 }
