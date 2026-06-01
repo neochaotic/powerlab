@@ -1,0 +1,13 @@
+kind: Added
+body: >-
+  Three new MCP Tools wrap PowerLab's authoring guidance so chat-mode agents
+  that only surface Tools can reach it: `browse_catalog` (list catalog apps,
+  with optional substring filter), `get_compose_conventions` (the canonical
+  conventions markdown), `start_compose_authoring` (the curated bundle of
+  conventions + 3 catalog examples + composevalidator deny-list — Tool form
+  of the existing compose_authoring Prompt primitive). Pre-fix the only paths
+  to this content were Prompts (which most chat clients don't autonomously
+  discover) and templated Resources (which require URI navigation an agent
+  may not know to attempt); post-fix tools/list advertises them directly.
+  (P0.1 from the 2026-05-31 MCP-only chat-mode test.)
+time: 2026-06-01T11:30:00.000000-03:00
