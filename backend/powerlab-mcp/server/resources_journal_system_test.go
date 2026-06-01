@@ -110,9 +110,13 @@ func TestSensitiveJournal_AdvertisedAndReadableWhenFlagTrue(t *testing.T) {
 	}
 }
 
-// The failures URI must add `-p warning..error` to the journalctl
+// The failures URI must add `-p err..warning` to the journalctl
 // argv — that's the WHOLE point of the variant. Confirmed by
-// capturing args via the runner.
+// capturing args via the runner. The literal MUST be err..warning
+// (3..4, low-to-high), not the reversed warning..error spelling that
+// shipped originally and surfaced as `exit status 1` from journalctl
+// — see issue #639 and journal/system_test.go::
+// TestBuildSystemArgs_FailuresPriorityRangeIsValid.
 func TestSensitiveJournal_FailuresAddsPriorityFilter(t *testing.T) {
 	var seenArgs [][]string
 	runner := func(_ context.Context, args []string) ([]byte, error) {
@@ -137,11 +141,11 @@ func TestSensitiveJournal_FailuresAddsPriorityFilter(t *testing.T) {
 	if len(seenArgs) != 2 {
 		t.Fatalf("got %d runner calls; want 2 (auth + failures)", len(seenArgs))
 	}
-	if containsPair(seenArgs[0], "-p", "warning..error") {
-		t.Errorf("auth call args %v should NOT carry -p warning..error", seenArgs[0])
+	if containsPair(seenArgs[0], "-p", "err..warning") {
+		t.Errorf("auth call args %v should NOT carry a -p priority filter", seenArgs[0])
 	}
-	if !containsPair(seenArgs[1], "-p", "warning..error") {
-		t.Errorf("failures call args %v must carry -p warning..error", seenArgs[1])
+	if !containsPair(seenArgs[1], "-p", "err..warning") {
+		t.Errorf("failures call args %v must carry -p err..warning (#639: reversed warning..error breaks journalctl)", seenArgs[1])
 	}
 }
 

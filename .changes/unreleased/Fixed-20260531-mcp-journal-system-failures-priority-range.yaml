@@ -1,0 +1,5 @@
+kind: Fixed
+body: '**MCP — `journal://system/failures` no longer returns `exit status 1`.** The sensitive-tier resource shipped with `-p warning..error` in the journalctl argv; journalctl reads `-p LOW..HIGH` using the numeric syslog priorities (emerg=0..debug=7), so `warning..error` parsed as 4..3 — reversed — and on systemd ≥ 245 errored out with "Failed to parse log level range warning..error". Plus `error` is not even a valid priority name (the canonical short form is `err`). Corrected to `err..warning` (3..4, low-to-high), which is what ADR-0049 specified all along ("filtered to PRIORITY=warning..error"). Regression test `TestBuildSystemArgs_FailuresPriorityRangeIsValid` parses the emitted `-p` value and asserts `low <= high` numerically, so any future reversal (info..crit, warning..err, etc.) fails LOUD instead of waiting for a user-visible exit-1; a Linux-only integration test execs real journalctl with the produced args to catch the exact failure mode #639 reported.'
+time: 2026-05-31T12:00:00Z
+custom:
+    Issue: "639"
