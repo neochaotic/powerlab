@@ -81,7 +81,15 @@ func rewriteRequestSourceIP(r *http.Request) {
 
 	// Note: the X-Forwarded-For depend the correct config from reverse proxy.
 	// otherwise the X-Forwarded-For may be empty.
-	remoteIP := r.RemoteAddr[:strings.LastIndex(r.RemoteAddr, ":")]
+	// IPv6 RemoteAddrs arrive bracketed (`[::1]:PORT`); strip both the
+	// port and the brackets so the loopback comparison below matches
+	// IPv6 as well as IPv4 (same bug class as the jwt + audit fixes
+	// shipped on 2026-05-31 / 2026-06-01).
+	remoteIP := r.RemoteAddr
+	if i := strings.LastIndex(remoteIP, ":"); i > 0 {
+		remoteIP = remoteIP[:i]
+	}
+	remoteIP = strings.Trim(remoteIP, "[]")
 	if len(ipList) > 0 && (remoteIP == "127.0.0.1" || remoteIP == "::1") {
 		// to process the request from reverse proxy
 
