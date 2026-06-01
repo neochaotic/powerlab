@@ -137,6 +137,54 @@ Use the **Chat** tab (no folder) for any "what can the agent see through MCP alo
 
 ---
 
+## Step 3.5 — Try it: prompt cookbook (5 minutes)
+
+Once Claude Desktop has the `powerlab` server connected, these prompts each exercise a specific capability. Use them as a starting point; copy literally or adapt to your box. None of them mutate anything (everything reachable here is read-only or — for `generate_artifact` — purely a draft for your review).
+
+### Quick health snapshot
+
+> *"Use the powerlab MCP and tell me how the system is doing — memory, disk, services, pending updates. If anything is concerning, surface it."*
+
+Exercises `get_system_health`. Returns a per-category severity (`ok` / `warn` / `critical` / `unknown`) plus an overall verdict with remediation hints when a threshold trips. The agent shouldn't read four `system://*` resources separately when this single tool gives the correlated answer.
+
+### Catalog discovery
+
+> *"What apps are in the PowerLab catalog? Filter the list to anything that mentions 'cloud' or 'storage', and show me the docker-compose for the most popular one."*
+
+Exercises `browse_catalog` (with the optional `filter` argument) and `catalog://app/<id>`. The catalog ships 137 curated apps; the agent should narrow then drill in.
+
+### Authoring conventions
+
+> *"What conventions should I follow when writing a docker-compose for PowerLab? Cover volumes, ports, labels, and what the validator rejects."*
+
+Exercises `get_compose_conventions` (the canonical concepts doc) and indirectly informs the agent before it writes any YAML. If the agent skips this and writes legacy-CasaOS YAML (e.g. `x-casaos`, `/DATA/AppData/$AppID`, hardcoded ports), your prompt let the agent off the hook — push back with "use the powerlab MCP's compose conventions, not what you remember from CasaOS."
+
+### Propose a new app (the headline flow)
+
+> *"I want to self-host Vaultwarden. Use the powerlab MCP's `compose_authoring` prompt (or `start_compose_authoring` tool) to ground yourself in PowerLab conventions, then draft a docker-compose for me. Run it through `generate_artifact` so I see the deny-list validation result before I install."*
+
+Exercises `start_compose_authoring` (the curated bundle of conventions + 3 catalog examples + validator rules) and `generate_artifact` (propose-then-review). The agent returns a structured artifact with `validation.status: "ok"` if the YAML passes the deny-list, or `"violations"` with specific rule hits. **Nothing is installed yet** — you review, then if happy, ask Claude to call `install_app` (which only works if you've opted into destructive tools, see Step 5).
+
+### Search the docs
+
+> *"Search PowerLab's docs for 'install_app' and tell me what the endpoint expects."*
+
+Exercises `search_docs` across concepts + OpenAPI specs + the app catalog. Pre-2026-06-01 this only indexed concepts and would return `{matches: []}` for an OpenAPI term; now it covers all three surfaces and returns the canonical URI of each hit (the agent should chain to it for full context).
+
+### Capability discovery
+
+> *"Before suggesting any action, ask the powerlab MCP what it's allowed to do on this box — list capabilities."*
+
+Exercises `list_capabilities`. Tells the agent whether destructive tools (`install_app`, `uninstall_app`, `restart_app`) are reachable and whether the sensitive sysadmin tier (host auth journal) is opted in. A well-behaved agent calls this BEFORE attempting any gated capability — saves a trial-and-error round-trip.
+
+### Sensitive observability (opt-in only)
+
+> *"Are there any failed SSH login attempts in the last 24 hours? If yes, summarise by source IP."*
+
+Exercises `journal://system/auth` — only available when `EnableSensitiveTier=true` in `mcp.conf` (Step 5.5). The agent should refuse politely (or surface `list_capabilities` first) when the tier is off.
+
+---
+
 ## Step 4 — validate a custom compose before installing (optional, ~30s)
 
 If you intend to use `install_app` (operator opt-in — see Step 5), pre-validate your YAML against the same deny-list `install_app` runs:
