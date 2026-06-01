@@ -177,6 +177,10 @@ func newMCPServer(info BuildInfo, rc resourcesConfig, journalRun journal.Runner)
 	registerCatalog(m, rc.catalogDir)
 	registerSearchDocs(m, rc.conceptsDir, rc.openAPIDir, rc.catalogDir)
 	registerComposeAuthoringPrompt(m, rc.conceptsDir, rc.catalogDir)
+	// P0.1 — chat-mode-friendly Tool wrappers around the canonical
+	// Prompt + Resource handlers; same content, surface that agents
+	// in tool-call-only mode actually reach.
+	registerDiscoveryTools(m, rc.conceptsDir, rc.catalogDir)
 	// ADR-0046 — read-only tools batch 1. Destructive tools land
 	// gated on cfg.EnableDestructiveTools (separate registration
 	// call when that knob arrives).
