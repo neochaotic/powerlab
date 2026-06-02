@@ -29,6 +29,17 @@
 		emptyText?: string;
 		/** Override the default loading copy. Defaults to "Loading…". */
 		loadingText?: string;
+		/**
+		 * Chrome variant for the loading + empty states:
+		 *   "card"   — rounded-2xl border + padding (default; matches the
+		 *              CatalogPane sources list, PowerPane services list).
+		 *   "inline" — no border, just centered padding (matches the rows
+		 *              inside table cards — AuditPane, LogsPane — where
+		 *              the parent already provides the chrome).
+		 * The error state always uses the card chrome — a banner is the
+		 * right shape regardless of where it appears.
+		 */
+		variant?: 'card' | 'inline';
 		/** Content rendered when not loading, not empty, no error. */
 		children?: Snippet;
 	}
@@ -39,8 +50,14 @@
 		empty = false,
 		emptyText = 'Nothing here yet.',
 		loadingText = 'Loading…',
+		variant = 'card',
 		children
 	}: Props = $props();
+
+	const cardChrome =
+		'rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 text-center text-sm text-zinc-500';
+	const inlineChrome = 'px-4 py-8 text-center text-sm text-zinc-500';
+	const stateChrome = $derived(variant === 'card' ? cardChrome : inlineChrome);
 </script>
 
 {#if error}
@@ -53,7 +70,7 @@
 	</div>
 {:else if loading}
 	<div
-		class="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 text-center text-sm text-zinc-500"
+		class={stateChrome}
 		aria-live="polite"
 		aria-busy="true"
 		data-testid="async-boundary-loading"
@@ -61,10 +78,7 @@
 		{loadingText}
 	</div>
 {:else if empty}
-	<div
-		class="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 text-center text-sm text-zinc-500"
-		data-testid="async-boundary-empty"
-	>
+	<div class={stateChrome} data-testid="async-boundary-empty">
 		{emptyText}
 	</div>
 {:else if children}
