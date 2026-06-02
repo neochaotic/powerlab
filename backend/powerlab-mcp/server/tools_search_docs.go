@@ -111,11 +111,17 @@ func searchDocsMulti(_ context.Context, roots []searchRoot, in searchDocsInput) 
 	}
 
 	out := searchDocsOutput{Query: q, Matches: hits}
-	// Note when there were ZERO hits AND at least one surface was
-	// missing — the agent gets a hint about why the search came up
-	// empty (installer didn't stage the dir, dev box, etc.).
-	if len(hits) == 0 && len(missingDirs) > 0 {
+	switch {
+	case len(hits) == 0 && len(missingDirs) > 0:
+		// Note when there were ZERO hits AND at least one surface was
+		// missing — the agent gets a hint about why the search came up
+		// empty (installer didn't stage the dir, dev box, etc.).
 		out.Note = "no matches; missing doc surfaces on this host: " + strings.Join(missingDirs, ", ")
+	case len(hits) == 0:
+		// Valid query, all surfaces present, just nothing matched.
+		// Tell the agent how the matcher works + what to try next so
+		// it doesn't sit on a dead end.
+		out.Note = fmt.Sprintf("0 matches for substring %q across concepts + openapi + catalog (case-insensitive); try a shorter fragment, a different term, or call browse_catalog / docs://concepts/index to see what is indexed", q)
 	}
 	return out
 }

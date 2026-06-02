@@ -75,8 +75,13 @@ func registerBrowseCatalog(s *mcp.Server, catalogDir string) {
 			})
 		}
 		out.Total = len(out.Apps)
-		if len(m.Apps) == 0 {
+		switch {
+		case len(m.Apps) == 0:
 			out.Note = "catalog is empty on this host (fresh box, dev environment, or installer didn't stage Apps/)"
+		case out.Total == 0 && filter != "":
+			// Filter narrowed N apps down to zero. Tell the agent how
+			// the matcher works + how to recover.
+			out.Note = fmt.Sprintf("0 of %d apps matched substring %q; filter is a case-insensitive substring on app id — try a shorter fragment, a different term, or omit `filter` to list all apps", len(m.Apps), in.Filter)
 		}
 		return nil, out, nil
 	})
