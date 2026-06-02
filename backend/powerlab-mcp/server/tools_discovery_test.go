@@ -219,3 +219,49 @@ func TestDiscoveryTools_AdvertisedInToolsList(t *testing.T) {
 // Context is preserved for future ctx-aware callers but currently
 // unused — silence the staticcheck warning.
 var _ = context.TODO
+
+// REGRESSION (Batch B prompt #5, 2026-06-02): when browse_catalog's
+// filter narrows to 0 hits but the catalog itself has N apps, the
+// response should carry a Note explaining the matcher + suggesting
+// recovery. Pre-fix the agent received `{apps:[], total:0}` with no
+// context — couldn't distinguish "filter too narrow" from "catalog
+// is empty" and had no breadcrumb to retry productively.
+func TestBrowseCatalog_EmptyFilterResultIncludesRecoveryNote(t *testing.T) {
+	catalogDir := t.TempDir()
+	for _, id := range []string{"jellyfin", "navidrome", "vaultwarden"} {
+		appDir := filepath.Join(catalogDir, "Apps", id)
+		_ = os.MkdirAll(appDir, 0o750)
+		mustWrite(t, appDir, "docker-compose.yml", "x")
+	}
+
+	srv := newMCPServer(BuildInfo{Version: "test"},
+		resourcesConfig{procRoot: t.TempDir(), catalogDir: catalogDir},
+		fixtureJournalRunner(""))
+	cs := connectInProcess(t, srv)
+	defer func() { _ = cs.Close() }()
+
+	res, err := cs.CallTool(t.Context(), &mcp.CallToolParams{
+		Name:      "browse_catalog",
+		Arguments: map[string]any{"filter": "definitelydoesnotexist"},
+	})
+	if err != nil {
+		t.Fatalf("CallTool: %v", err)
+	}
+	var out browseCatalogOutput
+	b, _ := json.Marshal(res.StructuredContent)
+	_ = json.Unmarshal(b, &out)
+	if out.Total != 0 {
+		t.Fatalf("total=%d; want 0", out.Total)
+	}
+	if out.Note == "" {
+		t.Fatalf("0-match response missing Note — agent has no recovery breadcrumb")
+	}
+	// Note should mention the matcher (substring) AND suggest an empty
+	// filter to list all apps as recovery.
+	got := strings.ToLower(out.Note)
+	for _, want := range []string{"substring", "filter"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("Note=%q missing %q (agent needs hint about matcher behaviour)", out.Note, want)
+		}
+	}
+}

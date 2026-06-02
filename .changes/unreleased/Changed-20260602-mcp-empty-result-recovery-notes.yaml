@@ -1,0 +1,11 @@
+kind: Changed
+body: >-
+  `browse_catalog` and `search_docs` now return a `note` field on the
+  zero-match case explaining how the matcher works (case-insensitive
+  substring) and suggesting recovery (try a shorter fragment, omit
+  filter, browse the index resource). Pre-fix, both tools returned a
+  bare empty array with no breadcrumb, so an agent that got zero
+  hits couldn't tell "filter too narrow" from "catalog/corpus empty"
+  and had no path to retry productively. Caught by Batch B prompt
+  #5 of the extended end-to-end test.
+time: 2026-06-02T01:00:00.000000-03:00

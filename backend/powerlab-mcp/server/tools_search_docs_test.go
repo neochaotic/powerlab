@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -200,5 +201,31 @@ func TestSearchDocsMulti_TopKCapsAggregate(t *testing.T) {
 func conceptsRoot(dir string) []searchRoot {
 	return []searchRoot{
 		{Source: "concepts", Path: dir, URIFn: func(stem string) string { return docsConceptsPrefix + stem }},
+	}
+}
+
+// REGRESSION (Batch B prompt #5, 2026-06-02): valid query, all
+// surfaces present, but 0 matches. Pre-fix: bare `{matches: []}`
+// with no Note. Agent had no breadcrumb to retry with a different
+// term or check the matcher behaviour.
+func TestSearchDocsMulti_ValidQueryNoMatches_IncludesRecoveryNote(t *testing.T) {
+	conceptsDir := t.TempDir()
+	mustWrite(t, conceptsDir, "x.md", "some content with no special terms")
+
+	roots := []searchRoot{
+		{Source: "concepts", Path: conceptsDir, URIFn: func(s string) string { return docsConceptsPrefix + s }},
+	}
+	out := searchDocsMulti(context.Background(), roots, searchDocsInput{Query: "definitelyabsent", TopK: 10})
+	if len(out.Matches) != 0 {
+		t.Fatalf("got %d matches; want 0", len(out.Matches))
+	}
+	if out.Note == "" {
+		t.Fatalf("0-match response missing Note — agent has no recovery hint")
+	}
+	got := strings.ToLower(out.Note)
+	for _, want := range []string{"definitelyabsent", "substring"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("Note=%q missing %q (agent needs context about query + matcher)", out.Note, want)
+		}
 	}
 }
