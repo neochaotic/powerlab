@@ -462,6 +462,14 @@ func run(
 				ReadHeaderTimeout: 5 * time.Second,
 			}
 
+			// v0.7.8 DEPRECATION — in-product HTTPS (self-signed CA +
+			// Trust Onboarding) is deprecated. The flow stays functional
+			// for operators already onboarded but new deployments should
+			// front PowerLab with a reverse proxy or cloud LB instead.
+			// See docs/operations/reverse-proxy.md for 6 recipes.
+			// Removal is roadmap (no specific version committed).
+			_log.Warn(context.Background(), "HTTPS in-product flow is DEPRECATED — see docs/operations/reverse-proxy.md for Caddy / nginx / Tailscale / Cloudflare Tunnel / cloud LB / K8s ingress recipes. The :8443 listener stays functional for now but new deployments should front PowerLab with a reverse proxy on :8765 instead.")
+
 			go func() {
 				_log.Info(context.Background(), "HTTPS gateway is listening...",
 					slog.String("addr", _https.Addr),
