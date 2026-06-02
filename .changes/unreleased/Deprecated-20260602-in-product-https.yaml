@@ -1,0 +1,18 @@
+kind: Deprecated
+body: >-
+  In-product HTTPS (self-signed CA + Trust Onboarding flow that has been
+  PR #43's evolved descendant since v0.2.7) is now deprecated. The flow
+  stays functional through the v0.7.x patch line for operators already
+  onboarded — gateway still binds `:8443` if a server cert exists from a
+  prior install, and the Settings → Security pane still renders the
+  per-OS install steps. New deployments should front PowerLab with a
+  reverse proxy or cloud LB on the HTTP port (`:8765` panel / `:9090`
+  MCP) instead. Six recipes shipped in `docs/operations/reverse-proxy.md`
+  — Caddy (auto Let's Encrypt), nginx + certbot, Tailscale Funnel (no
+  domain needed), Cloudflare Tunnel (no port-forward), cloud-managed LBs
+  (AWS ALB / GCP HTTPS LB / Azure App GW), K8s Ingress + cert-manager.
+  The Security pane carries a deprecation banner with the same pointer;
+  the gateway logs a deprecation warning on every HTTPS spinup. Removal
+  is roadmap (no specific version committed) — operators have several
+  patch releases to migrate.
+time: 2026-06-02T22:00:00.000000-03:00

@@ -66,6 +66,8 @@ PowerLab MCP speaks the standard MCP HTTP-streaming transport, so every spec-com
 
 > **Loopback vs LAN.** PowerLab's loopback policy ([ADR-0034](../decisions/0034-standalone-observability-mcp-service.md)) trusts every connection arriving from `127.0.0.1` / `::1` — no JWT, no signin. From the **same machine** (laptop running both client + PowerLab, or Lima/Docker-Desktop VM port-forwarded to localhost), no token is needed. From a **separate box** on your LAN, grab a Bearer token from the panel's browser network panel: sign in to `http://<your-box>:8765`, open dev tools → Network, refresh any panel page, copy the `Authorization: Bearer <token>` value from any API request. The same token works as a `--header` arg / config field in every client below.
 
+> ⚠️ **HTTPS for the LAN path.** Sending the Bearer token over plain HTTP on an untrusted network is a credential-leak risk. For any LAN deployment, front PowerLab with a reverse proxy or cloud LB so the MCP endpoint speaks HTTPS — see [Reverse proxy + TLS recipes](reverse-proxy.md) (6 recipes: Caddy / nginx / Tailscale Funnel / Cloudflare Tunnel / cloud LB / K8s Ingress). The configs below assume `http://...` for the loopback case; swap to `https://<your-domain>/mcp` once your proxy is in place and drop the `--allow-http` flag.
+
 ### Client: Claude Desktop
 
 Path A (loopback) and Path B (LAN) below; use `mcp-remote` as a stdio↔HTTP bridge (Claude Desktop's native HTTP transport support is shipping unevenly across versions; the bridge works everywhere).

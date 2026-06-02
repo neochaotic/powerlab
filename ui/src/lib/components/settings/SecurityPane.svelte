@@ -37,6 +37,32 @@
 		<p class="mt-1 text-sm text-zinc-500">HTTPS infrastructure and session management.</p>
 	</header>
 
+	<!-- v0.7.8 DEPRECATION NOTICE — the in-product HTTPS / Trust Onboarding
+	     flow is deprecated. See docs/operations/reverse-proxy.md for the
+	     supported paths (Caddy / nginx / Tailscale / Cloudflare Tunnel /
+	     cloud LB / K8s ingress). Code stays functional through the v0.7.x
+	     line; removal is roadmap. -->
+	<aside class="mb-10 rounded-2xl border border-amber-500/30 bg-amber-500/[0.06] p-5" role="status" aria-live="polite">
+		<div class="flex gap-3">
+			<svg class="h-5 w-5 flex-shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.74-3L13.74 4a2 2 0 00-3.48 0L3.34 16a2 2 0 001.73 3z"/>
+			</svg>
+			<div class="flex-1">
+				<h3 class="mb-1 text-sm font-semibold text-amber-200">In-product HTTPS is deprecated</h3>
+				<p class="text-sm text-zinc-300">
+					PowerLab no longer ships HTTPS / Trust Onboarding as the recommended path. The flow below still works, but it's bug-prone (browser HSTS state, localStorage trust markers, self-signed CA confusion) and doesn't fit cloud / enterprise deployments. Use a reverse proxy or cloud load balancer in front of PowerLab's HTTP port (<code class="rounded bg-black/30 px-1 py-0.5 text-xs text-amber-200">:8765</code>) instead.
+				</p>
+				<p class="mt-2 text-sm text-zinc-300">
+					<strong>Five recipes</strong> — Caddy (auto Let's Encrypt), nginx + certbot, Tailscale Funnel (no domain needed), Cloudflare Tunnel (no port-forward), cloud-managed LBs (AWS ALB, GCP HTTPS LB, Azure App GW), K8s Ingress + cert-manager — in
+					<a href="https://github.com/neochaotic/powerlab/blob/main/docs/operations/reverse-proxy.md" target="_blank" rel="noopener noreferrer" class="font-medium text-amber-300 underline hover:text-amber-200">docs/operations/reverse-proxy.md</a>.
+				</p>
+				<p class="mt-2 text-xs text-zinc-500">
+					The in-product flow will stay functional through the v0.7.x patch line for operators already onboarded; removal happens in a later release. Migration steps (CA cleanup, browser HSTS clearance) are in the doc above.
+				</p>
+			</div>
+		</div>
+	</aside>
+
 	<!-- HTTPS Onboarding (Issue #43) -->
 	<section class="mb-10">
 		<h3 class="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Local HTTPS Establishment</h3>
