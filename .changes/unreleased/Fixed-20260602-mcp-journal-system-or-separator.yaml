@@ -1,0 +1,12 @@
+kind: Fixed
+body: >-
+  `journal://system/auth` and `journal://system/failures` (ADR-0049 sensitive
+  tier) now return real data. The hardcoded authSelectors lacked the `+`
+  separator between the `_SYSTEMD_UNIT=` matchers and the `_COMM=` matchers,
+  so journalctl ANDed across the two field groups instead of ORing them.
+  The resulting filter `(_SYSTEMD_UNIT=ssh.service OR sshd.service) AND
+  (_COMM=sudo OR su)` is impossible — sudo records never carry
+  `_SYSTEMD_UNIT=ssh`. Both resources returned `[]` on every host since
+  shipment. Caught by an agent in Claude Code that read the auth journal,
+  found zero entries, traced the selectors and asked "are you sure?".
+time: 2026-06-02T00:00:00.000000-03:00

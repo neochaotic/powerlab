@@ -47,11 +47,20 @@ const (
 // supplied — see package doc.
 //
 // `_SYSTEMD_UNIT=ssh.service` covers Debian/Ubuntu; `=sshd.service`
-// covers Fedora/Arch/CentOS. journalctl OR's repeated _SYSTEMD_UNIT=
-// and _COMM= matchers, so the union of these four is the surface.
+// covers Fedora/Arch/CentOS. The `+` between the two field groups is
+// CRITICAL: journalctl ORs matchers WITHIN the same field but ANDs
+// ACROSS different fields. Without the `+`, the filter becomes
+//   (_SYSTEMD_UNIT=ssh.service OR _SYSTEMD_UNIT=sshd.service) AND
+//   (_COMM=sudo OR _COMM=su)
+// which is impossible (sudo records never carry _SYSTEMD_UNIT=ssh),
+// so the resource returned [] on every host until 2026-06-01.
+// `+` reverses the join to OR between the groups. See
+// system_test.go::TestBuildSystemArgs_HasOrSeparatorBetweenFieldGroups
+// for the regression lock.
 var authSelectors = []string{
 	"_SYSTEMD_UNIT=ssh.service",
 	"_SYSTEMD_UNIT=sshd.service",
+	"+",
 	"_COMM=sudo",
 	"_COMM=su",
 }
