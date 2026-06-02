@@ -368,3 +368,94 @@ func violationDetailContains(vs []Violation, code, substr string) bool {
 	}
 	return false
 }
+
+// REGRESSION (Batch B prompt #2, 2026-06-02): the catalog ships
+// jellyfin/emby/*-nvidia with `devices: [/dev/dri:/dev/dri]` for
+// hardware video transcode. Pre-fix, the validator rejected ANY
+// non-empty devices block, so the agent install path couldn't ship
+// catalog apps the UI install path accepts. Allowlist /dev/dri
+// (Intel/AMD/PI render-node + card devices) since it's the
+// widely-accepted safe-passthrough surface. All other /dev/* paths
+// stay rejected.
+func TestValidate_AllowsDriDevicePassthrough(t *testing.T) {
+	cases := []struct {
+		name string
+		yaml string
+	}{
+		{
+			"renderD128 explicit",
+			"services:\n  app:\n    image: x\n    devices:\n      - /dev/dri/renderD128:/dev/dri/renderD128\n",
+		},
+		{
+			"card0 explicit",
+			"services:\n  app:\n    image: x\n    devices:\n      - /dev/dri/card0:/dev/dri/card0\n",
+		},
+		{
+			"dri whole tree (jellyfin catalog form)",
+			"services:\n  app:\n    image: x\n    devices:\n      - /dev/dri:/dev/dri\n",
+		},
+		{
+			"dri short form (no colon)",
+			"services:\n  app:\n    image: x\n    devices:\n      - /dev/dri\n",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			res := Validate([]byte(tc.yaml))
+			for _, v := range res.Violations {
+				if v.Code == "devices_block" {
+					t.Errorf("expected /dev/dri allowlist to pass; got devices_block %q", v.Detail)
+				}
+			}
+		})
+	}
+}
+
+// Anything not in the allowlist MUST still be rejected.
+func TestValidate_RejectsNonAllowlistedDevices(t *testing.T) {
+	cases := []struct {
+		name string
+		path string
+	}{
+		{"nvidia raw", "/dev/nvidia0"},
+		{"kmem", "/dev/kmem"},
+		{"sda block device", "/dev/sda"},
+		{"random tty", "/dev/ttyUSB0"},
+		{"dri-lookalike outside tree", "/dev/dripper"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			yaml := "services:\n  app:\n    image: x\n    devices:\n      - " + tc.path + "\n"
+			res := Validate([]byte(yaml))
+			found := false
+			for _, v := range res.Violations {
+				if v.Code == "devices_block" {
+					found = true
+				}
+			}
+			if !found {
+				t.Errorf("expected devices_block violation for %s; got OK=%v violations=%+v", tc.path, res.OK, res.Violations)
+			}
+		})
+	}
+}
+
+// One bad apple in a multi-device list MUST still reject the whole
+// block (no partial-accept semantics — the operator should see the
+// concrete violation and decide).
+func TestValidate_DriPlusRogueIsRejected(t *testing.T) {
+	yaml := "services:\n  app:\n    image: x\n    devices:\n      - /dev/dri:/dev/dri\n      - /dev/kmem:/dev/kmem\n"
+	res := Validate([]byte(yaml))
+	if res.OK {
+		t.Fatalf("OK=true with /dev/kmem present; want violations")
+	}
+	found := false
+	for _, v := range res.Violations {
+		if v.Code == "devices_block" && strings.Contains(v.Detail, "kmem") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected devices_block violation naming /dev/kmem; got %+v", res.Violations)
+	}
+}
