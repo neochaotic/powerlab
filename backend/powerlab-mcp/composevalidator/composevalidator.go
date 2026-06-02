@@ -198,14 +198,24 @@ func checkService(name string, svc map[string]interface{}) []Violation {
 		}
 	}
 
-	// devices — any /dev/* device bind is rejected. Apps that need
-	// hardware access (GPU, audio, USB) go through purpose-built
-	// PowerLab paths (e.g. nvidia runtime, not a raw /dev/nvidia0
-	// passthrough).
+	// devices — most /dev/* device binds are rejected. A narrow
+	// allowlist (deviceAllowlistPrefixes) covers the well-known safe
+	// hardware-acceleration surface that catalog apps like jellyfin
+	// and emby need: /dev/dri (Intel/AMD/Pi VAAPI / V4L2-M2M render
+	// nodes). Anything else — /dev/nvidia*, /dev/kmem, /dev/sda,
+	// random raw tty/serial — stays rejected. The allowlist is
+	// intentionally tiny; widening it is a per-device design decision
+	// (see Batch B finding from 2026-06-02 + ADR thread).
 	if rawDevs, ok := svc["devices"]; ok {
-		if devs, ok := rawDevs.([]interface{}); ok && len(devs) > 0 {
-			vs = append(vs, Violation{Service: name, Code: "devices_block",
-				Detail: "devices: passthrough — raw /dev/* access is not allowed for agent-installed apps"})
+		if devs, ok := rawDevs.([]interface{}); ok {
+			for _, d := range devs {
+				host := extractDeviceHostPath(d)
+				if host == "" || isAllowedDevicePath(host) {
+					continue
+				}
+				vs = append(vs, Violation{Service: name, Code: "devices_block",
+					Detail: fmt.Sprintf("devices: passthrough of %s is not in the allowlist (only /dev/dri is permitted for agent-installed apps)", host)})
+			}
 		}
 	}
 
@@ -226,6 +236,50 @@ func checkService(name string, svc map[string]interface{}) []Violation {
 	}
 
 	return vs
+}
+
+// deviceAllowlistPrefixes — the narrow set of /dev/* host paths
+// agent-installed apps are permitted to passthrough. Each prefix
+// matches either the literal path OR any path under it (so /dev/dri
+// covers /dev/dri/renderD128 and /dev/dri/card0 without separate
+// entries). Widening this list is a per-device design decision —
+// security-side every entry expands the agent-installable threat
+// surface, so the bar is high.
+var deviceAllowlistPrefixes = []string{
+	"/dev/dri", // Intel/AMD/Pi VAAPI + V4L2-M2M HW transcode (jellyfin, emby, frigate, ...)
+}
+
+// extractDeviceHostPath returns the HOST device path of one entry of
+// a compose `devices:` list, or "" if the entry is unparseable. The
+// compose spec accepts:
+//   - "/dev/foo:/dev/bar[:perms]"   (string with explicit target)
+//   - "/dev/foo"                     (string, target defaults to same path)
+//   - { source: "/dev/foo", ... }   (long form, post compose-v2)
+func extractDeviceHostPath(v interface{}) string {
+	switch x := v.(type) {
+	case string:
+		s := strings.TrimSpace(x)
+		host, _, _ := strings.Cut(s, ":")
+		return strings.TrimSpace(host)
+	case map[string]interface{}:
+		if src, ok := x["source"].(string); ok {
+			return strings.TrimSpace(src)
+		}
+	}
+	return ""
+}
+
+// isAllowedDevicePath reports whether host is in the allowlist (exact
+// match) OR is a child of an allowlisted prefix (e.g. /dev/dri/card0
+// when /dev/dri is allowed). The `+"/"` boundary is important —
+// without it /dev/dripper would match /dev/dri, defeating the gate.
+func isAllowedDevicePath(host string) bool {
+	for _, prefix := range deviceAllowlistPrefixes {
+		if host == prefix || strings.HasPrefix(host, prefix+"/") {
+			return true
+		}
+	}
+	return false
 }
 
 // extractHostBindSource returns the host path of one volume entry, or
