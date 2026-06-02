@@ -177,3 +177,77 @@ describe('upgradeProgress', () => {
 		expect(upgradeProgress.isOverlayActive).toBe(true);
 	});
 });
+
+	// REGRESSION: race between timeoutTimer firing and a successful
+	// poll resolving. poll() only checks state at function entry;
+	// if the fetch's promise resolves AFTER another code path has
+	// transitioned the store away from 'restarting', poll's success
+	// branch SHOULD NOT overwrite the new state. The fix re-checks
+	// state immediately after `await fetch(...)` and `await res.json()`
+	// and bails if the store has moved on. We simulate the race by
+	// holding the poll's fetch open with a deferred Promise and
+	// mutating state externally before resolving it.
+	it('does not overwrite a non-restarting state if poll resolves after a parallel transition', async () => {
+		setAuthToken('test-jwt-token');
+
+		// 1st call: POST 202 to start the upgrade flow.
+		// 2nd call: the poll fetch — we'll let this resolve AFTER we
+		//          externally flip state to 'error'.
+		let resolvePoll!: (value: unknown) => void;
+		const pollPromise = new Promise<unknown>((r) => {
+			resolvePoll = r;
+		});
+
+		let callIndex = 0;
+		global.fetch = vi.fn().mockImplementation(() => {
+			if (callIndex++ === 0) {
+				return Promise.resolve({
+					ok: true,
+					status: 202,
+					text: () => Promise.resolve(''),
+					json: () => Promise.resolve({}),
+					headers: new Headers({ 'content-type': 'application/json' })
+				});
+			}
+			return pollPromise;
+		}) as unknown as typeof fetch;
+
+		await upgradeProgress.start('0.7.8');
+		expect(upgradeProgress.state).toBe('restarting');
+
+		// Fire the first poll — its fetch will hang on pollPromise.
+		// `advanceTimersByTimeAsync` flushes microtasks between timer
+		// firings, so poll() actually starts (sync prologue + entry
+		// check) and suspends at `await fetch(...)`.
+		await vi.advanceTimersByTimeAsync(UPGRADE_POLL_INTERVAL_MS + 10);
+
+		// Simulate the timeoutTimer firing mid-fetch. In production this
+		// transition would come from the 5-min timeout callback, which
+		// ALSO calls clearTimers(); we replicate both effects so the
+		// simulated race matches the real-world sequence.
+		upgradeProgress.state = 'error';
+		upgradeProgress.error = 'simulated parallel transition';
+		// Clear the recurring poll interval so vi.runAllTimersAsync
+		// later doesn't loop forever. Same call timeoutTimer makes
+		// in production at line 88 of upgradeProgress.svelte.ts.
+		upgradeProgress['clearTimers']();
+
+		// Resolve the in-flight poll with a matching version. Pre-fix
+		// the success branch fires and overwrites state to 'success';
+		// post-fix the post-await state recheck returns early.
+		resolvePoll({
+			ok: true,
+			status: 200,
+			json: () => Promise.resolve({ version: '0.7.8' }),
+			text: () => Promise.resolve('{"version":"0.7.8"}'),
+			headers: new Headers({ 'content-type': 'application/json' })
+		});
+
+		// Flush the microtasks queued by resolving pollPromise so
+		// poll() resumes past the await fetch + await res.json (and
+		// reaches the success branch if the race were unfixed).
+		await vi.advanceTimersByTimeAsync(50);
+
+		expect(upgradeProgress.state).toBe('error');
+		expect(upgradeProgress.error).toContain('simulated parallel');
+	});
