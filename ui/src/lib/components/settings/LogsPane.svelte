@@ -4,6 +4,7 @@
 	import { cn } from '$lib/utils';
 	import { listLogFiles, readLogFile, type LogFileEntry } from '$lib/api/logs';
 	import ServiceLogsTab from './ServiceLogsTab.svelte';
+	import AsyncBoundary from '$lib/components/ui/AsyncBoundary.svelte';
 
 	type Tab = 'files' | 'services';
 	let activeTab = $state<Tab>('files');
@@ -157,13 +158,12 @@
 				<FileText class="h-4 w-4 text-zinc-400" />
 				Files
 			</div>
-			{#if loading && files.length === 0}
-				<div class="px-4 py-8 text-center text-sm text-zinc-500">Loading…</div>
-			{:else if files.length === 0}
-				<div class="px-4 py-8 text-center text-sm text-zinc-500">
-					No .log files found in /var/log/powerlab/
-				</div>
-			{:else}
+			<AsyncBoundary
+				variant="inline"
+				loading={loading && files.length === 0}
+				empty={files.length === 0}
+				emptyText="No .log files found in /var/log/powerlab/"
+			>
 				<ul class="divide-y divide-white/[0.03]">
 					{#each files as f (f.name)}
 						<li>
@@ -185,7 +185,7 @@
 						</li>
 					{/each}
 				</ul>
-			{/if}
+			</AsyncBoundary>
 		</div>
 
 		<!-- Content viewer -->

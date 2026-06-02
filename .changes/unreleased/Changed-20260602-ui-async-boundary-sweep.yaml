@@ -1,0 +1,12 @@
+kind: Changed
+body: >-
+  Step 2 of the AsyncBoundary sweep — `AuditPane`, `LogsPane`, and
+  `PowerPane` now share the same `<AsyncBoundary>` component that
+  CatalogPane adopted in #673. `AsyncBoundary` gains a `variant` prop
+  (`card` default + `inline` for table-cell rows) so the table panes
+  (Audit, Logs) keep their borderless chrome while the card panes
+  (Catalog, Power) keep their rounded-2xl chrome. Locked precedence
+  (error > loading > empty > children) + a11y semantics (role=alert,
+  aria-live=polite, aria-busy=true) now consistent across all four
+  panes.
+time: 2026-06-02T23:00:00.000000-03:00

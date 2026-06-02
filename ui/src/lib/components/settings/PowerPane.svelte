@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import AsyncBoundary from '$lib/components/ui/AsyncBoundary.svelte';
 	import {
 		Activity,
 		RefreshCw,
@@ -274,15 +275,11 @@
 		<h3 class="text-xs font-bold uppercase tracking-widest text-zinc-500">
 			PowerLab Services
 		</h3>
-		{#if loading && services.length === 0}
-			<div class="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 text-center text-sm text-zinc-500">
-				Loading…
-			</div>
-		{:else if services.length === 0}
-			<div class="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 text-center text-sm text-zinc-500">
-				No services reported. Backend may be unreachable.
-			</div>
-		{:else}
+		<AsyncBoundary
+			loading={loading && services.length === 0}
+			empty={services.length === 0}
+			emptyText="No services reported. Backend may be unreachable."
+		>
 			{#each services as svc (svc.name)}
 				<div
 					class="flex items-center justify-between gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4"
@@ -337,7 +334,7 @@
 					</button>
 				</div>
 			{/each}
-		{/if}
+		</AsyncBoundary>
 	</section>
 
 	<!-- Host actions -->

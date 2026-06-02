@@ -78,3 +78,42 @@ describe('AsyncBoundary copy + a11y', () => {
 		expect(loading.getAttribute('aria-busy')).toBe('true');
 	});
 });
+
+describe('AsyncBoundary variant', () => {
+	// variant="card" (default) gets the rounded-2xl border chrome that
+	// matches CatalogPane / PowerPane content cards. variant="inline"
+	// drops the border for use inside table cards (AuditPane / LogsPane)
+	// where the parent already provides the chrome.
+
+	it('default (variant unset) applies card chrome with rounded-2xl border', () => {
+		render(AsyncBoundary, { props: { loading: true } });
+		const el = screen.getByTestId('async-boundary-loading');
+		expect(el.className).toContain('rounded-2xl');
+		expect(el.className).toContain('border-white/[0.06]');
+	});
+
+	it('variant=inline applies inline chrome without border', () => {
+		render(AsyncBoundary, { props: { loading: true, variant: 'inline' } });
+		const el = screen.getByTestId('async-boundary-loading');
+		expect(el.className).not.toContain('rounded-2xl');
+		expect(el.className).not.toContain('border-white');
+		expect(el.className).toContain('px-4');
+		expect(el.className).toContain('py-8');
+	});
+
+	it('variant=inline applies the same chrome to the empty state', () => {
+		render(AsyncBoundary, { props: { empty: true, variant: 'inline' } });
+		const el = screen.getByTestId('async-boundary-empty');
+		expect(el.className).not.toContain('rounded-2xl');
+		expect(el.className).toContain('px-4');
+	});
+
+	it('error state ALWAYS uses banner chrome regardless of variant', () => {
+		// Error is always rendered as a top-level banner — variant=inline
+		// must NOT downgrade the error's visibility chrome.
+		render(AsyncBoundary, { props: { error: 'boom', variant: 'inline' } });
+		const el = screen.getByTestId('async-boundary-error');
+		expect(el.className).toContain('rounded-2xl');
+		expect(el.className).toContain('border-red-500');
+	});
+});

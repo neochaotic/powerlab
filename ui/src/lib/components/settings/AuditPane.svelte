@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { ClipboardList, RefreshCw, Database, AlertCircle, Bug, ChevronRight } from 'lucide-svelte';
 	import { cn } from '$lib/utils';
+	import AsyncBoundary from '$lib/components/ui/AsyncBoundary.svelte';
 	import {
 		getAuditRecent,
 		getAuditStats,
@@ -182,13 +183,12 @@
 			<div class="text-xs text-zinc-500">Limit: {limit}</div>
 		</div>
 
-		{#if loading && records.length === 0}
-			<div class="px-4 py-8 text-center text-sm text-zinc-500">Loading…</div>
-		{:else if records.length === 0}
-			<div class="px-4 py-8 text-center text-sm text-zinc-500">
-				No audit records yet. Try clicking around the panel.
-			</div>
-		{:else}
+		<AsyncBoundary
+			variant="inline"
+			loading={loading && records.length === 0}
+			empty={records.length === 0}
+			emptyText="No audit records yet. Try clicking around the panel."
+		>
 			<div class="max-h-[60vh] overflow-y-auto custom-scrollbar">
 				<table class="w-full text-xs" data-testid="audit-table">
 					<thead class="sticky top-0 bg-zinc-950 text-[10px] uppercase tracking-widest text-zinc-500">
@@ -279,6 +279,6 @@
 					</tbody>
 				</table>
 			</div>
-		{/if}
+		</AsyncBoundary>
 	</div>
 </div>
