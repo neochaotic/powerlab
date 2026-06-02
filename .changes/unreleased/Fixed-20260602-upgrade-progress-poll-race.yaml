@@ -1,0 +1,15 @@
+kind: Fixed
+body: >-
+  The upgrade-progress poll no longer overwrites an already-transitioned
+  state when its in-flight fetch resolves late. Pre-fix, `poll()` only
+  checked `state === 'restarting'` at function entry; if the timeoutTimer
+  fired (or `reset()` was called) DURING the `await fetch(...)` or
+  `await res.json()`, the poll's success branch would still execute and
+  overwrite the new state with `success`. Audit-flagged as MEDIUM-severity
+  manual-timer hygiene; turned out to be a real (low-probability) race
+  with the 5-minute upgrade timeout. Fix re-checks `this.state` after
+  each await and bails if the store has moved on. Regression locked by
+  a deterministic test that mocks a deferred poll fetch and mutates
+  state externally before resolving — verified RED on the pre-fix code,
+  GREEN post-fix.
+time: 2026-06-02T23:30:00.000000-03:00

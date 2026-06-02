@@ -94,11 +94,20 @@ class UpgradeProgress {
 		if (this.state !== 'restarting' || !this.targetVersion) return;
 		try {
 			const res = await fetch('/v1/powerlab/version');
+			// State can shift to 'error' (timeoutTimer fired) or 'idle'
+			// (reset() called by the user) DURING the in-flight fetch.
+			// Without these post-await checks, a successful poll
+			// resolving after that transition would overwrite the new
+			// state with 'success'. Recheck immediately after each
+			// await — the race is small but real, and the cost of the
+			// branch is zero.
+			if (this.state !== 'restarting') return;
 			if (!res.ok) {
 				// Expected during the window. Stay in restarting.
 				return;
 			}
 			const data = (await res.json()) as { version: string };
+			if (this.state !== 'restarting') return;
 			if (data.version === this.targetVersion) {
 				this.state = 'success';
 				this.clearTimers();
