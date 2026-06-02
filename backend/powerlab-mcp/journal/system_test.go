@@ -345,3 +345,47 @@ func TestParseSystem_UnitFallsBackToComm(t *testing.T) {
 		t.Fatalf("entries[0].Unit = %q; want fallback to _COMM 'sudo'", entries[0].Unit)
 	}
 }
+
+// REGRESSION (2026-06-01 end-to-end test, Claude Code conversation):
+// journalctl ORs matchers within the SAME field (so two _SYSTEMD_UNIT=
+// values combine as OR) but ANDs across different fields. Without a
+// `+` separator between the unit-name group and the _COMM= group, the
+// resulting filter is
+//   (_SYSTEMD_UNIT=ssh.service OR _SYSTEMD_UNIT=sshd.service) AND
+//   (_COMM=sudo OR _COMM=su)
+// which is impossible — sudo records never carry _SYSTEMD_UNIT=ssh.
+// Both journal://system/auth and ://system/failures returned [] forever
+// on every host. Lock the `+` between the two groups so they OR
+// correctly.
+func TestBuildSystemArgs_HasOrSeparatorBetweenFieldGroups(t *testing.T) {
+	got := BuildSystemArgs(SystemQuery{})
+
+	// Find positions of the two distinct field groups.
+	firstComm := -1
+	lastUnit := -1
+	for i, a := range got {
+		if strings.HasPrefix(a, "_SYSTEMD_UNIT=") {
+			lastUnit = i
+		}
+		if strings.HasPrefix(a, "_COMM=") && firstComm == -1 {
+			firstComm = i
+		}
+	}
+	if lastUnit == -1 || firstComm == -1 {
+		t.Fatalf("could not locate _SYSTEMD_UNIT and _COMM matchers in args: %v", got)
+	}
+	if firstComm < lastUnit {
+		t.Fatalf("unexpected matcher order in args: %v", got)
+	}
+
+	hasPlus := false
+	for i := lastUnit + 1; i < firstComm; i++ {
+		if got[i] == "+" {
+			hasPlus = true
+			break
+		}
+	}
+	if !hasPlus {
+		t.Fatalf("args %v lack `+` between _SYSTEMD_UNIT group and _COMM group — journalctl ANDs across different fields without the separator, so the filter becomes empty (silent-bug class: zero entries on every host)", got)
+	}
+}
