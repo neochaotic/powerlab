@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { Store, ShieldAlert, Plus, Trash2, ExternalLink, RefreshCw } from 'lucide-svelte';
 	import { cn } from '$lib/utils';
+	import AsyncBoundary from '$lib/components/ui/AsyncBoundary.svelte';
 	import {
 		listCatalogSources,
 		addCatalogSource,
@@ -226,16 +227,11 @@
 
 	<!-- Sources list -->
 	<div class="space-y-2" data-testid="catalog-sources">
-		{#if loading && sources.length === 0}
-			<div class="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 text-center text-sm text-zinc-500">
-				Loading…
-			</div>
-		{:else if sources.length === 0}
-			<div class="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 text-center text-sm text-zinc-500">
-				No catalog sources registered. The default catalog should have
-				appeared automatically; try Refresh.
-			</div>
-		{:else}
+		<AsyncBoundary
+			loading={loading && sources.length === 0}
+			empty={sources.length === 0}
+			emptyText="No catalog sources registered. The default catalog should have appeared automatically; try Refresh."
+		>
 			{#each sources as s (s.id)}
 				{@const badge = sourceBadge(s)}
 				<div
@@ -273,7 +269,7 @@
 					{/if}
 				</div>
 			{/each}
-		{/if}
+		</AsyncBoundary>
 	</div>
 
 	<button

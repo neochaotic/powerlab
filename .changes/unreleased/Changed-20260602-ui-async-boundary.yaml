@@ -1,0 +1,13 @@
+kind: Changed
+body: >-
+  Settings → Catalog pane uses a new `<AsyncBoundary>` component for its
+  loading / empty / sources branches. Pre-fix, the pane reinvented its own
+  `{#if loading}{:else if empty}{:else}` cascade; post-fix the same state
+  machine lives in `$lib/components/ui/AsyncBoundary.svelte` with locked
+  precedence (error > loading > empty > children) and consistent a11y
+  semantics (`role="alert"` on errors, `aria-live="polite" aria-busy="true"`
+  on loading). The pane's external behaviour is unchanged — same data-testids,
+  same copy, same chrome. Step 1 of the 5-pane sweep proposed in the
+  2026-06-02 UI audit; the other 4 panes follow in a separate PR once this
+  one's visual regression-tested in production.
+time: 2026-06-02T22:30:00.000000-03:00
