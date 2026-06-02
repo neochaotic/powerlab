@@ -1,5 +1,0 @@
-kind: Fixed
-body: MCP audit records now carry real agent identity — JWT subject populates user_id/username even on loopback (Claude Desktop on the same box), and tools/call + resources/read enrich the record with kind + tool_name / uri so operators can answer 'which agent called which tool' (#644).
-time: 2026-05-31T21:17:05.550447-03:00
-custom:
-    Issue: "644"

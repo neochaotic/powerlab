@@ -31,21 +31,20 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  MCP grows up — your server, your apps, and your audit trail are
-  now first-class agent surfaces. Sysadmin tier ships (system://
-  services, kernel, processes, updates); raw Docker visibility
-  exposes every container, not just PowerLab apps; the killer
-  compose_authoring MCP Prompt + catalog:// + docs://concepts give
-  any agent the patterns it needs to draft PowerLab-idiomatic YAML
-  in one round-trip; the sensitive tier (journal://system/auth +
-  failures, opt-in EnableSensitiveTier) closes the host-auth
-  observability gap. ADR-0047 wires MCP into the per-service audit
-  middleware so every tool call lands in audit.jsonl alongside
-  gateway's records, with JWT forwarding to upstream calls. Plus
-  fixes: audit JSONL is genuinely multi-writer safe (O_APPEND, no
-  more lumberjack collisions), system://disk returns full {physical,
-  mounts} with SMART metadata, system://services no longer swaps
-  active_state with PID.
+  MCP for real agents — standard clients (Claude Desktop, Claude
+  Code, Cursor, VS Code) now pair via OAuth 2.1 discovery. Six new
+  chat-mode-friendly Tools land: browse_catalog,
+  get_compose_conventions, start_compose_authoring, get_system_health
+  (aggregator), generate_artifact (propose-then-review), and
+  list_capabilities. search_docs indexes concepts + OpenAPI + catalog
+  (was concepts-only). composevalidator allowlists /dev/dri so
+  jellyfin / emby / frigate HW-transcode YAML clears agent install,
+  matching the UI install path. The pre-tag end-to-end battery
+  (Claude Code against deployed binary) caught + fixed five silent
+  contract-drift bugs in get_system_health and in the sensitive
+  journal selectors. IPv6 loopback in audit + gateway closes the bug
+  class jwt.HTTPJWT got in v0.7.6. ADR-0050 lands the docs-canonical
+  doctrine + a CI drift gate on the compose-extension key family.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
