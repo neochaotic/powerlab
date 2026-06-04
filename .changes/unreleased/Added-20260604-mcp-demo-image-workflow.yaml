@@ -1,0 +1,3 @@
+kind: Added
+body: 'powerlab-mcp: demo image build + GHCR workflow. `Dockerfile.demo` produces a static MCP server image with the curated 44-app catalog, audit + journal seeds, and read-only config baked in. `.github/workflows/release-mcp-demo-image.yml` publishes `ghcr.io/<owner>/powerlab-mcp-demo:latest` (+ `:v<X.Y.Z>` on release tags) for multi-arch (amd64, arm64). Unlocks the Glama "release" requirement that gates TDQS + Coherence scoring on the directory listing.'
+time: 2026-06-04T00:00:00Z

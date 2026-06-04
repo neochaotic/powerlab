@@ -1,0 +1,94 @@
+name: release-mcp-demo-image
+
+# Publishes ghcr.io/neochaotic/powerlab-mcp-demo with the powerlab-mcp
+# binary + the curated seed fixtures from backend/powerlab-mcp/demo/.
+# This is the image Glama Inspector + the awesome-mcp-servers gate
+# run against — the "Glama release" the platform requires to unlock
+# Quality scoring (TDQS + Coherence) past the 17%-baseline cap.
+#
+# Triggers:
+#   - workflow_dispatch: ad-hoc cuts (used for the first publish)
+#   - release.published: every PowerLab GitHub release tags a fresh
+#     :v<X.Y.Z> alongside :latest so Glama can pin a known version
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag (extra). :latest is always pushed too.'
+        required: false
+        default: ''
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ghcr.io/${{ github.repository_owner }}/powerlab-mcp-demo
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve image tags
+        id: tags
+        run: |
+          set -euo pipefail
+          tags="${{ env.IMAGE }}:latest"
+          # Release-published path: derive :v<X.Y.Z> from GITHUB_REF
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            version="${GITHUB_REF#refs/tags/}"
+            tags="${tags},${{ env.IMAGE }}:${version}"
+          fi
+          # Manual dispatch with an explicit tag input
+          if [[ -n "${{ github.event.inputs.tag }}" ]]; then
+            tags="${tags},${{ env.IMAGE }}:${{ github.event.inputs.tag }}"
+          fi
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
+          echo "Resolved tags: ${tags}"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build + push multi-arch
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/powerlab-mcp/Dockerfile.demo
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.tags.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ github.event.repository.updated_at }}
+
+      - name: Image summary
+        run: |
+          echo "## powerlab-mcp-demo published" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Tags:" >> "$GITHUB_STEP_SUMMARY"
+          for tag in $(echo "${{ steps.tags.outputs.tags }}" | tr ',' ' '); do
+            echo "- \`${tag}\`" >> "$GITHUB_STEP_SUMMARY"
+          done
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Architectures: linux/amd64, linux/arm64" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "> First publish: flip the package visibility to **public** at" >> "$GITHUB_STEP_SUMMARY"
+          echo "> <https://github.com/users/${{ github.repository_owner }}/packages/container/powerlab-mcp-demo/settings>" >> "$GITHUB_STEP_SUMMARY"
+          echo "> so Glama Inspector can pull anonymously." >> "$GITHUB_STEP_SUMMARY"

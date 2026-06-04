@@ -1,0 +1,3 @@
+kind: Added
+body: 'powerlab-mcp: `backend/powerlab-mcp/glama.json` declares maintainer for the Glama MCP directory listing. Removes the "No glama.json" deficiency from the directory checklist.'
+time: 2026-06-04T00:00:00Z

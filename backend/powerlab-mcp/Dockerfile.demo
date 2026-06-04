@@ -1,0 +1,101 @@
+# Dockerfile.demo — builds the powerlab-mcp demo image published as
+# ghcr.io/neochaotic/powerlab-mcp-demo. This image is the artifact
+# Glama Inspector + the awesome-mcp-servers gate run against. It
+# bundles the curated 44-app catalog + 50-line audit fixture + 3
+# PowerLab service journals from backend/powerlab-mcp/demo/ so the
+# read-only Tools surface substantial data even with no PowerLab
+# gateway behind them.
+#
+# What works end-to-end in this image (7 of 9 read-only Tools):
+#   browse_catalog, get_compose_conventions, start_compose_authoring,
+#   check_disk_free, search_docs, list_capabilities, generate_artifact
+#
+# What returns a clean structured error (no panic, no leak):
+#   journal_search       — no journalctl in distroless runtime; the
+#                          classifier returns "journald unavailable …"
+#   get_system_health    — coreproxy can't resolve services on this
+#                          standalone image; returns structured warns
+
+# ── Stage 1: builder ─────────────────────────────────────────────────
+FROM golang:1.25-alpine AS builder
+
+RUN apk add --no-cache ca-certificates git
+
+WORKDIR /src
+
+# Copy the two modules powerlab-mcp depends on. The replace directive
+# in backend/powerlab-mcp/go.mod points at ../common, so both trees
+# must be present at the same relative layout.
+COPY backend/common/ ./backend/common/
+COPY backend/powerlab-mcp/ ./backend/powerlab-mcp/
+
+WORKDIR /src/backend/powerlab-mcp
+
+# Vendor + build. CGO_ENABLED=0 produces a static binary that runs on
+# distroless without libc. Trim binary size for the demo (we are not
+# debugging this image in production).
+ENV CGO_ENABLED=0 GOOS=linux
+RUN go mod download && \
+    go build -trimpath -ldflags="-s -w -X main.version=demo" \
+        -o /out/powerlab-mcp .
+
+# ── Stage 2: runtime ────────────────────────────────────────────────
+# alpine, not distroless — we want /bin/sh for the Docker HEALTHCHECK
+# (curl -f localhost:9090/healthz). The image is ~12 MB on top of
+# alpine:3.20's ~7 MB base.
+FROM alpine:3.20
+
+# ca-certificates for HTTPS upstreams (none in this image, but the
+# binary's HTTP client still needs the trust store at startup).
+# curl for the HEALTHCHECK. tini reaps zombies — defensive for the
+# demo lifecycle, costs ~200 KB.
+RUN apk add --no-cache ca-certificates curl tini && \
+    addgroup -S powerlab && adduser -S -G powerlab powerlab
+
+# Binary
+COPY --from=builder /out/powerlab-mcp /usr/local/bin/powerlab-mcp
+
+# Seeded data — paths match what mcp.conf points at.
+COPY backend/powerlab-mcp/demo/mcp.conf /etc/powerlab/mcp.conf
+COPY backend/powerlab-mcp/demo/audit.jsonl /var/log/powerlab/audit.jsonl
+COPY backend/powerlab-mcp/demo/journal/*.log /var/log/powerlab/
+
+# Docs/concepts — the conventions + glossary the Tools surface.
+COPY docs/concepts/ /usr/share/powerlab/docs/concepts/
+
+# OpenAPI specs — bundled for search_docs to index.
+COPY backend/gateway/api/docs/openapi_*.yaml /usr/share/powerlab/openapi/
+
+# Catalog: only the 44 apps listed in demo/catalog-pick.txt. xargs
+# reads the (comment-stripped) pick list and copies one app dir at a
+# time so unused community-catalog content stays out of the image.
+COPY community-catalog/ /workspace/community-catalog/
+COPY backend/powerlab-mcp/demo/catalog-pick.txt /workspace/catalog-pick.txt
+RUN mkdir -p /usr/share/powerlab/catalog/Apps && \
+    grep -Ev '^\s*(#|$)' /workspace/catalog-pick.txt | \
+        xargs -I{} sh -c 'test -d /workspace/community-catalog/Apps/{} && cp -r /workspace/community-catalog/Apps/{} /usr/share/powerlab/catalog/Apps/{} || true' && \
+    echo "catalog apps baked: $(ls /usr/share/powerlab/catalog/Apps | wc -l)" && \
+    rm -rf /workspace
+
+# Ownership for the non-root user
+RUN chown -R powerlab:powerlab /var/log/powerlab /etc/powerlab /usr/share/powerlab
+
+# Runtime
+USER powerlab
+EXPOSE 9090
+
+# Healthcheck targets the /healthz endpoint the MCP server exposes
+# alongside the /mcp Streamable-HTTP transport. The Glama Inspector
+# uses /mcp directly so this is only for `docker run` diagnostics.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -fsS http://127.0.0.1:9090/healthz || exit 1
+
+# tini as PID 1 for clean SIGTERM handling on `docker stop`.
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/powerlab-mcp"]
+CMD ["--conf", "/etc/powerlab/mcp.conf"]
+
+LABEL org.opencontainers.image.title="powerlab-mcp-demo"
+LABEL org.opencontainers.image.description="Demo of the PowerLab Model Context Protocol server with a seeded catalog, audit + journal fixtures. Read-only — no host docker socket, no destructive Tools advertised."
+LABEL org.opencontainers.image.source="https://github.com/neochaotic/powerlab"
+LABEL org.opencontainers.image.licenses="AGPL-3.0"
+LABEL org.opencontainers.image.documentation="https://github.com/neochaotic/powerlab/blob/main/backend/powerlab-mcp/README.md"

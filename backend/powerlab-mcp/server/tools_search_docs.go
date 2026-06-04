@@ -75,7 +75,7 @@ func registerSearchDocs(s *mcp.Server, conceptsDir, openAPIDir, catalogDir strin
 	}
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "search_docs",
-		Description: "READ ONLY — case-insensitive substring search across PowerLab documentation: concepts (docs://concepts/*), OpenAPI specs (docs://api/*), and the bundled app catalog (catalog://app/*). Returns up to top_k hits with the canonical URI of each match so the agent can fetch full context. Minimum 2-character query.",
+		Description: "READ ONLY — case-insensitive substring search across PowerLab documentation: concepts (docs://concepts/*), OpenAPI specs (docs://api/*), and the bundled app catalog (catalog://app/*). Use when the operator asks 'where is X documented' OR before drafting an answer that depends on PowerLab-specific terminology — search first, fetch the canonical URI for full context. Returns up to top_k hits (default 10, max 50) sorted by match locality + frequency. Minimum 2-character query; queries shorter yield zero hits by design (1-char substring matches overwhelm the result set). For a directed catalog listing, prefer browse_catalog; for the conventions doc specifically, prefer get_compose_conventions.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in searchDocsInput) (*mcp.CallToolResult, searchDocsOutput, error) {
 		out := searchDocsMulti(ctx, roots, in)
 		return nil, out, nil
