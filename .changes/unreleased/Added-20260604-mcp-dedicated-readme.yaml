@@ -1,0 +1,3 @@
+kind: Added
+body: 'powerlab-mcp: dedicated README at `backend/powerlab-mcp/README.md` — full inventory of the 9 read-only Tools + 3 opt-in Tools + 4 Prompts + ~20 Resources, transport (Streamable HTTP on /mcp), capability tiers, and mcp.conf reference. Indexed by MCP directories that scan repo subdirs.'
+time: 2026-06-04T00:00:00Z
