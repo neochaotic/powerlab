@@ -1,0 +1,37 @@
+2026-06-04T08:00:00.118Z INFO  powerlab-mcp starting version=v0.7.7 transport=streamable-http listen=:9090 mcp_endpoint=/mcp
+2026-06-04T08:00:00.224Z INFO  config loaded path=/etc/powerlab/mcp.conf disabled=false destructive=false sensitive=false
+2026-06-04T08:00:00.331Z INFO  registered tools count=9 names="[browse_catalog get_compose_conventions start_compose_authoring get_system_health check_disk_free journal_search search_docs list_capabilities generate_artifact]"
+2026-06-04T08:00:00.421Z INFO  registered prompts count=4 names="[compose_authoring troubleshoot_install_failure debug_unhealthy_service onboard_new_powerlab_host]"
+2026-06-04T08:00:00.512Z INFO  registered resources count=21 schemes="[apps audit catalog docker docs journal prompt system]"
+2026-06-04T08:00:00.601Z INFO  mcp ready
+2026-06-04T08:42:30.011Z INFO  tool call name=check_disk_free args="{\"path\":\"/\"}" duration_ms=12 status=ok
+2026-06-04T08:44:18.219Z INFO  tool call name=browse_catalog args="{}" duration_ms=29 status=ok
+2026-06-04T08:51:02.337Z INFO  tool call name=install_app args="{\"compose_yaml\":\"...\",\"dry_run\":true}" duration_ms=76 status=ok validator=ok dry_run=true
+2026-06-04T08:51:34.821Z INFO  tool call name=install_app args="{\"compose_yaml\":\"...\"}" duration_ms=1455 status=ok validator=ok
+2026-06-04T09:15:11.402Z INFO  tool call name=journal_search args="{\"unit\":\"jellyfin\",\"since\":\"30min\"}" duration_ms=67 status=ok entries=12
+2026-06-04T09:22:30.918Z INFO  tool call name=get_system_health args="{}" duration_ms=48 status=ok overall=warn
+2026-06-04T09:55:01.487Z INFO  resource read uri=audit://recent duration_ms=33 status=ok
+2026-06-04T10:01:18.001Z INFO  tool call name=get_compose_conventions args="{}" duration_ms=11 status=ok
+2026-06-04T10:08:42.331Z INFO  prompt get name=compose_authoring args="{\"app_type\":\"database\"}" duration_ms=42 status=ok bundle_bytes=8421
+2026-06-04T10:14:55.876Z INFO  tool call name=generate_artifact args="{\"kind\":\"compose-yaml\",\"...\"}" duration_ms=78 status=ok validator_ok=true
+2026-06-04T10:32:18.401Z INFO  tool call name=check_disk_free args="{\"path\":\"/var/lib/docker\"}" duration_ms=14 status=ok used_percent=42.1
+2026-06-04T10:44:01.118Z INFO  tool call name=get_system_health args="{}" duration_ms=51 status=ok overall=warn
+2026-06-04T10:55:21.443Z INFO  tool call name=list_capabilities args="{}" duration_ms=3 status=ok destructive=false sensitive=false
+2026-06-04T11:02:18.776Z INFO  tool call name=journal_search args="{\"unit\":\"code-server\"}" duration_ms=58 status=ok entries=8
+2026-06-04T11:35:18.554Z INFO  tool call name=browse_catalog args="{\"filter\":\"\"}" duration_ms=27 status=ok apps=44
+2026-06-04T11:47:55.889Z INFO  tool call name=search_docs args="{\"q\":\"volumes\",\"top_k\":5}" duration_ms=15 status=ok hits=5
+2026-06-04T12:24:18.554Z INFO  tool call name=get_system_health args="{}" duration_ms=47 status=ok overall=warn
+2026-06-04T12:48:11.776Z INFO  tool call name=list_capabilities args="{}" duration_ms=4 status=ok
+2026-06-04T13:02:30.108Z INFO  resource read uri=audit://recent duration_ms=28 status=ok
+2026-06-04T13:14:55.443Z INFO  tool call name=check_disk_free args="{\"path\":\"/DATA\"}" duration_ms=11 status=ok used_percent=18.4
+2026-06-04T13:28:18.776Z INFO  tool call name=journal_search args="{\"unit\":\"gateway\",\"since\":\"1h\"}" duration_ms=62 status=ok entries=21
+2026-06-04T13:41:55.221Z INFO  tool call name=browse_catalog args="{\"filter\":\"dashboard\"}" duration_ms=31 status=ok apps=5
+2026-06-04T14:21:18.554Z INFO  tool call name=get_system_health args="{}" duration_ms=52 status=ok overall=warn
+2026-06-04T14:48:18.776Z INFO  tool call name=search_docs args="{\"q\":\"audit\",\"top_k\":5}" duration_ms=17 status=ok hits=4
+2026-06-04T15:01:55.118Z INFO  tool call name=get_compose_conventions args="{}" duration_ms=9 status=ok
+2026-06-04T15:15:42.554Z INFO  resource read uri=audit://recent?action=install_app duration_ms=24 status=ok
+2026-06-04T15:28:18.221Z INFO  tool call name=list_capabilities args="{}" duration_ms=3 status=ok
+2026-06-04T15:42:55.776Z INFO  tool call name=check_disk_free args="{}" duration_ms=12 status=ok used_percent=51.7
+2026-06-04T15:55:11.118Z INFO  tool call name=get_system_health args="{}" duration_ms=49 status=ok overall=warn
+2026-06-04T16:08:42.554Z INFO  tool call name=journal_search args="{\"unit\":\"core\"}" duration_ms=55 status=ok entries=14
+2026-06-04T16:21:18.776Z INFO  prompt get name=compose_authoring args="{}" duration_ms=38 status=ok bundle_bytes=8104

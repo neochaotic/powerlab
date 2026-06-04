@@ -70,6 +70,9 @@ backend/*/backend/
 
 # ─── Build Artifacts ──────────────────────────────────────────────────
 *.log
+# Demo fixtures are intentionally committed despite the *.log rule —
+# static seed data baked into the MCP demo image.
+!backend/powerlab-mcp/demo/journal/*.log
 tmp/
 .cache/
 
