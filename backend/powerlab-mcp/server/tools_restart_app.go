@@ -56,7 +56,7 @@ type RestartAppOutput struct {
 func registerRestartApp(s *mcp.Server, proxy *coreproxy.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "restart_app",
-		Description: "Restart every container of one installed PowerLab app (start/stop cycle). SIDE EFFECT — containers briefly go down then come back up; no data loss; app ends in the same state it was in before the call. Use apps://list to discover valid ids.",
+		Description: "Restart every container of one installed PowerLab app (atomic stop → start cycle). SIDE EFFECT — containers go down for ~5-30 seconds; no data loss; the app reaches the same end-state it had before the call. Use for: picking up a manual config change, clearing a transient runtime stuck state, retrying a flapping container. Do NOT use for: a compose-yaml fix (the YAML on disk isn't re-read — change the YAML + re-install instead), or anything requiring downtime ≤ a few seconds. Use apps://list to discover valid ids.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in RestartAppInput) (*mcp.CallToolResult, RestartAppOutput, error) {
 		id := strings.TrimSpace(in.ID)
 		if id == "" {

@@ -1,0 +1,3 @@
+kind: Changed
+body: 'powerlab-mcp: enriched the 4 shortest tool descriptions (check_disk_free 210→514c, uninstall_app 218→441c, restart_app 240→519c, journal_search 259→566c). Each now spells out WHEN to call, common parameters/inputs, severity thresholds (disk), and explicit DO NOT use cases (restart for compose-yaml changes, uninstall without operator confirmation). Boosts Glama scorer signal + reduces agent trial-and-error.'
+time: 2026-06-04T00:00:00Z
