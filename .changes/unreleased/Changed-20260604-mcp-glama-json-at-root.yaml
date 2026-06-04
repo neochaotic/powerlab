@@ -1,0 +1,3 @@
+kind: Changed
+body: 'powerlab-mcp: moved `glama.json` from `backend/powerlab-mcp/` to the repo root. Glama directory scanner looks at the repository root URL for this file (per the published glama.ai/mcp/schemas/server.json convention) — placing it under a subdir was a discoverability gap. Same content; just relocated.'
+time: 2026-06-04T00:00:00Z
