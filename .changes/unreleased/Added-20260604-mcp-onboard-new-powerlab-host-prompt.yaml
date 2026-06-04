@@ -1,0 +1,3 @@
+kind: Added
+body: 'powerlab-mcp: `prompt://onboard_new_powerlab_host` — first-run walkthrough chaining list_capabilities → browse_catalog → get_system_health, with optional goal (free-text intent) + experience_level (beginner/intermediate/expert) for tone/depth tuning. Gives a fresh-host agent a guided tour before any install attempt.'
+time: 2026-06-04T00:00:00Z
