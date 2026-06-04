@@ -1,0 +1,3 @@
+kind: Added
+body: 'powerlab-mcp: demo seed fixtures at `backend/powerlab-mcp/demo/` — 44-app catalog-pick list, 50-line audit.jsonl, and 3 PowerLab service journals (gateway/app-management/mcp). Bakes into the upcoming demo image so an isolated MCP sandbox sees substantial Tool responses. Each fixture is shaped to surface a Prompt-encoded Tool chain (failed install → troubleshoot_install_failure, etc.). No code changes.'
+time: 2026-06-04T00:00:00Z
