@@ -62,7 +62,7 @@ type JournalSearchOutput struct {
 func registerJournalSearch(s *mcp.Server, journalRun journal.Runner) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "journal_search",
-		Description: "Search PowerLab service journals by pattern + time range. READ ONLY — does not modify any state. Returns matching entries up to the line limit. For raw tail access without a search filter, prefer journal://{unit}. See journal://units for available unit names.",
+		Description: "READ ONLY — search PowerLab service journals (gateway, core, app-management, user, mcp) by literal substring + time window. Pattern is a literal substring on MESSAGE — NOT a regex, no escaping needed. `since` accepts journalctl shapes ('1h', '30min', 'yesterday', or RFC-3339); empty = a recent default. Returns up to `lines` matching entries (default 200, max 2000). Use when investigating a failed install, an unhealthy service, or any 'why did X happen at time Y'. For raw tail without filtering, prefer journal://{unit}; see journal://units for valid unit stems.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in JournalSearchInput) (*mcp.CallToolResult, JournalSearchOutput, error) {
 		if strings.TrimSpace(in.Unit) == "" {
 			return nil, JournalSearchOutput{}, errors.New("unit is required (see journal://units)")
@@ -124,7 +124,7 @@ type CheckDiskFreeOutput struct {
 func registerCheckDiskFree(s *mcp.Server) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "check_disk_free",
-		Description: "Quick free-space check for one filesystem path (defaults to / — the primary disk). READ ONLY. Returns total/available/used bytes + used percent. For a per-mount survey with SMART metadata, prefer system://disk.",
+		Description: "READ ONLY — quick free-space check for ONE filesystem path (defaults to / — the primary disk). Common targets on PowerLab: `/` (root), `/var/lib/docker` (container layers), `/var/log` (logs), `/DATA` (default app data root). Returns total/available/used bytes + used percent. Cheap — call this BEFORE `install_app` (host needs ≥5% free to avoid eviction) or when an operator asks 'is X full'. Treat used_percent ≥ 95 as critical, ≥ 85 as warn. For a full per-mount survey with SMART metadata, prefer system://disk.",
 	}, func(_ context.Context, _ *mcp.CallToolRequest, in CheckDiskFreeInput) (*mcp.CallToolResult, CheckDiskFreeOutput, error) {
 		path := strings.TrimSpace(in.Path)
 		if path == "" {

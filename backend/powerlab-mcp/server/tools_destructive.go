@@ -149,7 +149,7 @@ func registerInstallApp(s *mcp.Server, proxy *coreproxy.Client) {
 func registerUninstallApp(s *mcp.Server, proxy *coreproxy.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "uninstall_app",
-		Description: "Uninstall a PowerLab app — removes its containers + (per app-management config) may remove its persistent data. DESTRUCTIVE — may cause data loss; not reversible without a backup. Use apps://list to discover valid ids.",
+		Description: "Uninstall a PowerLab app — removes its containers + (per app-management config) may remove its persistent data. DESTRUCTIVE — may cause data loss; NOT reversible without a backup. No dry_run is offered — confirm with the operator BEFORE calling. Recommended pre-call sequence: read apps://state/{id} to surface what's installed (image, volumes, ports), then ask the operator to confirm, then call this. Use apps://list to discover valid ids.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in UninstallAppInput) (*mcp.CallToolResult, UninstallAppOutput, error) {
 		id := strings.TrimSpace(in.ID)
 		if id == "" {
