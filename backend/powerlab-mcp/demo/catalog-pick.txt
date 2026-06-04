@@ -1,0 +1,75 @@
+# Curated subset of community-catalog/Apps/ baked into the demo image.
+#
+# Selection criteria: span the design space (stateless web, stateful
+# DB-backed, multi-container, GPU-aware), favour high-recognition apps
+# that demonstrate breadth, keep the list small enough to stay under
+# the demo image size budget (~50 MB of catalog data).
+#
+# Each line is an Apps/<id>/ directory under community-catalog/.
+# Dockerfile.demo COPYs only these into the demo image's catalog dir.
+# Comments and blank lines are ignored. Verified against the
+# community-catalog tree on 2026-06-04.
+
+# ── Media + entertainment ────────────────────────────────────────────
+jellyfin
+jellyfin-nvidia
+emby
+audiobookshelf
+calibre-web
+navidrome
+photoprism
+swingmusic
+
+# ── Productivity + collaboration ────────────────────────────────────
+vaultwarden
+memos
+pocketbase
+ghost
+wallabag
+vikunja
+wordpress
+
+# ── Dev tools + automation ──────────────────────────────────────────
+code-server
+n8n
+freshrss
+adminer
+sqlitebrowser
+ittools
+opencode
+
+# ── Dashboards + monitoring ─────────────────────────────────────────
+homarr
+heimdall
+grafana
+uptime-kuma
+homebox
+
+# ── Databases ───────────────────────────────────────────────────────
+postgresql
+mariadb
+influxdb2
+
+# ── Networking + utility ───────────────────────────────────────────
+chromium
+firefox
+flaresolverr
+
+# ── AI + chat ──────────────────────────────────────────────────────
+chatbot-ui
+chatpad-ai
+ollama-nvidia
+
+# ── Finance + personal ──────────────────────────────────────────────
+actualbudget
+
+# ── File mgmt + sync ───────────────────────────────────────────────
+syncthing
+copyparty
+duplicati
+
+# ── Media automation ───────────────────────────────────────────────
+sonarr
+radarr
+prowlarr
+qbittorrent

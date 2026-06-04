@@ -1,0 +1,40 @@
+2026-06-04T08:00:00.011Z INFO  powerlab-gateway starting version=v0.7.7 listen=:8765
+2026-06-04T08:00:00.087Z INFO  loaded service discovery runtime_path=/run/powerlab services=4
+2026-06-04T08:00:00.142Z INFO  gateway ready
+2026-06-04T08:15:23.142Z INFO  request method=POST path=/v1/auth/login status=200 duration_ms=42 actor=demo-operator
+2026-06-04T08:16:01.881Z INFO  request method=GET path=/v1/app-management/apps status=200 duration_ms=18
+2026-06-04T08:18:42.220Z INFO  request method=GET path=/v1/app-management/catalog status=200 duration_ms=31
+2026-06-04T08:21:09.504Z INFO  request method=POST path=/v2/app_management/compose status=201 duration_ms=1287 app=jellyfin
+2026-06-04T08:22:11.778Z INFO  request method=GET path=/v1/app-management/apps/jellyfin status=200 duration_ms=24
+2026-06-04T08:34:55.103Z WARN  request method=POST path=/v2/app_management/compose status=409 duration_ms=91 error="port 8443 already in use" app=code-server
+2026-06-04T08:37:18.665Z INFO  request method=POST path=/v2/app_management/compose status=201 duration_ms=1923 app=code-server
+2026-06-04T08:42:30.011Z INFO  request method=GET path=/v1/sys/disk status=200 duration_ms=12
+2026-06-04T08:44:18.219Z INFO  request method=GET path=/v1/app-management/catalog status=200 duration_ms=29
+2026-06-04T08:51:34.821Z INFO  request method=POST path=/v2/app_management/compose status=201 duration_ms=1455 app=audiobookshelf
+2026-06-04T09:00:00.001Z INFO  health tick services=ok memory=ok disk=ok updates=warn
+2026-06-04T09:02:45.108Z INFO  request method=POST path=/v2/app_management/compose/jellyfin/restart status=200 duration_ms=4832
+2026-06-04T09:15:11.402Z INFO  request method=GET path=/v1/sys/journal/jellyfin status=200 duration_ms=67
+2026-06-04T09:22:30.918Z INFO  request method=GET path=/v1/sys/health status=200 duration_ms=48
+2026-06-04T09:30:00.001Z INFO  audit rotate completed file=/var/log/powerlab/audit.jsonl size_bytes=18432
+2026-06-04T09:41:18.778Z WARN  request method=POST path=/v2/app_management/compose status=422 duration_ms=18 error="validator: privileged: true is denied" app=postgresql
+2026-06-04T09:43:55.221Z INFO  request method=POST path=/v2/app_management/compose status=201 duration_ms=1102 app=postgresql
+2026-06-04T09:55:01.487Z INFO  request method=GET path=/v1/sys/audit status=200 duration_ms=33
+2026-06-04T10:00:00.001Z INFO  health tick services=ok memory=ok disk=ok updates=warn
+2026-06-04T10:01:18.001Z INFO  request method=GET path=/v1/docs/concepts/compose-conventions status=200 duration_ms=11
+2026-06-04T10:14:55.876Z INFO  request method=POST path=/mcp status=200 duration_ms=78 tool=generate_artifact
+2026-06-04T10:21:09.224Z INFO  request method=POST path=/v2/app_management/compose status=201 duration_ms=1665 app=my-static-site
+2026-06-04T10:55:21.443Z INFO  request method=GET path=/mcp status=200 duration_ms=3 tool=list_capabilities
+2026-06-04T11:00:00.001Z INFO  health tick services=ok memory=ok disk=ok updates=warn
+2026-06-04T11:23:11.221Z INFO  request method=DELETE path=/v2/app_management/compose/code-server status=204 duration_ms=987
+2026-06-04T11:35:18.554Z INFO  request method=GET path=/v1/app-management/catalog status=200 duration_ms=27
+2026-06-04T12:00:00.001Z INFO  health tick services=ok memory=ok disk=ok updates=warn
+2026-06-04T12:12:42.118Z INFO  request method=POST path=/v2/app_management/compose status=201 duration_ms=1387 app=syncthing
+2026-06-04T12:35:55.221Z INFO  request method=POST path=/v1/auth/logout status=200 duration_ms=8 actor=demo-operator
+2026-06-04T13:00:00.001Z INFO  health tick services=ok memory=ok disk=ok updates=warn
+2026-06-04T13:55:11.554Z INFO  request method=POST path=/v2/app_management/compose status=201 duration_ms=1521 app=homarr
+2026-06-04T14:00:00.001Z INFO  health tick services=ok memory=ok disk=ok updates=warn
+2026-06-04T14:08:42.118Z INFO  request method=POST path=/v2/app_management/compose/homarr/restart status=200 duration_ms=4118
+2026-06-04T14:21:18.554Z INFO  request method=GET path=/v1/sys/health status=200 duration_ms=52
+2026-06-04T15:00:00.001Z INFO  health tick services=ok memory=ok disk=ok updates=warn
+2026-06-04T16:00:00.001Z INFO  health tick services=ok memory=ok disk=ok updates=warn
+2026-06-04T16:21:18.776Z INFO  request method=POST path=/mcp status=200 duration_ms=38 tool=start_compose_authoring
