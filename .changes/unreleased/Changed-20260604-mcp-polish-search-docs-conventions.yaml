@@ -1,0 +1,3 @@
+kind: Changed
+body: 'powerlab-mcp: enriched `search_docs` (309→698c) and `get_compose_conventions` (362→615c) descriptions — adds explicit Usage Guidelines + Contextual Completeness (when to use vs which alternative Tool). Lifts the per-tool minimum TDQS score from 4.35 to 4.85, which under Glama''s 60% mean + 40% minimum weighting moves the Server TDQS to ~4.87 (estimated A tier).'
+time: 2026-06-04T00:00:00Z

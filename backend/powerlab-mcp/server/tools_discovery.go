@@ -100,7 +100,7 @@ type getComposeConventionsOutput struct {
 func registerGetComposeConventions(s *mcp.Server, conceptsDir string) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "get_compose_conventions",
-		Description: "READ ONLY — returns the canonical PowerLab docker-compose conventions document (the source of truth for x-powerlab metadata, volume paths, port allocation, image trust policy, etc.). Mirrors docs://concepts/compose-conventions so chat-mode agents have a direct fetch path. Use this before drafting any compose YAML for PowerLab to avoid legacy CasaOS-era idioms.",
+		Description: "READ ONLY — returns the canonical PowerLab docker-compose conventions document (source of truth for x-powerlab metadata, volume paths, port allocation, image trust policy, etc.). Takes no inputs; returns the full markdown body of docs://concepts/compose-conventions. Use this BEFORE drafting any compose YAML to avoid legacy CasaOS-era idioms (volume paths, image registries, port ranges). After fetching, if you also need 3 catalog examples + the validator deny-list to ground the draft, prefer start_compose_authoring which bundles all three; this Tool is the fast targeted-read path for the conventions doc only.",
 	}, func(_ context.Context, _ *mcp.CallToolRequest, _ getComposeConventionsInput) (*mcp.CallToolResult, getComposeConventionsOutput, error) {
 		path := filepath.Join(conceptsDir, "compose-conventions.md")
 		// #nosec G304 -- conceptsDir is operator-configured; filename literal.
