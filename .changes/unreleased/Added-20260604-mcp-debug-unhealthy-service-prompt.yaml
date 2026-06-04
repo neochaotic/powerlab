@@ -1,0 +1,3 @@
+kind: Added
+body: 'powerlab-mcp: `prompt://debug_unhealthy_service` — encodes the get_system_health → journal_search → check_disk_free diagnostic chain. Optional service (gateway, core, app-management, user) narrows the journal filter; since_minutes scopes the window. Pre-empts the common "service bug" misdiagnosis when the real cause is host capacity.'
+time: 2026-06-04T00:00:00Z

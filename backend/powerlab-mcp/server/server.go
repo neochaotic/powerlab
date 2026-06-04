@@ -180,6 +180,8 @@ func newMCPServer(info BuildInfo, rc resourcesConfig, journalRun journal.Runner)
 	// Observability-recipe prompts — encode the Tool chain agents
 	// otherwise have to discover by trial-and-error.
 	registerTroubleshootInstallFailurePrompt(m)
+	registerDebugUnhealthyServicePrompt(m)
+	registerOnboardNewPowerlabHostPrompt(m)
 	// P0.1 — chat-mode-friendly Tool wrappers around the canonical
 	// Prompt + Resource handlers; same content, surface that agents
 	// in tool-call-only mode actually reach.
