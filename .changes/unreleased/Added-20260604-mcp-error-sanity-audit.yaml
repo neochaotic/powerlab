@@ -1,0 +1,3 @@
+kind: Added
+body: 'powerlab-mcp: error-sanity audit + regression-test suite. Documents that no agent-visible Tool output leaks language-internal noise (subprocess wrap, runtime panic strings, Go install paths). Locks the contract in `server/tools_error_sanity_test.go` with a shared forbidden-substring list every new Tool must respect. Pre-existing `journal_search` classifier (5 tests) joined by a new `browse_catalog` regression covering missing-catalog-dir paths.'
+time: 2026-06-04T00:00:00Z
