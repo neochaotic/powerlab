@@ -1,0 +1,3 @@
+kind: Added
+body: 'powerlab-mcp: `prompt://troubleshoot_install_failure` — encodes the audit_query → journal_search → get_system_health diagnostic chain so agents stop deriving it Tool-by-Tool. Optional app_id + since_minutes arguments parameterize the recipe; empty args yield a generic playbook.'
+time: 2026-06-04T00:00:00Z

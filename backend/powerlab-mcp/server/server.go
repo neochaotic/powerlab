@@ -177,6 +177,9 @@ func newMCPServer(info BuildInfo, rc resourcesConfig, journalRun journal.Runner)
 	registerCatalog(m, rc.catalogDir)
 	registerSearchDocs(m, rc.conceptsDir, rc.openAPIDir, rc.catalogDir)
 	registerComposeAuthoringPrompt(m, rc.conceptsDir, rc.catalogDir)
+	// Observability-recipe prompts — encode the Tool chain agents
+	// otherwise have to discover by trial-and-error.
+	registerTroubleshootInstallFailurePrompt(m)
 	// P0.1 — chat-mode-friendly Tool wrappers around the canonical
 	// Prompt + Resource handlers; same content, surface that agents
 	// in tool-call-only mode actually reach.
