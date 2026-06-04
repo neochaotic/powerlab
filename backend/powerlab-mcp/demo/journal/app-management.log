@@ -1,0 +1,43 @@
+2026-06-04T08:00:00.105Z INFO  app-management starting version=v0.7.7 docker_socket=/var/run/docker.sock
+2026-06-04T08:00:00.218Z INFO  scanned installed apps count=2
+2026-06-04T08:00:00.255Z INFO  app-management ready
+2026-06-04T08:21:09.504Z INFO  install begin app=jellyfin compose_path=/var/lib/powerlab/apps/jellyfin/docker-compose.yml
+2026-06-04T08:21:09.612Z INFO  pulling images app=jellyfin images="jellyfin/jellyfin:10.9"
+2026-06-04T08:21:10.443Z INFO  image pulled app=jellyfin image=jellyfin/jellyfin:10.9 size_mb=421
+2026-06-04T08:21:10.778Z INFO  creating containers app=jellyfin services=1
+2026-06-04T08:21:10.890Z INFO  containers created app=jellyfin container_ids=[abc123def456]
+2026-06-04T08:21:10.987Z INFO  starting containers app=jellyfin
+2026-06-04T08:21:11.331Z INFO  install complete app=jellyfin duration_ms=1287
+2026-06-04T08:34:55.103Z ERROR install failed app=code-server error="port 8443 already in use by container my-static-site"
+2026-06-04T08:34:55.142Z INFO  rollback complete app=code-server containers_removed=0
+2026-06-04T08:37:18.665Z INFO  install begin app=code-server compose_path=/var/lib/powerlab/apps/code-server/docker-compose.yml
+2026-06-04T08:37:19.012Z INFO  validating compose-yaml app=code-server
+2026-06-04T08:37:19.118Z INFO  validation passed app=code-server
+2026-06-04T08:37:19.221Z INFO  pulling images app=code-server images="codercom/code-server:4.20"
+2026-06-04T08:37:20.443Z INFO  image pulled app=code-server image=codercom/code-server:4.20 size_mb=298
+2026-06-04T08:37:20.665Z INFO  creating containers app=code-server services=1
+2026-06-04T08:37:20.778Z INFO  containers created app=code-server container_ids=[def456ghi789]
+2026-06-04T08:37:20.876Z INFO  starting containers app=code-server
+2026-06-04T08:37:20.987Z INFO  install complete app=code-server duration_ms=1923
+2026-06-04T08:51:34.821Z INFO  install begin app=audiobookshelf
+2026-06-04T08:51:35.876Z INFO  install complete app=audiobookshelf duration_ms=1455
+2026-06-04T09:02:45.108Z INFO  restart begin app=jellyfin
+2026-06-04T09:02:48.221Z INFO  containers stopped app=jellyfin count=1
+2026-06-04T09:02:49.776Z INFO  containers started app=jellyfin count=1
+2026-06-04T09:02:49.940Z INFO  restart complete app=jellyfin duration_ms=4832
+2026-06-04T09:41:18.778Z ERROR validation rejected app=postgresql reason="composevalidator: privileged: true at services.postgres.privileged"
+2026-06-04T09:43:55.221Z INFO  install begin app=postgresql
+2026-06-04T09:43:56.321Z INFO  install complete app=postgresql duration_ms=1102
+2026-06-04T10:14:55.876Z INFO  artifact generated kind=compose-yaml validator_ok=true
+2026-06-04T10:21:09.224Z INFO  install begin app=my-static-site
+2026-06-04T10:21:10.889Z INFO  install complete app=my-static-site duration_ms=1665
+2026-06-04T11:23:11.221Z INFO  uninstall begin app=code-server
+2026-06-04T11:23:11.778Z INFO  containers stopped app=code-server count=1
+2026-06-04T11:23:12.108Z INFO  containers removed app=code-server count=1
+2026-06-04T11:23:12.208Z INFO  uninstall complete app=code-server duration_ms=987 preserved_volumes=false
+2026-06-04T12:12:42.118Z INFO  install begin app=syncthing
+2026-06-04T12:12:43.505Z INFO  install complete app=syncthing duration_ms=1387
+2026-06-04T13:55:11.554Z INFO  install begin app=homarr
+2026-06-04T13:55:13.075Z INFO  install complete app=homarr duration_ms=1521
+2026-06-04T14:08:42.118Z INFO  restart begin app=homarr
+2026-06-04T14:08:46.236Z INFO  restart complete app=homarr duration_ms=4118
