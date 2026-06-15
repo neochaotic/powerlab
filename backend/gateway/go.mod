@@ -6,11 +6,11 @@ require (
 	github.com/digitorus/pkcs7 v0.0.0-20250730155240-ffadbf3f398c
 	github.com/google/uuid v1.6.0
 	github.com/grandcat/zeroconf v1.0.0
-	github.com/labstack/echo/v4 v4.15.2
+	github.com/labstack/echo/v4 v4.15.3
 	github.com/neochaotic/powerlab/backend/common v0.4.8-alpha9
 	github.com/neochaotic/powerlab/backend/pkg v0.0.0-00010101000000-000000000000
 	go.uber.org/fx v1.24.0
-	gopkg.in/ini.v1 v1.67.2
+	gopkg.in/ini.v1 v1.67.3
 	gotest.tools v2.2.0+incompatible
 )
 
