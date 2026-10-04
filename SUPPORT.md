@@ -4,6 +4,12 @@ This document lists the operating systems and authentication paths PowerLab
 supports today, what the upgrade path looks like, and what is explicitly
 out of scope.
 
+**Status: beta.** Current release: **v0.7.7**
+([releases](https://github.com/neochaotic/powerlab/releases)). PowerLab
+is aimed at someone running a Raspberry Pi or mini-PC who is comfortable
+with Docker; breaking changes may ship between minor versions until 1.0,
+and the in-app updater flags them before applying an update.
+
 ## Operating systems
 
 | Platform                     | Architecture       | Status      | Notes |
@@ -27,11 +33,11 @@ on the host platform:
 | Platform | Mechanism | Status |
 |---|---|---|
 | **macOS**   | `dscl . -authonly` against the local Directory Service | ✅ Working |
-| **Linux** (`amd64`) | PAM via `libpam` (CGO)                          | ✅ Working (v0.2+). Sign in with your `useradd` password. |
-| **Linux** (`arm64`) | bcrypt SetupWizard fallback                     | ⚠️ PAM not yet in arm64 release tarball — open as follow-up. SetupWizard works; OS auth lands in v0.2.x. |
+| **Linux** (`amd64`) | PAM via `libpam` (CGO)                          | ✅ Working since v0.2.0. Sign in with your `useradd` password. |
+| **Linux** (`arm64`) | bcrypt SetupWizard                              | ⚠️ Still the default in v0.7.7. `arm64` release builds are compiled with `CGO_ENABLED=0`, so they cannot link libpam (see the comment above `needs_cgo` in `scripts/package-linux.sh`). Native PAM on `arm64` is an open follow-up with no release target yet; the SetupWizard password works in the meantime. |
 | **Windows** | LSA / SSPI                                             | ❌ Not planned |
 
-### How Linux auth works in v0.2+
+### How Linux auth works (`amd64`)
 
 PowerLab installs a minimal PAM service file at `/etc/pam.d/powerlab`
 (written by `install.sh` only when absent — admins can edit it to add
@@ -50,7 +56,7 @@ password; the source-of-truth stays in `/etc/shadow`.
 
 ### Bcrypt SetupWizard fallback
 
-If PAM is unavailable on a host (CGO disabled at compile time, missing
+If PAM is unavailable on a host (every `arm64` release build today, CGO disabled at compile time, missing
 libpam, custom PAM config that breaks `pam_unix`), the login screen
 falls back to a one-shot Setup Wizard that registers a bcrypt password
 in PowerLab's own DB. That password is then accepted by the same
