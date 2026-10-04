@@ -1,0 +1,55 @@
+name: OpenSSF Scorecard
+
+# Weekly supply-chain posture report (branch protection, pinned deps, token
+# permissions, dangerous workflows, ...). Report-only: it never fails a PR and
+# does not run on pull_request at all. Findings land in Security > Code
+# scanning under the "scorecard" category, and publish_results feeds the public
+# badge at https://scorecard.dev/viewer/?uri=github.com/neochaotic/powerlab
+#
+# The Branch-Protection check needs a fine-grained read-only PAT (Administration
+# + Contents + Metadata) in the SCORECARD_READ_TOKEN secret; without it that
+# one check reports -1 and everything else still works.
+
+on:
+  branch_protection_rule:
+  schedule:
+    - cron: "0 7 * * 1" # Mondays 07:00 UTC
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Scorecard's publish_results requires read-only top-level permissions.
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      security-events: write # upload SARIF to code scanning
+      id-token: write # publish_results (OIDC)
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: ossf/scorecard-action@v2
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+          repo_token: ${{ secrets.SCORECARD_READ_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scorecard-sarif
+          path: results.sarif
+          retention-days: 5
+
+      - uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: results.sarif
+          category: scorecard

@@ -1,0 +1,19 @@
+# URL patterns lychee should NOT check (one regex per line). Behaviour
+# (retries, timeouts, accepted status codes) lives in lychee.toml.
+#
+# Keep this list tight: every entry is a link we chose to stop verifying.
+# Only add a host that is valid for humans but blocks or throttles CI.
+
+# Badges: dynamic SVGs that rate-limit and occasionally 5xx from CI IPs.
+^https?://img\.shields\.io/
+^https?://shields\.io/
+
+# GitHub avatar / user-content CDNs throttle anonymous CI traffic.
+^https?://avatars\.githubusercontent\.com/
+^https?://.*\.githubusercontent\.com/
+
+# Illustrative endpoints that appear in docs, not live URLs.
+^https?://localhost(:\d+)?
+^https?://127\.0\.0\.1(:\d+)?
+^https?://0\.0\.0\.0(:\d+)?
+^https?://example\.(com|org|net)

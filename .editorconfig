@@ -1,0 +1,31 @@
+# https://editorconfig.org — editor defaults that match what the repo already
+# does. Formatters (gofmt, prettier/eslint) remain the source of truth; this
+# only stops editors from introducing whitespace churn in diffs.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.go]
+indent_style = tab
+
+[{go.mod,go.work}]
+indent_style = tab
+
+[Makefile]
+indent_style = tab
+
+# The SvelteKit UI is tab-indented throughout.
+[ui/**.{svelte,ts,js,cjs,mjs,css}]
+indent_style = tab
+
+[*.{yaml,yml,toml}]
+indent_style = space
+indent_size = 2
+
+# Trailing double-space is a hard line break in Markdown.
+[*.md]
+trim_trailing_whitespace = false

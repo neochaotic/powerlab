@@ -1,0 +1,31 @@
+# gitleaks configuration, auto-loaded by `gitleaks dir .` in
+# .github/workflows/secret-scan.yml. Extends the upstream default ruleset;
+# every allowlist entry below must say why it is not a real secret.
+#
+# Run locally:  gitleaks dir . --redact
+title = "PowerLab gitleaks config"
+
+[extend]
+useDefault = true
+
+# The e2e smoke job in ci.yml boots a throwaway PowerLab stack inside the
+# runner and logs in with a fixed CI-only password. It guards nothing.
+[[allowlists]]
+description = "CI-only e2e smoke credential (throwaway stack on the runner)"
+paths = ['''^\.github/workflows/ci\.yml$''']
+regexes = ['''ci-smoke-pass-12345''']
+
+# Legacy community-catalog compose files carry upstream-style default
+# credentials (POSTGRES_PASSWORD, MEILI_MASTER_KEY, SECRET_KEY_BASE) so an app
+# installs with zero configuration. They are published defaults, not leaked
+# secrets — but they ARE weak defaults every install shares. The catalog has
+# moved to neochaotic/powerlab-store (ADR-0041); fix them there (generate per
+# install) rather than widening this list. Scoped to the three known files so
+# a NEW hardcoded secret anywhere else still fails the scan.
+[[allowlists]]
+description = "Shared default credentials in legacy community-catalog compose files"
+paths = [
+  '''^community-catalog/Apps/monetr/docker-compose\.yml$''',
+  '''^community-catalog/Apps/linkwarden/docker-compose\.yml$''',
+  '''^community-catalog/Apps/sure/docker-compose\.yml$''',
+]

@@ -1,0 +1,26 @@
+# lychee link checker configuration, used by .github/workflows/link-check.yml.
+# Host-level ignores live in .lycheeignore; keep this file behaviour-only.
+#
+# The gate exists to catch dead *relative* links and images in hand-written
+# Markdown (a moved doc, a renamed screenshot), not to fail a PR because an
+# external host throttled a CI runner.
+
+# Give transient network conditions a few chances before failing.
+max_retries = 3
+retry_wait_time = 2
+timeout = 20
+
+# Rate limiting is not a broken link: shared runner IPs routinely get 429/403
+# from GitHub and other popular hosts.
+accept = ["200..=299", "429", "403"]
+
+# A slow external host is a network condition. Local file targets never time
+# out, so the dead-relative-path case is unaffected.
+accept_timeouts = true
+
+# Docs are full of illustrative http://localhost / 127.0.0.1 URLs.
+exclude_loopback = true
+include_mail = false
+
+# Fragment (#anchor) checking stays off: MkDocs slugifies headings at render
+# time, so checking anchors against raw Markdown gives false failures.
