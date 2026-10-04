@@ -280,6 +280,12 @@ jobs:
           # baseline in scripts/deadcode-baseline/<svc>.txt. ADR-0037
           # explains why we abandoned the zero-strict goal.
           POWERLAB_DEADCODE_MODE: 'delta'
+          # Pinned, not the script's default @latest: x/tools v0.50.0+
+          # requires Go >= 1.26, and on Go 1.25 `go run ...@latest` fails.
+          # check-deadcode.sh swallows that error (`|| true`) and counts 0
+          # findings, so the gate silently passed without running.
+          # v0.49.0 is the newest x/tools whose go.mod is `go 1.25.0`.
+          POWERLAB_DEADCODE_VERSION: 'v0.49.0'
 
   # ─────────────────────────────────────────────────────────────────────
   # govulncheck — SAST vuln scan per service (ADR-0040). BLOCKING via
@@ -329,8 +335,14 @@ jobs:
         working-directory: backend/${{ matrix.service }}
         run: go generate ./...
 
+      # Pinned, not @latest: govulncheck v1.8.0+ requires Go >= 1.26 and
+      # this job runs Go 1.25 with GOTOOLCHAIN=local, so @latest failed to
+      # install and every vuln-scan job went red before scanning. v1.7.0 is
+      # the newest release whose go.mod is `go 1.25.0`. Bump together with
+      # the go-version above (the vuln DB is fetched live, so a pinned
+      # scanner still sees new advisories).
       - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.7.0
 
       - name: govulncheck (blocking gate + allowlist)
         working-directory: backend/${{ matrix.service }}
