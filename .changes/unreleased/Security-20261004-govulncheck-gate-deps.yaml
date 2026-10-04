@@ -1,0 +1,17 @@
+kind: Security
+body: >-
+  Backend dependencies bumped to clear the reachable vulnerabilities the
+  govulncheck gate reports as of 2026-10: golang.org/x/image v0.43.0 (TIFF
+  decoding DoS/panic), golang.org/x/text v0.39.0, kin-openapi v0.144.0
+  (request-validation panic and deepObject resource exhaustion),
+  gorilla/websocket v1.5.3, rclone v1.75.0 (local-storage), and in
+  app-management containerd v2.2.9, grpc v1.83.1, OpenTelemetry v1.45.0,
+  go-getter v1.8.6 and in-toto v0.11.0. Six advisories whose only fix
+  needs Go 1.26 or the docker v29 stack (x/crypto/ssh, rclone v1.75.1,
+  buildkit, moby/go-archive) are allowlisted with
+  justification until those moves land. CI also pins govulncheck and
+  deadcode to Go 1.25-compatible releases (the @latest builds now need Go
+  1.26 and either failed or silently skipped), stops failing Dependabot
+  PRs and `skip-changelog` PRs on the changelog-fragment check, and cancels
+  superseded PR runs.
+time: 2026-10-04T23:30:00.000000-03:00
