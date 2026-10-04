@@ -14,6 +14,7 @@
 	import { fade } from 'svelte/transition';
 	import { getAppManagementConfig, type AppManagementConfig } from '$lib/api/apps';
 	import { getGatewayPort, setGatewayPort } from '$lib/api/gateway';
+	import { api } from '$lib/api/client';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { updaterStore } from '$lib/stores/updater.svelte';
 	import { getCurrentOS, type OS } from '$lib/utils/os';
@@ -85,6 +86,8 @@
 		try {
 			// Guard 1: TLS handshake must complete. no-cors lets us
 			// skip the CORS preflight; we don't need to read the body.
+			// Public, unauthenticated cross-origin TLS probe (no-cors, opaque).
+			// eslint-disable-next-line no-restricted-syntax -- public cross-origin probe
 			await fetch(`${httpsBase}/v1/sys/ca-certificate.crt`, {
 				mode: 'no-cors',
 				signal: AbortSignal.timeout(5000)
@@ -95,6 +98,8 @@
 			// what makes the "Not Found" screen impossible to reach.
 			let canRedirect = false;
 			try {
+				// Public cross-origin SPA probe; reads only content-type.
+				// eslint-disable-next-line no-restricted-syntax -- public cross-origin probe
 				const probe = await fetch(`${httpsBase}/`, {
 					method: 'GET',
 					mode: 'cors',
@@ -115,6 +120,12 @@
 			// accepts.
 			const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
 			if (!isLocalhost) {
+				// Cross-origin (:8443) by design: the handler only accepts it
+				// over TLS. The gateway's security mux sends no CORS headers,
+				// so adding Authorization would force a preflight it rejects;
+				// the handler does not check a JWT anyway. Keep it a simple
+				// request.
+				// eslint-disable-next-line no-restricted-syntax -- cross-origin simple request, see above
 				const armResp = await fetch(`${httpsBase}/v1/sys/trust-confirmed`, {
 					method: 'POST',
 					mode: 'cors',
@@ -131,6 +142,8 @@
 			// (CA regen / rotation) and re-prompt re-install. Best
 			// effort — never blocks the trust dance.
 			try {
+				// Public read of the CA fingerprint over the HTTPS origin.
+				// eslint-disable-next-line no-restricted-syntax -- public cross-origin read
 				const stateResp = await fetch(`${httpsBase}/v1/sys/trust-state`, {
 					mode: 'cors',
 					signal: AbortSignal.timeout(3000)
@@ -191,6 +204,9 @@
 	async function downloadCA(format: 'mobileconfig' | 'crt' | 'cer') {
 		const url = `/v1/sys/ca-certificate.${format}`;
 		try {
+			// Public, unauthenticated binary download. The api client reads
+			// bodies as text, which would corrupt the DER (.cer) payload.
+			// eslint-disable-next-line no-restricted-syntax -- binary public download
 			const r = await fetch(url);
 			if (!r.ok) {
 				// Surface enough info that the next bug-report has a
@@ -278,8 +294,9 @@
 		);
 		if (!ok) return;
 		try {
-			const r = await fetch('/v1/sys/trust-confirmed', { method: 'DELETE' });
-			if (!r.ok) throw new Error(`status ${r.status}`);
+			// Same-origin → shared client (attaches the JWT + cookie and
+			// throws ApiError on non-2xx).
+			await api.delete('/v1/sys/trust-confirmed');
 			window.localStorage.removeItem('powerlab_trusted_ca_fp');
 			window.localStorage.removeItem('powerlab_ca_mismatch_dismissed');
 			toast.success(t('settings.trustResetSuccess'));
@@ -312,6 +329,11 @@
 		isRotating = true;
 		try {
 			const httpsBase = `https://${window.location.hostname}:8443`;
+			// Must hit the HTTPS listener (handler rejects non-TLS). This is
+			// cross-origin when the panel is on HTTP; the gateway security
+			// mux sends no CORS headers, so an Authorization header would
+			// trigger a preflight that fails. Kept a simple request.
+			// eslint-disable-next-line no-restricted-syntax -- cross-origin simple request, see above
 			const r = await fetch(
 				`${httpsBase}/v1/sys/rotate-ca?confirm=ROTATE_CA`,
 				{ method: 'POST', mode: 'cors' }

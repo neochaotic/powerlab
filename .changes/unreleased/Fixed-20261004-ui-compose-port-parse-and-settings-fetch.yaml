@@ -1,0 +1,17 @@
+kind: Fixed
+body: >-
+  The app-install pre-flight no longer misreads IP-bound compose ports:
+  `127.0.0.1:8080:80` was probed as host port 127 because the page took
+  `split(':')[0]`. Compose analysis (published host ports + compatibility
+  warnings) moved from inline `as any` code in the Apps page into a typed,
+  unit-tested `composeAnalysis` module that handles IP-bound and bracketed
+  IPv6 bindings, `/udp` suffixes, host-port ranges (every port collected),
+  `${VAR:-default}` interpolation (best-effort) and long syntax with string
+  `published`. Container-only ports (`"80"`) are no longer probed since
+  Docker assigns them an ephemeral host port. The settings page lost its
+  whole-file exemption from the raw-fetch lint ban: "Reset trust" now goes
+  through the shared API client (JWT + cookie), and the remaining raw
+  calls (public cross-origin trust probes, binary CA download) carry
+  per-line justified exceptions. Files-API success checks use a typed
+  `isApiSuccess` helper instead of an `as any` cast.
+time: 2026-10-04T12:00:00.000000-03:00

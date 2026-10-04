@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { readFileContent, updateFileContent, createFileContent } from '$lib/api/files';
+	import { readFileContent, updateFileContent, createFileContent, isApiSuccess } from '$lib/api/files';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { Save, X, Loader2, FileText } from 'lucide-svelte';
@@ -59,7 +59,7 @@
 	onMount(async () => {
 		try {
 			const res = await readFileContent(path);
-			if (res.success === 200 || (res as any).success === 0) {
+			if (isApiSuccess(res)) {
 				content = res.data;
 				readyToInit = true;
 			} else {
@@ -165,7 +165,7 @@
 			const res = wasNew
 				? await createFileContent(path, currentContent)
 				: await updateFileContent(path, currentContent);
-			if (res.success === 200 || (res as any).success === 0) {
+			if (isApiSuccess(res)) {
 				if (wasNew) isNewFile = false;
 				savedContent = currentContent;
 				isDirty = false;

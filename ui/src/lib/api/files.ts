@@ -35,6 +35,15 @@ export interface ApiResult<T> {
 	data: T;
 }
 
+/**
+ * True when a files-API envelope reports success. The backend has used
+ * both `success: 200` and `success: 0` for OK responses, so callers
+ * must accept either.
+ */
+export function isApiSuccess(res: Pick<ApiResult<unknown>, 'success'> | null | undefined): boolean {
+	return res?.success === 200 || res?.success === 0;
+}
+
 // ─── API Functions ────────────────────────────────────────────────────
 
 /** List directory contents */

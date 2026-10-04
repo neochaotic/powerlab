@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import Fuse from 'fuse.js';
-	import yaml from 'js-yaml';
 	import { useAppStore } from '$lib/stores/apps.svelte';
 	import type { ComposeAppStoreInfo } from '$lib/api/apps';
 	import { getStoreAppYaml, installComposeApp, uninstallComposeApp, getComposeAppDiskUsage, updateComposeApp, checkPorts } from '$lib/api/apps';
@@ -11,6 +10,7 @@
 	import AppMetrics from '$lib/components/apps/AppMetrics.svelte';
 	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import { detectAppSource, appSourceLabel } from '$lib/utils/app-source';
+	import { analyzeComposeYaml } from '$lib/utils/composeAnalysis';
 	import InstallProgressBar from '$lib/components/apps/InstallProgressBar.svelte';
 	import InstallModal from '$lib/components/apps/InstallModal.svelte';
 	import LogStreamer from '$lib/components/apps/LogStreamer.svelte';
@@ -305,43 +305,12 @@
 
 		try {
 			const yamlText = await getStoreAppYaml(storeApp.store_app_id);
-			const parsed = yaml.load(yamlText) as any;
-			const requestedPorts: number[] = [];
-
-			if (parsed?.services) {
-				const services = Object.values(parsed.services) as any[];
-				for (const svc of services) {
-					if (svc.network_mode === 'host') {
-						compatibilityWarnings.push("This app needs network_mode: host which doesn't work on Docker Desktop (macOS/Windows)");
-					}
-					if (svc.privileged === true) {
-						compatibilityWarnings.push("This app requires privileged mode (Critical Risk)");
-					}
-					if (svc.cap_add && Array.isArray(svc.cap_add)) {
-						if (svc.cap_add.some((c: string) => c.includes('ADMIN') || c.includes('NET'))) {
-							compatibilityWarnings.push("Needs Linux kernel capabilities (cap_add)");
-						}
-					}
-					if (svc.volumes && Array.isArray(svc.volumes)) {
-						if (svc.volumes.some((v: any) => {
-							const path = typeof v === 'string' ? v : v.source;
-							return path?.startsWith('/dev/') || path?.startsWith('/proc/') || path?.startsWith('/sys/');
-						})) {
-							compatibilityWarnings.push("Needs Linux kernel devices (/dev, /proc, /sys)");
-						}
-					}
-					// Collect every published host port across all services (deduped).
-					if (Array.isArray(svc.ports)) {
-						for (const p of svc.ports) {
-							const pub = typeof p === 'string' ? p.split(':')[0] : (p?.published ?? '');
-							const n = parseInt(String(pub), 10);
-							if (Number.isFinite(n) && n > 0 && !requestedPorts.includes(n)) {
-								requestedPorts.push(n);
-							}
-						}
-					}
-				}
-			}
+			// Port collection + compatibility/risk warnings live in a typed,
+			// unit-tested module (handles IP-bound, IPv6, ranges, protocol
+			// suffixes, env interpolation and long syntax).
+			const analysis = analyzeComposeYaml(yamlText);
+			const requestedPorts = analysis.requestedPorts;
+			compatibilityWarnings.push(...analysis.compatibilityWarnings);
 
 			// Probe ports. For any in use, seed the choice with the suggestion
 			// (or original+1) so the user has a sensible default to accept or edit.

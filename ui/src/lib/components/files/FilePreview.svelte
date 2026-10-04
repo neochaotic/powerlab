@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { FileItem } from '$lib/api/files';
-	import { getDownloadUrl, readFileContent } from '$lib/api/files';
+	import { getDownloadUrl, isApiSuccess, readFileContent } from '$lib/api/files';
 	import { onMount } from 'svelte';
 	import { X, FileText, FileDigit, ExternalLink, Loader2, Music } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -30,7 +30,7 @@
 			loadingText = true;
 			try {
 				const res = await readFileContent(item.path);
-				if (res.success === 200 || (res as any).success === 0) {
+				if (isApiSuccess(res)) {
 					// Show first 100 lines
 					textPreview = res.data.split('\n').slice(0, 100).join('\n');
 				}
