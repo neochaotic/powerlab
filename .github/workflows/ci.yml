@@ -17,6 +17,13 @@ on:
         required: true
         default: "0.3.2-rc1"
 
+# Cancel superseded runs of the same PR so stale CI does not pile up in the
+# queue. Never cancel main pushes, tag/release runs or manual dispatches:
+# cancel-in-progress is true only for pull_request events.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # The "Changelog fragment present" gate lives in changelog-guard.yml so it
   # can also re-run on labeled/unlabeled (skip-changelog) without re-running
