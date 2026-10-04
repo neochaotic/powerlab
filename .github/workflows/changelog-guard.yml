@@ -1,0 +1,103 @@
+# Changelog fragment gate. Every PR that touches code (backend/, ui/src/,
+# scripts/) MUST add at least one .changes/unreleased/*.yaml fragment.
+# Eliminates the conflict-on-CHANGELOG.md class — see CONTRIBUTING.md.
+# Issue #98 + adoption ADR 0017.
+#
+# A standalone workflow (it used to be a job in ci.yml) so it can trigger on
+# `labeled` / `unlabeled` too: applying the `skip-changelog` label re-runs THIS
+# guard — and only this guard, not the whole CI matrix — with the current label
+# set, so the exemption takes effect immediately. The job name is unchanged
+# ("Changelog fragment present"), so any required-check rule keeps matching.
+name: Changelog guard
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+# pull-requests: read lets the exemption step ask the API for the CURRENT
+# labels instead of trusting the event payload, which is a snapshot from before
+# a label applied at creation time can land.
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changelog-fragment:
+    name: Changelog fragment present
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Exemptions (evaluated INSIDE the job, never as a job-level `if:`):
+    #
+    #   - PRs authored by dependabot[bot]. A dependency bump carries no
+    #     user-facing change, and .github/dependabot.yml never applies
+    #     `skip-changelog`, so every Dependabot PR used to fail here. We key on
+    #     github.event.pull_request.user.login (the PR author) and NOT on
+    #     github.actor, which on a `labeled` event or a manual re-run is
+    #     whoever applied the label / clicked re-run.
+    #   - PRs labelled `skip-changelog` (release prep, CI-only, docs-only).
+    #
+    # Why inside the job: a job-level condition SKIPS the job, and a skipped
+    # job reports nothing, so a `failure` already recorded on that commit by an
+    # earlier run stays red forever. Re-running a `pull_request` run replays the
+    # ORIGINAL event payload, so the condition would evaluate the same way
+    # every time and applying the label could never clear the failure. Running
+    # always and exiting 0 makes the check report on every event, which is what
+    # a check must do to be both required and clearable.
+    steps:
+      - name: Exempt when skip-changelog is set, or the author is dependabot
+        id: exempt
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          set -euo pipefail
+          if [ "$AUTHOR" = "dependabot[bot]" ]; then
+            echo "exempt=true" >> "$GITHUB_OUTPUT"
+            echo "✓ Author is dependabot[bot]: a dependency bump needs no changelog fragment"
+            exit 0
+          fi
+          labels=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels -q '.labels[].name')
+          if printf '%s\n' "$labels" | grep -qx 'skip-changelog'; then
+            echo "exempt=true" >> "$GITHUB_OUTPUT"
+            echo "✓ skip-changelog label is set: no changelog fragment required"
+          else
+            echo "exempt=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.exempt.outputs.exempt != 'true'
+        with:
+          fetch-depth: 0
+
+      # base_ref goes through the environment rather than into the command
+      # text: ${{ }} is substituted before the shell sees it, and git refnames
+      # permit characters the shell would interpret.
+      - name: Compute changed files (PR vs base)
+        if: steps.exempt.outputs.exempt != 'true'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          # List files changed by this PR. We use the base ref the PR
+          # targets (typically main) so this works for stacked PRs too.
+          git diff --name-only "origin/${BASE_REF}...HEAD" > /tmp/changed.txt
+          cat /tmp/changed.txt
+
+      - name: Verify fragment present when code changed
+        if: steps.exempt.outputs.exempt != 'true'
+        run: |
+          set -e
+          # If any of the watched paths changed, require a fragment.
+          if grep -qE '^(backend/|ui/src/|scripts/)' /tmp/changed.txt; then
+            if ! grep -qE '^\.changes/unreleased/[^/]+\.yaml$' /tmp/changed.txt; then
+              echo "::error::This PR touches code under backend/, ui/src/, or scripts/ but does not add a changelog fragment under .changes/unreleased/."
+              echo "::error::Run 'changie new' (or hand-write a YAML fragment) and include it in the PR,"
+              echo "::error::or apply the 'skip-changelog' label if the change has no user-facing effect."
+              echo "::error::See CONTRIBUTING.md for the workflow."
+              exit 1
+            fi
+            echo "✓ Changelog fragment present"
+          else
+            echo "✓ No code change watched; fragment not required"
+          fi
