@@ -27,6 +27,7 @@
 	import { buildAppURL } from "$lib/utils/app-url";
 	import { useInstallState } from "$lib/stores/install-state.svelte";
 	import InstallingTile from "$lib/components/launchpad/InstallingTile.svelte";
+	import DockerUnavailableBanner from "$lib/components/apps/DockerUnavailableBanner.svelte";
 
 	const installState = useInstallState();
 
@@ -423,6 +424,9 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="h-full overflow-y-auto p-8 md:p-12" onclick={closeMenu}>
+	<!-- Docker missing / not running (#63): self-hiding when the probe succeeds -->
+	<DockerUnavailableBanner class="mb-8" />
+
 	<!-- Welcome -->
 	<div class="mb-14">
 		<div class="mb-3 flex items-center gap-3">

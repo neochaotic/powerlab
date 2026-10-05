@@ -217,3 +217,18 @@ export interface AppManagementConfig {
 	storage_path: string;
 	apps_path: string;
 }
+
+/** `GET /v2/app_management/docker/system` response. The endpoint 503s
+ * when the Docker daemon is missing or unreachable, which is how the
+ * UI detects a Docker-less host (#63). */
+export interface DockerSystemInfo {
+	docker_version: string;
+	containers_count: number;
+	images_count: number;
+}
+
+/** Probe the Docker daemon via app-management. Rejects (ApiError) when
+ * Docker is not installed or not running. */
+export function getDockerSystem() {
+	return api.get<DockerSystemInfo>('/v2/app_management/docker/system');
+}
