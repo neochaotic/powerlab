@@ -18,9 +18,12 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"encoding/json"
+	"errors"
+	"io"
 	"net"
 	"net/http"
 	"path/filepath"
@@ -307,10 +310,35 @@ func (s *Server) Handler() http.Handler {
 // limitBody caps the request body at max bytes via http.MaxBytesReader,
 // so the MCP transport (which reads the whole body into memory) can't be
 // driven to OOM by an oversized POST.
+//
+// Oversize bodies are answered with 413 Payload Too Large (RFC 9110
+// §15.5.14) rather than letting the downstream read fail into a generic
+// 400 (#606). A declared Content-Length over the cap is rejected before
+// anything reads the body. A body of unknown length (chunked) is
+// buffered here through the MaxBytesReader — at most max bytes, which
+// the transport would buffer anyway — so hitting the cap becomes a 413
+// instead of a truncated body further down the chain.
 func limitBody(next http.Handler, max int64) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Body != nil {
+		if r.ContentLength > max {
+			http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
+			return
+		}
+		if r.Body != nil && r.Body != http.NoBody {
 			r.Body = http.MaxBytesReader(w, r.Body, max)
+			if r.ContentLength < 0 {
+				buf, err := io.ReadAll(r.Body)
+				if err != nil {
+					var mbe *http.MaxBytesError
+					if errors.As(err, &mbe) {
+						http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
+						return
+					}
+					http.Error(w, "failed to read request body", http.StatusBadRequest)
+					return
+				}
+				r.Body = io.NopCloser(bytes.NewReader(buf))
+			}
 		}
 		next.ServeHTTP(w, r)
 	})

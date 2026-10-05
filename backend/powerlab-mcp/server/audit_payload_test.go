@@ -169,23 +169,34 @@ func TestAuditPayload_BodyTeeDoesNotConsumeBody(t *testing.T) {
 	}
 }
 
-// Oversized body (above the MaxBytesReader cap) → limitBody rejects
-// at the outer layer before the tee runs. The audit record still
-// lands (the request DID reach the audit middleware) with empty
-// kind/payload. Locks the "tee on a capped body" interaction.
-func TestAuditPayload_OversizedBody_FallsBackToEmptyKind(t *testing.T) {
-	// Build a payload larger than maxMCPRequestBytes (1 MiB). Use a
-	// huge string of 'a's inside a JSON-RPC envelope so the structure
-	// looks valid up to the boundary.
+// Oversized body (above the MaxBytesReader cap) → limitBody rejects it
+// with 413 at the outermost layer, before the tee or the audit
+// middleware run (#606). Like a 401 from the JWT gate, this rejection
+// happens outside audit, so no record lands. Locks the "tee never sees
+// a capped body" interaction.
+func TestAuditPayload_OversizedBody_RejectedBeforeAudit(t *testing.T) {
 	huge := strings.Repeat("a", maxMCPRequestBytes+100)
 	body := `{"jsonrpc":"2.0","method":"tools/call","params":{"name":"x","arguments":{"big":"` + huge + `"}}}`
-	got := runAuditServe(t, mcpRPCReq("127.0.0.1:54321", "", body))
 
-	// The body was capped; the tee saw at most the first 1 MiB. Even
-	// if a partial parse succeeded, we shouldn't fabricate enrichment
-	// from a truncated structure. Empty kind is acceptable; the
-	// invariant is "no panic, audit landed".
-	if got.Method != "POST" {
-		t.Errorf("audit record missing for oversized body; got Method=%q", got.Method)
+	auditPath := filepath.Join(t.TempDir(), "audit.jsonl")
+	svc, err := audit.NewService(audit.ServiceOptions{Path: auditPath})
+	if err != nil {
+		t.Fatalf("audit.NewService: %v", err)
+	}
+	s := newServer(BuildInfo{Version: "test"}, func() (*ecdsa.PublicKey, error) {
+		return nil, nil //nolint:nilnil // pubkey unused on loopback path
+	}, resourcesConfig{})
+	s.audit = svc
+
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, mcpRPCReq("127.0.0.1:54321", "", body))
+	_ = svc.Close()
+
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("oversized /mcp POST = %d; want 413", rec.Code)
+	}
+	got, _ := os.ReadFile(auditPath) // #nosec G304 -- t.TempDir
+	if strings.TrimSpace(string(got)) != "" {
+		t.Fatalf("oversized body produced an audit record; want it rejected before the audit layer: %q", got)
 	}
 }
