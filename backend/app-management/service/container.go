@@ -430,9 +430,10 @@ func (ds *dockerService) CreateContainer(m model.CustomizationPostData, id strin
 		config.ExposedPorts = ports
 	}
 
-	// Per ADR-0021: dual-write canonical io.powerlab.v1.* + legacy
-	// unnamespaced labels for one release window. common.BuildLabels
-	// is the single source of truth — never write labels by hand here.
+	// Per ADR-0021: write canonical io.powerlab.v1.* labels only (the
+	// legacy dual-write window closed in #201; reads still accept both).
+	// common.BuildLabels is the single source of truth — never write
+	// labels by hand here.
 	for k, v := range common.BuildLabels(common.AppLabels{
 		Origin:      m.Origin,
 		WebPort:     m.PortMap,

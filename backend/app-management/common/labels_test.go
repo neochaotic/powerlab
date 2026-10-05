@@ -117,10 +117,27 @@ func TestLabelValue_ReturnsEmptyWhenAbsent(t *testing.T) {
 	}
 }
 
-// TestBuildLabels_ProducesBothNamespaces — the dual-write contract
-// from ADR-0021. Every populated AppLabels field appears under BOTH
-// the canonical and legacy keys.
-func TestBuildLabels_ProducesBothNamespaces(t *testing.T) {
+// allLegacyKeys is every legacy unnamespaced key BuildLabels used to
+// dual-write. After #201 none of them may appear in its output.
+var allLegacyKeys = []string{
+	LegacyLabelKindKey,
+	LegacyLabelOriginKey,
+	LegacyLabelWebPortKey,
+	LegacyLabelIconKey,
+	LegacyLabelDescriptionKey,
+	LegacyLabelWebIndexKey,
+	LegacyLabelCustomIDKey,
+	LegacyLabelShowEnvKey,
+	LegacyLabelProtocolKey,
+	LegacyLabelHostKey,
+	LegacyLabelNameKey,
+	LegacyLabelAppStoreIDKey,
+}
+
+// TestBuildLabels_ProducesCanonicalOnly — the ADR-0021 dual-write
+// window has closed (#201). Every populated AppLabels field appears
+// under its canonical key, and no legacy key is written.
+func TestBuildLabels_ProducesCanonicalOnly(t *testing.T) {
 	out := BuildLabels(AppLabels{
 		Origin:      "system",
 		WebPort:     "8080",
@@ -135,52 +152,45 @@ func TestBuildLabels_ProducesBothNamespaces(t *testing.T) {
 		AppStoreID:  "42",
 	})
 
-	pairs := []struct {
-		canonical, legacy, expected string
-	}{
-		{LabelKindKey, LegacyLabelKindKey, ""}, // sentinel — values differ
-		{LabelOriginKey, LegacyLabelOriginKey, "system"},
-		{LabelWebPortKey, LegacyLabelWebPortKey, "8080"},
-		{LabelIconKey, LegacyLabelIconKey, "icon.png"},
-		{LabelDescriptionKey, LegacyLabelDescriptionKey, "desc"},
-		{LabelWebIndexKey, LegacyLabelWebIndexKey, "/"},
-		{LabelCustomIDKey, LegacyLabelCustomIDKey, "custom-1"},
-		{LabelShowEnvKey, LegacyLabelShowEnvKey, "FOO,BAR"},
-		{LabelProtocolKey, LegacyLabelProtocolKey, "http"},
-		{LabelHostKey, LegacyLabelHostKey, "myapp.local"},
-		{LabelNameKey, LegacyLabelNameKey, "MyApp"},
-		{LabelAppStoreIDKey, LegacyLabelAppStoreIDKey, "42"},
+	want := map[string]string{
+		LabelKindKey:        LabelKindValueApp,
+		LabelOriginKey:      "system",
+		LabelWebPortKey:     "8080",
+		LabelIconKey:        "icon.png",
+		LabelDescriptionKey: "desc",
+		LabelWebIndexKey:    "/",
+		LabelCustomIDKey:    "custom-1",
+		LabelShowEnvKey:     "FOO,BAR",
+		LabelProtocolKey:    "http",
+		LabelHostKey:        "myapp.local",
+		LabelNameKey:        "MyApp",
+		LabelAppStoreIDKey:  "42",
 	}
-	for _, p := range pairs {
-		if p.expected == "" {
-			// sentinel — just assert presence + correct kind values
-			if out[p.canonical] != LabelKindValueApp {
-				t.Errorf("canonical kind: got %q, want %q", out[p.canonical], LabelKindValueApp)
-			}
-			if out[p.legacy] != LegacyLabelKindValueApp {
-				t.Errorf("legacy kind: got %q, want %q", out[p.legacy], LegacyLabelKindValueApp)
-			}
-			continue
+	for k, v := range want {
+		if out[k] != v {
+			t.Errorf("canonical %q = %q, want %q", k, out[k], v)
 		}
-		if out[p.canonical] != p.expected {
-			t.Errorf("canonical %q = %q, want %q", p.canonical, out[p.canonical], p.expected)
+	}
+	for _, k := range allLegacyKeys {
+		if v, ok := out[k]; ok {
+			t.Errorf("legacy key %q must not be written, got %q", k, v)
 		}
-		if out[p.legacy] != p.expected {
-			t.Errorf("legacy %q = %q, want %q", p.legacy, out[p.legacy], p.expected)
-		}
+	}
+	if len(out) != len(want) {
+		t.Errorf("BuildLabels returned %d labels, want exactly %d: %v", len(out), len(want), out)
 	}
 }
 
 // TestBuildLabels_OmitsEmptyFields — empty AppLabels fields don't
-// produce empty-string label entries on either side. Container labels
-// with empty values are noise + slow down filter ops.
+// produce empty-string label entries. Container labels with empty
+// values are noise + slow down filter ops.
 func TestBuildLabels_OmitsEmptyFields(t *testing.T) {
 	out := BuildLabels(AppLabels{
 		Origin: "system",
 		// every other field empty
 	})
 
-	mustHave := []string{LabelKindKey, LegacyLabelKindKey, LabelOriginKey, LegacyLabelOriginKey}
+	mustHave := []string{LabelKindKey, LabelOriginKey}
 	for _, k := range mustHave {
 		if _, ok := out[k]; !ok {
 			t.Errorf("expected key %q to be present", k)
@@ -188,10 +198,10 @@ func TestBuildLabels_OmitsEmptyFields(t *testing.T) {
 	}
 
 	mustNotHave := []string{
-		LabelIconKey, LegacyLabelIconKey,
-		LabelDescriptionKey, LegacyLabelDescriptionKey,
-		LabelHostKey, LegacyLabelHostKey,
-		LabelAppStoreIDKey, LegacyLabelAppStoreIDKey,
+		LabelIconKey,
+		LabelDescriptionKey,
+		LabelHostKey,
+		LabelAppStoreIDKey,
 	}
 	for _, k := range mustNotHave {
 		if v, ok := out[k]; ok {
@@ -202,18 +212,32 @@ func TestBuildLabels_OmitsEmptyFields(t *testing.T) {
 
 // TestBuildLabels_AlwaysIncludesSentinel — the kind sentinel is the
 // "is mine" filter. It MUST be in every label map BuildLabels
-// returns, even when AppLabels is entirely empty.
+// returns, even when AppLabels is entirely empty. Only the canonical
+// sentinel is written; the legacy `casaos = "casaos"` one is not.
 func TestBuildLabels_AlwaysIncludesSentinel(t *testing.T) {
 	out := BuildLabels(AppLabels{})
 	if out[LabelKindKey] != LabelKindValueApp {
 		t.Errorf("canonical sentinel missing for empty AppLabels")
 	}
-	if out[LegacyLabelKindKey] != LegacyLabelKindValueApp {
-		t.Errorf("legacy sentinel missing for empty AppLabels")
+	if v, ok := out[LegacyLabelKindKey]; ok {
+		t.Errorf("legacy sentinel must not be written, got %q", v)
 	}
 	// IsPowerLabApp on the result must agree.
 	if !IsPowerLabApp(out) {
 		t.Errorf("BuildLabels output should pass IsPowerLabApp filter")
+	}
+}
+
+// TestBuildLabels_OutputReadableViaLabelValue — containers created
+// after the dual-write window carry only canonical keys; the read
+// helpers must resolve every field from them.
+func TestBuildLabels_OutputReadableViaLabelValue(t *testing.T) {
+	out := BuildLabels(AppLabels{Icon: "icon.png", Name: "MyApp"})
+	if got := LabelValue(out, LabelIconKey); got != "icon.png" {
+		t.Errorf("LabelValue(icon) = %q, want icon.png", got)
+	}
+	if got := LabelValue(out, LabelNameKey); got != "MyApp" {
+		t.Errorf("LabelValue(name) = %q, want MyApp", got)
 	}
 }
 
