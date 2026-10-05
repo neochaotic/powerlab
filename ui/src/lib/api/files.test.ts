@@ -10,7 +10,8 @@ import {
 	getDownloadUrl,
 	getBatchDownloadUrl,
 	readFileContent,
-	updateFileContent
+	updateFileContent,
+	isApiSuccess
 } from './files';
 import { setAuthToken } from './client';
 
@@ -302,5 +303,18 @@ describe('Files API', () => {
 		await expect(listDirectory('/root/private')).rejects.toMatchObject({
 			status: 403
 		});
+	});
+});
+
+describe('isApiSuccess', () => {
+	it('accepts both success codes the backend has used', () => {
+		expect(isApiSuccess({ success: 200 })).toBe(true);
+		expect(isApiSuccess({ success: 0 })).toBe(true);
+	});
+	it('rejects error codes and missing envelopes', () => {
+		expect(isApiSuccess({ success: 500 })).toBe(false);
+		expect(isApiSuccess({ success: 404 })).toBe(false);
+		expect(isApiSuccess(undefined)).toBe(false);
+		expect(isApiSuccess(null)).toBe(false);
 	});
 });

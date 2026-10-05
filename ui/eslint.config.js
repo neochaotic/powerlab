@@ -62,8 +62,8 @@ export default [
 		rules: FETCH_BAN_RULE
 	},
 
-	// Allow-list — these 5 paths are intentionally raw and MUST stay so.
-	// 4 are public probes (pre-login or HTTPS onboarding); 1 is the api
+	// Allow-list — these 4 paths are intentionally raw and MUST stay so.
+	// 3 are public probes (pre-login or HTTPS onboarding); 1 is the api
 	// client itself (the abstraction that injects Authorization for
 	// everyone else). Adding a new file here demands a justification
 	// comment so reviewers can challenge whether the claim holds.
@@ -82,10 +82,11 @@ export default [
 			'src/lib/stores/upgradeProgress.svelte.ts',
 			// HTTPS onboarding probe — must work BEFORE the user has trusted
 			// the CA, hence no auth context yet.
-			'src/lib/components/security/TrustStateChecker.svelte',
-			// /v1/sys/trust-confirmed DELETE is public-by-design (operator
-			// resets the local trust state from the settings page).
-			'src/routes/settings/+page.svelte'
+			'src/lib/components/security/TrustStateChecker.svelte'
+			// NOTE: src/routes/settings/+page.svelte is NOT allow-listed.
+			// Its remaining raw fetch() calls (public cross-origin trust
+			// probes, binary CA download) carry per-line
+			// eslint-disable-next-line comments with justifications.
 		],
 		rules: { 'no-restricted-syntax': 'off' }
 	},
