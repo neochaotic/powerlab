@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -65,72 +64,4 @@ func (t *Throttle) Do(f func()) {
 			old.Stop()
 		}
 	}
-}
-
-type DelayedState struct {
-	StartTime time.Duration
-	Timer     *time.Timer
-	ExecFunc  func()
-}
-
-type DelayedExecutor struct {
-	States      sync.Map
-	Delay       time.Duration
-	MaxInterval time.Duration
-}
-
-func NewDelayedExecutor(delay, maxInterval time.Duration) *DelayedExecutor {
-	return &DelayedExecutor{
-		Delay:       delay,
-		MaxInterval: maxInterval,
-	}
-}
-
-func (d *DelayedExecutor) Do(key string, execFunc func()) {
-	now := time.Duration(time.Now().Unix())
-	s, loaded := d.States.LoadOrStore(key, &DelayedState{})
-
-	wait := d.Delay
-	state := s.(*DelayedState)
-	state.ExecFunc = execFunc
-
-	if loaded && state.StartTime > 0 {
-		elapsed := now - state.StartTime
-		remaining := d.MaxInterval - elapsed
-
-		if remaining <= 0 {
-			d.trigger(key)
-			return
-		}
-
-		if remaining < wait {
-			wait = remaining
-		}
-
-		if state.Timer != nil {
-			state.Timer.Reset(wait * time.Second)
-		}
-	} else {
-		state.StartTime = now
-		state.Timer = time.AfterFunc(wait*time.Second, func() {
-			d.trigger(key)
-		})
-	}
-}
-
-func (d *DelayedExecutor) Cancel(key string) {
-	if state, ok := d.States.LoadAndDelete(key); ok {
-		if state.(*DelayedState).Timer != nil {
-			state.(*DelayedState).Timer.Stop()
-		}
-	}
-}
-
-func (d *DelayedExecutor) trigger(key string) {
-	s, ok := d.States.LoadAndDelete(key)
-	if !ok {
-		return
-	}
-
-	s.(*DelayedState).ExecFunc()
 }
