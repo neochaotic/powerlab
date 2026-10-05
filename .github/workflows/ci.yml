@@ -79,6 +79,9 @@ jobs:
       - name: local-storage-helper.sh contract + safety (Sprint 23 #464)
         run: bash scripts/check-local-storage-helper_test.sh
 
+      - name: check-dep-health.sh parsing (offline, #493)
+        run: bash scripts/check-dep-health_test.sh
+
       - name: Bootstrap install.sh refuses without Docker (#63)
         run: bash scripts/check-install-requires-docker_test.sh
 
