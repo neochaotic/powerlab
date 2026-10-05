@@ -301,6 +301,8 @@
   "orchestrator.deploymentStarted": "Deployment started successfully!",
   "orchestrator.deploymentStartFailed": "Failed to start deployment",
   "orchestrator.loadAppFailed": "Failed to load app: {error}",
+  "form.projectName": "App Name (Project)",
+  "form.projectNameHint": "The compose project name is the app's identity: reusing an existing name updates that app in place; a new name installs a separate app.",
   "form.serviceName": "Service Name (YAML Key) *",
   "form.containerName": "Container Name (Optional)",
   "form.dockerImage": "Docker Image",
