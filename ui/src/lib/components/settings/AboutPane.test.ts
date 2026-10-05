@@ -53,4 +53,16 @@ describe('AboutPane', () => {
 		render(AboutPane);
 		expect(screen.getByText(/Pre-release/i)).toBeTruthy();
 	});
+
+	it('renders the no-telemetry privacy card linking to PRIVACY.md (#31)', () => {
+		render(AboutPane);
+		const card = screen.getByTestId('privacy-card');
+		expect(card.textContent).toContain('Privacy — no telemetry');
+		expect(card.textContent).toContain('does not collect, transmit or analyse any usage data');
+		const link = card.querySelector('a');
+		expect(link?.getAttribute('href')).toBe(
+			'https://github.com/neochaotic/powerlab/blob/main/PRIVACY.md'
+		);
+		expect(link?.getAttribute('target')).toBe('_blank');
+	});
 });
