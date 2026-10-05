@@ -41,6 +41,13 @@ import (
 // return. No I/O beyond the system-info reads.
 var hostPlaceholderRE = regexp.MustCompile(`\$\{(DEVICE_DOMAIN_NAME|DEVICE_HOSTNAME|APP_DOMAIN|APP_[A-Z0-9_]+_LOCAL_IPS)\}`)
 
+// System-info probes used by resolveHost / firstLanIPv4. Package vars
+// so tests can stub them to drive each fallback deterministically.
+var (
+	netInterfaces = net.Interfaces
+	osHostname    = os.Hostname
+)
+
 // SubstituteHostPlaceholders is the public entry point. See file doc.
 func SubstituteHostPlaceholders(yaml []byte, hostHint string) []byte {
 	if !hostPlaceholderRE.Match(yaml) {
@@ -69,7 +76,7 @@ func resolveHost(hint string) string {
 		return ip
 	}
 	// 3. System hostname + .local (mDNS dependency).
-	if hn, err := os.Hostname(); err == nil && hn != "" {
+	if hn, err := osHostname(); err == nil && hn != "" {
 		return hn + ".local"
 	}
 	return ""
@@ -120,7 +127,7 @@ func stripPort(s string) string {
 // iteration order causing the "main service" field to flip between
 // catalog refreshes; same risk class here.
 func firstLanIPv4() string {
-	ifaces, err := net.Interfaces()
+	ifaces, err := netInterfaces()
 	if err != nil {
 		return ""
 	}
