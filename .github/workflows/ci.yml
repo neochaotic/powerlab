@@ -891,6 +891,11 @@ jobs:
             dist/manifest.json
           generate_release_notes: true
           name: PowerLab ${{ github.ref_name }}
+          # A tag with a pre-release suffix (v0.8.0-rc.1) must not become
+          # "latest": the in-app updater and install docs read
+          # releases/latest, so an RC would be offered to every box.
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          make_latest: ${{ !contains(github.ref_name, '-') }}
           body: |
             ### Install
 
