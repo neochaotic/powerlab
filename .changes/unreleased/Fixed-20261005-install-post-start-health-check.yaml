@@ -1,0 +1,5 @@
+kind: Fixed
+body: 'Installing an app no longer reports success while a service is crash-looping. Compose''s start wait is now capped at 90s, then a short post-start check samples the project''s containers. The install fails with `service "X" never became healthy (restarting|exited|unhealthy)` in the install log instead of hanging or showing a false "running".'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "440"

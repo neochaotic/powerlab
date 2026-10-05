@@ -288,9 +288,20 @@ func (a *ComposeApp) PullAndInstall(ctx context.Context, logWriter io.Writer) er
 
 	defer PublishEventWrapper(ctx, common.EventTypeContainerStartEnd, nil)
 
+	failStart := func(err error) error {
+		fmt.Fprintf(logWriter, "Error during start: %v\n", err)
+		go PublishEventWrapper(ctx, common.EventTypeContainerStartError, map[string]string{
+			common.PropertyTypeMessage.Name: err.Error(),
+		})
+		return err
+	}
+
+	// WaitTimeout (#440): bound compose's wait for running/healthy so
+	// a never-healthy service fails the install instead of hanging it.
 	if err := service.Start(ctx, a.Name, api.StartOptions{
-		OnExit: api.CascadeStop,
-		Wait:   true,
+		OnExit:      api.CascadeStop,
+		Wait:        true,
+		WaitTimeout: installWaitTimeout,
 	}); err != nil {
 		// Tolerant fallback for #397: catalog entries that set
 		// explicit `container_name:` produce containers that lose
@@ -299,17 +310,23 @@ func (a *ComposeApp) PullAndInstall(ctx context.Context, logWriter io.Writer) er
 		// container found for project X" even though the
 		// containers ARE running. Verify directly with a
 		// ContainerList() and a project-name fallback before
-		// surfacing the failure to the user.
-		all, listErr := dockerClient.ContainerList(ctx, container.ListOptions{All: true})
-		if listErr == nil && projectHasContainers(all, a.Name) {
-			fmt.Fprintf(logWriter, "Note: compose-go reported no labeled containers for project %q; healthy containers detected via name fallback (likely explicit container_name in compose). Original: %v\n", a.Name, err)
-		} else {
-			fmt.Fprintf(logWriter, "Error during start: %v\n", err)
-			go PublishEventWrapper(ctx, common.EventTypeContainerStartError, map[string]string{
-				common.PropertyTypeMessage.Name: err.Error(),
-			})
-			return err
+		// surfacing the failure to the user. Only that error is
+		// downgraded; a wait timeout or unhealthy container is not.
+		if !startErrIsMissingProjectLabel(err) {
+			return failStart(err)
 		}
+		all, listErr := dockerClient.ContainerList(ctx, container.ListOptions{All: true})
+		if listErr != nil || !projectHasContainers(all, a.Name) {
+			return failStart(err)
+		}
+		fmt.Fprintf(logWriter, "Note: compose-go reported no labeled containers for project %q; containers detected via name fallback (likely explicit container_name in compose). Original: %v\n", a.Name, err)
+	}
+
+	// Post-start check (#440): compose's wait passes a crash-looping
+	// service without a healthcheck if it is momentarily running.
+	fmt.Fprintf(logWriter, "Verifying containers stay up...\n")
+	if err := checkInstallHealth(ctx, dockerClient, a.Name); err != nil {
+		return failStart(err)
 	}
 
 	fmt.Fprintf(logWriter, "Installation completed successfully!\n")
