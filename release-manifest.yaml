@@ -31,20 +31,10 @@ skip_release: false
 # mistake but not detect staleness against older releases — so be
 # disciplined about rewriting this on every cut.
 summary: |
-  MCP for real agents — standard clients (Claude Desktop, Claude
-  Code, Cursor, VS Code) now pair via OAuth 2.1 discovery. Six new
-  chat-mode-friendly Tools land: browse_catalog,
-  get_compose_conventions, start_compose_authoring, get_system_health
-  (aggregator), generate_artifact (propose-then-review), and
-  list_capabilities. search_docs indexes concepts + OpenAPI + catalog
-  (was concepts-only). composevalidator allowlists /dev/dri so
-  jellyfin / emby / frigate HW-transcode YAML clears agent install,
-  matching the UI install path. The pre-tag end-to-end battery
-  (Claude Code against deployed binary) caught + fixed five silent
-  contract-drift bugs in get_system_health and in the sensitive
-  journal selectors. IPv6 loopback in audit + gateway closes the bug
-  class jwt.HTTPJWT got in v0.7.6. ADR-0050 lands the docs-canonical
-  doctrine + a CI drift gate on the compose-extension key family.
+  Release candidate: Docker-missing banner and installer check,
+  configurable session length, file previews classified by the
+  server, safer file downloads (CSP), JWKS timeout, MCP fixes
+  (413 for big bodies, byte-array journal messages), PRIVACY.md.
 
 # Declarations of breaking changes the user should know about BEFORE
 # upgrading. Empty list = "no breaking changes". Each item:
