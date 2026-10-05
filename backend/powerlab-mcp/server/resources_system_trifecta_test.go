@@ -50,7 +50,7 @@ func TestSystemSchema_IsAdvertisedAndDescribesEveryResource(t *testing.T) {
 	// schema (otherwise the agent reads the schema, doesn't see the
 	// resource, and never thinks to call it).
 	for _, want := range []string{
-		systemSchemaURI, systemMetricsURI, systemUtilizationURI,
+		systemSchemaURI, systemBuildURI, systemMetricsURI, systemUtilizationURI,
 		systemDiskURI, systemNetworkURI, systemGPUURI,
 		systemServicesURI, systemKernelURI, systemUpdatesURI, systemProcessesURI,
 	} {
@@ -180,5 +180,26 @@ func TestSystemGPU_AlwaysReturnsValidShape(t *testing.T) {
 	// JSON-of-nil bug we defend against.
 	if res.Contents[0].Text == "null" {
 		t.Fatalf("payload is literal null — handler must marshal an empty struct, not nil")
+	}
+}
+
+// system://build carries the full build identity that /version no
+// longer exposes unauthenticated (#607). It sits behind the /mcp gate.
+func TestSystemBuild_ReturnsFullBuildInfo(t *testing.T) {
+	info := BuildInfo{Version: "0.7.4", Commit: "abc123", Date: "2026-05-27"}
+	srv := newMCPServer(info, resourcesConfig{procRoot: t.TempDir()}, fixtureJournalRunner(""))
+	cs := connectInProcess(t, srv)
+	defer cs.Close()
+
+	res, err := cs.ReadResource(t.Context(), &mcp.ReadResourceParams{URI: systemBuildURI})
+	if err != nil {
+		t.Fatalf("ReadResource(system://build): %v", err)
+	}
+	var got BuildInfo
+	if uerr := json.Unmarshal([]byte(res.Contents[0].Text), &got); uerr != nil {
+		t.Fatalf("payload not JSON: %v\n%s", uerr, res.Contents[0].Text)
+	}
+	if got != info {
+		t.Fatalf("system://build = %+v; want %+v", got, info)
 	}
 }
