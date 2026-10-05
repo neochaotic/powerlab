@@ -20,6 +20,14 @@ type APPModel struct {
 	DBPath       string
 }
 
+// SecurityModel is the [security] section of user-service.conf. The
+// values are raw strings ("3h", "7d"); pkg/config parses and bounds
+// them into the TTLs the login handler uses (#484).
+type SecurityModel struct {
+	AccessTokenTTL  string
+	RefreshTokenTTL string
+}
+
 // Result is the standard JSON envelope: every user-service handler
 // returns one of these. Success is the protocol-level status code
 // (mirrored to HTTP), Message is the i18n key, Data is the

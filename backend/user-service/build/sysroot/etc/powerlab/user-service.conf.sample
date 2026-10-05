@@ -7,3 +7,13 @@ LogSaveName = user-service
 LogFileExt = log
 DBPath     = /var/lib/powerlab/db
 UserDataPath = /var/lib/powerlab
+
+[security]
+# JWT lifetimes for new logins. Uncomment to override the defaults.
+# Go duration syntax ("90m", "8h") or whole days ("7d").
+# Out-of-range or malformed values fall back to the default with a
+# warning in the log. Tokens already issued keep their original expiry.
+# AccessTokenTTL: 15m .. 24h (default 3h)
+# AccessTokenTTL = 3h
+# RefreshTokenTTL: 1d .. 30d (default 7d)
+# RefreshTokenTTL = 7d
