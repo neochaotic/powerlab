@@ -90,9 +90,29 @@ echo "Test: install-smoke job actually invokes check-upgrade-smoke.sh"
 assert_in_body "check-upgrade-smoke.sh is invoked" \
   "scripts/check-upgrade-smoke.sh"
 
+# #515: dep bumps must boot-test before merge. The job is skipped on
+# ordinary PRs but MUST run on PRs opened by Dependabot, and its only
+# dependency (package) must not be skipped on PRs either.
+echo "Test: install-smoke runs on Dependabot PRs (#515)"
+assert_in_body "if: allows PRs opened by dependabot[bot]" \
+  "github.event.pull_request.user.login == 'dependabot[bot]'"
+assert_in_body "needs only the package job" \
+  "needs: package"
+package_body=$(awk '
+  /^  package:/ { in_job=1; next }
+  in_job && /^  [a-zA-Z][a-zA-Z0-9_-]*:/ { in_job=0 }
+  in_job { print }
+' "$WORKFLOW")
+if grep -qE '^    if:' <<<"$package_body"; then
+  echo "  FAIL: package job has a job-level if:, install-smoke may be skipped on Dependabot PRs" >&2
+  failures=$((failures + 1))
+else
+  echo "  PASS: package job runs unconditionally"
+fi
+
 echo
 if [[ "$failures" == "0" ]]; then
-  echo "OK: install-smoke wires the dev-build override and runs the smoke script"
+  echo "OK: install-smoke wires the dev-build override, runs the smoke script, and runs on Dependabot PRs"
   exit 0
 else
   echo "FAIL: $failures failure(s)" >&2
