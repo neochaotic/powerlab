@@ -66,7 +66,36 @@ esac
 
 command -v curl   >/dev/null || die "curl is required"
 command -v tar    >/dev/null || die "tar is required"
-command -v docker >/dev/null || printf "%s!%s docker not found — App Store install will not work without it. Continuing.\n" "$DIM" "$RESET"
+
+# Docker is a hard requirement: the bundled installer refuses without it
+# (scripts/package-linux.sh), so fail here too, before the download,
+# with the same distro-specific hint (#63).
+if ! command -v docker >/dev/null; then
+	DISTRO_FAMILY=unknown
+	if [[ -r /etc/os-release ]]; then
+		# shellcheck source=/dev/null
+		OS_ID_ALL="$(. /etc/os-release && echo "${ID:-}${ID_LIKE:-}")"
+		case "$OS_ID_ALL" in
+			*debian*|*ubuntu*) DISTRO_FAMILY=debian ;;
+			*fedora*|*rhel*|*centos*|*rocky*|*almalinux*|*amzn*) DISTRO_FAMILY=rhel ;;
+			*suse*|*opensuse*) DISTRO_FAMILY=suse ;;
+			*arch*|*manjaro*) DISTRO_FAMILY=arch ;;
+		esac
+	fi
+	case "$DISTRO_FAMILY" in
+		debian) HINT="apt-get update && apt-get install -y docker.io docker-compose-plugin" ;;
+		rhel)   HINT="dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin" ;;
+		suse)   HINT="zypper install -y docker docker-compose" ;;
+		arch)   HINT="pacman -Sy --noconfirm docker docker-compose" ;;
+		*)      HINT="See https://docs.docker.com/engine/install/" ;;
+	esac
+	printf "%s✗%s Docker is not installed. Install Docker Engine first.\n" "$RED" "$RESET" >&2
+	printf "  Detected distro family: %s\n" "$DISTRO_FAMILY" >&2
+	printf "  %s\n" "$HINT" >&2
+	printf "  Or see https://docs.docker.com/engine/install/\n" >&2
+	printf "  Then re-run this installer.\n" >&2
+	exit 1
+fi
 
 # ── Build the download URL ──────────────────────────────────────────────
 if [[ "$VERSION" == "latest" ]]; then
