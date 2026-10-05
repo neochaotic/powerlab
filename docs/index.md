@@ -8,20 +8,22 @@ This is the technical reference. For installation tldr, jump to **[Getting start
 
 ## What's here
 
-- **[Getting started](getting-started/install.md)** — install, first-boot, in-app updates, contributor guide.
-- **[MCP — talk to your homelab](concepts/mcp-server.md)** — Model Context Protocol server architecture, resources + tools surface, Claude Desktop / Cursor / Code wire-up, threat model. Operator quickstart at **[Operations → MCP quickstart](operations/mcp-quickstart.md)**.
-- **[Architecture](architecture/README.md)** — service topology, request lifecycle, the foundation packages every service uses, the data persistence model.
-- **[Coexistence with CasaOS](coexistence/README.md)** — PowerLab forked from CasaOS; both can run on the same host. Here's how.
-- **[Concepts](concepts/glossary.md)** — glossary of project vocabulary, security model, compose conventions PowerLab apps follow.
-- **[Operations](HTTPS.md)** — HTTPS setup, backup and restore, the update manifest contract, release checklist, troubleshooting.
-- **[Audits](audits/db-paths.md)** — point-in-time engineering audits used by the team to plan structural work. Useful when reading a follow-up PR or wondering "why is X built that way".
-- **[Decisions (ADRs)](decisions/README.md)** — every architectural decision recorded, with context and consequences. The first place to look when "why" matters.
+**For operators**
+
+- **[Install](getting-started/install.md)** — install, first boot, in-app updates, and putting PowerLab behind a [reverse proxy](operations/reverse-proxy.md).
+- **[Use](operations/backup-restore.md)** — backup and restore, the security model, the REST API portal, the glossary.
+- **[Apps](architecture/community-catalog.md)** — how the bundled catalogue works and the [compose conventions](concepts/compose-conventions.md) apps follow.
+- **[AI / MCP](concepts/mcp-server.md)** — the Model Context Protocol server: resources, tools, threat model, and Claude Desktop / Cursor / Code wire-up. Quickstart at **[MCP operator quickstart](operations/mcp-quickstart.md)**.
+- **[Troubleshoot](troubleshooting.md)** — common failures, [lockout recovery](operations/lockout-recovery.md), and the [`powerlab-logs`](operations/powerlab-logs.md) survival CLI.
+- **[Migrate from CasaOS](coexistence/README.md)** — PowerLab forked from CasaOS; both can run on the same host, and apps can move over one at a time.
+
+**For contributors**
+
+- **[Contributors](getting-started/contributing-guide.md)** — contributor guide, architecture, release process, Go API reference, audits, and every architectural decision record ([ADR index](decisions/README.md)). Sprint plans and retrospectives are still published under `audits/` for link stability but are kept out of the navigation.
 
 ## Project status
 
-PowerLab is in active pre-1.0 development. The major-version 0.x line means breaking changes can ship between minor versions; we document them in the [release manifest](UPDATE_MANIFEST.md) and the in-app updater surfaces them as a confirmation gate.
-
-The current focus is the **CasaOS-strip** wave — replacing CasaOS-specific assumptions with PowerLab-owned ones, service by service. Sprint progress lives in `docs/audits/sprint-N-*` documents.
+PowerLab is in **beta** (latest release v0.7.7). The 0.x line means breaking changes can ship between minor versions; we document them in the [release manifest](UPDATE_MANIFEST.md) and the in-app updater surfaces them as a confirmation gate. It is aimed at someone running a Raspberry Pi or mini-PC who is comfortable with Docker.
 
 ## Where things live in this site
 

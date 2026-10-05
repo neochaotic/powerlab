@@ -1,5 +1,16 @@
 # App Store Submission Guide
 
+> **Submitting an app for the shipped catalogue? Go to [neochaotic/powerlab-store](https://github.com/neochaotic/powerlab-store).**
+> That repo holds the 137-app catalogue every PowerLab release bundles into
+> `community-catalog/Apps/` (via `scripts/bundle-store.sh`), and its
+> CONTRIBUTING guide, schema and security gate are canonical
+> ([ADR-0041](docs/decisions/0041-powerlab-store-separate-repo.md)).
+>
+> The `store/Apps/` directory described below is a small legacy sample set
+> (10 apps in the CasaOS-era format) used by the local `start.sh` dev flow and
+> checked by `scripts/validate_store.go` in CI. It is **not** packaged into
+> release tarballs.
+
 Thank you for contributing to the PowerLab App Store! To maintain a premium experience for all users, we require all submissions to follow these standards.
 
 ## Directory Structure
