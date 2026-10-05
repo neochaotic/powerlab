@@ -32,6 +32,7 @@
 	import UpdateAppModal from '$lib/components/apps/UpdateAppModal.svelte';
 	import InstallConfirmModal, { type PortChoice } from '$lib/components/apps/InstallConfirmModal.svelte';
 	import DetailModal from '$lib/components/apps/DetailModal.svelte';
+	import DockerUnavailableBanner from '$lib/components/apps/DockerUnavailableBanner.svelte';
 
 	const store = useAppStore();
 
@@ -714,6 +715,9 @@
 			<Pencil class="h-3 w-3" /> {t('apps.customApp')}
 		</a>
 	</div>
+
+	<!-- Docker missing / not running (#63): self-hiding when the probe succeeds -->
+	<DockerUnavailableBanner class="mx-8 mt-4" />
 
 	<!-- ── Tab bar ─────────────────────────────────────────────────────────── -->
 	<div class="flex gap-0 border-b border-white/5 px-8">

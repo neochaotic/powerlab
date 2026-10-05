@@ -85,19 +85,46 @@ func ParseToken(signedToken string, publicKeyFunc func() (*ecdsa.PublicKey, erro
 	return nil, errors.New("invalid token")
 }
 
-// GetAccessToken issues a short-lived access JWT (3 hours, issuer
-// "powerlab"). The legacy "casaos" issuer string was dropped in
+// Default token lifetimes. user-service can override them through the
+// [security] section of user-service.conf (#484); every other caller
+// gets these.
+const (
+	DefaultAccessTokenTTL  = 3 * time.Hour
+	DefaultRefreshTokenTTL = 7 * 24 * time.Hour
+)
+
+// GetAccessToken issues a short-lived access JWT (DefaultAccessTokenTTL,
+// issuer "powerlab"). The legacy "casaos" issuer string was dropped in
 // #246 — see AcceptedAccessIssuers for the bridging-release accept
 // set.
 func GetAccessToken(username string, privateKey *ecdsa.PrivateKey, id int) (string, error) {
-	return GenerateToken(username, privateKey, id, "powerlab", 3*time.Hour)
+	return GetAccessTokenWithTTL(username, privateKey, id, DefaultAccessTokenTTL)
 }
 
-// GetRefreshToken issues a long-lived refresh JWT (7 days, issuer
-// "refresh"). Refresh tokens MUST only be accepted by the refresh
+// GetAccessTokenWithTTL is GetAccessToken with an explicit lifetime.
+// A non-positive ttl falls back to DefaultAccessTokenTTL so a zero
+// value never mints an already-expired token.
+func GetAccessTokenWithTTL(username string, privateKey *ecdsa.PrivateKey, id int, ttl time.Duration) (string, error) {
+	if ttl <= 0 {
+		ttl = DefaultAccessTokenTTL
+	}
+	return GenerateToken(username, privateKey, id, "powerlab", ttl)
+}
+
+// GetRefreshToken issues a long-lived refresh JWT (DefaultRefreshTokenTTL,
+// issuer "refresh"). Refresh tokens MUST only be accepted by the refresh
 // endpoint — verify the issuer claim before exchanging.
 func GetRefreshToken(username string, private *ecdsa.PrivateKey, id int) (string, error) {
-	return GenerateToken(username, private, id, "refresh", 7*24*time.Hour)
+	return GetRefreshTokenWithTTL(username, private, id, DefaultRefreshTokenTTL)
+}
+
+// GetRefreshTokenWithTTL is GetRefreshToken with an explicit lifetime.
+// A non-positive ttl falls back to DefaultRefreshTokenTTL.
+func GetRefreshTokenWithTTL(username string, private *ecdsa.PrivateKey, id int, ttl time.Duration) (string, error) {
+	if ttl <= 0 {
+		ttl = DefaultRefreshTokenTTL
+	}
+	return GenerateToken(username, private, id, "refresh", ttl)
 }
 
 // Validate is the (bool, *Claims, error) wrapper around ParseToken

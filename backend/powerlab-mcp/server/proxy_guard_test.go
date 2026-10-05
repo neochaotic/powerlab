@@ -2,11 +2,16 @@ package server
 
 import (
 	"crypto/ecdsa"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/neochaotic/powerlab/backend/common/utils/audit"
 	"github.com/neochaotic/powerlab/backend/common/utils/jwt"
 )
 
@@ -73,5 +78,52 @@ func TestProxyGuard_ProxiedWithValidTokenPasses(t *testing.T) {
 	handlerWithKey(pub).ServeHTTP(rec, req)
 	if rec.Code == http.StatusUnauthorized {
 		t.Fatalf("proxied request with a valid token = 401 — the guard must allow authenticated proxied callers")
+	}
+}
+
+// The guard rewrites RemoteAddr to the 192.0.2.1 sentinel to force the
+// JWT check, but that sentinel must not leak into the audit trail: the
+// record has to carry the real TCP peer (#595). X-Real-Ip is used here
+// because the audit middleware prefers X-Forwarded-For when present,
+// which would mask the bug.
+func TestProxyGuard_AuditRecordsRealPeerNotSentinel(t *testing.T) {
+	priv, pub, err := jwt.GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("keypair: %v", err)
+	}
+	tok, err := jwt.GenerateToken("alice", priv, 1, "powerlab", time.Hour)
+	if err != nil {
+		t.Fatalf("token: %v", err)
+	}
+	auditPath := filepath.Join(t.TempDir(), "audit.jsonl")
+	svc, err := audit.NewService(audit.ServiceOptions{Path: auditPath})
+	if err != nil {
+		t.Fatalf("audit.NewService: %v", err)
+	}
+	s := newServer(BuildInfo{Version: "test"}, func() (*ecdsa.PublicKey, error) { return pub, nil }, resourcesConfig{})
+	s.audit = svc
+
+	req := mcpInitReq("127.0.0.1:5000", tok)
+	req.Header.Set("X-Real-Ip", "203.0.113.7")
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, req)
+	if rec.Code == http.StatusUnauthorized {
+		t.Fatalf("authenticated proxied request = 401")
+	}
+	_ = svc.Close() // flush the async writer
+
+	body, err := os.ReadFile(auditPath) // #nosec G304 -- t.TempDir
+	if err != nil {
+		t.Fatalf("read audit.jsonl: %v", err)
+	}
+	var r audit.Record
+	if err := json.Unmarshal([]byte(strings.SplitN(strings.TrimSpace(string(body)), "\n", 2)[0]), &r); err != nil {
+		t.Fatalf("unmarshal audit line: %v (body=%q)", err, body)
+	}
+	if r.RemoteIP == "192.0.2.1" {
+		t.Fatalf("audit remote_ip = sentinel 192.0.2.1; want the real peer")
+	}
+	if r.RemoteIP != audit.LoopbackSentinel {
+		t.Fatalf("audit remote_ip = %q; want %q (the real loopback peer)", r.RemoteIP, audit.LoopbackSentinel)
 	}
 }

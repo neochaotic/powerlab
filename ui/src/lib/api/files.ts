@@ -16,10 +16,15 @@ export interface FileItem {
 	modified: string;
 	sign: string;
 	thumb: string;
-	type: number;
+	/** Server preview class (#38): video | audio | image | text | pdf |
+	 * archive | blob, "" for directories. Older backends send 0. */
+	type: string | number;
 	path: string;
 	date: string;
 	extensions: Record<string, unknown> | null;
+	/** Lowercase extension without the dot (#38). */
+	extension?: string;
+	is_symlink?: boolean;
 }
 
 export interface FileListResponse {
@@ -27,6 +32,9 @@ export interface FileListResponse {
 	total: number;
 	index: number;
 	size: number;
+	/** Whole-directory counts (#38). */
+	num_dirs?: number;
+	num_files?: number;
 }
 
 export interface ApiResult<T> {

@@ -185,19 +185,20 @@ func PostUserLogin(ctx echo.Context) error {
 
 	token := system_model.VerifyInformation{}
 
-	accessToken, err := jwt.GetAccessToken(user.Username, privateKey, user.Id)
+	accessTTL := config.AccessTokenTTL
+	accessToken, err := jwt.GetAccessTokenWithTTL(user.Username, privateKey, user.Id, accessTTL)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, model.Result{Success: common_err.SERVICE_ERROR, Message: err.Error()})
 	}
 	token.AccessToken = accessToken
 
-	refreshToken, err := jwt.GetRefreshToken(user.Username, privateKey, user.Id)
+	refreshToken, err := jwt.GetRefreshTokenWithTTL(user.Username, privateKey, user.Id, config.RefreshTokenTTL)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, model.Result{Success: common_err.SERVICE_ERROR, Message: err.Error()})
 	}
 	token.RefreshToken = refreshToken
 
-	token.ExpiresAt = time.Now().Add(3 * time.Hour * time.Duration(1)).Unix()
+	token.ExpiresAt = time.Now().Add(accessTTL).Unix()
 
 	// Also deliver the access token as an HttpOnly cookie so browser-
 	// driven GETs (media <video>/<img>, downloads) authenticate without
@@ -211,7 +212,7 @@ func PostUserLogin(ctx echo.Context) error {
 		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteStrictMode,
-		MaxAge:   int(3 * time.Hour / time.Second),
+		MaxAge:   int(accessTTL / time.Second),
 	})
 
 	data := make(map[string]interface{}, 2)

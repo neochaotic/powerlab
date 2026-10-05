@@ -1,0 +1,5 @@
+kind: Internal
+body: 'Removed the unused DelayedExecutor from backend/common/utils; it had no callers and a time-unit bug that would have scheduled its timer about 158 years out.'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "537"

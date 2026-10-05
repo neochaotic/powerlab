@@ -2,11 +2,11 @@
 // container label PowerLab writes or reads. Per ADR-0021, PowerLab is
 // migrating from unnamespaced legacy keys (the sentinel `casaos =
 // "casaos"` plus naked `origin`, `icon`, `name` etc.) to canonical
-// `io.powerlab.v1.*` namespaced keys. During the dual-write window
-// every new container gets BOTH naming sets so existing PowerLab
-// installs (whose containers still carry only legacy keys) keep
-// being recognized by the "is mine" filter without forcing a
-// container recreate.
+// `io.powerlab.v1.*` namespaced keys. The dual-write window
+// (v0.5.8 → v0.7.x) has closed: new containers get only the
+// canonical set (#201). Reads still accept both sets so containers
+// created earlier (which may carry only legacy keys) keep being
+// recognized by the "is mine" filter without forcing a recreate.
 //
 // All constants and helpers in this file are pure data + pure
 // functions — no Docker client calls, no filesystem access. Wiring
@@ -16,8 +16,7 @@ package common
 
 // Canonical container labels — `io.powerlab.v1.*` reverse-DNS
 // namespaced. These are what new code reads/writes; the legacy
-// keys below are accepted on read (one release window) but will
-// stop being written after the dual-write window closes.
+// keys below are accepted on read only.
 const (
 	// LabelKindKey + LabelKindValueApp form the "is mine" sentinel.
 	// Any container with `io.powerlab.v1.kind = "app"` is considered
@@ -40,9 +39,8 @@ const (
 
 // Legacy unnamespaced container labels — read for backward compat
 // with containers PowerLab itself created before ADR-0021 landed.
-// New code MUST NOT add to this list. After the dual-write window
-// closes (the next PR after the wiring PR), the dual-WRITE drops
-// but the dual-READ stays for at least one further release window.
+// New code MUST NOT add to this list. The dual-WRITE was dropped in
+// #201; the dual-READ stays for at least one further release window.
 const (
 	LegacyLabelKindKey      = "casaos"
 	LegacyLabelKindValueApp = "casaos"
@@ -57,9 +55,8 @@ const (
 	LegacyLabelProtocolKey    = "protocol"
 	LegacyLabelHostKey        = "host"
 	LegacyLabelNameKey        = "name"
-	// LegacyLabelAppStoreID is the existing namespaced key — kept
-	// alongside its replacement during the dual-write window to
-	// match the rest of the legacy set.
+	// LegacyLabelAppStoreID is the CasaOS-era namespaced key — read
+	// as a fallback like the rest of the legacy set.
 	LegacyLabelAppStoreIDKey = "io.casaos.v1.app.store.id"
 )
 
@@ -158,44 +155,40 @@ type AppLabels struct {
 	AppStoreID  string
 }
 
-// BuildLabels returns a map containing BOTH the canonical
-// io.powerlab.v1.* labels AND the legacy unnamespaced labels for
-// the supplied AppLabels values. Empty values are omitted from BOTH
-// sides so a container's label set never carries empty-string keys.
+// BuildLabels returns a map containing the canonical io.powerlab.v1.*
+// labels for the supplied AppLabels values. Empty values are omitted
+// so a container's label set never carries empty-string keys.
 //
-// The kind sentinel (LabelKindKey + LegacyLabelKindKey) is always
-// included regardless of AppLabels content — it identifies the
-// container as PowerLab-managed.
+// The kind sentinel (LabelKindKey) is always included regardless of
+// AppLabels content — it identifies the container as PowerLab-managed.
 //
-// Per ADR-0021, this dual-write lasts for ONE release window; after
-// that, a follow-up PR removes the Legacy* writes from this function
-// while keeping the canonical writes (and IsPowerLabApp/LabelValue
-// keep their dual-read for one further window).
+// Per ADR-0021 the dual-write window (v0.5.8 → v0.7.x) has closed:
+// legacy unnamespaced keys are no longer written (#201). The Legacy*
+// constants and the dual-READ in IsPowerLabApp/LabelValue stay so
+// containers created during the window keep being recognized.
 func BuildLabels(a AppLabels) map[string]string {
 	out := map[string]string{
-		LabelKindKey:       LabelKindValueApp,
-		LegacyLabelKindKey: LegacyLabelKindValueApp,
+		LabelKindKey: LabelKindValueApp,
 	}
-	type pair struct{ canonical, legacy, value string }
+	type pair struct{ key, value string }
 	pairs := []pair{
-		{LabelOriginKey, LegacyLabelOriginKey, a.Origin},
-		{LabelWebPortKey, LegacyLabelWebPortKey, a.WebPort},
-		{LabelIconKey, LegacyLabelIconKey, a.Icon},
-		{LabelDescriptionKey, LegacyLabelDescriptionKey, a.Description},
-		{LabelWebIndexKey, LegacyLabelWebIndexKey, a.WebIndex},
-		{LabelCustomIDKey, LegacyLabelCustomIDKey, a.CustomID},
-		{LabelShowEnvKey, LegacyLabelShowEnvKey, a.ShowEnv},
-		{LabelProtocolKey, LegacyLabelProtocolKey, a.Protocol},
-		{LabelHostKey, LegacyLabelHostKey, a.Host},
-		{LabelNameKey, LegacyLabelNameKey, a.Name},
-		{LabelAppStoreIDKey, LegacyLabelAppStoreIDKey, a.AppStoreID},
+		{LabelOriginKey, a.Origin},
+		{LabelWebPortKey, a.WebPort},
+		{LabelIconKey, a.Icon},
+		{LabelDescriptionKey, a.Description},
+		{LabelWebIndexKey, a.WebIndex},
+		{LabelCustomIDKey, a.CustomID},
+		{LabelShowEnvKey, a.ShowEnv},
+		{LabelProtocolKey, a.Protocol},
+		{LabelHostKey, a.Host},
+		{LabelNameKey, a.Name},
+		{LabelAppStoreIDKey, a.AppStoreID},
 	}
 	for _, p := range pairs {
 		if p.value == "" {
 			continue
 		}
-		out[p.canonical] = p.value
-		out[p.legacy] = p.value
+		out[p.key] = p.value
 	}
 	return out
 }

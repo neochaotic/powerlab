@@ -16,11 +16,11 @@
 #         · terminal websocket (ws://…/v1/sys/wsshell?token=<jwt>)
 #         · file upload (POST /v1/file/upload, multipart)
 #
-#   B) Host with CasaOS already installed, no flag — install.sh must
-#      detect the conflict and exit 1 with a clear refusal message.
+#   B) Host with CasaOS already installed — install.sh prints the
+#      coexistence notice (ADR-0021) and proceeds; all 6 services come up.
 #
-#   C) Host with CasaOS already installed + --allow-coexist — install.sh
-#      proceeds, banner mentions ports, all 6 services come up.
+#   C) The removed --allow-coexist flag is rejected with
+#      "Unknown argument" (#202) instead of being silently accepted.
 #
 # Usage:
 #   ./scripts/test-linux-e2e.sh                  # builds a fresh tarball
@@ -472,8 +472,8 @@ if [[ "$HTTPS_GATE_ENABLED" == "1" ]]; then
   green "  → HTTP redirects to HTTPS post-trust"
 fi
 
-# ─── Scenario B: CasaOS present, no flag → must refuse ───────────────────
-cyan "[e2e] Scenario B: CasaOS present (no --allow-coexist)"
+# ─── Scenario B: CasaOS present → coexistence notice, install proceeds ───
+cyan "[e2e] Scenario B: CasaOS present"
 start_container
 run_in_container '
   cat > /etc/systemd/system/casaos.service <<EOF
@@ -487,23 +487,23 @@ EOF
   systemctl daemon-reload
   systemctl enable casaos >/dev/null 2>&1
 '
-if run_in_container 'bash /tmp/x/install.sh > /tmp/install.log 2>&1'; then
-  fail "scenario B: install.sh should have refused, got exit 0"
-fi
-run_in_container 'grep -q "Refusing to install" /tmp/install.log' \
-  || fail "scenario B: install.sh did not print refusal message"
-green "  → install.sh correctly refused with diagnostic"
+run_in_container 'bash /tmp/x/install.sh > /tmp/install.log 2>&1' \
+  || fail "scenario B: install.sh should proceed alongside CasaOS (ADR-0021)"
+run_in_container 'grep -q "Existing CasaOS installation detected" /tmp/install.log' \
+  || fail "scenario B: install.sh did not print the coexistence notice"
+assert_all_active_no_restart || fail "scenario B: services unhealthy after coexistence install"
 
-# ─── Scenario C: CasaOS + --allow-coexist → succeeds with banner ─────────
-cyan "[e2e] Scenario C: CasaOS present + --allow-coexist"
-run_in_container 'bash /tmp/x/install.sh --allow-coexist > /tmp/install.log 2>&1' \
-  || fail "scenario C: install.sh --allow-coexist should have succeeded"
-run_in_container 'grep -q "You passed --allow-coexist" /tmp/install.log' \
-  || fail "scenario C: banner did not confirm --allow-coexist"
-assert_all_active_no_restart || fail "scenario C: services unhealthy after --allow-coexist install"
+# ─── Scenario C: removed --allow-coexist flag → Unknown argument ─────────
+cyan "[e2e] Scenario C: removed --allow-coexist flag is rejected"
+if run_in_container 'bash /tmp/x/install.sh --allow-coexist > /tmp/install.log 2>&1'; then
+  fail "scenario C: install.sh --allow-coexist should have failed (flag removed, #202)"
+fi
+run_in_container 'grep -q "Unknown argument: --allow-coexist" /tmp/install.log' \
+  || fail "scenario C: install.sh did not report --allow-coexist as unknown"
+green "  → removed flag rejected with Unknown argument"
 
 green ""
 green "╔═══════════════════════════════════════════════════╗"
 green "║  Linux E2E PASSED — release gate cleared.         ║"
-green "║  Scenarios A (clean), B (refuse), C (coexist) OK. ║"
+green "║  Scenarios A (clean), B (coexist), C (flag) OK.   ║"
 green "╚═══════════════════════════════════════════════════╝"

@@ -124,6 +124,27 @@
 <div class="space-y-10 pb-20">
 	<!-- Header Section: Service Identity -->
 	<section class="space-y-6">
+		<div>
+			<label
+				for="project-name"
+				class="mb-2 block text-[10px] font-bold uppercase tracking-widest text-zinc-500"
+				>{t('form.projectName')}</label
+			>
+			<input
+				id="project-name"
+				type="text"
+				value={view.projectName}
+				oninput={(e) => onChange(setProjectName(yaml, (e.target as HTMLInputElement).value))}
+				placeholder="e.g. my-app"
+				aria-describedby="project-name-hint"
+				data-testid="project-name-input"
+				class="w-full rounded-xl border border-white/5 bg-white/[0.03] p-3 text-sm font-mono text-white outline-none focus:border-emerald-500/50 focus:bg-white/[0.05] transition-all"
+			/>
+			<p id="project-name-hint" class="mt-1.5 text-xs text-zinc-500">
+				{t('form.projectNameHint')}
+			</p>
+		</div>
+
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 			<div>
 				<label

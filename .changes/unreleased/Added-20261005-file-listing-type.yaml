@@ -1,0 +1,5 @@
+kind: Added
+body: 'Files: the folder listing (`GET /v1/folder`) now returns a server-classified `type` (video, audio, image, text, pdf, archive, blob), `extension` and `is_symlink` per entry plus `num_dirs` / `num_files`; the preview drawer uses `type`, so for example .mkv files now preview as video.'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "38"

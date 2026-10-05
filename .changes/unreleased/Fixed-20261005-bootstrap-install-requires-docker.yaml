@@ -1,0 +1,5 @@
+kind: Fixed
+body: 'The one-line installer (`curl … | sudo bash`) now stops before downloading when Docker is missing, with a distro-specific install hint, matching the bundled installer, instead of printing a dim "Continuing" line.'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "63"

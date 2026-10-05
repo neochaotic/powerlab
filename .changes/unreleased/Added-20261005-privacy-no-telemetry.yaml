@@ -1,0 +1,5 @@
+kind: Added
+body: 'PRIVACY.md lists every outbound call PowerLab makes (no telemetry), and Settings → About gains a "Privacy — no telemetry" card linking to it.'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "31"

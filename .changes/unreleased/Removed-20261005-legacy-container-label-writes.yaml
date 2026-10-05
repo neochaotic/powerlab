@@ -1,0 +1,5 @@
+kind: Removed
+body: 'Deprecated label set: new app containers no longer get the legacy unnamespaced labels (`casaos=casaos`, `origin`, `icon`, `web`, `io.casaos.v1.app.store.id`, ...). They carry only the canonical `io.powerlab.v1.*` labels, which ends the ADR-0021 dual-write window. Containers that still have the legacy labels are still recognized and read.'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "201"

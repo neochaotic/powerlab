@@ -38,6 +38,11 @@ var (
 	readUserServiceAddress = getAddress
 	userServiceAddressFile = filepath.Join(constants.DefaultRuntimePath, UserServiceAddressFilename)
 	gatewaySockFile        = filepath.Join(constants.DefaultRuntimePath, GatewaySockFilename)
+
+	// jwksHTTPClient bounds the JWKS fetch in GetPublicKey. Without a
+	// timeout, the first call after the 10s cache expiry could hang
+	// every authenticated request if the user-service stalls (#594).
+	jwksHTTPClient = &http.Client{Timeout: 5 * time.Second}
 )
 
 var (
@@ -86,7 +91,7 @@ func GetPublicKey(runtimePath string) (*ecdsa.PublicKey, error) {
 		return nil, err
 	}
 
-	resp, err := http.Get(jwksURL)
+	resp, err := jwksHTTPClient.Get(jwksURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch JWKS: %w", err)
 	}

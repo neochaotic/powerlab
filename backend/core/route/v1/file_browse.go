@@ -149,15 +149,28 @@ func DirPath(ctx echo.Context) error {
 			t.Size = info[i].Size
 			t.Path = info[i].Path
 			t.Extensions = info[i].Extensions
+			t.IsSymlink = info[i].IsSymlink
+			if !t.IsDir {
+				t.Extension = file.Extension(t.Name)
+				t.Type = file.Classify(t.Name)
+			}
 			pathList = append(pathList, t)
 
 		}
 	}
+	numDirs := 0
+	for _, p := range info {
+		if p.IsDir {
+			numDirs++
+		}
+	}
 	flist := FsListResp{
-		Content: pathList,
-		Total:   int64(len(info)),
-		Index:   req.Index,
-		Size:    req.Size,
+		Content:  pathList,
+		Total:    int64(len(info)),
+		Index:    req.Index,
+		Size:     req.Size,
+		NumDirs:  numDirs,
+		NumFiles: len(info) - numDirs,
 	}
 	return ctx.JSON(common_err.SUCCESS, model.Result{Success: common_err.SUCCESS, Message: common_err.GetMsg(common_err.SUCCESS), Data: flist})
 }

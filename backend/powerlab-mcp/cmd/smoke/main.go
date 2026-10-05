@@ -1143,11 +1143,11 @@ func assertSystemMetrics(payload string) int {
 	return 0
 }
 
-// pingControl reaches /healthz then /version. /version returns a JSON
-// body containing the build-time version stamp; we don't assert its
-// shape (the SDK validates content-type later), just that the server
-// is alive and the version isn't "private build" (indicating a
-// dev/local binary the operator should know about).
+// pingControl reaches /healthz then /version. /version is
+// unauthenticated and returns only {"version": "..."} — the commit hash
+// and build date are deliberately withheld there (#607) and served by
+// the gated system://build resource instead. We assert the version
+// field is present and that nothing beyond it leaks.
 func pingControl(ctx context.Context, base, token string) error {
 	for _, path := range []string{"/healthz", "/version"} {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+path, nil)
@@ -1161,10 +1161,23 @@ func pingControl(ctx context.Context, base, token string) error {
 		if err != nil {
 			return fmt.Errorf("%s: %w", path, err)
 		}
-		_ = resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
+			_ = resp.Body.Close()
 			return fmt.Errorf("%s: HTTP %d", path, resp.StatusCode)
 		}
+		if path == "/version" {
+			var v map[string]any
+			derr := json.NewDecoder(resp.Body).Decode(&v)
+			_ = resp.Body.Close()
+			if derr != nil {
+				return fmt.Errorf("/version: decode: %w", derr)
+			}
+			if ver, _ := v["version"].(string); ver == "" || len(v) != 1 {
+				return fmt.Errorf("/version: body %v; want only a non-empty version field", v)
+			}
+			continue
+		}
+		_ = resp.Body.Close()
 	}
 	return nil
 }

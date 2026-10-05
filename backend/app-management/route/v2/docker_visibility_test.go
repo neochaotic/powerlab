@@ -23,19 +23,19 @@ import (
 // result + error; nothing reaches a real Docker daemon. Concurrent
 // callers are unsupported (each test stages, calls, checks).
 type stubDockerVisibilityClient struct {
-	containers     []container.Summary
-	containersErr  error
-	images         []image.Summary
-	imagesErr      error
-	networks       []network.Summary
-	networksErr    error
-	volumes        volume.ListResponse
-	volumesErr     error
-	info           system.Info
-	infoErr        error
-	diskUsage      types.DiskUsage
-	diskUsageErr   error
-	closed         bool
+	containers    []container.Summary
+	containersErr error
+	images        []image.Summary
+	imagesErr     error
+	networks      []network.Summary
+	networksErr   error
+	volumes       volume.ListResponse
+	volumesErr    error
+	info          system.Info
+	infoErr       error
+	diskUsage     types.DiskUsage
+	diskUsageErr  error
+	closed        bool
 }
 
 func (s *stubDockerVisibilityClient) ContainerList(_ context.Context, _ container.ListOptions) ([]container.Summary, error) {
@@ -256,6 +256,94 @@ func TestDockerNetworks_ShapeContract(t *testing.T) {
 	}
 	if len(n.AttachedContainers) != 1 || n.AttachedContainers[0].Name != "plex" {
 		t.Fatalf("attached_containers mismatch: %+v", n.AttachedContainers)
+	}
+}
+
+// Regression for #652: on a real daemon NetworkList leaves
+// Summary.Containers empty, so attached_containers must come from
+// ContainerList's NetworkSettings.Networks joined on network ID.
+func TestDockerNetworks_AttachedContainersFromContainerList(t *testing.T) {
+	withStubDockerClient(t, &stubDockerVisibilityClient{
+		networks: []network.Summary{
+			{ID: "net-bridge", Name: "bridge", Driver: "bridge", Scope: "local"},
+			{ID: "net-media", Name: "media_default", Driver: "bridge", Scope: "local"},
+			{ID: "net-empty", Name: "unused", Driver: "bridge", Scope: "local"},
+		},
+		containers: []container.Summary{
+			{
+				ID:    "jellyfin-full-id",
+				Names: []string{"/jellyfin"},
+				NetworkSettings: &container.NetworkSettingsSummary{
+					Networks: map[string]*network.EndpointSettings{
+						"media_default": {NetworkID: "net-media", IPAddress: "172.20.0.2", IPPrefixLen: 16},
+						"bridge":        {NetworkID: "net-bridge", IPAddress: "172.17.0.3", IPPrefixLen: 16},
+					},
+				},
+			},
+			{
+				ID:    "sonarr-full-id",
+				Names: []string{"/sonarr"},
+				NetworkSettings: &container.NetworkSettingsSummary{
+					Networks: map[string]*network.EndpointSettings{
+						"media_default": {NetworkID: "net-media", IPAddress: "172.20.0.3", IPPrefixLen: 16},
+					},
+				},
+			},
+			// No NetworkSettings at all (e.g. network_mode: none) must not panic.
+			{ID: "isolated", Names: []string{"/isolated"}},
+		},
+	})
+
+	app := &AppManagement{}
+	rec := invokeHandler(t, http.MethodGet, "/v2/app_management/docker/networks", app.DockerNetworks)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s; want 200", rec.Code, rec.Body.String())
+	}
+	var resp DockerVisibilityNetworksResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("body not JSON: %v", err)
+	}
+	byName := map[string]DockerVisibilityNetwork{}
+	for _, n := range resp.Networks {
+		byName[n.Name] = n
+	}
+
+	media := byName["media_default"].AttachedContainers
+	if len(media) != 2 || media[0].Name != "jellyfin" || media[1].Name != "sonarr" {
+		t.Fatalf("media_default attached_containers=%+v; want jellyfin, sonarr", media)
+	}
+	if media[0].ID != "jellyfin-full-id" || media[0].IPv4 != "172.20.0.2/16" {
+		t.Fatalf("jellyfin member mismatch: %+v", media[0])
+	}
+	bridge := byName["bridge"].AttachedContainers
+	if len(bridge) != 1 || bridge[0].Name != "jellyfin" || bridge[0].IPv4 != "172.17.0.3/16" {
+		t.Fatalf("bridge attached_containers=%+v; want jellyfin only", bridge)
+	}
+	if got := byName["unused"].AttachedContainers; got == nil || len(got) != 0 {
+		t.Fatalf("unused attached_containers=%#v; want empty non-nil array", got)
+	}
+}
+
+// The ContainerList enrichment is best-effort: when it fails the
+// listing still returns 200 with empty (never null) attached_containers.
+func TestDockerNetworks_ContainerListFailureLeavesEmptyMembers(t *testing.T) {
+	withStubDockerClient(t, &stubDockerVisibilityClient{
+		networks:      []network.Summary{{ID: "net-1", Name: "bridge"}},
+		containersErr: errors.New("daemon hiccup"),
+	})
+
+	app := &AppManagement{}
+	rec := invokeHandler(t, http.MethodGet, "/v2/app_management/docker/networks", app.DockerNetworks)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s; want 200", rec.Code, rec.Body.String())
+	}
+	var raw map[string][]map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &raw); err != nil {
+		t.Fatalf("body not JSON: %v", err)
+	}
+	members, ok := raw["networks"][0]["attached_containers"].([]any)
+	if !ok || len(members) != 0 {
+		t.Fatalf("attached_containers=%#v; want []", raw["networks"][0]["attached_containers"])
 	}
 }
 
@@ -584,7 +672,7 @@ func TestDockerSystem_ShapeContract(t *testing.T) {
 // useful data.
 func TestDockerSystem_DfFailureFallsBackToInfoOnly(t *testing.T) {
 	withStubDockerClient(t, &stubDockerVisibilityClient{
-		info: system.Info{ServerVersion: "28.5.1", Containers: 2, Images: 5},
+		info:         system.Info{ServerVersion: "28.5.1", Containers: 2, Images: 5},
 		diskUsageErr: errors.New("permission denied"),
 	})
 

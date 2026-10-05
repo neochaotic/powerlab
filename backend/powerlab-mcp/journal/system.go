@@ -153,15 +153,15 @@ func ReadSystem(ctx context.Context, run Runner, q SystemQuery) ([]SystemEntry, 
 // consumes. Fields not listed here are never decoded — the wire-shape
 // contract is enforced both in SystemEntry and at parse time.
 type rawSystemEntry struct {
-	Realtime string `json:"__REALTIME_TIMESTAMP"`
-	Unit     string `json:"_SYSTEMD_UNIT"`
-	Comm     string `json:"_COMM"`
-	Hostname string `json:"_HOSTNAME"`
-	Message  string `json:"MESSAGE"`
+	Realtime string          `json:"__REALTIME_TIMESTAMP"`
+	Unit     string          `json:"_SYSTEMD_UNIT"`
+	Comm     string          `json:"_COMM"`
+	Hostname string          `json:"_HOSTNAME"`
+	Message  json.RawMessage `json:"MESSAGE"` // string or byte array; see decodeMessage
 }
 
 // ParseSystem reads `journalctl -o json` NDJSON. Blank lines + records
-// that don't decode (non-text MESSAGE, log rotation gaps) are skipped
+// that don't decode (corrupt records, log rotation gaps) are skipped
 // rather than aborting the whole read.
 func ParseSystem(b []byte) ([]SystemEntry, error) {
 	sc := bufio.NewScanner(bytes.NewReader(b))
@@ -178,7 +178,11 @@ func ParseSystem(b []byte) ([]SystemEntry, error) {
 		}
 		var r rawSystemEntry
 		if err := json.Unmarshal(line, &r); err != nil {
-			continue // malformed / non-text MESSAGE — skip
+			continue // malformed line — skip
+		}
+		msg, ok := decodeMessage(r.Message)
+		if !ok {
+			continue // MESSAGE neither string nor byte array — skip
 		}
 		// _COMM-only records (sudo logs typically arrive that way)
 		// have no _SYSTEMD_UNIT; fall back so the agent has SOMETHING
@@ -191,7 +195,7 @@ func ParseSystem(b []byte) ([]SystemEntry, error) {
 			Time:     realtimeToRFC3339(r.Realtime),
 			Unit:     unit,
 			Hostname: r.Hostname,
-			Message:  r.Message,
+			Message:  msg,
 		})
 	}
 	if err := sc.Err(); err != nil {

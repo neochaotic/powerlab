@@ -14,5 +14,6 @@ type Path struct {
 	Type       string                 `json:"type,omitempty"`
 	Label      string                 `json:"label,omitempty"`
 	Write      bool                   `json:"write"`
+	IsSymlink  bool                   `json:"is_symlink,omitempty"`
 	Extensions map[string]interface{} `json:"extensions"`
 }

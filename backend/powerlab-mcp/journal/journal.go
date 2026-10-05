@@ -102,17 +102,40 @@ func Read(ctx context.Context, run Runner, q Query) ([]Entry, error) {
 }
 
 // rawEntry mirrors the journalctl -o json fields we consume. journalctl
-// emits every field as a JSON string; lines where MESSAGE is non-text
-// (an array of bytes) fail to decode and are skipped by Parse.
+// emits most fields as JSON strings, but MESSAGE arrives as an array of
+// byte values when the payload is not valid UTF-8 text, so it is kept
+// raw and decoded by decodeMessage (#597).
 type rawEntry struct {
-	Realtime string `json:"__REALTIME_TIMESTAMP"`
-	Unit     string `json:"_SYSTEMD_UNIT"`
-	Priority string `json:"PRIORITY"`
-	Message  string `json:"MESSAGE"`
+	Realtime string          `json:"__REALTIME_TIMESTAMP"`
+	Unit     string          `json:"_SYSTEMD_UNIT"`
+	Priority string          `json:"PRIORITY"`
+	Message  json.RawMessage `json:"MESSAGE"`
+}
+
+// decodeMessage converts a journalctl MESSAGE field to a string. It
+// accepts the usual JSON string, the byte-array form journald uses for
+// binary / non-UTF-8 payloads (e.g. [104,105]), and an absent or null
+// field (journalctl emits null for oversized values), which yields "".
+// ok is false only when the field is some other JSON shape.
+func decodeMessage(raw json.RawMessage) (msg string, ok bool) {
+	if len(raw) == 0 || string(raw) == "null" {
+		return "", true
+	}
+	if err := json.Unmarshal(raw, &msg); err == nil {
+		return msg, true
+	}
+	// Byte-array form. encoding/json decodes a JSON array of numbers
+	// 0..255 element-wise into []uint8 only when the input is an array
+	// (a string would be treated as base64, but strings returned above).
+	var b []uint8
+	if err := json.Unmarshal(raw, &b); err != nil {
+		return "", false
+	}
+	return string(b), true
 }
 
 // Parse reads `journalctl -o json` NDJSON. Blank lines and lines that
-// don't decode are skipped (rotation gaps, non-text MESSAGE) rather than
+// don't decode are skipped (rotation gaps, corrupt records) rather than
 // aborting the whole read — better to return the parseable records.
 func Parse(b []byte) ([]Entry, error) {
 	sc := bufio.NewScanner(bytes.NewReader(b))
@@ -128,13 +151,17 @@ func Parse(b []byte) ([]Entry, error) {
 		}
 		var r rawEntry
 		if err := json.Unmarshal(line, &r); err != nil {
-			continue // malformed / non-text MESSAGE — skip
+			continue // malformed line — skip
+		}
+		msg, ok := decodeMessage(r.Message)
+		if !ok {
+			continue // MESSAGE neither string nor byte array — skip
 		}
 		entries = append(entries, Entry{
 			Time:     realtimeToRFC3339(r.Realtime),
 			Unit:     r.Unit,
 			Priority: atoiOr(r.Priority, priorityInfo),
-			Message:  r.Message,
+			Message:  msg,
 		})
 	}
 	if err := sc.Err(); err != nil {

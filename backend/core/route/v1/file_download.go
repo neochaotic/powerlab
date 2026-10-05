@@ -1,10 +1,9 @@
 package v1
 
 import (
+	"fmt"
 	"log"
 	"net/http"
-	"net/url"
-	url2 "net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -74,8 +73,9 @@ func GetDownloadFile(ctx echo.Context) error {
 
 			// 获取文件的名称
 			fileName := path.Base(filePath)
-			ctx.Response().Header().Add("Content-Disposition", "attachment; filename*=utf-8''"+url2.PathEscape(fileName))
-			ctx.File(filePath)
+			setUntrustedContentHeaders(ctx.Response().Header(), true)
+			ctx.Response().Header().Set(echo.HeaderContentDisposition, contentDisposition("attachment", fileName))
+			return ctx.File(filePath)
 		}
 	}
 
@@ -93,7 +93,8 @@ func GetDownloadFile(ctx echo.Context) error {
 
 	name := "_" + currentPath
 	name += extension
-	ctx.Request().Header.Add("Content-Disposition", "attachment; filename*=utf-8''"+url.PathEscape(name))
+	setUntrustedContentHeaders(ctx.Response().Header(), true)
+	ctx.Response().Header().Set(echo.HeaderContentDisposition, contentDisposition("attachment", name))
 	if err := file.ArchiveFiles(ctx.Request().Context(), ctx.Response().Writer, format, list, commonDir); err != nil {
 		log.Printf("Failed to archive: %v", err)
 	}
@@ -113,8 +114,6 @@ func GetDownloadSingleFile(ctx echo.Context) error {
 		})
 	}
 	fileName := path.Base(filePath)
-	// c.Header("Content-Disposition", "inline")
-	ctx.Request().Header.Add("Content-Disposition", "attachment; filename*=utf-8''"+url2.PathEscape(fileName))
 
 	fi, err := os.Open(filePath)
 	if err != nil {
@@ -139,6 +138,15 @@ func GetDownloadSingleFile(ctx echo.Context) error {
 	if kind != filetype.Unknown {
 		ctx.Request().Header.Add("Content-Type", kind.MIME.Value)
 	}
+
+	// #39: Content-Disposition used to be added to ctx.Request(), so it
+	// never reached the browser. Inline because this route backs the
+	// preview drawer (<img>/<video>/<audio>/<embed>) and "Open in new
+	// tab". PDFs skip the CSP sandbox: browsers refuse to run their
+	// built-in PDF viewer inside a sandboxed document.
+	isPDF := strings.EqualFold(filepath.Ext(fileName), ".pdf") || kind.MIME.Value == "application/pdf"
+	setUntrustedContentHeaders(ctx.Response().Header(), !isPDF)
+	ctx.Response().Header().Set(echo.HeaderContentDisposition, contentDisposition("inline", fileName))
 	node, err := os.Stat(filePath)
 	// Set the Last-Modified header to the timestamp
 	ctx.Request().Header.Add("Last-Modified", node.ModTime().UTC().Format(http.TimeFormat))
@@ -159,4 +167,69 @@ func GetDownloadSingleFile(ctx echo.Context) error {
 	defer fileTmp.Close()
 
 	return nil
+}
+
+// Content-Security-Policy values for user-controlled file bodies (#39).
+// A user can upload an .html or .svg; served from the panel origin it
+// would otherwise run script with the panel's session. `sandbox` turns
+// the document into an opaque origin, `script-src 'none'` blocks script
+// outright. Subresource loads (<img>, <video>, <audio>) do not apply a
+// response's CSP, so previews are unaffected.
+const (
+	cspUntrustedSandboxed = "sandbox; script-src 'none'"
+	cspUntrustedNoSandbox = "script-src 'none'"
+)
+
+// setUntrustedContentHeaders marks a response that streams a file from
+// disk as untrusted content. sandbox=false is for PDFs, whose built-in
+// browser viewers do not load inside a sandboxed document.
+func setUntrustedContentHeaders(h http.Header, sandbox bool) {
+	if sandbox {
+		h.Set(echo.HeaderContentSecurityPolicy, cspUntrustedSandboxed)
+	} else {
+		h.Set(echo.HeaderContentSecurityPolicy, cspUntrustedNoSandbox)
+	}
+	h.Set(echo.HeaderXContentTypeOptions, "nosniff")
+}
+
+// contentDisposition builds an RFC 6266 Content-Disposition value with
+// an ASCII `filename=` fallback for old clients and an RFC 5987
+// `filename*=` (UTF-8, percent-encoded) parameter carrying the real (possibly
+// non-ASCII) name.
+func contentDisposition(dispType, name string) string {
+	return fmt.Sprintf("%s; filename=\"%s\"; filename*=UTF-8''%s", dispType, asciiFilename(name), rfc5987Escape(name))
+}
+
+// asciiFilename replaces anything that cannot sit inside the quoted
+// fallback (non-ASCII, control chars, quote, backslash) with '_'.
+func asciiFilename(name string) string {
+	var b strings.Builder
+	for _, r := range name {
+		if r < 0x20 || r > 0x7e || r == '"' || r == '\\' {
+			b.WriteByte('_')
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
+// rfc5987Escape percent-encodes every byte outside RFC 5987 attr-char.
+// url.PathEscape is not enough: it leaves ';' and ',' unescaped, which
+// would split the header parameter.
+func rfc5987Escape(s string) string {
+	const hex = "0123456789ABCDEF"
+	var b strings.Builder
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') ||
+			strings.IndexByte("!#$&+-.^_`|~", c) >= 0 {
+			b.WriteByte(c)
+			continue
+		}
+		b.WriteByte('%')
+		b.WriteByte(hex[c>>4])
+		b.WriteByte(hex[c&0x0f])
+	}
+	return b.String()
 }
