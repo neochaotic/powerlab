@@ -172,7 +172,17 @@ Override the release source via env: `POWERLAB_RELEASE_TAG=v0.7.2 make stage-bui
 1. Fork the repository and create your branch from `main`.
 2. Ensure your code passes all tests and lint checks.
 3. Update the documentation if you're adding or changing features.
-4. Submit a PR with a clear description of the changes and the problem they solve.
+4. Submit a PR with a clear description of the changes and the problem they solve. The PR template's checklist is the short version of this document.
+
+### Checks besides CI
+
+- **Secret scan** (`.github/workflows/secret-scan.yml`) runs gitleaks on every PR and blocks on a hit. Run `gitleaks dir . --redact` locally before pushing. A genuine false positive gets a narrowly scoped, commented entry in `.gitleaks.toml`; a real secret gets rotated, not allowlisted.
+- **Link check** (`.github/workflows/link-check.yml`) runs lychee on PRs that touch Markdown. It is report-only until the existing dead links are cleaned up; see the job summary.
+- **OpenSSF Scorecard** runs weekly on `main` and reports to the Security tab. It never blocks a PR.
+
+### Dependency updates
+
+Dependabot opens grouped PRs on Mondays (`.github/dependabot.yml`). All Go modules are one multi-directory entry, so a minor or patch bump lands in every module that uses that dependency in a single PR. Majors arrive one PR each. When you add or remove a Go module, add or remove its directory in `dependabot.yml` too.
 
 ## Adding an app to the catalog
 

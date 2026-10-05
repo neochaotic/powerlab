@@ -1,0 +1,48 @@
+name: Bug report
+description: Report a defect so it can be reproduced and fixed.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug! Please search
+        [existing issues](https://github.com/neochaotic/powerlab/issues) first.
+        Security issues go through [SECURITY.md](https://github.com/neochaotic/powerlab/security/policy), not here.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you expected vs. what actually happened.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Install PowerLab with ...
+        2. Open the dashboard and ...
+        3. See error ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: PowerLab version
+      description: Shown in Settings > About, or the release tag you installed.
+      placeholder: v0.6.x
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: "OS and version, CPU architecture (amd64/arm64), Docker version, how you installed (install.sh, tarball, from source)."
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: "`powerlab-logs` output or service logs around the failure. Redact anything private."
+      render: shell

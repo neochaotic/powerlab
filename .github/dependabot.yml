@@ -1,119 +1,67 @@
 # Dependabot configuration (ADR-0040).
 #
-# Monitors three ecosystems: Go modules per service, npm in ui/, and
-# GitHub Actions in workflows. Weekly cadence keeps PR volume manageable
-# for a single-maintainer project.
+# Monitors three ecosystems: Go modules, npm in ui/, and GitHub Actions.
+# Weekly cadence keeps PR volume manageable for a single-maintainer project.
 #
-# Patch-version updates are eligible for auto-merge (see workflow
-# .github/workflows/dependabot-auto-merge.yml — to be added in a
-# follow-up PR if maintenance burden warrants it). Minor + major
-# require manual review.
+# ─── Why Go is ONE entry with `directories:` ────────────────────────────
 #
-# Groups: aggregate related deps in one PR to avoid 20-PR floods.
+# Every service module `replace`s ../common and/or ../pkg, so the backend
+# compiles as one dependency graph even though it is ten go.mod files. The
+# previous config had one entry per service, which produced a PR per module
+# and let them drift: a bump to x/sys in core alone could land while gateway
+# and common stayed behind, and the next PR to touch common went red on a
+# version skew nobody had made on purpose. It also silently skipped
+# backend/pkg, backend/logs-cli, backend/powerlab-mcp and the root
+# scripts module.
+#
+# With one multi-directory entry and a group, Dependabot raises a SINGLE PR
+# that bumps a dependency in every module that uses it, and the whole CI
+# matrix checks the combination together. Major bumps stay out of the group
+# (one PR each) because those are the ones that need reading.
+#
+# `cooldown` waits a few days after an upstream release before proposing it:
+# most broken or malicious releases are yanked within that window, and it
+# halves the "bump, then bump again for the .1 fix" churn.
+#
+# Every path in `directories` must hold a go.mod. Dependabot silently does
+# nothing for a missing directory, so update this list when a module is added
+# or removed (`find . -name go.mod -not -path '*/node_modules/*'`).
 
 version: 2
 updates:
 
-  # ─── Go modules per service ─────────────────────────────────────────
+  # ─── Go modules (all backend modules + root scripts module) ─────────
   - package-ecosystem: gomod
-    directory: "/backend/gateway"
+    directories:
+      - "/"
+      - "/backend/common"
+      - "/backend/pkg"
+      - "/backend/gateway"
+      - "/backend/core"
+      - "/backend/app-management"
+      - "/backend/user-service"
+      - "/backend/local-storage"
+      - "/backend/message-bus"
+      - "/backend/logs-cli"
+      - "/backend/powerlab-mcp"
     schedule:
       interval: weekly
       day: monday
       time: "06:00"
       timezone: "America/Sao_Paulo"
-    open-pull-requests-limit: 3
+    cooldown:
+      default-days: 3
+    open-pull-requests-limit: 5
     groups:
-      gateway-deps:
+      go-minor-patch:
         applies-to: version-updates
-        patterns:
-          - "*"
+        update-types: [minor, patch]
+        patterns: ["*"]
+      go-security:
+        applies-to: security-updates
+        patterns: ["*"]
     commit-message:
-      prefix: "chore(deps/gateway)"
-
-  - package-ecosystem: gomod
-    directory: "/backend/app-management"
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 3
-    groups:
-      app-mgmt-deps:
-        applies-to: version-updates
-        patterns:
-          - "*"
-    commit-message:
-      prefix: "chore(deps/app-mgmt)"
-
-  - package-ecosystem: gomod
-    directory: "/backend/core"
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 3
-    groups:
-      core-deps:
-        applies-to: version-updates
-        patterns:
-          - "*"
-    commit-message:
-      prefix: "chore(deps/core)"
-
-  - package-ecosystem: gomod
-    directory: "/backend/user-service"
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 3
-    groups:
-      user-service-deps:
-        applies-to: version-updates
-        patterns:
-          - "*"
-    commit-message:
-      prefix: "chore(deps/user-service)"
-
-  - package-ecosystem: gomod
-    directory: "/backend/local-storage"
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 3
-    groups:
-      local-storage-deps:
-        applies-to: version-updates
-        patterns:
-          - "*"
-    commit-message:
-      prefix: "chore(deps/local-storage)"
-
-  - package-ecosystem: gomod
-    directory: "/backend/message-bus"
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 3
-    groups:
-      message-bus-deps:
-        applies-to: version-updates
-        patterns:
-          - "*"
-    commit-message:
-      prefix: "chore(deps/message-bus)"
-
-  - package-ecosystem: gomod
-    directory: "/backend/common"
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 3
-    groups:
-      common-deps:
-        applies-to: version-updates
-        patterns:
-          - "*"
-    commit-message:
-      prefix: "chore(deps/common)"
+      prefix: "chore(deps/go)"
 
   # ─── Frontend npm ───────────────────────────────────────────────────
   - package-ecosystem: npm
@@ -121,27 +69,41 @@ updates:
     schedule:
       interval: weekly
       day: monday
+      time: "06:00"
+      timezone: "America/Sao_Paulo"
+    cooldown:
+      default-days: 5
     open-pull-requests-limit: 5
     groups:
       ui-prod-deps:
         applies-to: version-updates
         dependency-type: production
-        patterns:
-          - "*"
+        update-types: [minor, patch]
+        patterns: ["*"]
       ui-dev-deps:
         applies-to: version-updates
         dependency-type: development
-        patterns:
-          - "*"
+        update-types: [minor, patch]
+        patterns: ["*"]
+      ui-security:
+        applies-to: security-updates
+        patterns: ["*"]
     commit-message:
       prefix: "chore(deps/ui)"
 
   # ─── GitHub Actions ─────────────────────────────────────────────────
+  # One PR for all action bumps; they are tag-pinned (@vN) so these are
+  # almost always major-version moves worth a single review.
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
       interval: weekly
       day: monday
+      time: "06:00"
+      timezone: "America/Sao_Paulo"
     open-pull-requests-limit: 2
+    groups:
+      actions:
+        patterns: ["*"]
     commit-message:
       prefix: "chore(deps/actions)"

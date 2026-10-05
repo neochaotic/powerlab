@@ -1,0 +1,54 @@
+name: Link check (Markdown)
+
+# lychee over the hand-written Markdown: root governance files and docs/.
+# Behaviour (retries, accepted status codes, loopback) is in lychee.toml;
+# flaky-host ignores are in .lycheeignore.
+#
+# REPORT-ONLY for now (`fail: false`). On the day this was added the tree had
+# ~125 dead relative links, mostly docs/decisions/*.md pointing at files outside
+# the repo (../../memory/*.md) or at renamed ADRs, plus an empty `()` badge
+# link in README.md. Results go to the job summary. Once a run is clean, flip
+# `fail` to true so a moved doc or renamed screenshot reddens its own PR.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "**.md"
+      - "lychee.toml"
+      - ".lycheeignore"
+      - ".github/workflows/link-check.yml"
+  schedule:
+    - cron: "0 8 * * 1" # Mondays 08:00 UTC — catches external link rot
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: link-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  markdown-links:
+    name: lychee (governance docs + docs/)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check links and images
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --config lychee.toml
+            --no-progress
+            README.md CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md SUPPORT.md
+            'docs/**/*.md'
+          fail: false
+          jobSummary: true
+          # Authenticated github.com requests avoid the anonymous rate limit
+          # on links to this repo's own issues and PRs.
+          token: ${{ secrets.GITHUB_TOKEN }}
