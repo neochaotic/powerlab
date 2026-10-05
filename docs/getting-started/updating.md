@@ -2,6 +2,12 @@
 
 PowerLab has two upgrade paths: in-app (recommended) and re-running the install script.
 
+!!! note "Updating PowerLab vs. updating an app"
+    This page is about upgrading **PowerLab itself** (the panel). To move an
+    **installed app** — Jellyfin, 2FAuth, etc. — to a newer image, jump to
+    [Updating an installed app](#updating-an-installed-app). The two are
+    independent: upgrading PowerLab never bumps your apps' image versions.
+
 ## In-app update (recommended)
 
 When a new release is published on GitHub, the in-app updater detects it within ~6 hours (or immediately if you click "Check for updates" in Settings → System).
@@ -55,6 +61,48 @@ sudo /usr/bin/powerlab-rollback   # restores most recent snapshot, restarts serv
 ```
 
 Snapshots live at `/var/lib/powerlab/backups/pre-upgrade-<timestamp>/`. Three are kept by default.
+
+## Updating an installed app
+
+Upgrading PowerLab does **not** change the version of the apps you installed
+(Jellyfin, 2FAuth, …). Each app is its own Docker image, pinned independently.
+There are two ways to move an app to a newer version.
+
+### Rolling update (catalog apps)
+
+If an app came from the built-in catalog and the maintainers have bumped its
+pinned version, its tile shows an **Update Available** badge:
+
+1. Open **Apps** and click the app.
+2. Click **Update** and confirm the **Rolling Update**.
+3. PowerLab pulls the new image, recreates the container, and keeps your data.
+
+The rolling update follows the version **pinned by the curated catalog**, so it
+may lag the very latest upstream release, and it only works while the app still
+matches its catalog entry.
+
+### Fork as Custom App (pin any version)
+
+To jump to a *specific* newer version — ahead of what the catalog pins — fork
+the app and set the image tag yourself:
+
+1. Open **Apps**, click the app, and choose **Fork as Custom App**.
+2. In the compose editor, set the image tag to the version you want:
+
+   ```yaml
+   services:
+     jellyfin:
+       image: jellyfin/jellyfin:10.10.3   # instead of the catalog-pinned tag
+   ```
+
+3. Deploy. The container is recreated on the new image.
+
+Your library and config survive the recreate because app data lives in the
+bind-mounted volume under `/DATA/` (see [What an upgrade
+preserves](#what-an-upgrade-preserves)). From then on you control the version by
+editing that tag and redeploying — check the image's registry (e.g.
+[Docker Hub](https://hub.docker.com/r/jellyfin/jellyfin/tags)) for available
+tags. Pin an explicit tag rather than `latest` so redeploys stay reproducible.
 
 ## Getting older releases
 
