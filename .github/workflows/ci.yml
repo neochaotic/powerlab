@@ -79,6 +79,9 @@ jobs:
       - name: local-storage-helper.sh contract + safety (Sprint 23 #464)
         run: bash scripts/check-local-storage-helper_test.sh
 
+      - name: check-dep-health.sh parsing (offline, #493)
+        run: bash scripts/check-dep-health_test.sh
+
       - name: ADR-0050 — MCP-served docs canonical (parser keys mentioned in docs)
         run: bash scripts/check-mcp-docs-canonical.sh
 

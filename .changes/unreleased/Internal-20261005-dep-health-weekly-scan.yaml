@@ -1,0 +1,5 @@
+kind: Internal
+body: 'Added `scripts/check-dep-health.sh` and a weekly, report-only "Dependency health" workflow (ADR-0042). Both flag direct Go dependencies whose release in use is more than 24 months old or that are behind a newer minor or major version.'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "493"

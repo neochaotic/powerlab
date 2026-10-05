@@ -1,0 +1,38 @@
+name: Dependency health
+
+# Weekly dependency health scan (ADR-0042 §5, #493). Report-only: flags
+# direct Go deps whose release in use is older than 24 months, or that are
+# behind a newer minor/major, and writes the table to the job summary.
+# It never fails and does not run on pull_request (network-heavy; see
+# ADR-0042 "not on every PR").
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dep-health-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    name: Dependency health scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+          cache: false
+
+      - name: Scan direct dependencies (warn-only)
+        run: bash scripts/check-dep-health.sh
