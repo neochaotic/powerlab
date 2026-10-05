@@ -34,9 +34,11 @@ func TestHealthz(t *testing.T) {
 	}
 }
 
-// /version surfaces the ldflags-injected build info. The updater and any
+// /version surfaces the ldflags-injected version. The updater and any
 // "what's running" check read this, so the bytes we inject at link time
-// must actually come back out — not a hardcoded or empty string.
+// must actually come back out — not a hardcoded or empty string. It is
+// unauthenticated, so it must NOT leak the commit hash or build date
+// (#607); those live behind the gate in system://build.
 func TestVersionReflectsInjectedBuildInfo(t *testing.T) {
 	rec := httptest.NewRecorder()
 	newTestHandler(t).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/version", nil))
@@ -51,8 +53,11 @@ func TestVersionReflectsInjectedBuildInfo(t *testing.T) {
 	if got["version"] != "0.7.4" {
 		t.Fatalf("version = %q; want the injected %q", got["version"], "0.7.4")
 	}
-	if got["commit"] != "abc123" {
-		t.Fatalf("commit = %q; want the injected %q", got["commit"], "abc123")
+	if len(got) != 1 {
+		t.Fatalf("/version body = %v; want only the version field (commit/date must not be exposed unauthenticated)", got)
+	}
+	if strings.Contains(rec.Body.String(), "abc123") {
+		t.Fatalf("/version leaks the commit hash: %q", rec.Body.String())
 	}
 }
 

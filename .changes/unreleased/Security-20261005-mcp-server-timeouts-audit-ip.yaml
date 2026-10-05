@@ -1,0 +1,5 @@
+kind: Security
+body: 'powerlab-mcp: the HTTP listener now sets ReadTimeout (30s) and IdleTimeout (120s) to bound slow clients, and audit records for proxied loopback requests carry the real peer address instead of the internal 192.0.2.1 sentinel.'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "595"

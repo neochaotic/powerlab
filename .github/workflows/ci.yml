@@ -79,6 +79,9 @@ jobs:
       - name: local-storage-helper.sh contract + safety (Sprint 23 #464)
         run: bash scripts/check-local-storage-helper_test.sh
 
+      - name: Bootstrap install.sh refuses without Docker (#63)
+        run: bash scripts/check-install-requires-docker_test.sh
+
       - name: install-smoke wiring (dev-build override, Dependabot PRs #515)
         run: bash scripts/check-ci-install-smoke-dev-build_test.sh
 
@@ -296,6 +299,66 @@ jobs:
           # findings, so the gate silently passed without running.
           # v0.49.0 is the newest x/tools whose go.mod is `go 1.25.0`.
           POWERLAB_DEADCODE_VERSION: 'v0.49.0'
+
+  # ─────────────────────────────────────────────────────────────────────
+  # golangci-lint (ADR-0040, #598). Runs the 8-linter set from
+  # .golangci.yml per module so the bar is enforced in CI, not only via
+  # `make lint-go`. WARN-ONLY for now: the lint step has
+  # continue-on-error, so findings show as annotations but never fail
+  # the build. Flip a module to blocking by removing continue-on-error
+  # once its existing findings are cleared.
+  #
+  # Version pinned (not `latest`) so a new golangci-lint release cannot
+  # change results under us; v2.14.0 is built with a Go newer than the
+  # modules' go 1.25 directive, which golangci-lint requires.
+  # ─────────────────────────────────────────────────────────────────────
+  backend-lint:
+    name: Backend lint (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - common
+          - gateway
+          - core
+          - user-service
+          - message-bus
+          - app-management
+          - local-storage
+          - pkg
+          - powerlab-mcp
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+          cache-dependency-path: backend/${{ matrix.service }}/go.sum
+
+      - name: Install fuse (local-storage only)
+        if: matrix.service == 'local-storage'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libfuse-dev fuse pkg-config
+
+      - name: Install libpam (user-service only)
+        if: matrix.service == 'user-service'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libpam0g-dev
+
+      # codegen/ is .gitignored; without it packages fail to type-check
+      # and golangci-lint reports load errors instead of findings.
+      - name: Run go generate
+        if: matrix.service != 'gateway'
+        working-directory: backend/${{ matrix.service }}
+        run: go generate ./...
+
+      - name: golangci-lint (warn-only)
+        continue-on-error: true
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.14.0
+          working-directory: backend/${{ matrix.service }}
+          args: --config=../../.golangci.yml --timeout=5m ./...
 
   # ─────────────────────────────────────────────────────────────────────
   # govulncheck — SAST vuln scan per service (ADR-0040). BLOCKING via
