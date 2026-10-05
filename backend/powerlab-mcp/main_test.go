@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"net"
+	"net/http"
 	"testing"
 	"time"
 
@@ -80,5 +81,25 @@ func TestRun_GracefulShutdownReturnsNil(t *testing.T) {
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("run did not return after the context was cancelled")
+	}
+}
+
+// The listener must bound slow clients: without ReadTimeout a client can
+// trickle a body forever, and without IdleTimeout idle keep-alive
+// connections pile up (#595). WriteTimeout must stay unset or SSE
+// streams on /mcp would be cut off mid-session.
+func TestNewHTTPServer_Timeouts(t *testing.T) {
+	s := newHTTPServer(http.NotFoundHandler())
+	if s.ReadHeaderTimeout <= 0 {
+		t.Errorf("ReadHeaderTimeout = %v; want > 0", s.ReadHeaderTimeout)
+	}
+	if s.ReadTimeout != 30*time.Second {
+		t.Errorf("ReadTimeout = %v; want 30s", s.ReadTimeout)
+	}
+	if s.IdleTimeout != 120*time.Second {
+		t.Errorf("IdleTimeout = %v; want 120s", s.IdleTimeout)
+	}
+	if s.WriteTimeout != 0 {
+		t.Errorf("WriteTimeout = %v; want 0 (SSE responses are long-lived)", s.WriteTimeout)
 	}
 }

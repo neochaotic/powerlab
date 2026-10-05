@@ -19,6 +19,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
@@ -49,8 +50,10 @@ const MCPEndpointPath = "/mcp"
 // headroom while bounding the blast radius.
 const maxMCPRequestBytes = 1 << 20
 
-// BuildInfo carries the ldflags-injected build identity surfaced by
-// /version. main sets these from -X main.{version,commit,date}.
+// BuildInfo carries the ldflags-injected build identity. main sets
+// these from -X main.{version,commit,date}. The unauthenticated
+// /version endpoint only exposes Version; the full identity (commit +
+// date) is served by the gated system://build MCP resource (#607).
 type BuildInfo struct {
 	Version string `json:"version"`
 	Commit  string `json:"commit"`
@@ -156,6 +159,7 @@ func newServer(info BuildInfo, pubKey publicKeyFunc, rc resourcesConfig) *Server
 func newMCPServer(info BuildInfo, rc resourcesConfig, journalRun journal.Runner) *mcp.Server {
 	m := mcp.NewServer(&mcp.Implementation{Name: "powerlab-mcp", Version: info.Version}, nil)
 	registerSystemSchema(m)
+	registerSystemBuild(m, info)
 	registerSystemMetrics(m, rc.procRoot)
 	registerSystemUtilization(m, rc.coreClient)
 	registerSystemDisk(m, rc.coreClient)
@@ -259,7 +263,7 @@ func (s *Server) Handler() http.Handler {
 	// reads the request — even on the auth-rejected path.
 	// Chain (outermost → innermost):
 	//   limitBody → preventProxyLoopbackTrust → jwt.HTTPJWT →
-	//   enrichAuditIdentity → audit.HTTPMiddleware{Enricher} →
+	//   restorePeerAddr → enrichAuditIdentity → audit.HTTPMiddleware{Enricher} →
 	//   teeMCPBodyForAudit → MCP
 	//
 	// jwt.HTTPJWT runs BEFORE audit so the user_id / user_name headers
@@ -298,7 +302,7 @@ func (s *Server) Handler() http.Handler {
 		})(inner)
 	}
 	inner = teeMCPBodyForAudit(inner)
-	gated := limitBody(preventProxyLoopbackTrust(jwt.HTTPJWT(s.pubKey)(enrichAuditIdentity(inner))), maxMCPRequestBytes)
+	gated := limitBody(preventProxyLoopbackTrust(jwt.HTTPJWT(s.pubKey)(restorePeerAddr(enrichAuditIdentity(inner)))), maxMCPRequestBytes)
 	mux.Handle(MCPEndpointPath, gated)
 	return mux
 }
@@ -350,13 +354,33 @@ var proxyHeaders = []string{"X-Forwarded-For", "Forwarded", "X-Real-Ip"}
 // It does so by rewriting RemoteAddr to a non-loopback sentinel before
 // the JWT gate sees it, so the gate enforces the token instead of
 // skipping. Requests with no proxy headers are passed through untouched
-// (genuine local agents keep loopback trust).
+// (genuine local agents keep loopback trust). The original RemoteAddr
+// is stashed on the context so restorePeerAddr can put it back once
+// the gate has run, keeping the sentinel out of audit records.
 func preventProxyLoopbackTrust(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if isLoopbackAddr(r.RemoteAddr) && hasAnyProxyHeader(r) {
+			r = r.WithContext(context.WithValue(r.Context(), origRemoteAddrKey{}, r.RemoteAddr))
 			// 192.0.2.1 is TEST-NET-1 — guaranteed non-loopback, so the
 			// downstream gate will require a valid token.
 			r.RemoteAddr = "192.0.2.1:0"
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// origRemoteAddrKey is the context key preventProxyLoopbackTrust uses to
+// carry the real TCP peer past the JWT gate.
+type origRemoteAddrKey struct{}
+
+// restorePeerAddr undoes preventProxyLoopbackTrust's RemoteAddr rewrite
+// after the JWT gate has made its trust decision, so the audit
+// middleware records the real peer address rather than the 192.0.2.1
+// sentinel (#595).
+func restorePeerAddr(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if orig, ok := r.Context().Value(origRemoteAddrKey{}).(string); ok {
+			r.RemoteAddr = orig
 		}
 		next.ServeHTTP(w, r)
 	})
@@ -390,8 +414,14 @@ func (s *Server) handleHealthz(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write([]byte("ok\n"))
 }
 
-// handleVersion returns the ldflags-injected build identity as JSON.
+// handleVersion returns only the release version as JSON. /version is
+// unauthenticated (loopback + LAN), so it deliberately omits the commit
+// hash and build date: an exact commit lets a LAN-resident attacker
+// fingerprint which fixes the box is missing (#607). The full BuildInfo
+// is available behind the auth gate via the system://build resource.
 func (s *Server) handleVersion(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(s.info)
+	_ = json.NewEncoder(w).Encode(struct {
+		Version string `json:"version"`
+	}{s.info.Version})
 }

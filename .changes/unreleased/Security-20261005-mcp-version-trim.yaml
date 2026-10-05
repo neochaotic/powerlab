@@ -1,0 +1,5 @@
+kind: Security
+body: 'powerlab-mcp: the unauthenticated `/version` endpoint now returns only `{"version"}`; the commit hash and build date moved to the auth-gated `system://build` MCP resource so LAN hosts can no longer fingerprint the exact build.'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "607"

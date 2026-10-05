@@ -19,6 +19,11 @@ const (
 	// resource family.
 	systemSchemaURI = "system://schema"
 
+	// systemBuildURI is the full ldflags-injected build identity
+	// (version + commit + date). Served only through the gated /mcp
+	// transport; the open /version endpoint carries version alone (#607).
+	systemBuildURI = "system://build"
+
 	// systemMetricsURI is the /proc-direct snapshot — independent of
 	// core (survives core down).
 	systemMetricsURI = "system://metrics"
@@ -56,6 +61,7 @@ const systemSchemaDoc = `{
   "description": "PowerLab host observability — CPU, memory, disk, network, GPU, plus sysadmin tier (services, kernel, OS updates, processes). Mix of independent reads (always work), thin proxies to core (return a core_unavailable payload when core is down), and direct /proc reads.",
   "resources": {
     "system://schema": "this document",
+    "system://build": "INDEPENDENT — full build identity {version, commit, date} of this powerlab-mcp binary. The unauthenticated /version endpoint returns version only.",
     "system://metrics": "INDEPENDENT — /proc-direct snapshot of memory + load average + uptime. Always works when MCP is up.",
     "system://utilization": "PROXIED — core's /v1/sys/utilization: CPU percent / temperature / power / model, memory, network.",
     "system://disk": "PROXIED — core's /v1/sys/disk: {physical:[{name,model,serial,size_bytes,temperature_c,health_status}], mounts:[{path,fs_type,total,used,free,used_percent}]}. Both arrays always present (empty when no data); empty physical[].model means smartctl unavailable on this host — same graceful-degrade pattern as system://gpu's empty model = no GPU.",
@@ -120,6 +126,24 @@ func registerSystemSchema(s *mcp.Server) {
 		MIMEType:    "application/json",
 	}, func(_ context.Context, _ *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
 		return &mcp.ReadResourceResult{Contents: []*mcp.ResourceContents{textJSON(systemSchemaURI, systemSchemaDoc)}}, nil
+	})
+}
+
+// registerSystemBuild serves the full BuildInfo. It lives behind the
+// same read-tier gate as every other resource, so the commit hash is
+// only visible to trusted local agents and authenticated LAN callers.
+func registerSystemBuild(s *mcp.Server, info BuildInfo) {
+	s.AddResource(&mcp.Resource{
+		URI:         systemBuildURI,
+		Name:        "Build identity",
+		Description: "Full build identity of this powerlab-mcp binary: version, git commit and build date.",
+		MIMEType:    "application/json",
+	}, func(_ context.Context, _ *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		payload, err := json.Marshal(info)
+		if err != nil {
+			return nil, fmt.Errorf("marshal build info: %w", err)
+		}
+		return &mcp.ReadResourceResult{Contents: []*mcp.ResourceContents{textJSON(systemBuildURI, string(payload))}}, nil
 	})
 }
 
