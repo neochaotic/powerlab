@@ -1,0 +1,5 @@
+kind: Added
+body: 'App Store and Launchpad show a "Docker is not available" banner with install commands and docs links when the Docker daemon is missing or not running, instead of a silent empty list.'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "63"
