@@ -1,0 +1,5 @@
+kind: Internal
+body: 'CI now runs the install smoke (fresh install + upgrade boot test, amd64 and arm64) on Dependabot pull requests, so a dependency bump that breaks service boot is caught before merge rather than after.'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "515"

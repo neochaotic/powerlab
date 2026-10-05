@@ -79,6 +79,9 @@ jobs:
       - name: local-storage-helper.sh contract + safety (Sprint 23 #464)
         run: bash scripts/check-local-storage-helper_test.sh
 
+      - name: install-smoke wiring (dev-build override, Dependabot PRs #515)
+        run: bash scripts/check-ci-install-smoke-dev-build_test.sh
+
       - name: ADR-0050 — MCP-served docs canonical (parser keys mentioned in docs)
         run: bash scripts/check-mcp-docs-canonical.sh
 
@@ -675,14 +678,17 @@ jobs:
   #                        so it stays guarded after embed releases ship.
   # Both assert: gateway 200, version moved, no failed units, embedded UI.
   #
-  # NOT on PRs (installs system-wide + needs docker/systemd). Runs on main
-  # pushes, tags, manual dispatch; gates the release. arm64 uses GitHub's
-  # native arm64 runner — no physical hardware needed.
+  # Runs on main pushes, tags, manual dispatch, and on PRs opened by
+  # Dependabot (#515); gates the release. Not on other PRs (installs
+  # system-wide + needs docker/systemd, ~4 runner jobs). Dependabot PRs
+  # are the exception because dep bumps are what historically broke boot
+  # while compiling green (viper v1.21 gateway panic). arm64 uses
+  # GitHub's native arm64 runner — no physical hardware needed.
   # ─────────────────────────────────────────────────────────────────────
   install-smoke:
     name: Install smoke (${{ matrix.arch }} / ${{ matrix.scenario }})
     needs: package
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' || github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
@@ -723,7 +729,7 @@ jobs:
         # production host). Without the override the gate cannot even
         # start install — the script aborts at the version check and
         # install-smoke turns chronically red on `main` post-merge
-        # without anyone noticing (PR runs skip this job entirely).
+        # without anyone noticing (non-Dependabot PR runs skip this job).
         # On a tag push the version is X.Y.Z and the override is a
         # silent no-op, so it's safe to set unconditionally.
         # For the upgrade-from-www scenario the OLD baseline is a real
