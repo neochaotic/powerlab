@@ -1,0 +1,5 @@
+kind: Added
+body: 'Session length is now configurable: set AccessTokenTTL (15m..24h, default 3h) and RefreshTokenTTL (1d..30d, default 7d) in the [security] section of user-service.conf. Out-of-range values fall back to the default with a startup warning.'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "484"

@@ -62,6 +62,9 @@ func InitSetup(config string, sample string) {
 
 	mapTo("common", CommonInfo)
 	mapTo("app", AppInfo)
+	SecurityInfo = &model.SecurityModel{}
+	mapTo("security", SecurityInfo)
+	applySecurity()
 }
 
 func SaveSetup(config string) {

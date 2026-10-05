@@ -25,6 +25,20 @@ PAMService = login    # or "su", "sshd" — anything in /etc/pam.d/
 
 Restart `powerlab-user-service`. The SetupWizard becomes a "PAM detected" notice instead of a password form. You log in with your OS user/password from then on.
 
+## Optional: session length
+
+By default a login stays valid for **3 hours** (access token) and can be renewed for **7 days** (refresh token). To change that, set in `/etc/powerlab/user-service.conf`:
+
+```ini
+[security]
+AccessTokenTTL  = 8h    # 15m .. 24h, default 3h
+RefreshTokenTTL = 14d   # 1d .. 30d, default 7d
+```
+
+Values use Go duration syntax (`90m`, `8h`, `1h30m`) or whole days (`7d`). A value that doesn't parse or falls outside its range is ignored: the default applies and `powerlab-user-service` logs a `WARNING: [security] ...` line at startup.
+
+Restart `powerlab-user-service` to apply. Only new logins pick up the change; tokens already issued keep their original expiry. Shorter is safer if a device or token is stolen; longer means fewer logins. This is a config-file setting only for now; there is no Settings UI for it yet.
+
 ## Optional: HTTPS
 
 By default PowerLab serves HTTP on the chosen port. To enable HTTPS with a host-trusted cert (no browser warnings, even for `https://<lan-ip>:port`):
