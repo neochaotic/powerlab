@@ -69,6 +69,19 @@ func main() {
 // binding — systemd records the start as successful and does NOT
 // restart-loop (Restart=always retries non-zero only). The operator
 // re-enables by flipping `Disabled` back in mcp.conf + restarting.
+// newHTTPServer wraps h with the listener timeouts. ReadTimeout and
+// IdleTimeout bound slow-client exposure (#595). WriteTimeout stays
+// unset: Streamable HTTP keeps SSE responses open for as long as the
+// session lives, and a write deadline would cut them off.
+func newHTTPServer(h http.Handler) *http.Server {
+	return &http.Server{
+		Handler:           h,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+}
+
 func run(ctx context.Context, cfg config.Config, info server.BuildInfo, log *slog.Logger) error {
 	if cfg.Disabled {
 		log.Info("powerlab-mcp is Disabled in mcp.conf — exiting without binding")
@@ -88,10 +101,7 @@ func run(ctx context.Context, cfg config.Config, info server.BuildInfo, log *slo
 		return fmt.Errorf("listen on %s: %w", cfg.ListenAddr, err)
 	}
 
-	httpServer := &http.Server{
-		Handler:           srv.Handler(),
-		ReadHeaderTimeout: 10 * time.Second,
-	}
+	httpServer := newHTTPServer(srv.Handler())
 
 	serveErr := make(chan error, 1)
 	go func() {
