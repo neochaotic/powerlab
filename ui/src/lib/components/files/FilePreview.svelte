@@ -6,6 +6,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { fade, fly } from 'svelte/transition';
 	import { formatSize } from '$lib/utils/format';
+	import { fileKind } from '$lib/utils/file-type';
 
 	interface Props {
 		item: FileItem;
@@ -18,12 +19,14 @@
 	let textPreview = $state('');
 	let loadingText = $state(false);
 
-	const ext = $derived(item.name.split('.').pop()?.toLowerCase() || '');
-	const isImage = $derived(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext));
-	const isVideo = $derived(['mp4', 'webm', 'mov'].includes(ext));
-	const isAudio = $derived(['mp3', 'flac', 'wav', 'ogg', 'm4a', 'aac'].includes(ext));
-	const isPdf = $derived(ext === 'pdf');
-	const isText = $derived(['txt', 'md', 'yaml', 'yml', 'json', 'conf', 'log', 'sh', 'js', 'ts', 'css', 'html', 'ini', 'xml', 'dockerfile'].includes(ext));
+	// Server-classified type (#38), with the old extension guess as a
+	// fallback for backends that predate it.
+	const kind = $derived(fileKind(item));
+	const isImage = $derived(kind === 'image');
+	const isVideo = $derived(kind === 'video');
+	const isAudio = $derived(kind === 'audio');
+	const isPdf = $derived(kind === 'pdf');
+	const isText = $derived(kind === 'text');
 
 	onMount(async () => {
 		if (isText) {

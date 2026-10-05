@@ -141,3 +141,47 @@ func argPair(args []string, flag, val string) bool {
 	}
 	return false
 }
+
+// journald emits MESSAGE as an array of byte values when the payload is
+// not valid UTF-8 text. Such lines used to fail to decode and were
+// silently dropped (#597); they must come through with the bytes
+// converted to a string.
+func TestParse_ByteArrayMessage(t *testing.T) {
+	body := `{"__REALTIME_TIMESTAMP":"1716854400000000","_SYSTEMD_UNIT":"powerlab-core.service","PRIORITY":"3","MESSAGE":[98,105,110,32,111,107]}` + "\n" +
+		`{"__REALTIME_TIMESTAMP":"1716854401000000","_SYSTEMD_UNIT":"powerlab-core.service","PRIORITY":"6","MESSAGE":"text"}` + "\n"
+	entries, err := Parse([]byte(body))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("got %d entries; want 2 (byte-array MESSAGE line must not be skipped)", len(entries))
+	}
+	if entries[0].Message != "bin ok" || entries[0].Priority != 3 {
+		t.Fatalf("entry[0] = %+v; want message %q priority 3", entries[0], "bin ok")
+	}
+	if entries[1].Message != "text" {
+		t.Fatalf("entry[1].Message = %q; want %q", entries[1].Message, "text")
+	}
+}
+
+func TestDecodeMessage(t *testing.T) {
+	for _, tc := range []struct {
+		raw    string
+		want   string
+		wantOK bool
+	}{
+		{`"hello"`, "hello", true},
+		{`[104,105]`, "hi", true},
+		{`[]`, "", true},
+		{`null`, "", true},
+		{``, "", true},
+		{`[300]`, "", false},
+		{`{"a":1}`, "", false},
+		{`42`, "", false},
+	} {
+		got, ok := decodeMessage([]byte(tc.raw))
+		if got != tc.want || ok != tc.wantOK {
+			t.Errorf("decodeMessage(%s) = (%q, %v); want (%q, %v)", tc.raw, got, ok, tc.want, tc.wantOK)
+		}
+	}
+}

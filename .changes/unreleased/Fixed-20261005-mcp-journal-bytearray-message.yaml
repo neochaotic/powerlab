@@ -1,0 +1,5 @@
+kind: Fixed
+body: 'powerlab-mcp: `journal://` resources and the sensitive-tier `journal://system/*` streams no longer drop entries whose MESSAGE journald emits as a byte array (binary or non-UTF-8 payloads); the bytes are decoded to text.'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "597"

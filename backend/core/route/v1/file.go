@@ -41,16 +41,22 @@ type ListReq struct {
 // flag, modified time, type, full path, plus driver-specific
 // extension metadata (share state, mount state, etc.).
 type ObjResp struct {
-	Name       string                 `json:"name"`
-	Size       int64                  `json:"size"`
-	IsDir      bool                   `json:"is_dir"`
-	Modified   time.Time              `json:"modified"`
-	Sign       string                 `json:"sign"`
-	Thumb      string                 `json:"thumb"`
-	Type       int                    `json:"type"`
+	Name     string    `json:"name"`
+	Size     int64     `json:"size"`
+	IsDir    bool      `json:"is_dir"`
+	Modified time.Time `json:"modified"`
+	Sign     string    `json:"sign"`
+	Thumb    string    `json:"thumb"`
+	// Type is the server-side preview class (#38): one of video,
+	// audio, image, text, pdf, archive, blob; "" for directories.
+	// It replaces a legacy int field that was never set (always 0).
+	Type       string                 `json:"type"`
 	Path       string                 `json:"path"`
 	Date       time.Time              `json:"date"`
 	Extensions map[string]interface{} `json:"extensions"`
+	// Extension is the lowercase extension without the dot ("" if none).
+	Extension string `json:"extension"`
+	IsSymlink bool   `json:"is_symlink"`
 }
 
 // FsListResp is the response envelope for DirPath — paginated
@@ -65,6 +71,10 @@ type FsListResp struct {
 	Provider string    `json:"provider,omitempty"`
 	Index    int       `json:"index"`
 	Size     int       `json:"size"`
+	// NumDirs / NumFiles count the whole directory (like Total), not
+	// just the current page, for an "X folders, Y files" header.
+	NumDirs  int `json:"num_dirs"`
+	NumFiles int `json:"num_files"`
 }
 
 // upgraderFile is the package-level WebSocket upgrader used by the

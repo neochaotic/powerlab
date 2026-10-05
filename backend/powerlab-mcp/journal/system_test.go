@@ -389,3 +389,19 @@ func TestBuildSystemArgs_HasOrSeparatorBetweenFieldGroups(t *testing.T) {
 		t.Fatalf("args %v lack `+` between _SYSTEMD_UNIT group and _COMM group — journalctl ANDs across different fields without the separator, so the filter becomes empty (silent-bug class: zero entries on every host)", got)
 	}
 }
+
+// Sensitive-tier records with a byte-array MESSAGE (binary / non-UTF-8
+// payload) must be decoded, not skipped (#597).
+func TestParseSystem_ByteArrayMessage(t *testing.T) {
+	body := `{"__REALTIME_TIMESTAMP":"1716854400000000","_SYSTEMD_UNIT":"ssh.service","_HOSTNAME":"box","MESSAGE":[104,105]}` + "\n"
+	entries, err := ParseSystem([]byte(body))
+	if err != nil {
+		t.Fatalf("ParseSystem: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("entries = %d; want 1 (byte-array MESSAGE must not be skipped)", len(entries))
+	}
+	if entries[0].Message != "hi" {
+		t.Fatalf("Message = %q; want %q", entries[0].Message, "hi")
+	}
+}

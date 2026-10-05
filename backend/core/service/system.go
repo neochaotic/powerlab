@@ -344,7 +344,7 @@ func (c *systemService) GetDirPath(path string) ([]model.Path, error) {
 				logger.Error("when read dir", zap.Error(err))
 				return []model.Path{}, err
 			}
-			temp := model.Path{Name: l.Name(), Path: filePath, IsDir: l.IsDir(), Date: tempFile.ModTime(), Size: tempFile.Size()}
+			temp := model.Path{Name: l.Name(), Path: filePath, IsDir: l.IsDir(), Date: tempFile.ModTime(), Size: tempFile.Size(), IsSymlink: l.Type()&os.ModeSymlink != 0}
 			if filePath != link {
 				file, _ := os.Stat(link)
 				temp.IsDir = file.IsDir()

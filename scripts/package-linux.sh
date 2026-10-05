@@ -726,13 +726,11 @@ if [[ "${POWERLAB_NO_INSTALL_LOG:-0}" != "1" ]] && mkdir -p /var/log/powerlab 2>
 fi
 
 UPGRADE_MODE=0
-ALLOW_COEXIST=0
 for arg in "$@"; do
   case "$arg" in
     --upgrade) UPGRADE_MODE=1 ;;
-    --allow-coexist) ALLOW_COEXIST=1 ;;
     "") ;;
-    *) echo "Unknown argument: $arg (supported: --upgrade, --allow-coexist)" >&2; exit 1 ;;
+    *) echo "Unknown argument: $arg (supported: --upgrade)" >&2; exit 1 ;;
   esac
 done
 
@@ -823,11 +821,9 @@ fi
 # (issue #85) PowerLab uses io.powerlab.v1.* labels and a
 # /DATA/PowerLabAppData/ tree of its own — they are independent.
 #
-# This block used to hard-block by default and require --allow-coexist
+# This block used to hard-block by default and require an opt-in flag
 # to proceed. After ADR-0021 the technical reasons for blocking are
 # gone, so it is now a friendly notice and proceeds unconditionally.
-# The --allow-coexist flag is still accepted (silently) for backwards
-# compatibility with any operator runbooks or scripts that pass it.
 CASAOS_UNITS=$(systemctl list-unit-files --no-pager --no-legend 'casaos*.service' 2>/dev/null | awk '{print $1}' | grep -v '^$' || true)
 if [[ -n "$CASAOS_UNITS" ]]; then
   echo ""

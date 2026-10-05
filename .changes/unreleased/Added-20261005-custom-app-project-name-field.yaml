@@ -1,0 +1,5 @@
+kind: Added
+body: 'Custom App form: new "App Name (Project)" field edits the compose project `name:` (the app''s identity) with a hint that reusing a name updates the existing app.'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "543"

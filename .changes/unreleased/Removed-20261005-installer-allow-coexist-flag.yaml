@@ -1,0 +1,5 @@
+kind: Removed
+body: 'The installer no longer accepts the no-op `--allow-coexist` flag (a silent no-op since ADR-0021); passing it now fails with "Unknown argument", so drop it from runbooks.'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "202"
