@@ -36,3 +36,26 @@ GO-2026-4859  # moby/buildkit — fix v0.28.1 pulls docker/cli v29; compose not 
 GO-2026-4858  # moby/buildkit — fix v0.28.1 pulls docker/cli v29; compose not ready — #523
 GO-2026-4610  # docker/compose/v2 — no v2 fix (fixed in cli v29.2 / compose v5) — #523
 
+GO-2026-6255  # moby/buildkit — custom-frontend seccomp/AppArmor bypass; fix v0.31.1 needs the docker v29 stack; BUILDER-side, PowerLab never runs buildkitd — #523
+GO-2026-6253  # moby/go-archive — crafted tar writes outside extraction dir; fix v0.3.0 drops archive.Gzip that docker/cli v28.5.1 still calls (build breaks) — clears with docker v29 — #523
+
+# ── Fix exists ONLY in a release that requires Go >= 1.26. CI (and the
+#    shipped binaries) build with Go 1.25 + GOTOOLCHAIN=local, so the fixed
+#    version cannot be selected without a toolchain move. Every other vuln
+#    from the 2026-10 scan was cleared by a targeted Go-1.25-compatible bump
+#    (x/image, x/text, kin-openapi, gorilla/websocket, rclone 1.75.0,
+#    containerd, grpc, otel, go-getter, in-toto). These four clear
+#    as soon as CI moves to Go 1.26 and the bump below is applied.
+#    Tracking: "CI to Go 1.26" (issue to be filed with this change).
+#
+# x/crypto/ssh: reached in app-management through the docker/compose client
+# dependency stack, not PowerLab code. The deadlocked-channel DoS needs an
+# attacker-controlled SSH peer; PowerLab talks to the local docker socket.
+GO-2026-6354  # golang.org/x/crypto/ssh — DoS on deadlocked undecided channel; fix v0.56.0 needs Go 1.26 — CI Go 1.26
+GO-2026-6355  # golang.org/x/crypto/ssh — DoS on deadlocked established channel; fix v0.56.0 needs Go 1.26 — CI Go 1.26
+# rclone (local-storage mounts): upload path escape and redirect header
+# forwarding in the http backend. Remotes are configured by the
+# authenticated admin only; rclone 1.75.0 (Go 1.25) already clears
+# GO-2026-5596 and GO-2026-6181.
+GO-2026-6457  # rclone — upload object names can escape configured root; fix v1.75.1 needs Go 1.26 — CI Go 1.26
+GO-2026-6463  # rclone — http backend forwards auth headers on cross-host redirect; fix v1.75.1 needs Go 1.26 — CI Go 1.26
