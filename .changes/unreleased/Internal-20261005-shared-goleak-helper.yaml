@@ -1,0 +1,5 @@
+kind: Internal
+body: 'Backend tests share one goleak helper (`backend/common/utils/testutil`) with the common ignore options (HTTP keep-alive loops, opencensus worker, go-socket.io accept loop) instead of copying `IgnoreTopFunction` strings into each test file. Leak checks behave exactly as before.'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "173"
