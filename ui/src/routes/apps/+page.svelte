@@ -8,7 +8,6 @@
 	import { getAuthToken } from '$lib/api/client';
 	import ContainerLogs from '$lib/components/apps/ContainerLogs.svelte';
 	import AppMetrics from '$lib/components/apps/AppMetrics.svelte';
-	import Markdown from '$lib/components/ui/Markdown.svelte';
 	import { detectAppSource, appSourceLabel } from '$lib/utils/app-source';
 	import { analyzeComposeYaml } from '$lib/utils/composeAnalysis';
 	import InstallProgressBar from '$lib/components/apps/InstallProgressBar.svelte';
@@ -20,11 +19,10 @@
 	import { Button } from '$lib/components/ui/button';
 	import {
 		ArrowLeft, Search, X, Package, Pencil, ArrowUpCircle,
-		Play, Square, Activity, ScrollText, Trash2, ChevronRight, RefreshCw, Plus, CheckCircle2, Loader2, AlertCircle, ArrowRight, Boxes, Minimize2
+		Play, Square, Activity, ScrollText, Trash2, ChevronRight, RefreshCw, Plus, Loader2, ArrowRight, Boxes, Minimize2
 	} from 'lucide-svelte';
 	import { cn } from '$lib/utils';
 	import { parseLatestPhase, phaseProgress } from '$lib/utils/install-phase';
-	import { fade, scale } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { ui } from '$lib/stores/ui.svelte';
@@ -32,6 +30,8 @@
 	import ForkAppModal from '$lib/components/apps/ForkAppModal.svelte';
 	import UninstallAppModal from '$lib/components/apps/UninstallAppModal.svelte';
 	import UpdateAppModal from '$lib/components/apps/UpdateAppModal.svelte';
+	import InstallConfirmModal, { type PortChoice } from '$lib/components/apps/InstallConfirmModal.svelte';
+	import DetailModal from '$lib/components/apps/DetailModal.svelte';
 	import DockerUnavailableBanner from '$lib/components/apps/DockerUnavailableBanner.svelte';
 
 	const store = useAppStore();
@@ -286,11 +286,7 @@
 
 	// Each conflicting port gets an editable choice. The user can accept the
 	// suggestion or type a different number; live validation gates Install.
-	type PortChoice = {
-		original: number;
-		chosen: string;                                  // bound to the input
-		status: 'free' | 'inuse' | 'invalid' | 'checking';
-	};
+	// PortChoice type lives with InstallConfirmModal (imported above).
 	let portChoices = $state<PortChoice[]>([]);
 	let portCheckTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -1131,129 +1127,20 @@
 	<AppMetrics appId={selectedAppId} onClose={() => showMetricsModal = false} />
 {/if}
 
-{#if installPhase === 'confirm' && pendingInstallApp}
-	<div class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
-		<div class="w-full max-w-sm rounded-t-[2rem] border border-white/8 bg-zinc-900 p-6 sm:rounded-2xl">
-			<div class="mb-4 flex items-center gap-3">
-				{#if pendingInstallApp.icon}
-					<img src={pendingInstallApp.icon} alt="" class="h-12 w-12 rounded-xl" onerror={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
-				{:else}
-					<div class="flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-800"><Package class="h-6 w-6 text-zinc-500" /></div>
-				{/if}
-				<div>
-					<p class="font-semibold text-white">{getTitle(pendingInstallApp.title)}</p>
-					<p class="text-xs text-zinc-500">{pendingInstallApp.developer || pendingInstallApp.author}</p>
-				</div>
-			</div>
-			<p class="mb-4 text-sm text-zinc-400">
-				{t('apps.pullingImage')}
-			</p>
-
-			{#if pendingInstallApp.tips?.before_install && getTitle(pendingInstallApp.tips.before_install)}
-				<!-- x-casaos.tips.before_install — initial-password / first-run
-					 hints supplied by the app's compose YAML. Surfaced here
-					 before the user clicks Install so they know what to
-					 grab post-install (admin tokens auto-written to disk,
-					 default credentials baked into the image, etc). Without
-					 this, half the catalogue is effectively unusable for
-					 anyone who hasn't memorised every app's quirks. -->
-				<div class="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] p-3">
-					<div class="flex items-start gap-2">
-						<AlertCircle class="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-400/90" />
-						<div class="flex-1 min-w-0">
-							<p class="mb-1 text-[10px] font-bold uppercase tracking-widest text-amber-400">{t('apps.firstRunNote')}</p>
-							<div class="text-[11px] leading-relaxed text-amber-100/80 whitespace-pre-wrap break-words">{getTitle(pendingInstallApp.tips.before_install)}</div>
-						</div>
-					</div>
-				</div>
-			{/if}
-
-			{#if isCheckingCompatibility}
-				<div class="mb-5 flex items-center gap-2 rounded-xl bg-white/5 p-3 text-xs text-zinc-500">
-					<Loader2 class="h-3 w-3 animate-spin" />
-					{t('status.loading')}…
-				</div>
-			{:else}
-				{#if compatibilityWarnings.length > 0}
-					<div class="mb-3 space-y-2">
-						<p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('apps.compatibilityWarnings')}</p>
-						<div class="space-y-1.5">
-							{#each compatibilityWarnings as warning}
-								<div class="flex items-start gap-2 rounded-xl bg-amber-500/10 p-2.5 text-[11px] leading-tight text-amber-200/80 border border-amber-500/10">
-									<AlertCircle class="h-3 w-3 shrink-0 mt-0.5 text-amber-500" />
-									<span>{warning}</span>
-								</div>
-							{/each}
-						</div>
-					</div>
-				{/if}
-
-				{#if portChoices.length > 0}
-					<div class="mb-3 space-y-2">
-						<p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('apps.portConflicts')}</p>
-						<div class="space-y-2">
-							{#each portChoices as choice}
-								<div class="flex items-center gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
-									<span class="font-mono text-xs text-zinc-500 line-through">{choice.original}</span>
-									<span class="text-zinc-700">→</span>
-									<input
-										type="number"
-										min="1"
-										max="65535"
-										bind:value={choice.chosen}
-										oninput={onPortInput}
-										class={cn(
-											'w-20 rounded-md border bg-white/[0.03] px-2 py-1 text-center font-mono text-xs outline-none transition-colors',
-											choice.status === 'free' && 'border-emerald-500/30 text-emerald-300 focus:border-emerald-500/60',
-											choice.status === 'inuse' && 'border-red-500/40 text-red-300 focus:border-red-500/70',
-											choice.status === 'invalid' && 'border-red-500/40 text-red-300',
-											choice.status === 'checking' && 'border-white/10 text-zinc-400'
-										)}
-									/>
-									{#if choice.status === 'checking'}
-										<Loader2 class="h-3.5 w-3.5 animate-spin text-zinc-500" />
-									{:else if choice.status === 'free'}
-										<CheckCircle2 class="h-3.5 w-3.5 text-emerald-400" />
-									{:else}
-										<AlertCircle class="h-3.5 w-3.5 text-red-400" />
-									{/if}
-									{#if choice.status === 'inuse' || choice.status === 'invalid'}
-										<button
-											type="button"
-											onclick={() => autoPickPort(choice)}
-											class="ml-auto rounded-md bg-white/[0.04] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-300 transition-colors hover:bg-white/[0.08]"
-										>
-											Auto
-										</button>
-									{/if}
-								</div>
-							{/each}
-						</div>
-						<p class="px-1 text-[10px] text-zinc-600">
-							{portsResolved
-								? t('apps.portsFreeDesc')
-								: t('apps.editPortsDesc')}
-						</p>
-					</div>
-				{/if}
-			{/if}
-
-			<div class="flex gap-2">
-				<Button variant="ghost" class="flex-1 rounded-xl" onclick={() => { installPhase = 'idle'; pendingInstallApp = null; }}>Cancel</Button>
-				<Button
-					class={cn(
-						'flex-1 rounded-xl font-bold',
-						hasCriticalWarning ? 'bg-red-600 text-white hover:bg-red-500' : ''
-					)}
-					disabled={isCheckingCompatibility || !portsResolved}
-					onclick={executeInstall}
-				>
-					{hasCriticalWarning ? t('apps.installAnyway') : t('action.start')}
-				</Button>
-			</div>
-		</div>
-	</div>
-{/if}
+<InstallConfirmModal
+	app={installPhase === 'confirm' ? pendingInstallApp : null}
+	title={pendingInstallApp ? getTitle(pendingInstallApp.title) : ''}
+	beforeInstallTip={pendingInstallApp?.tips?.before_install ? getTitle(pendingInstallApp.tips.before_install) : ''}
+	isChecking={isCheckingCompatibility}
+	warnings={compatibilityWarnings}
+	{hasCriticalWarning}
+	bind:portChoices
+	{portsResolved}
+	{onPortInput}
+	onAutoPick={autoPickPort}
+	onCancel={() => { installPhase = 'idle'; pendingInstallApp = null; }}
+	onConfirm={executeInstall}
+/>
 
 <ForkAppModal
 	open={forkingAppId !== null}
@@ -1303,119 +1190,19 @@
 	onCheckLaunchpad={closeInstallOverlay}
 />
 <!-- App Detail Modal -->
-{#if detailApp}
-	{@const appTitle = getTitle(detailApp.title)}
-	{@const appTagline = getTitle(detailApp.tagline)}
-	{@const appDesc = getTitle(detailApp.description)}
-	
-	<!-- svelte-ignore a11y_click_events_have_key_events -->
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div 
-		class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-md"
-		onclick={() => detailApp = null}
-		transition:fade={{ duration: 200 }}
-	>
-		<!-- svelte-ignore a11y_click_events_have_key_events -->
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div 
-			class="relative w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-[2.5rem] border border-white/[0.08] bg-zinc-900 shadow-[0_32px_64px_rgba(0,0,0,0.5)]"
-			onclick={(e) => e.stopPropagation()}
-		>
-			<!-- Close button -->
-			<button 
-				class="absolute right-6 top-6 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-zinc-400 backdrop-blur-md transition-all hover:bg-white/10 hover:text-white"
-				onclick={() => detailApp = null}
-			>
-				<X class="h-5 w-5" />
-			</button>
-
-			<div class="flex-1 overflow-y-auto p-8 pt-10 scrollbar-none" style="scrollbar-width: none">
-				<!-- Header Section -->
-				<div class="flex flex-col items-center text-center sm:flex-row sm:text-left sm:items-start gap-6">
-					<div class="h-24 w-24 shrink-0 shadow-2xl">
-						{#if detailApp.icon}
-							<img src={detailApp.icon} alt={appTitle} class="h-24 w-24 rounded-[2rem] object-contain bg-white/[0.05] border border-white/10" />
-						{:else}
-							<div class="flex h-24 w-24 items-center justify-center rounded-[2rem] bg-white/[0.05] border border-white/10">
-								<Package class="h-10 w-10 text-zinc-500" />
-							</div>
-						{/if}
-					</div>
-					<div class="flex-1 pt-1">
-						<h1 class="text-2xl font-black tracking-tight text-white">{appTitle}</h1>
-						<p class="text-sm font-medium text-emerald-500">{detailApp.developer || detailApp.author || 'Independent Developer'}</p>
-						{#if appTagline && appTagline !== 'Unknown'}
-							<p class="mt-2 text-sm leading-relaxed text-zinc-400">{appTagline}</p>
-						{/if}
-						<div class="mt-4 flex flex-wrap justify-center sm:justify-start gap-2">
-							{#if detailApp.category}
-								<span class="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400">{detailApp.category}</span>
-							{/if}
-						</div>
-					</div>
-				</div>
-
-				<!-- Screenshots Carrousel -->
-				{#if detailApp.screenshot_link && detailApp.screenshot_link.length > 0}
-					<div class="mt-10 overflow-hidden">
-						<h3 class="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">{t('apps.preview')}</h3>
-						<div class="flex gap-4 overflow-x-auto pb-2 scrollbar-none" style="scrollbar-width: none">
-							{#each detailApp.screenshot_link as shot}
-								<img src={shot} alt="Screenshot" class="h-48 rounded-2xl border border-white/10 bg-white/[0.02] shadow-lg" />
-							{/each}
-						</div>
-					</div>
-				{/if}
-
-				<!-- Description Section -->
-				<div class="mt-10">
-					<h3 class="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">{t('apps.aboutThisApp')}</h3>
-					<Markdown content={appDesc} />
-				</div>
-
-				{#if detailApp.tips?.custom}
-					<!-- x-casaos.tips.custom — post-install hint with config
-						 instructions, env-var overrides, default credentials,
-						 etc. Rendered as markdown so apps that already use
-						 bullet lists / code spans display correctly. -->
-					<div class="mt-10">
-						<h3 class="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">{t('apps.firstRunNote')}</h3>
-						<div class="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-5">
-							<Markdown content={detailApp.tips.custom} />
-						</div>
-					</div>
-				{/if}
-
-				{#if detailApp.tips?.before_install && getTitle(detailApp.tips.before_install)}
-					<div class="mt-6">
-						<h3 class="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">{t('apps.beforeYouInstall')}</h3>
-						<div class="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-5 text-sm leading-relaxed text-amber-100/80 whitespace-pre-wrap break-words">{getTitle(detailApp.tips.before_install)}</div>
-					</div>
-				{/if}
-			</div>
-
-			<!-- Footer Action -->
-			<div class="border-t border-white/[0.08] bg-white/[0.02] p-6 backdrop-blur-xl">
-				<div class="flex items-center justify-between gap-4">
-					<div class="hidden sm:block">
-						<p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('apps.openSource')}</p>
-						<p class="text-xs text-zinc-400">{t('apps.verifiedInstallation')}</p>
-					</div>
-					<Button 
-						class="h-12 w-full sm:w-40 rounded-2xl bg-white text-zinc-950 font-bold hover:bg-emerald-500 hover:text-zinc-950 transition-all shadow-[0_8px_24px_rgba(255,255,255,0.15)] active:scale-95"
-						onclick={() => { 
-							const app = detailApp;
-							detailApp = null; 
-							if (app) requestInstall(app); 
-						}}
-					>
-						{t('apps.get')}
-					</Button>
-				</div>
-			</div>
-		</div>
-	</div>
-{/if}
+<DetailModal
+	app={detailApp}
+	title={detailApp ? getTitle(detailApp.title) : ''}
+	tagline={detailApp ? getTitle(detailApp.tagline) : ''}
+	description={detailApp ? getTitle(detailApp.description) : ''}
+	beforeInstallTip={detailApp?.tips?.before_install ? getTitle(detailApp.tips.before_install) : ''}
+	onClose={() => detailApp = null}
+	onGet={() => {
+		const app = detailApp;
+		detailApp = null;
+		if (app) requestInstall(app);
+	}}
+/>
 
 <UpdateAppModal
 	app={confirmingUpdate}
