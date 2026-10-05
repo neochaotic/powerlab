@@ -1,0 +1,5 @@
+kind: Internal
+body: 'Regression test: the app-management OpenAPI validator accepts `PUT /compose/{id}/status` with a bare JSON string body (`"stop"`/`"start"`/`"restart"`) and rejects the object form (`{"status":"stop"}`) that froze the UI in v0.1.x.'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "32"
