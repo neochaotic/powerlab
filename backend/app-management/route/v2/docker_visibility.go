@@ -20,6 +20,8 @@ package v2
 import (
 	"context"
 	"net/http"
+	"sort"
+	"strconv"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -75,14 +77,14 @@ var newDockerVisibilityClient = func() (dockerVisibilityClient, error) {
 // these fields explicitly. Names are flattened (no leading slash),
 // labels passed through verbatim.
 type DockerVisibilityContainer struct {
-	ID        string                                `json:"id"`
-	Name      string                                `json:"name"`
-	Image     string                                `json:"image"`
-	State     string                                `json:"state"`
-	Status    string                                `json:"status"`
-	Ports     []DockerVisibilityPort                `json:"ports"`
-	CreatedAt int64                                 `json:"created_at"`
-	Labels    map[string]string                     `json:"labels"`
+	ID        string                 `json:"id"`
+	Name      string                 `json:"name"`
+	Image     string                 `json:"image"`
+	State     string                 `json:"state"`
+	Status    string                 `json:"status"`
+	Ports     []DockerVisibilityPort `json:"ports"`
+	CreatedAt int64                  `json:"created_at"`
+	Labels    map[string]string      `json:"labels"`
 }
 
 // DockerVisibilityPort is the published-port view — host:container with
@@ -276,11 +278,65 @@ func (a *AppManagement) DockerNetworks(ctx echo.Context) error {
 		return ctx.JSON(http.StatusServiceUnavailable, dockerVisibilityError(err))
 	}
 
+	// Enrichment: the daemon's /networks endpoint leaves Summary.Containers
+	// empty (only per-network inspect fills it — #652), so build the
+	// network → members reverse index from ContainerList, which carries
+	// NetworkSettings.Networks per container. One daemon roundtrip covers
+	// every network. All=true so stopped containers still show their
+	// configured attachments. Failure is non-fatal: attached_containers
+	// stays empty and the listing still returns 200.
+	var membersByNetwork map[string][]DockerVisibilityNetworkMember
+	if containers, lsErr := cli.ContainerList(callCtx, container.ListOptions{All: true}); lsErr == nil {
+		membersByNetwork = networkMembersFromContainers(containers)
+	}
+
 	out := DockerVisibilityNetworksResponse{Networks: make([]DockerVisibilityNetwork, 0, len(raw))}
 	for _, n := range raw {
-		out.Networks = append(out.Networks, toDockerVisibilityNetwork(n))
+		out.Networks = append(out.Networks, toDockerVisibilityNetwork(n, membersByNetwork))
 	}
 	return ctx.JSON(http.StatusOK, out)
+}
+
+// networkMembersFromContainers walks each container's
+// NetworkSettings.Networks and returns network ID → attached members.
+// Endpoints whose NetworkID is empty (not expected from a real daemon)
+// are indexed by network name under networkNameKey so the lookup in
+// toDockerVisibilityNetwork can still match them.
+func networkMembersFromContainers(containers []container.Summary) map[string][]DockerVisibilityNetworkMember {
+	out := map[string][]DockerVisibilityNetworkMember{}
+	for _, c := range containers {
+		if c.NetworkSettings == nil {
+			continue
+		}
+		name := firstContainerName(c.Names)
+		for netName, ep := range c.NetworkSettings.Networks {
+			if ep == nil {
+				continue
+			}
+			key := ep.NetworkID
+			if key == "" {
+				key = networkNameKey(netName)
+			}
+			ipv4 := ep.IPAddress
+			if ipv4 != "" && ep.IPPrefixLen > 0 {
+				// Same CIDR form the daemon uses in network inspect's
+				// EndpointResource.IPv4Address.
+				ipv4 += "/" + strconv.Itoa(ep.IPPrefixLen)
+			}
+			out[key] = append(out[key], DockerVisibilityNetworkMember{
+				ID:   c.ID,
+				Name: name,
+				IPv4: ipv4,
+			})
+		}
+	}
+	return out
+}
+
+// networkNameKey namespaces the name-keyed fallback so a network name
+// can never collide with a network ID in membersByNetwork.
+func networkNameKey(name string) string {
+	return "name:" + name
 }
 
 // DockerVolumes handles GET /v2/app_management/docker/volumes.
@@ -500,10 +556,12 @@ func toDockerVisibilityContainer(c container.Summary) DockerVisibilityContainer 
 }
 
 // toDockerVisibilityNetwork projects network.Inspect/Summary onto the
-// stable wire shape. attached_containers is derived from the
-// Containers map (id → EndpointResource); empty when no containers
-// are connected.
-func toDockerVisibilityNetwork(n network.Summary) DockerVisibilityNetwork {
+// stable wire shape. attached_containers merges the Summary's
+// Containers map (id → EndpointResource; empty from NetworkList on a
+// real daemon) with the ContainerList-derived index, deduplicated by
+// container ID and sorted by name; an empty array when no containers
+// are connected or the index is unavailable.
+func toDockerVisibilityNetwork(n network.Summary, membersByNetwork map[string][]DockerVisibilityNetworkMember) DockerVisibilityNetwork {
 	configs := make([]DockerVisibilityIPAMConfig, 0, len(n.IPAM.Config))
 	for _, cfg := range n.IPAM.Config {
 		configs = append(configs, DockerVisibilityIPAMConfig{
@@ -512,13 +570,30 @@ func toDockerVisibilityNetwork(n network.Summary) DockerVisibilityNetwork {
 		})
 	}
 	members := make([]DockerVisibilityNetworkMember, 0, len(n.Containers))
+	seen := map[string]bool{}
 	for id, ep := range n.Containers {
+		seen[id] = true
 		members = append(members, DockerVisibilityNetworkMember{
 			ID:   id,
 			Name: ep.Name,
 			IPv4: ep.IPv4Address,
 		})
 	}
+	indexed := append([]DockerVisibilityNetworkMember{}, membersByNetwork[n.ID]...)
+	indexed = append(indexed, membersByNetwork[networkNameKey(n.Name)]...)
+	for _, m := range indexed {
+		if seen[m.ID] {
+			continue
+		}
+		seen[m.ID] = true
+		members = append(members, m)
+	}
+	sort.Slice(members, func(i, j int) bool {
+		if members[i].Name != members[j].Name {
+			return members[i].Name < members[j].Name
+		}
+		return members[i].ID < members[j].ID
+	})
 	return DockerVisibilityNetwork{
 		ID:     n.ID,
 		Name:   n.Name,

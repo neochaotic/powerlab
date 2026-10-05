@@ -1,0 +1,5 @@
+kind: Fixed
+body: '`docker://networks` (`/v2/app_management/docker/networks`) now fills `attached_containers[]` on real installs: members come from ContainerList''s per-container network settings, since the daemon''s network listing leaves them empty.'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "652"
