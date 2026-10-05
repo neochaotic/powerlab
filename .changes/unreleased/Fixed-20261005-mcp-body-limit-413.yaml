@@ -1,0 +1,5 @@
+kind: Fixed
+body: 'powerlab-mcp: an oversize POST to `/mcp` (over 1 MiB) now gets `413 Payload Too Large` instead of a generic `400`, both for a declared Content-Length and for chunked bodies.'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "606"
