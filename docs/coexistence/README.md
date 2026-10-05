@@ -52,7 +52,7 @@ sudo systemctl start powerlab-app-management
 
 ## install.sh behavior on a coexistence host
 
-Pre-ADR-0021 the installer hard-blocked when CasaOS was detected, requiring a `--allow-coexist` flag. It now proceeds with a friendly notice describing the now-clean coexistence:
+Pre-ADR-0021 the installer hard-blocked when CasaOS was detected, requiring an opt-in flag. It now proceeds with a friendly notice describing the now-clean coexistence:
 
 ```
 ⓘ  Existing CasaOS installation detected — proceeding.
@@ -73,7 +73,7 @@ Pre-ADR-0021 the installer hard-blocked when CasaOS was detected, requiring a `-
    for PowerLab; http://<this-host>/ continues to serve CasaOS.
 ```
 
-The `--allow-coexist` flag is preserved as a silently-accepted no-op so any operator runbooks that pass it continue to work.
+The old `--allow-coexist` flag was kept as a silent no-op through v0.5.x and has since been removed: passing it now fails with `Unknown argument: --allow-coexist`. Drop it from any runbooks.
 
 ## Verifying isolation
 
