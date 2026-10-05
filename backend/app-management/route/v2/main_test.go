@@ -3,12 +3,11 @@ package v2_test
 import (
 	"testing"
 
-	"go.uber.org/goleak"
+	"github.com/neochaotic/powerlab/backend/common/utils/testutil"
 )
 
 func TestMain(m *testing.M) {
-	// IgnoreCurrent captures goroutines started by library init() functions
-	// (e.g. ecache background GC, opencensus worker) before any test runs.
-	opt := goleak.IgnoreCurrent()
-	goleak.VerifyTestMain(m, opt)
+	// Goroutines started by library init() functions (e.g. ecache
+	// background GC, opencensus worker) are ignored by VerifyTestMain.
+	testutil.VerifyTestMain(m)
 }

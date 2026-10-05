@@ -10,17 +10,13 @@ We use `uber-go/goleak` to ensure no goroutine leaks are introduced in our busin
 Some libraries (e.g., `ecache`, `opencensus`) start background goroutines in their `init()` functions that cannot be stopped. To prevent these from failing our tests:
 
 1.  **Use `TestMain`:** Centralize goleak verification in a `TestMain` function for each service.
-2.  **`goleak.IgnoreCurrent()`:** Use this at the beginning of `TestMain` to capture and ignore all goroutines that are already running before the tests start.
-3.  **Specific Ignores:** Add `goleak.IgnoreTopFunction` for known lingering goroutines (like HTTP keep-alive loops) that might start during tests but aren't leaks in our code.
+2.  **Use the shared helper:** `backend/common/utils/testutil` (every service module already requires `backend/common`). `testutil.VerifyTestMain(m, opts...)` wraps `goleak.VerifyTestMain` and adds `goleak.IgnoreCurrent()`, so goroutines already running before the tests start are ignored.
+3.  **Specific Ignores:** Reuse the shared options for known lingering goroutines instead of copying `goleak.IgnoreTopFunction` strings: `testutil.HTTPClientIgnores()` (HTTP keep-alive loops), `testutil.OpenCensusIgnore()`, `testutil.SocketIOIgnore()`. Add a new shared option there when a second package needs the same ignore.
 
 Example `TestMain` structure:
 ```go
 func TestMain(m *testing.M) {
-    opt := goleak.IgnoreCurrent()
-    goleak.VerifyTestMain(m, opt,
-        goleak.IgnoreTopFunction("net/http.(*persistConn).readLoop"),
-        // ...
-    )
+    testutil.VerifyTestMain(m, testutil.HTTPClientIgnores()...)
 }
 ```
 

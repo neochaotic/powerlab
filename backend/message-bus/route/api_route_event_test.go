@@ -9,6 +9,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/labstack/echo/v4"
+	"github.com/neochaotic/powerlab/backend/common/utils/testutil"
 	"github.com/neochaotic/powerlab/backend/message-bus/model"
 	"github.com/neochaotic/powerlab/backend/message-bus/repository"
 	"github.com/neochaotic/powerlab/backend/message-bus/service"
@@ -25,7 +26,7 @@ func TestEventRoute(t *testing.T) {
 	// THIS test creates, not eternal package-init goroutines.
 	defer goleak.VerifyNone(
 		t,
-		goleak.IgnoreTopFunction("github.com/CorrectRoadH/go-socket.io/engineio.(*Server).Accept"), // there is a goroutine leak in go-socket.io
+		testutil.SocketIOIgnore(), // there is a goroutine leak in go-socket.io
 		goleak.IgnoreCurrent(),
 	)
 
