@@ -94,6 +94,7 @@ Read-only data the agent can fetch by URI. URIs use stable schemes; templates us
 | `docs://concepts/{name}` | PowerLab concept documentation (compose-conventions, security, audit). |
 | `docs://api/{name}` | Bundled OpenAPI specs. |
 | `system://memory`, `system://disk`, `system://services`, `system://updates`, `system://network`, `system://kernel`, `system://processes`, `system://gpu` | Live host telemetry. Aggregated via `get_system_health`. |
+| `system://build` | Full build identity (version, commit, date). The unauthenticated `/version` endpoint returns only `{"version"}`. |
 | `prompt://{name}` | Direct read of a Prompt's bundled message set (for clients that don't render Prompts natively). |
 
 ## Capability tiers — operator opt-in

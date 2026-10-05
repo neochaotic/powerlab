@@ -46,8 +46,10 @@ const MCPEndpointPath = "/mcp"
 // headroom while bounding the blast radius.
 const maxMCPRequestBytes = 1 << 20
 
-// BuildInfo carries the ldflags-injected build identity surfaced by
-// /version. main sets these from -X main.{version,commit,date}.
+// BuildInfo carries the ldflags-injected build identity. main sets
+// these from -X main.{version,commit,date}. The unauthenticated
+// /version endpoint only exposes Version; the full identity (commit +
+// date) is served by the gated system://build MCP resource (#607).
 type BuildInfo struct {
 	Version string `json:"version"`
 	Commit  string `json:"commit"`
@@ -153,6 +155,7 @@ func newServer(info BuildInfo, pubKey publicKeyFunc, rc resourcesConfig) *Server
 func newMCPServer(info BuildInfo, rc resourcesConfig, journalRun journal.Runner) *mcp.Server {
 	m := mcp.NewServer(&mcp.Implementation{Name: "powerlab-mcp", Version: info.Version}, nil)
 	registerSystemSchema(m)
+	registerSystemBuild(m, info)
 	registerSystemMetrics(m, rc.procRoot)
 	registerSystemUtilization(m, rc.coreClient)
 	registerSystemDisk(m, rc.coreClient)
@@ -362,8 +365,14 @@ func (s *Server) handleHealthz(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write([]byte("ok\n"))
 }
 
-// handleVersion returns the ldflags-injected build identity as JSON.
+// handleVersion returns only the release version as JSON. /version is
+// unauthenticated (loopback + LAN), so it deliberately omits the commit
+// hash and build date: an exact commit lets a LAN-resident attacker
+// fingerprint which fixes the box is missing (#607). The full BuildInfo
+// is available behind the auth gate via the system://build resource.
 func (s *Server) handleVersion(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(s.info)
+	_ = json.NewEncoder(w).Encode(struct {
+		Version string `json:"version"`
+	}{s.info.Version})
 }
