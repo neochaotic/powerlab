@@ -160,3 +160,50 @@ func TestParseTokenFallsBackToGatewaySockWhenUserServiceAddressFileMissing(t *te
 		t.Fatalf("expected gateway response, got %+v", parsed)
 	}
 }
+
+func TestJWKSHTTPClientHasTimeout(t *testing.T) {
+	if jwksHTTPClient.Timeout != 5*time.Second {
+		t.Fatalf("jwksHTTPClient.Timeout = %v, want 5s", jwksHTTPClient.Timeout)
+	}
+}
+
+func TestGetPublicKeyTimesOutOnSlowUserService(t *testing.T) {
+	release := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-release:
+		case <-r.Context().Done():
+		}
+	}))
+	t.Cleanup(server.Close)
+	t.Cleanup(func() { close(release) })
+
+	runtimePath := t.TempDir()
+	if err := os.WriteFile(filepath.Join(runtimePath, UserServiceAddressFilename), []byte(server.URL), 0o600); err != nil {
+		t.Fatalf("write address file: %v", err)
+	}
+
+	origClient, origKey := jwksHTTPClient, cachedPublicKey
+	jwksHTTPClient = &http.Client{Timeout: 100 * time.Millisecond}
+	cachedPublicKey = nil
+	t.Cleanup(func() { jwksHTTPClient, cachedPublicKey = origClient, origKey })
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := GetPublicKey(runtimePath)
+		done <- err
+	}()
+
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("GetPublicKey succeeded against a hung server, want timeout error")
+		}
+		var netErr net.Error
+		if !errors.As(err, &netErr) || !netErr.Timeout() {
+			t.Fatalf("GetPublicKey error = %v, want a timeout error", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("GetPublicKey did not return: JWKS fetch is unbounded")
+	}
+}
