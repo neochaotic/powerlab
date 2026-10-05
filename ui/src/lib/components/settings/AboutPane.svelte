@@ -1,7 +1,7 @@
 <script lang="ts">
 	import {
 		RefreshCw, ExternalLink, Sparkles, Container, Zap, Heart,
-		Code2, Info, Scale, Boxes
+		Code2, Info, Scale, Boxes, ShieldCheck
 	} from 'lucide-svelte';
 	import { cn } from '$lib/utils';
 	import { t } from '$lib/i18n/index.svelte';
@@ -165,6 +165,33 @@
 		{:else}
 			<p class="text-[12px] text-zinc-500">Click "Check now" to fetch the latest manifest.</p>
 		{/if}
+	</div>
+
+	<!-- Privacy card (issue #31) -->
+	<div
+		data-testid="privacy-card"
+		class="flex flex-col gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 sm:flex-row sm:items-center sm:justify-between"
+	>
+		<div class="flex items-start gap-3">
+			<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/[0.12]">
+				<ShieldCheck class="h-4 w-4 text-emerald-400" strokeWidth={2} />
+			</div>
+			<div>
+				<h3 class="text-sm font-semibold text-white">Privacy — no telemetry</h3>
+				<p class="mt-1 text-[12px] leading-relaxed text-zinc-500">
+					PowerLab does not collect, transmit or analyse any usage data. The server only reaches out to pull Docker images and check their registries for updates, to fetch the PowerLab release manifest from GitHub, and to sync app stores you add yourself.
+				</p>
+			</div>
+		</div>
+		<a
+			href="https://github.com/neochaotic/powerlab/blob/main/PRIVACY.md"
+			target="_blank"
+			rel="noopener"
+			class="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-emerald-400 hover:text-emerald-300"
+		>
+			Every outbound call
+			<ExternalLink class="h-3 w-3" />
+		</a>
 	</div>
 
 	<!-- Highlights -->
