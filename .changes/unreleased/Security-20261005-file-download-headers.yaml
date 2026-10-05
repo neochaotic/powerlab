@@ -1,0 +1,5 @@
+kind: Security
+body: 'Files: downloads and previews (`/v1/file`, `/v1/batch`) now send `Content-Security-Policy` and `X-Content-Type-Options: nosniff`, so an uploaded .html or .svg cannot run script in the panel origin, and `Content-Disposition` actually reaches the browser with an RFC 6266 `filename*=` so non-ASCII names (e.g. relatório.pdf) download correctly.'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "39"
