@@ -1,0 +1,5 @@
+kind: Internal
+body: 'App Store page: the install-confirm (port-conflict) and app-detail modals are extracted into InstallConfirmModal and DetailModal components with their own tests; no behaviour change.'
+time: 2026-10-05T00:00:00Z
+custom:
+  Issue: "295"
