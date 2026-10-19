@@ -38,13 +38,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # mkdocs's git-revision-date plugin would need full history;
           # we don't use it yet but keep this here for the day we do.
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -55,7 +55,7 @@ jobs:
       # source = Go files, generated artifact = lives only at build
       # time. Avoids the "diff churn on every refactor of internal
       # types" anti-pattern flagged in the day-1 self-review (#200).
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: '1.25'
           cache-dependency-path: backend/pkg/go.sum
@@ -81,7 +81,7 @@ jobs:
 
       - name: Upload Pages artifact
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: docs-site
 
@@ -94,4 +94,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
